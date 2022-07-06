@@ -8,6 +8,8 @@
 #property version   "1.00"
 #property strict
 
+#include <SummitCapitalMT4\Classes\MB.mqh>
+
 class CMBTracker
 {
    private:
@@ -31,11 +33,7 @@ class CMBTracker
       int mPendingBullishMBLowIndex;
       int mPendingBearishMBHighIndex;
       
-      int mMBType[];
-      int mMBStartIndex[];
-      int mMBEndIndex[];
-      int mMBHighIndex[];
-      int mMBLowIndex[];
+      CMB* mMBs[];
       
       // --- MB Range Tracking
       double mMBRangeHigh;
@@ -46,21 +44,29 @@ class CMBTracker
           
       // --- Methods
       void Update();
+      
       void CalculateMB(int barIndex);
+      void CreateMB(int mbType, int startIndex, int endIndex, int highIndex, int lowIndex);
+      
       void CheckSetRetracement(int startingIndex, int mbType, int prevMBType);
       void CheckSetPendingMB(int startingIndex, int mbType);
-      void CreateMB(int mbType, int startIndex, int endIndex, int highIndex, int lowIndex);
+      
       void ResetTracking();
+      
+      void CalculateZones(int startIndex, int endIndex, int mbType);
 
    public:
       CMBTracker();
       CMBTracker(string symbol, ENUM_TIMEFRAMES timeFrame, int mbsToTrack);
+      
       ~CMBTracker();
       
       void init(string symbol, ENUM_TIMEFRAMES timeFrame, int mbsToTrack);
-      bool GetMBs(int startIndex, int endIndex, bool initialFetch, int &mbArray[][]);
+      
+      // bool GetMBs(int startIndex, int endIndex, bool initialFetch, int &mbArray[][]);
+      
       void PrintMBs(int startIndex, int endIndex);
-      void PrintArrayLengths(int startIndex, int endIndex);
+      
       void DrawMBs(int startIndex, int endIndex);
 };
 
@@ -90,18 +96,8 @@ void CMBTracker::init(string symbol,ENUM_TIMEFRAMES timeFrame, int mbsToTrack)
    
    mCurrentBullishRetracementIndex = -1;
    mCurrentBearishRetracementIndex = -1;
-    
-   ArrayResize(mMBType, mbsToTrack);
-   ArrayResize(mMBStartIndex, mbsToTrack);
-   ArrayResize(mMBEndIndex, mbsToTrack);
-   ArrayResize(mMBHighIndex, mbsToTrack);
-   ArrayResize(mMBLowIndex, mbsToTrack);
    
-   ArrayFill(mMBType, 0, mbsToTrack, -1);
-   ArrayFill(mMBStartIndex,0, mbsToTrack, -1);
-   ArrayFill(mMBEndIndex, 0, mbsToTrack, -1);
-   ArrayFill(mMBHighIndex, 0, mbsToTrack, -1);
-   ArrayFill(mMBLowIndex, 0, mbsToTrack, -1);
+   ArrayResize(mMBs, mbsToTrack);
    
    Update();
 }
@@ -139,7 +135,7 @@ void CMBTracker::Update()
 
 void CMBTracker::CalculateMB(int barIndex)
 {
-   if (mMBType[mMBsToTrack - 1] == -1)
+   if (CheckPointer(mMBs[mMBsToTrack - 1]) == POINTER_INVALID)
    {
       CheckSetRetracement(barIndex, OP_BUY, -1);
       CheckSetPendingMB(barIndex, OP_BUY);
@@ -163,7 +159,7 @@ void CMBTracker::CalculateMB(int barIndex)
       }
    }
    // prev mb was bullish
-   else if (mMBType[mMBsToTrack - mCurrentMBs] == OP_BUY)
+   else if (mMBs[mMBsToTrack - mCurrentMBs].Type() == OP_BUY)
    {
       CheckSetRetracement(barIndex, OP_BUY, OP_BUY);
       CheckSetPendingMB(barIndex, OP_BUY);
@@ -177,16 +173,16 @@ void CMBTracker::CalculateMB(int barIndex)
             ResetTracking();
          }
          // previous bullish mb has been broken, create bearish MB
-         else if (iLow(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mMBLowIndex[mMBsToTrack - mCurrentMBs]))
+         else if (iLow(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mMBs[mMBsToTrack - mCurrentMBs].LowIndex()))
          {
-            int highestIndex = iHighest(mSymbol, mTimeFrame, MODE_HIGH, mMBStartIndex[mMBsToTrack - mCurrentMBs] - barIndex, barIndex);
-            CreateMB(OP_SELL, mMBLowIndex[mMBsToTrack - mCurrentMBs], barIndex, highestIndex, mMBLowIndex[mMBsToTrack - mCurrentMBs]);
+            int highestIndex = iHighest(mSymbol, mTimeFrame, MODE_HIGH, mMBs[mMBsToTrack - mCurrentMBs].StartIndex() - barIndex, barIndex);
+            CreateMB(OP_SELL, mMBs[mMBsToTrack - mCurrentMBs].LowIndex(), barIndex, highestIndex, mMBs[mMBsToTrack - mCurrentMBs].LowIndex());
             ResetTracking();
          }
       }
    }
    // prev mb was bearish
-   else if (mMBType[mMBsToTrack - mCurrentMBs] == OP_SELL)
+   else if (mMBs[mMBsToTrack - mCurrentMBs].Type() == OP_SELL)
    {
       CheckSetRetracement(barIndex, OP_SELL, OP_SELL);
       CheckSetPendingMB(barIndex, OP_SELL);
@@ -200,10 +196,10 @@ void CMBTracker::CalculateMB(int barIndex)
             ResetTracking();
          }
          // previous bearish mb has been broken, create bullish MB
-         else if (iHigh(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mMBHighIndex[mMBsToTrack - mCurrentMBs]))
+         else if (iHigh(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mMBs[mMBsToTrack - mCurrentMBs].HighIndex()))
          {
-            int lowestIndex = iLowest(mSymbol, mTimeFrame, MODE_LOW, mMBStartIndex[mMBsToTrack - mCurrentMBs] - barIndex, barIndex);
-            CreateMB(OP_BUY, mMBHighIndex[mMBsToTrack - mCurrentMBs], barIndex, mMBHighIndex[mMBsToTrack - mCurrentMBs], lowestIndex);
+            int lowestIndex = iLowest(mSymbol, mTimeFrame, MODE_LOW, mMBs[mMBsToTrack - mCurrentMBs].StartIndex() - barIndex, barIndex);
+            CreateMB(OP_BUY, mMBs[mMBsToTrack - mCurrentMBs].HighIndex(), barIndex, mMBs[mMBsToTrack - mCurrentMBs].HighIndex(), lowestIndex);
             ResetTracking();
          }
       }
@@ -222,7 +218,7 @@ void CMBTracker::CheckSetRetracement(int startingIndex, int mbType, int prevMBTy
       {
          if (prevMBType == OP_BUY)
          {
-            mCurrentBullishRetracementIndex = iHighest(mSymbol, mTimeFrame, MODE_HIGH, mMBEndIndex[mMBsToTrack - mCurrentMBs] - startingIndex + 1, startingIndex);
+            mCurrentBullishRetracementIndex = iHighest(mSymbol, mTimeFrame, MODE_HIGH, mMBs[mMBsToTrack - mCurrentMBs].EndIndex() - startingIndex + 1, startingIndex);
          }
          else 
          {
@@ -242,7 +238,7 @@ void CMBTracker::CheckSetRetracement(int startingIndex, int mbType, int prevMBTy
       {
          if (prevMBType == OP_SELL)
          {
-            mCurrentBearishRetracementIndex = iLowest(mSymbol, mTimeFrame, MODE_LOW, mMBEndIndex[mMBsToTrack - mCurrentMBs] - startingIndex + 1, startingIndex);
+            mCurrentBearishRetracementIndex = iLowest(mSymbol, mTimeFrame, MODE_LOW, mMBs[mMBsToTrack - mCurrentMBs].EndIndex() - startingIndex + 1, startingIndex);
          }
          else 
          {
@@ -285,10 +281,8 @@ void CMBTracker::CheckSetPendingMB(int startingIndex, int mbType)
             if (mPendingBullishMB)
             {
                break;
-            }        
-         
-         }
-              
+            }                
+         }              
          // find index of lowest candle within pending mb
          if (mPendingBullishMB)
          {
@@ -321,8 +315,7 @@ void CMBTracker::CheckSetPendingMB(int startingIndex, int mbType)
             {
                break;
             }
-         }
-                  
+         }                 
          // find index of highest candle within pending mb
          if (mPendingBearishMB)
          {
@@ -337,25 +330,13 @@ void CMBTracker::CreateMB(int mbType, int startIndex, int endIndex, int highInde
 {
     if (mCurrentMBs == mMBsToTrack)
     {  
-        ArrayCopy(mMBType, mMBType, 0, 1, mMBsToTrack - 1);
-        ArrayCopy(mMBStartIndex, mMBStartIndex, 0, 1, mMBsToTrack - 1);
-        ArrayCopy(mMBEndIndex, mMBEndIndex, 0, 1, mMBsToTrack - 1);
-        ArrayCopy(mMBHighIndex, mMBHighIndex, 0, 1, mMBsToTrack - 1);
-        ArrayCopy(mMBLowIndex, mMBLowIndex, 0, 1, mMBsToTrack - 1);
-
-        mMBType[0] = mbType;
-        mMBStartIndex[0] = startIndex;
-        mMBEndIndex[0] = endIndex;
-        mMBHighIndex[0] = highIndex;
-        mMBLowIndex[0] = lowIndex;
+        ArrayCopy(mMBs, mMBs, 0, 1, mMBsToTrack - 1);
+        mMBs[0] = new CMB(mbType, startIndex, endIndex, highIndex, lowIndex);
     }
     else
     {
-        mMBType[(mMBsToTrack - 1) - mCurrentMBs] = mbType;
-        mMBStartIndex[(mMBsToTrack - 1) - mCurrentMBs] = startIndex;
-        mMBEndIndex[(mMBsToTrack - 1) - mCurrentMBs] = endIndex;
-        mMBHighIndex[(mMBsToTrack - 1) - mCurrentMBs] = highIndex;
-        mMBLowIndex[(mMBsToTrack - 1) - mCurrentMBs] = lowIndex;
+        CMB* mb = new CMB(mbType, startIndex, endIndex, highIndex, lowIndex);
+        mMBs[(mMBsToTrack - 1) - mCurrentMBs] = mb;
         
         mCurrentMBs += 1;
     }
@@ -374,36 +355,24 @@ void CMBTracker::ResetTracking(void)
     mPendingBullishMBLowIndex = -1;
 }
 
-// Sets Mbs from start index -> end index in the provided 2 dimensional array mbArray[endIndex - startIndex][5]
-// returns true if values were updated, false otherwise
-bool CMBTracker::GetMBs(int startIndex, int endIndex, bool initalFetch, int &mbArray[][])
+// Finds all zones with imbalances before them from startIndex -> endIndex
+// GOES LEFT TO RIGHT 
+void CMBTracker::CalculateZones(int startIndex,int endIndex, int mbType)
 {
-   int tempMBStartIndex[];
-   ArrayCopy(tempMBStartIndex, mMBStartIndex);
-   
-   Update();
-   
-   if (initalFetch || ArrayCompare(tempMBStartIndex, mMBStartIndex) != 0)
+   bool prevImbalance = false;
+   for (int i = startIndex; i <= endIndex; i++)
    {
-      startIndex = MathMax(0, mMBsToTrack - mCurrentMBs);
-      if (endIndex < startIndex)
+      bool currentImbalance = false;
+      
+      if (mbType == OP_BUY)
       {
-         Print("Ending Index is less than starting index. Starting Index: ", startIndex, ", Ending Index: ", endIndex);
+      }
+      else if (mbType == OP_SELL)
+      {
       }
       
-      for (int i = startIndex; i <= endIndex; i++)
-      {
-         mbArray[i][0] = mMBType[i];
-         mbArray[i][1] = mMBStartIndex[i];
-         mbArray[i][2] = mMBEndIndex[i];
-         mbArray[i][3] = mMBHighIndex[i];
-         mbArray[i][4] = mMBLowIndex[i];
-      }
-      
-      return true;
+      prevImbalance = currentImbalance;
    }
-   
-   return false;
 }
 
 void CMBTracker::PrintMBs(int startIndex, int endIndex)
@@ -412,16 +381,17 @@ void CMBTracker::PrintMBs(int startIndex, int endIndex)
    if (endIndex < startIndex)
    {
       Print("Ending Index is less than starting index. Starting Index: ", startIndex, ", Ending Index: ", endIndex);
+      return;
    }
    
    for (int i = startIndex; i <= endIndex; i++)
    {
       Print("MB: ", i, " at hour: ", Hour(), ", minute: ", Minute(), ", second: ", Seconds());
-      Print("Type: ", mMBType[i]);
-      Print("Start Index: ", mMBStartIndex[i]);
-      Print("End Index: ", mMBEndIndex[i]);
-      Print("High Index: ", mMBHighIndex[i]);
-      Print("Low Index: ", mMBLowIndex[i]);
+      Print("Type: ", mMBs[i].Type());
+      Print("Start Index: ", mMBs[i].StartIndex());
+      Print("End Index: ", mMBs[i].EndIndex());
+      Print("High Index: ", mMBs[i].HighIndex());
+      Print("Low Index: ", mMBs[i].LowIndex());
    }
 }
 
@@ -431,24 +401,22 @@ void CMBTracker::DrawMBs(int startIndex, int endIndex)
    if (endIndex < startIndex)
    {
       Print("Ending Index is less than starting index. Starting Index: ", startIndex, ", Ending Index: ", endIndex);
+      return;
    }
    
    for (int i = startIndex; i <= endIndex; i++)
    {
-      color clr = mMBType[i] == OP_BUY ? clrYellow : clrPurple;  
-      string name = "Type: " + mMBType[i] + ", Start: " + mMBStartIndex[i] + ", End: " + mMBEndIndex[i] + ", High: " + mMBEndIndex[i] + ", Low: " + mMBLowIndex[i];
+      color clr = mMBs[i].Type() == OP_BUY ? clrLimeGreen : clrRed;  
+      string name = "Type: " + mMBs[i].Type() + ", Start: " + mMBs[i].StartIndex() + ", End: " + mMBs[i].EndIndex() + ", High: " + mMBs[i].HighIndex() + ", Low: " + mMBs[i].LowIndex();
       
-      if (!ObjectCreate(0, name, OBJ_RECTANGLE, 0, Time[mMBStartIndex[i]], High[mMBHighIndex[i]], Time[mMBEndIndex[i]], Low[mMBLowIndex[i]]))
+      if (!ObjectCreate(0, name, OBJ_RECTANGLE, 0, iTime(mSymbol, mTimeFrame, mMBs[i].StartIndex()), iHigh(mSymbol, mTimeFrame, mMBs[i].HighIndex()), 
+         iTime(mSymbol, mTimeFrame, mMBs[i].EndIndex()), iLow(mSymbol, mTimeFrame, mMBs[i].LowIndex())))
       {
-         // TODO: FIX
          Print("Object Creation Failed: ", GetLastError());
+         return;
       }
-      ObjectSetDouble(0, name, OBJPROP_PRICE1, High[mMBHighIndex[i]]);
-      ObjectSetDouble(0, name,OBJPROP_PRICE2, Low[mMBLowIndex[i]]);
-      ObjectSetInteger(0, name, OBJPROP_TIME1, Time[mMBStartIndex[i]]);
-      ObjectSetInteger(0, name, OBJPROP_TIME2, Time[mMBEndIndex[i]]); 
-      ObjectSetInteger(0, name, OBJPROP_COLOR, clr);
       
+      ObjectSetInteger(0, name, OBJPROP_COLOR, clr);    
       ObjectSetInteger(0, name, OBJPROP_WIDTH, 1);
       ObjectSetInteger(0, name, OBJPROP_BACK, false);
       ObjectSetInteger(0, name, OBJPROP_FILL, false);
@@ -456,50 +424,3 @@ void CMBTracker::DrawMBs(int startIndex, int endIndex)
       ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);
    } 
 }
-
-void CMBTracker::PrintArrayLengths(int startIndex, int endIndex)
-{
-   int mbTypeTotal = 0;
-   int mbStartIndexTotal = 0;
-   int mbEndIndexTotal = 0;
-   int mbHighIndexTotal = 0;
-   int mbLowIndexTotal = 0;
-   
-   startIndex = MathMax(0, mMBsToTrack - mCurrentMBs);
-   if (endIndex < startIndex)
-   {
-      Print("Ending Index is less than starting index. Starting Index: ", startIndex, ", Ending Index: ", endIndex);
-   }
-   
-   for (int i = startIndex; i <= endIndex; i++)
-   {
-      if (mMBType[i] != -1)
-      {
-         mbTypeTotal += 1;
-      }
-      
-      if (mMBStartIndex[i] != -1)
-      {
-         mbStartIndexTotal += 1;
-      }
-      
-      if (mMBEndIndex[i] != -1)
-      {
-         mbEndIndexTotal += 1;
-      }
-      
-      if (mMBHighIndex[i] != -1)
-      {
-         mbHighIndexTotal += 1;
-      }
-      
-      if (mMBLowIndex[i] != -1)
-      {
-         mbLowIndexTotal += 1;
-      }
-   }
-   
-   Print("mCurrentMBs :", mCurrentMBs, ", mMBsToTrack: ", mMBsToTrack);
-   Print("Total MB Types: ", mbTypeTotal, ", Total Start Indexs: ", mbStartIndexTotal, ", Total End Indexs: ", mbEndIndexTotal, ", Total High Indexs: ", mbHighIndexTotal, ", Total Low Indexs: ", mbLowIndexTotal);
-}
-
