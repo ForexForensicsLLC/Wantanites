@@ -179,7 +179,7 @@ void CMBTracker::CalculateMB(int barIndex)
          // previous bullish mb has been broken, create bearish MB
          else if (iLow(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mMBLowIndex[mMBsToTrack - mCurrentMBs]))
          {
-            int highestIndex = iHighest(mSymbol, mTimeFrame, MODE_HIGH, mMBEndIndex[mMBsToTrack - mCurrentMBs] - barIndex, barIndex);
+            int highestIndex = iHighest(mSymbol, mTimeFrame, MODE_HIGH, mMBStartIndex[mMBsToTrack - mCurrentMBs] - barIndex, barIndex);
             CreateMB(OP_SELL, mMBLowIndex[mMBsToTrack - mCurrentMBs], barIndex, highestIndex, mMBLowIndex[mMBsToTrack - mCurrentMBs]);
             ResetTracking();
          }
@@ -202,7 +202,7 @@ void CMBTracker::CalculateMB(int barIndex)
          // previous bearish mb has been broken, create bullish MB
          else if (iHigh(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mMBHighIndex[mMBsToTrack - mCurrentMBs]))
          {
-            int lowestIndex = iLowest(mSymbol, mTimeFrame, MODE_LOW, mMBEndIndex[mMBsToTrack - mCurrentMBs] - barIndex, barIndex);
+            int lowestIndex = iLowest(mSymbol, mTimeFrame, MODE_LOW, mMBStartIndex[mMBsToTrack - mCurrentMBs] - barIndex, barIndex);
             CreateMB(OP_BUY, mMBHighIndex[mMBsToTrack - mCurrentMBs], barIndex, mMBHighIndex[mMBsToTrack - mCurrentMBs], lowestIndex);
             ResetTracking();
          }
@@ -242,12 +242,7 @@ void CMBTracker::CheckSetRetracement(int startingIndex, int mbType, int prevMBTy
       {
          if (prevMBType == OP_SELL)
          {
-            // Print("# To Check: ", mMBEndIndex[mMBsToTrack - mCurrentMBs] - startingIndex + 1, ", Starting Ending: ", startingIndex);
-            mCurrentBearishRetracementIndex = iLowest(mSymbol, mTimeFrame, MODE_HIGH, mMBEndIndex[mMBsToTrack - mCurrentMBs] - startingIndex + 1, startingIndex);
-            // for(int i = 0; i <= mMBEndIndex[mMBsToTrack - mCurrentMBs] - startingIndex; i++)
-            // {
-            //    Print("New Validating Low - Current Index: ", startingIndex + i, ", Low: ", iLow(mSymbol, mTimeFrame, i + startingIndex), "Lowest Index: ", mCurrentBearishRetracementIndex);
-            // }
+            mCurrentBearishRetracementIndex = iLowest(mSymbol, mTimeFrame, MODE_LOW, mMBEndIndex[mMBsToTrack - mCurrentMBs] - startingIndex + 1, startingIndex);
          }
          else 
          {
