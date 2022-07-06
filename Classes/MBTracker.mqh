@@ -76,7 +76,7 @@ CMBTracker::CMBTracker(string symbol, ENUM_TIMEFRAMES timeFrame,int mbsToTrack)
 
 CMBTracker::~CMBTracker()
 {
-   ObjectsDeleteAll(ChartID());
+   ObjectsDeleteAll(ChartID(), "Type: ", 0, OBJ_RECTANGLE);
 }
 
 void CMBTracker::init(string symbol,ENUM_TIMEFRAMES timeFrame, int mbsToTrack)
@@ -441,7 +441,7 @@ void CMBTracker::DrawMBs(int startIndex, int endIndex)
       if (!ObjectCreate(0, name, OBJ_RECTANGLE, 0, Time[mMBStartIndex[i]], High[mMBHighIndex[i]], Time[mMBEndIndex[i]], Low[mMBLowIndex[i]]))
       {
          // TODO: FIX
-         // Print("Object Creation Failed: ", GetLastError());
+         Print("Object Creation Failed: ", GetLastError());
       }
       ObjectSetDouble(0, name, OBJPROP_PRICE1, High[mMBHighIndex[i]]);
       ObjectSetDouble(0, name,OBJPROP_PRICE2, Low[mMBLowIndex[i]]);
@@ -452,7 +452,6 @@ void CMBTracker::DrawMBs(int startIndex, int endIndex)
       ObjectSetInteger(0, name, OBJPROP_WIDTH, 1);
       ObjectSetInteger(0, name, OBJPROP_BACK, false);
       ObjectSetInteger(0, name, OBJPROP_FILL, false);
-      //ObjectSetInteger(0,name,OBJPROP_COLOR,clrRed);//ChartGetInteger(0,CHART_COLOR_BACKGROUND));
       ObjectSetInteger(0, name, OBJPROP_SELECTED, false);
       ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);
    } 
