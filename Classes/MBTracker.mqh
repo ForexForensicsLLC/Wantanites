@@ -23,6 +23,9 @@ class CMBTracker
       int mMBsToTrack;
       int mCurrentMBs;
       
+      // --- Zone Counting ---
+      int mMaxZonesInMB;
+      
       // --- MB Structure Tracking ---      
       int mCurrentBullishRetracementIndex;
       int mCurrentBearishRetracementIndex;
@@ -35,13 +38,6 @@ class CMBTracker
       
       CMB* mMBs[];
       
-      // --- MB Range Tracking
-      double mMBRangeHigh;
-      double mMBRangeLow;
-      
-      // --- Imbalance Tracking --- 
-      //double mImbalances[][];
-          
       // --- Methods
       void Update();
       
@@ -52,40 +48,42 @@ class CMBTracker
       void CheckSetPendingMB(int startingIndex, int mbType);
       
       void ResetTracking();
-      
-      void CalculateZones(int startIndex, int endIndex, int mbType);
+     
 
    public:
       CMBTracker();
-      CMBTracker(string symbol, ENUM_TIMEFRAMES timeFrame, int mbsToTrack);
+      CMBTracker(string symbol, ENUM_TIMEFRAMES timeFrame, int mbsToTrack, int maxZonesInMB);
       
       ~CMBTracker();
       
-      void init(string symbol, ENUM_TIMEFRAMES timeFrame, int mbsToTrack);
+      void init(string symbol, ENUM_TIMEFRAMES timeFrame, int mbsToTrack, int maxZonesInMB);     
       
-      // bool GetMBs(int startIndex, int endIndex, bool initialFetch, int &mbArray[][]);
+      void PrintMBs(int mostRecentMBsToPrint);     
+      void DrawMBs(int mostRecentMBsToDraw);
+      void DrawZones(int mostRecentMBsToDrawZonesFor);
       
-      void PrintMBs(int startIndex, int endIndex);
-      
-      void DrawMBs(int startIndex, int endIndex);
+      void GetUnretrievedZonesInMBs(int mbStartingIndex, int mbEndingIndex, int barIndex, CZone &zones[]);
 };
 
 CMBTracker::CMBTracker()
 {
-   init(Symbol(), 0, 3);
+   init(Symbol(), 0, 3, 5);
 }
 
-CMBTracker::CMBTracker(string symbol, ENUM_TIMEFRAMES timeFrame,int mbsToTrack)
+CMBTracker::CMBTracker(string symbol, ENUM_TIMEFRAMES timeFrame,int mbsToTrack, int maxZonesInMB)
 {
-   init(symbol, timeFrame, mbsToTrack);
+   init(symbol, timeFrame, mbsToTrack, maxZonesInMB);
 }
 
 CMBTracker::~CMBTracker()
 {
-   ObjectsDeleteAll(ChartID(), "Type: ", 0, OBJ_RECTANGLE);
+   for (int i = (mMBsToTrack - mCurrentMBs); i < mMBsToTrack; i++)
+   {
+      delete mMBs[i];
+   }  
 }
 
-void CMBTracker::init(string symbol,ENUM_TIMEFRAMES timeFrame, int mbsToTrack)
+void CMBTracker::init(string symbol,ENUM_TIMEFRAMES timeFrame, int mbsToTrack, int maxZonesInMB)
 {
    mSymbol = symbol;
    mTimeFrame = timeFrame;
@@ -93,6 +91,7 @@ void CMBTracker::init(string symbol,ENUM_TIMEFRAMES timeFrame, int mbsToTrack)
    mFirstBarTime = 0;
    
    mMBsToTrack = mbsToTrack;
+   mMaxZonesInMB = maxZonesInMB;
    
    mCurrentBullishRetracementIndex = -1;
    mCurrentBearishRetracementIndex = -1;
@@ -331,11 +330,16 @@ void CMBTracker::CreateMB(int mbType, int startIndex, int endIndex, int highInde
     if (mCurrentMBs == mMBsToTrack)
     {  
         ArrayCopy(mMBs, mMBs, 0, 1, mMBsToTrack - 1);
-        mMBs[0] = new CMB(mbType, startIndex, endIndex, highIndex, lowIndex);
+        
+        CMB* mb = new CMB(mbType, startIndex, endIndex, highIndex, lowIndex, mMaxZonesInMB);
+        mb.CheckAddZones(mSymbol, mTimeFrame, endIndex);       
+        mMBs[0] = mb;
     }
     else
     {
-        CMB* mb = new CMB(mbType, startIndex, endIndex, highIndex, lowIndex);
+        CMB* mb = new CMB(mbType, startIndex, endIndex, highIndex, lowIndex, mMaxZonesInMB);
+        
+        mb.CheckAddZones(mSymbol, mTimeFrame, endIndex);
         mMBs[(mMBsToTrack - 1) - mCurrentMBs] = mb;
         
         mCurrentMBs += 1;
@@ -355,72 +359,61 @@ void CMBTracker::ResetTracking(void)
     mPendingBullishMBLowIndex = -1;
 }
 
-// Finds all zones with imbalances before them from startIndex -> endIndex
-// GOES LEFT TO RIGHT 
-void CMBTracker::CalculateZones(int startIndex,int endIndex, int mbType)
+void CMBTracker::GetUnretrievedZonesInMBs(int mbStartingIndex, int mbEndingIndex, int barIndex, CZone &zones[])
 {
-   bool prevImbalance = false;
-   for (int i = startIndex; i <= endIndex; i++)
+   mbStartingIndex = MathMax(mbStartingIndex, mMBsToTrack - mCurrentMBs);
+   
+   for (int i = mbStartingIndex; i <= mbEndingIndex; i++)
    {
-      bool currentImbalance = false;
-      
-      if (mbType == OP_BUY)
+      // only allow the most recent MB to have zones after it has been validated if there is no pending MB 
+      if (i == (mMBsToTrack - mCurrentMBs) && !mPendingBullishMB && !mPendingBearishMB)
       {
+         mMBs[i].CheckAddZones(mSymbol, mTimeFrame, barIndex);
       }
-      else if (mbType == OP_SELL)
+
+      if (mMBs[i].HasUnretrievedZones())
       {
+         mMBs[i].GetUnretrievedZones(zones);
       }
-      
-      prevImbalance = currentImbalance;
    }
 }
 
-void CMBTracker::PrintMBs(int startIndex, int endIndex)
+void CMBTracker::PrintMBs(int mostRecentMBsToPrint)
 {
-   startIndex = MathMax(0, mMBsToTrack - mCurrentMBs);
-   if (endIndex < startIndex)
+   if (mostRecentMBsToPrint == -1 || mostRecentMBsToPrint > mCurrentMBs)
    {
-      Print("Ending Index is less than starting index. Starting Index: ", startIndex, ", Ending Index: ", endIndex);
-      return;
+      mostRecentMBsToPrint = mCurrentMBs;
    }
    
-   for (int i = startIndex; i <= endIndex; i++)
+   for (int i = mMBsToTrack - mostRecentMBsToPrint; i < mMBsToTrack; i++)
    {
-      Print("MB: ", i, " at hour: ", Hour(), ", minute: ", Minute(), ", second: ", Seconds());
-      Print("Type: ", mMBs[i].Type());
-      Print("Start Index: ", mMBs[i].StartIndex());
-      Print("End Index: ", mMBs[i].EndIndex());
-      Print("High Index: ", mMBs[i].HighIndex());
-      Print("Low Index: ", mMBs[i].LowIndex());
-   }
+      mMBs[i].Draw(mSymbol, mTimeFrame);
+   } 
 }
 
-void CMBTracker::DrawMBs(int startIndex, int endIndex)
+void CMBTracker::DrawMBs(int mostRecentMBsToDraw)
 {
-   startIndex = MathMax(0, mMBsToTrack - mCurrentMBs);
-   if (endIndex < startIndex)
+   
+   if (mostRecentMBsToDraw == -1 || mostRecentMBsToDraw > mCurrentMBs)
    {
-      Print("Ending Index is less than starting index. Starting Index: ", startIndex, ", Ending Index: ", endIndex);
-      return;
+      mostRecentMBsToDraw = mCurrentMBs;
    }
    
-   for (int i = startIndex; i <= endIndex; i++)
+   for (int i = mMBsToTrack - mostRecentMBsToDraw; i < mMBsToTrack; i++)
    {
-      color clr = mMBs[i].Type() == OP_BUY ? clrLimeGreen : clrRed;  
-      string name = "Type: " + mMBs[i].Type() + ", Start: " + mMBs[i].StartIndex() + ", End: " + mMBs[i].EndIndex() + ", High: " + mMBs[i].HighIndex() + ", Low: " + mMBs[i].LowIndex();
-      
-      if (!ObjectCreate(0, name, OBJ_RECTANGLE, 0, iTime(mSymbol, mTimeFrame, mMBs[i].StartIndex()), iHigh(mSymbol, mTimeFrame, mMBs[i].HighIndex()), 
-         iTime(mSymbol, mTimeFrame, mMBs[i].EndIndex()), iLow(mSymbol, mTimeFrame, mMBs[i].LowIndex())))
-      {
-         Print("Object Creation Failed: ", GetLastError());
-         return;
-      }
-      
-      ObjectSetInteger(0, name, OBJPROP_COLOR, clr);    
-      ObjectSetInteger(0, name, OBJPROP_WIDTH, 1);
-      ObjectSetInteger(0, name, OBJPROP_BACK, false);
-      ObjectSetInteger(0, name, OBJPROP_FILL, false);
-      ObjectSetInteger(0, name, OBJPROP_SELECTED, false);
-      ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);
+      mMBs[i].Draw(mSymbol, mTimeFrame);
+   } 
+}
+
+void CMBTracker::DrawZones(int mostRecentMBsToDrawZonesFor)
+{
+   if (mostRecentMBsToDrawZonesFor == -1 || mostRecentMBsToDrawZonesFor > mCurrentMBs)
+   {
+      mostRecentMBsToDrawZonesFor = mCurrentMBs;
+   }
+   
+   for (int i = mMBsToTrack - mostRecentMBsToDrawZonesFor; i < mMBsToTrack; i++)
+   {
+      mMBs[i].DrawZones(mSymbol, mTimeFrame);
    } 
 }

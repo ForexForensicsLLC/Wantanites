@@ -20,12 +20,14 @@ class CMB
       int mLowIndex;
       
       CZone* mZones[];
+      
+      int mMaxZones;
       int mZoneCount;
       
       bool mHasUnretrievedZones;
                   
    public:
-      CMB(int type, int startIndex, int endIndex, int highIndex, int lowIndex);
+      CMB(int type, int startIndex, int endIndex, int highIndex, int lowIndex, int maxZones);
       ~CMB();
       
       int Type() { return mType; }
@@ -36,31 +38,107 @@ class CMB
       
       bool HasUnretrievedZones() { return mHasUnretrievedZones; }
    
-      void AddZone(double open, double close);
+      string ToString();
+      
+      void AddZone(int entryIndex, double entryPrice, int exitIndex, double exitPrice);
+      void CheckAddZones(string mSymbol, int timeFrame, int barIndex);
       void GetUnretrievedZones(CZone &zones[]);
+      
+      void Draw(string symbol, int timeFrame);
+      void DrawZones(string symbol, int timeFrame);
       
 };
 
-CMB::CMB(int type, int startIndex, int endIndex, int highIndex, int lowIndex)
+CMB::CMB(int type, int startIndex, int endIndex, int highIndex, int lowIndex, int maxZones)
 {
    mType = type;
    mStartIndex = startIndex;
    mEndIndex = endIndex;
    mHighIndex = highIndex;
    mLowIndex = lowIndex;
+   
+   mMaxZones = maxZones;
+   
+   ArrayResize(mZones, maxZones);
 }
 
 CMB::~CMB()
 {
+   ObjectsDeleteAll(ChartID(), "MB", 0, OBJ_RECTANGLE);
+   
+   for (int i = 0; i < mZoneCount; i++)
+   {
+      //Print("Total Zones: ", mZoneCount, ", i: ", i);
+      delete mZones[i];
+   }
 }
 
-void CMB::AddZone(double open, double close)
+void CMB::AddZone(int entryIndex, double entryPrice, int exitIndex, double exitPrice)
 {
-   CZone* zone = new CZone(open, close);
-   mZones[mZoneCount] = zone;
-   mZoneCount += 1;
+   if (mZoneCount < mMaxZones)
+   {
+      CZone* zone = new CZone(mType, entryIndex, entryPrice, exitIndex, exitPrice);
+      
+      mZones[mZoneCount] = zone;
+      mZoneCount += 1;
+   }
    
    mHasUnretrievedZones = true;
+}
+
+// Finds all zones with imbalances before them from startIndex -> endIndex
+// GOES LEFT TO RIGHT 
+void CMB::CheckAddZones(string symbol, int timeFrame, int barIndex)
+{
+   bool prevImbalance = false;
+   bool currentImbalance = false;
+   
+   int zoneCount = 0;
+   
+   if (mType == OP_BUY)
+   {
+      // only go from low -> current so that we only grab imbalances that are in the imbpulse that broke structure and not in the move down
+      for (int i = mLowIndex; i >= barIndex; i--)
+      {        
+         // make sure imbalance is in current mb. This allows for imbalances after the MB was valdiated
+         double imbalanceExit = iLow(symbol, timeFrame, iLowest(symbol, timeFrame, MODE_LOW, 2, i));
+         currentImbalance = iHigh(symbol, timeFrame, i + 1) < iLow(symbol, timeFrame, i - 1) && imbalanceExit < iHigh(symbol, timeFrame, mEndIndex);
+         
+         if (currentImbalance && !prevImbalance)
+         {
+            if (zoneCount >= mZoneCount)
+            {
+               AddZone(i + 1, iHigh(symbol, timeFrame, i + 1), mEndIndex, imbalanceExit);
+            }
+            
+            zoneCount += 1;
+         }
+         
+         prevImbalance = currentImbalance;          
+      }
+   }
+   else if (mType == OP_SELL)
+   {  
+      // only go from high -> current so that we only grab imbalances that are in the impulse taht broke sructure and not in the move up
+      for (int i = mHighIndex; i >= barIndex; i--)
+      {
+         // make sure imbalance is in current mb. This allows for imbalances after the MB was validated
+         double imbalanceExit = iHigh(symbol, timeFrame, iHighest(symbol, timeFrame, MODE_HIGH, 2, i));
+         currentImbalance = iLow(symbol, timeFrame, i +1) > iHigh(symbol, timeFrame, i - 1) && imbalanceExit > iLow(symbol, timeFrame, mEndIndex);
+         
+         if (currentImbalance && !prevImbalance)
+         {
+            if (zoneCount >= mZoneCount)
+            {
+               AddZone(i + 1, iLow(symbol, timeFrame, i + 1), mEndIndex, imbalanceExit); 
+            }
+            
+            zoneCount += 1;
+         }
+                
+         prevImbalance = currentImbalance;
+      }   
+   }
 }
 
 void CMB::GetUnretrievedZones(CZone &zones[])
@@ -75,4 +153,37 @@ void CMB::GetUnretrievedZones(CZone &zones[])
    }
    
    mHasUnretrievedZones = false;
+}
+
+string CMB::ToString()
+{
+   return "Type: " + ", Start Index: " + mStartIndex + ", End Index: " + mEndIndex + ", High Index: " + mHighIndex + ", Low Index: " + mLowIndex;
+}
+
+void CMB::Draw(string symbol, int timeFrame)
+{
+   color clr = mType == OP_BUY ? clrLimeGreen : clrRed;  
+   string name = "MB - Type: " + mType + ", Start: " + mStartIndex + ", End: " + mEndIndex + ", High: " + mHighIndex + ", Low: " + mLowIndex;
+   
+   if (!ObjectCreate(0, name, OBJ_RECTANGLE, 0, iTime(symbol, timeFrame, mStartIndex), iHigh(symbol, timeFrame, mHighIndex), 
+      iTime(symbol, timeFrame, mEndIndex), iLow(symbol, timeFrame, mLowIndex)))
+   {
+      Print("Object Creation Failed: ", GetLastError());
+      return;
+   }
+   
+   ObjectSetInteger(0, name, OBJPROP_COLOR, clr);
+   ObjectSetInteger(0, name, OBJPROP_WIDTH, 1);
+   ObjectSetInteger(0, name, OBJPROP_BACK, false);
+   ObjectSetInteger(0, name, OBJPROP_FILL, false);
+   ObjectSetInteger(0, name, OBJPROP_SELECTED, false);
+   ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);
+}
+
+void CMB::DrawZones(string symbol, int timeFrame)
+{
+   for (int i = 0; i < mZoneCount; i++)
+   {
+      mZones[i].Draw(symbol, timeFrame);
+   }
 }
