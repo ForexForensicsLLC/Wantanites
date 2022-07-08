@@ -18,6 +18,8 @@ class CZone
       
       double mEntryPrice;
       double mExitPrice;
+      
+      bool mDrawn;
 
    public:
       int Type() { return mType; }
@@ -44,6 +46,8 @@ CZone::CZone(int type, int entryIndex, double entryPrice, int exitIndex, double 
    mEntryPrice = entryPrice;
    mExitPrice = exitPrice;
    
+   mDrawn = false;
+   
    WasRetrieved = false;
 }
 
@@ -54,6 +58,10 @@ CZone::~CZone()
 
 void CZone::Draw(string symbol, int timeFrame)
 {
+   if (mDrawn)
+   {
+      return;
+   }
    // color chartBackground=(color)ChartGetInteger(0,CHART_COLOR_BACKGROUND);
    // color front = mType == OP_BUY ? clrLimeGreen : clrRed;
    
@@ -77,4 +85,6 @@ void CZone::Draw(string symbol, int timeFrame)
    ObjectSetInteger(0, name, OBJPROP_FILL, false);
    ObjectSetInteger(0, name, OBJPROP_SELECTED, false);
    ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);
+   
+   mDrawn = true;
 }

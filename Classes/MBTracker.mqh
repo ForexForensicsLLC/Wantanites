@@ -14,10 +14,11 @@ class CMBTracker
 {
    private:
       // --- Operation Variables --- 
-      ENUM_TIMEFRAMES mTimeFrame;
+      int mTimeFrame;
       string mSymbol;    
       int mPrevCalculated;
       datetime mFirstBarTime;
+      bool mInitialLoad;
       
       // --- MB Counting --- 
       int mMBsToTrack;
@@ -25,6 +26,7 @@ class CMBTracker
       
       // --- Zone Counting ---
       int mMaxZonesInMB;
+      bool mAllowZoneMitigation;
       
       // --- MB Structure Tracking ---      
       int mCurrentBullishRetracementIndex;
@@ -52,27 +54,37 @@ class CMBTracker
 
    public:
       CMBTracker();
-      CMBTracker(string symbol, ENUM_TIMEFRAMES timeFrame, int mbsToTrack, int maxZonesInMB);
+      CMBTracker(int mbsToTrack, int maxZonesInMB, bool allowZoneMitigatino);
+      CMBTracker(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation);
       
       ~CMBTracker();
       
-      void init(string symbol, ENUM_TIMEFRAMES timeFrame, int mbsToTrack, int maxZonesInMB);     
+      void init(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation);     
+      void UpdateIndexes(int barIndex);
       
       void PrintMBs(int mostRecentMBsToPrint);     
       void DrawMBs(int mostRecentMBsToDraw);
       void DrawZones(int mostRecentMBsToDrawZonesFor);
       
       void GetUnretrievedZonesInMBs(int mbStartingIndex, int mbEndingIndex, int barIndex, CZone &zones[]);
+      
+      bool HasMostRecentConsecutiveMBs(int numberOfMostRecentConsecutiveMBs, CMB* &mbs[]);
+      bool IsOppositeMB(int nthMostRecentMB, CMB* &mb[]);
 };
 
 CMBTracker::CMBTracker()
 {
-   init(Symbol(), 0, 3, 5);
+   init(Symbol(), 0, 3, 5, false);
 }
 
-CMBTracker::CMBTracker(string symbol, ENUM_TIMEFRAMES timeFrame,int mbsToTrack, int maxZonesInMB)
+CMBTracker::CMBTracker(int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation)
 {
-   init(symbol, timeFrame, mbsToTrack, maxZonesInMB);
+   init(Symbol(), 0, mbsToTrack, maxZonesInMB, allowZoneMitigation);
+}
+
+CMBTracker::CMBTracker(string symbol, int timeFrame,int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation)
+{
+   init(symbol, timeFrame, mbsToTrack, maxZonesInMB, allowZoneMitigation);
 }
 
 CMBTracker::~CMBTracker()
@@ -83,15 +95,17 @@ CMBTracker::~CMBTracker()
    }  
 }
 
-void CMBTracker::init(string symbol,ENUM_TIMEFRAMES timeFrame, int mbsToTrack, int maxZonesInMB)
+void CMBTracker::init(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation)
 {
    mSymbol = symbol;
    mTimeFrame = timeFrame;
    mPrevCalculated = 0;
    mFirstBarTime = 0;
+   mInitialLoad = true;
    
    mMBsToTrack = mbsToTrack;
    mMaxZonesInMB = maxZonesInMB;
+   mAllowZoneMitigation = allowZoneMitigation;
    
    mCurrentBullishRetracementIndex = -1;
    mCurrentBearishRetracementIndex = -1;
@@ -111,9 +125,16 @@ void CMBTracker::Update()
    int limit = bars - mPrevCalculated;
    
    // force recalculation of current bar
+   /*
    if (mPrevCalculated > 0)
    {
       limit++;
+   }
+   */
+   
+   if (!mInitialLoad && limit == 1)
+   {
+      UpdateIndexes(limit);
    }
    
    if (mFirstBarTime != firstBarTime)
@@ -130,6 +151,21 @@ void CMBTracker::Update()
    }
    
    mPrevCalculated = bars;
+   mInitialLoad = false;
+}
+
+void CMBTracker::UpdateIndexes(int barIndex)
+{
+   mCurrentBullishRetracementIndex = mCurrentBullishRetracementIndex > -1 ? mCurrentBullishRetracementIndex + barIndex : -1;
+   mCurrentBearishRetracementIndex = mCurrentBearishRetracementIndex > -1 ? mCurrentBearishRetracementIndex + barIndex : -1;
+   
+   mPendingBullishMBLowIndex = mPendingBullishMBLowIndex > -1 ? mPendingBullishMBLowIndex + barIndex : -1;
+   mPendingBearishMBHighIndex = mPendingBearishMBHighIndex > -1 ? mPendingBearishMBHighIndex + barIndex : -1;
+   
+   for (int i = (mMBsToTrack - mCurrentMBs); i < mMBsToTrack; i++)
+   {
+      mMBs[i].UpdateIndexes(barIndex);
+   }
 }
 
 void CMBTracker::CalculateMB(int barIndex)
@@ -329,17 +365,18 @@ void CMBTracker::CreateMB(int mbType, int startIndex, int endIndex, int highInde
 {
     if (mCurrentMBs == mMBsToTrack)
     {  
+        delete mMBs[mMBsToTrack - 1];
         ArrayCopy(mMBs, mMBs, 0, 1, mMBsToTrack - 1);
         
         CMB* mb = new CMB(mbType, startIndex, endIndex, highIndex, lowIndex, mMaxZonesInMB);
-        mb.CheckAddZones(mSymbol, mTimeFrame, endIndex);       
+        mb.CheckAddZones(mSymbol, mTimeFrame, endIndex, mAllowZoneMitigation);       
         mMBs[0] = mb;
     }
     else
     {
         CMB* mb = new CMB(mbType, startIndex, endIndex, highIndex, lowIndex, mMaxZonesInMB);
         
-        mb.CheckAddZones(mSymbol, mTimeFrame, endIndex);
+        mb.CheckAddZones(mSymbol, mTimeFrame, endIndex, mAllowZoneMitigation);
         mMBs[(mMBsToTrack - 1) - mCurrentMBs] = mb;
         
         mCurrentMBs += 1;
@@ -359,8 +396,10 @@ void CMBTracker::ResetTracking(void)
     mPendingBullishMBLowIndex = -1;
 }
 
-void CMBTracker::GetUnretrievedZonesInMBs(int mbStartingIndex, int mbEndingIndex, int barIndex, CZone &zones[])
+void CMBTracker::GetUnretrievedZonesInMBs(int mbStartingIndex, int mbEndingIndex, int currentBarIndex, CZone &zones[])
 {
+   Update();
+   
    mbStartingIndex = MathMax(mbStartingIndex, mMBsToTrack - mCurrentMBs);
    
    for (int i = mbStartingIndex; i <= mbEndingIndex; i++)
@@ -368,7 +407,7 @@ void CMBTracker::GetUnretrievedZonesInMBs(int mbStartingIndex, int mbEndingIndex
       // only allow the most recent MB to have zones after it has been validated if there is no pending MB 
       if (i == (mMBsToTrack - mCurrentMBs) && !mPendingBullishMB && !mPendingBearishMB)
       {
-         mMBs[i].CheckAddZones(mSymbol, mTimeFrame, barIndex);
+         mMBs[i].CheckAddZones(mSymbol, mTimeFrame, currentBarIndex, mAllowZoneMitigation);
       }
 
       if (mMBs[i].HasUnretrievedZones())
@@ -380,26 +419,29 @@ void CMBTracker::GetUnretrievedZonesInMBs(int mbStartingIndex, int mbEndingIndex
 
 void CMBTracker::PrintMBs(int mostRecentMBsToPrint)
 {
+   Update();
+   
    if (mostRecentMBsToPrint == -1 || mostRecentMBsToPrint > mCurrentMBs)
    {
       mostRecentMBsToPrint = mCurrentMBs;
    }
    
-   for (int i = mMBsToTrack - mostRecentMBsToPrint; i < mMBsToTrack; i++)
+   for (int i = (mMBsToTrack - mostRecentMBsToPrint); i < (mMBsToTrack - mCurrentMBs) + mostRecentMBsToPrint; i++)
    {
-      mMBs[i].Draw(mSymbol, mTimeFrame);
+      Print(mMBs[i].ToString());
    } 
 }
 
 void CMBTracker::DrawMBs(int mostRecentMBsToDraw)
 {
+   Update();
    
    if (mostRecentMBsToDraw == -1 || mostRecentMBsToDraw > mCurrentMBs)
    {
       mostRecentMBsToDraw = mCurrentMBs;
    }
    
-   for (int i = mMBsToTrack - mostRecentMBsToDraw; i < mMBsToTrack; i++)
+   for (int i = (mMBsToTrack - mCurrentMBs); i < (mMBsToTrack - mCurrentMBs) + mostRecentMBsToDraw; i++)
    {
       mMBs[i].Draw(mSymbol, mTimeFrame);
    } 
@@ -407,13 +449,73 @@ void CMBTracker::DrawMBs(int mostRecentMBsToDraw)
 
 void CMBTracker::DrawZones(int mostRecentMBsToDrawZonesFor)
 {
+   Update();
+   
    if (mostRecentMBsToDrawZonesFor == -1 || mostRecentMBsToDrawZonesFor > mCurrentMBs)
    {
       mostRecentMBsToDrawZonesFor = mCurrentMBs;
    }
    
-   for (int i = mMBsToTrack - mostRecentMBsToDrawZonesFor; i < mMBsToTrack; i++)
+   for (int i = (mMBsToTrack - mCurrentMBs); i < (mMBsToTrack - mCurrentMBs) + mostRecentMBsToDrawZonesFor; i++)
    {
       mMBs[i].DrawZones(mSymbol, mTimeFrame);
    } 
+}
+
+// Checks for n most recent mbs of the same type
+bool CMBTracker::HasMostRecentConsecutiveMBs(int numberOfMostRecentConsecutiveMBs, CMB* &mbs[])
+{
+   Update();
+   
+   if (numberOfMostRecentConsecutiveMBs > ArraySize(mbs))
+   {
+      Print("Can't look for more MBs than array parameter can hold");
+      return false;
+   }
+   
+   if (numberOfMostRecentConsecutiveMBs > mCurrentMBs)
+   {
+      Print("Looking for more consecutive MBs than there are MBs");
+      return false;
+   }
+   
+   int mbType;
+   CMB* tempMBs[];
+   ArrayResize(tempMBs, ArraySize(mbs));
+   
+   for (int i = 0; i > numberOfMostRecentConsecutiveMBs; i++)
+   {
+      if (i == 0)
+      {
+         mbType = mMBs[mMBsToTrack - mCurrentMBs + i].Type();       
+      }
+      else
+      {
+         if (mbType != mMBs[mMBsToTrack - mCurrentMBs + i].Type())
+         {
+            return false;
+         }
+         
+         tempMBs[i] = mMBs[mMBsToTrack - mCurrentMBs + i];
+      }
+   }
+   
+   ArrayCopy(mbs, tempMBs, 0, 0, WHOLE_ARRAY);
+   return true;
+}
+
+// checks if the nth most recent MB is of opposite type than the one before it
+bool CMBTracker::IsOppositeMB(int nthMostRecentMB, CMB* &mb[])
+{
+   Update();
+   
+   int i = (mMBsToTrack - mCurrentMBs) + nthMostRecentMB - 1;
+     
+   if (i < mMBsToTrack && mMBs[i].Type() != mMBs[i + 1].Type())
+   {
+      mb[0] = mMBs[i];
+      return true;
+   }
+   
+   return false;
 }

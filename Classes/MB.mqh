@@ -19,6 +19,9 @@ class CMB
       int mHighIndex;
       int mLowIndex;
       
+      
+      bool mDrawn;
+      
       CZone* mZones[];
       
       int mMaxZones;
@@ -41,11 +44,13 @@ class CMB
       string ToString();
       
       void AddZone(int entryIndex, double entryPrice, int exitIndex, double exitPrice);
-      void CheckAddZones(string mSymbol, int timeFrame, int barIndex);
+      void CheckAddZones(string mSymbol, int timeFrame, int barIndex, bool allowZoneMitigation);
       void GetUnretrievedZones(CZone &zones[]);
       
       void Draw(string symbol, int timeFrame);
       void DrawZones(string symbol, int timeFrame);
+      
+      void UpdateIndexes(int barIndex);
       
 };
 
@@ -59,6 +64,8 @@ CMB::CMB(int type, int startIndex, int endIndex, int highIndex, int lowIndex, in
    
    mMaxZones = maxZones;
    
+   mDrawn = false;
+   
    ArrayResize(mZones, maxZones);
 }
 
@@ -68,7 +75,6 @@ CMB::~CMB()
    
    for (int i = 0; i < mZoneCount; i++)
    {
-      //Print("Total Zones: ", mZoneCount, ", i: ", i);
       delete mZones[i];
    }
 }
@@ -88,7 +94,7 @@ void CMB::AddZone(int entryIndex, double entryPrice, int exitIndex, double exitP
 
 // Finds all zones with imbalances before them from startIndex -> endIndex
 // GOES LEFT TO RIGHT 
-void CMB::CheckAddZones(string symbol, int timeFrame, int barIndex)
+void CMB::CheckAddZones(string symbol, int timeFrame, int barIndex, bool allowZoneMitigation)
 {
    bool prevImbalance = false;
    bool currentImbalance = false;
@@ -106,9 +112,13 @@ void CMB::CheckAddZones(string symbol, int timeFrame, int barIndex)
          
          if (currentImbalance && !prevImbalance)
          {
-            if (zoneCount >= mZoneCount)
+            double imbalanceEntry = iHigh(symbol, timeFrame, i + 1);
+            double mitigatedZone = iLow(symbol, timeFrame, iLowest(symbol, timeFrame, MODE_LOW, i - barIndex, barIndex)) < imbalanceEntry;
+            
+            // only allow zones we haven't added yet and that follow the mitigation parameter
+            if (zoneCount >= mZoneCount && (allowZoneMitigation || !mitigatedZone))
             {
-               AddZone(i + 1, iHigh(symbol, timeFrame, i + 1), mEndIndex, imbalanceExit);
+               AddZone(i + 1, imbalanceEntry, mEndIndex, imbalanceExit);
             }
             
             zoneCount += 1;
@@ -128,9 +138,13 @@ void CMB::CheckAddZones(string symbol, int timeFrame, int barIndex)
          
          if (currentImbalance && !prevImbalance)
          {
-            if (zoneCount >= mZoneCount)
+            double imbalanceEntry = iLow(symbol, timeFrame, i + 1);
+            double mitigatedZone = iHigh(symbol, timeFrame, iHighest(symbol, timeFrame, MODE_HIGH, i - barIndex, barIndex)) > imbalanceEntry;
+            
+            // only allow zones we haven't added yet and that follow the mitigation parameter
+            if (zoneCount >= mZoneCount && (allowZoneMitigation || !mitigatedZone))
             {
-               AddZone(i + 1, iLow(symbol, timeFrame, i + 1), mEndIndex, imbalanceExit); 
+               AddZone(i + 1, imbalanceEntry, mEndIndex, imbalanceExit); 
             }
             
             zoneCount += 1;
@@ -162,8 +176,13 @@ string CMB::ToString()
 
 void CMB::Draw(string symbol, int timeFrame)
 {
+   if (mDrawn)
+   {
+      return;
+   }
+   
    color clr = mType == OP_BUY ? clrLimeGreen : clrRed;  
-   string name = "MB - Type: " + mType + ", Start: " + mStartIndex + ", End: " + mEndIndex + ", High: " + mHighIndex + ", Low: " + mLowIndex;
+   string name = "MB - Type: " + mType + ", Start Price: " + mStartIndex + ", End: " + mEndIndex + ", High: " + mHighIndex + ", Low: " + mLowIndex;
    
    if (!ObjectCreate(0, name, OBJ_RECTANGLE, 0, iTime(symbol, timeFrame, mStartIndex), iHigh(symbol, timeFrame, mHighIndex), 
       iTime(symbol, timeFrame, mEndIndex), iLow(symbol, timeFrame, mLowIndex)))
@@ -177,7 +196,10 @@ void CMB::Draw(string symbol, int timeFrame)
    ObjectSetInteger(0, name, OBJPROP_BACK, false);
    ObjectSetInteger(0, name, OBJPROP_FILL, false);
    ObjectSetInteger(0, name, OBJPROP_SELECTED, false);
-   ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);
+   ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);    
+   
+   mDrawn = true;
+
 }
 
 void CMB::DrawZones(string symbol, int timeFrame)
@@ -186,4 +208,12 @@ void CMB::DrawZones(string symbol, int timeFrame)
    {
       mZones[i].Draw(symbol, timeFrame);
    }
+}
+
+void CMB::UpdateIndexes(int barIndex)
+{
+   mStartIndex = mStartIndex + barIndex;
+   mEndIndex = mEndIndex + barIndex;
+   mHighIndex = mHighIndex + barIndex;
+   mLowIndex = mLowIndex + barIndex;
 }
