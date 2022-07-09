@@ -34,7 +34,7 @@ input double MinROCPercent = 0.18;
 // --- EA Constants ---
 double const MinStopLoss = MarketInfo(Symbol(), MODE_STOPLEVEL) * _Point;
 int const MBsNeeded = 2;
-int const MagicNumber = 10001;
+int const MagicNumber = 10002;
 int const MaxTradesPerDay = 10;
 int const MaxSpread = 100;
 
