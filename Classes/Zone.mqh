@@ -8,7 +8,7 @@
 #property version   "1.00"
 #property strict
 
-class CZone
+class Zone
 {
    private: 
       int mType;
@@ -29,15 +29,19 @@ class CZone
       
       double EntryPrice() { return mEntryPrice; }
       double ExitPrice() { return mExitPrice; }
+      
+      double Range() { return MathAbs(mEntryPrice - mExitPrice); }
+      
       double WasRetrieved;
       
-      CZone(int type, int entryIndex, double entryPrice, int exitIndex, double exitPrice);
-     ~CZone();
+      Zone(int type, int entryIndex, double entryPrice, int exitIndex, double exitPrice);
+     ~Zone();
      
      void Draw(string symbol, int timeFrame);
+     double GetRangeInPips();
 };
 
-CZone::CZone(int type, int entryIndex, double entryPrice, int exitIndex, double exitPrice)
+Zone::Zone(int type, int entryIndex, double entryPrice, int exitIndex, double exitPrice)
 {
    mType = type;
    mEntryIndex = entryIndex;
@@ -51,12 +55,12 @@ CZone::CZone(int type, int entryIndex, double entryPrice, int exitIndex, double 
    WasRetrieved = false;
 }
 
-CZone::~CZone()
+Zone::~Zone()
 {
    ObjectsDeleteAll(ChartID(), "Zone", 0, OBJ_RECTANGLE);
 }
 
-void CZone::Draw(string symbol, int timeFrame)
+void Zone::Draw(string symbol, int timeFrame)
 {
    if (mDrawn)
    {

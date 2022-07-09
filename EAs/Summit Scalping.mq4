@@ -14,6 +14,7 @@ input double RiskPercent = 0.25;
 input int PartialOneRR = 10;
 input double PartialOnePercent = 0.8;
 
+
 double MinStopLoss = MarketInfo(Symbol(), MODE_STOPLEVEL) * _Point;
 double Spread = MarketInfo(Symbol(), MODE_SPREAD);
 
@@ -221,7 +222,7 @@ void PlaceLimitOrders(bool buying, int magicNumber)
    }
 }
 
-void CancelAllPendingOrders(int magicNumber) 
+void CancelAllPendingLimitOrders(int magicNumber) 
 {
    for (int i = OrdersTotal() - 1; i >= 0; i--)
    {
@@ -287,6 +288,5 @@ double CalculateLotSize(double SLPips)
    }
    // We apply the formula to calculate the position size and assign the value to the variable.
    LotSize = (AccountBalance() * RiskPercent / 100) / (SLPips * nTickValue) / 100;
-   Print(LotSize);
    return LotSize;
 }

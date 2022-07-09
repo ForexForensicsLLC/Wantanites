@@ -8,9 +8,9 @@
 #property version   "1.00"
 #property strict
 
-#include <SummitCapitalMT4\Classes\MB.mqh>
+#include <SummitCapital\InProgress\MB.mqh>
 
-class CMBTracker
+class MBTracker
 {
    private:
       // --- Operation Variables --- 
@@ -38,7 +38,7 @@ class CMBTracker
       int mPendingBullishMBLowIndex;
       int mPendingBearishMBHighIndex;
       
-      CMB* mMBs[];
+      MB* mMBs[];
       
       // --- Methods
       void Update();
@@ -53,11 +53,11 @@ class CMBTracker
      
 
    public:
-      CMBTracker();
-      CMBTracker(int mbsToTrack, int maxZonesInMB, bool allowZoneMitigatino);
-      CMBTracker(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation);
+      MBTracker();
+      MBTracker(int mbsToTrack, int maxZonesInMB, bool allowZoneMitigatino);
+      MBTracker(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation);
       
-      ~CMBTracker();
+      ~MBTracker();
       
       void init(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation);     
       void UpdateIndexes(int barIndex);
@@ -66,28 +66,31 @@ class CMBTracker
       void DrawMBs(int mostRecentMBsToDraw);
       void DrawZones(int mostRecentMBsToDrawZonesFor);
       
-      void GetUnretrievedZonesInMBs(int mbStartingIndex, int mbEndingIndex, int barIndex, CZone &zones[]);
+      bool GetUnretrievedZonesForNthMostRecentMB(int nthMostRecentMB, int currentBarIndex, Zone* &zones[]);
       
-      bool HasMostRecentConsecutiveMBs(int numberOfMostRecentConsecutiveMBs, CMB* &mbs[]);
-      bool IsOppositeMB(int nthMostRecentMB, CMB* &mb[]);
+      bool HasMostRecentConsecutiveMBs(int numberOfMostRecentConsecutiveMBs);
+      bool HasMostRecentConsecutiveMBs(int numberOfMostRecentConsecutiveMBs, MB* &mbs[]);
+      
+      bool IsOppositeMB(int nthMostRecentMB);
+      bool IsOppositeMB(int nthMostRecentMB, MB* &mb[]);
 };
 
-CMBTracker::CMBTracker()
+MBTracker::MBTracker()
 {
    init(Symbol(), 0, 3, 5, false);
 }
 
-CMBTracker::CMBTracker(int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation)
+MBTracker::MBTracker(int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation)
 {
    init(Symbol(), 0, mbsToTrack, maxZonesInMB, allowZoneMitigation);
 }
 
-CMBTracker::CMBTracker(string symbol, int timeFrame,int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation)
+MBTracker::MBTracker(string symbol, int timeFrame,int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation)
 {
    init(symbol, timeFrame, mbsToTrack, maxZonesInMB, allowZoneMitigation);
 }
 
-CMBTracker::~CMBTracker()
+MBTracker::~MBTracker()
 {
    for (int i = (mMBsToTrack - mCurrentMBs); i < mMBsToTrack; i++)
    {
@@ -95,7 +98,7 @@ CMBTracker::~CMBTracker()
    }  
 }
 
-void CMBTracker::init(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation)
+void MBTracker::init(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation)
 {
    mSymbol = symbol;
    mTimeFrame = timeFrame;
@@ -115,7 +118,7 @@ void CMBTracker::init(string symbol, int timeFrame, int mbsToTrack, int maxZones
    Update();
 }
 
-void CMBTracker::Update()
+void MBTracker::Update()
 {
    // how many bars are available to calcualte
    int bars = iBars(mSymbol, mTimeFrame);
@@ -154,7 +157,7 @@ void CMBTracker::Update()
    mInitialLoad = false;
 }
 
-void CMBTracker::UpdateIndexes(int barIndex)
+void MBTracker::UpdateIndexes(int barIndex)
 {
    mCurrentBullishRetracementIndex = mCurrentBullishRetracementIndex > -1 ? mCurrentBullishRetracementIndex + barIndex : -1;
    mCurrentBearishRetracementIndex = mCurrentBearishRetracementIndex > -1 ? mCurrentBearishRetracementIndex + barIndex : -1;
@@ -168,7 +171,7 @@ void CMBTracker::UpdateIndexes(int barIndex)
    }
 }
 
-void CMBTracker::CalculateMB(int barIndex)
+void MBTracker::CalculateMB(int barIndex)
 {
    if (CheckPointer(mMBs[mMBsToTrack - 1]) == POINTER_INVALID)
    {
@@ -244,7 +247,7 @@ void CMBTracker::CalculateMB(int barIndex)
 // Method that Checks for retracements
 // Will set mCurrentBullishRetracementIndex or mCurrentBearishRetracementIndex if one is found
 // Will reset mCurrentBullishRetracementIndex or mCurrentBearishRetracementIndex if they are invalidated
-void CMBTracker::CheckSetRetracement(int startingIndex, int mbType, int prevMBType)
+void MBTracker::CheckSetRetracement(int startingIndex, int mbType, int prevMBType)
 {
    if (mbType == OP_BUY)
    {
@@ -289,7 +292,7 @@ void CMBTracker::CheckSetRetracement(int startingIndex, int mbType, int prevMBTy
 }
 
 // method that checks if the current retracement turns into a pending mb
-void CMBTracker::CheckSetPendingMB(int startingIndex, int mbType)
+void MBTracker::CheckSetPendingMB(int startingIndex, int mbType)
 {
    if (mbType == OP_BUY && mCurrentBullishRetracementIndex > -1)
    {
@@ -361,20 +364,20 @@ void CMBTracker::CheckSetPendingMB(int startingIndex, int mbType)
 }
 
 // method that create an mb
-void CMBTracker::CreateMB(int mbType, int startIndex, int endIndex, int highIndex, int lowIndex)
+void MBTracker::CreateMB(int mbType, int startIndex, int endIndex, int highIndex, int lowIndex)
 {
     if (mCurrentMBs == mMBsToTrack)
     {  
         delete mMBs[mMBsToTrack - 1];
-        ArrayCopy(mMBs, mMBs, 0, 1, mMBsToTrack - 1);
+        ArrayCopy(mMBs, mMBs, 1, 0, mMBsToTrack - 1);
         
-        CMB* mb = new CMB(mbType, startIndex, endIndex, highIndex, lowIndex, mMaxZonesInMB);
+        MB* mb = new MB(mbType, startIndex, endIndex, highIndex, lowIndex, mMaxZonesInMB);
         mb.CheckAddZones(mSymbol, mTimeFrame, endIndex, mAllowZoneMitigation);       
         mMBs[0] = mb;
     }
     else
     {
-        CMB* mb = new CMB(mbType, startIndex, endIndex, highIndex, lowIndex, mMaxZonesInMB);
+        MB* mb = new MB(mbType, startIndex, endIndex, highIndex, lowIndex, mMaxZonesInMB);
         
         mb.CheckAddZones(mSymbol, mTimeFrame, endIndex, mAllowZoneMitigation);
         mMBs[(mMBsToTrack - 1) - mCurrentMBs] = mb;
@@ -384,7 +387,7 @@ void CMBTracker::CreateMB(int mbType, int startIndex, int endIndex, int highInde
 }
 
 // method that resets all tracking
-void CMBTracker::ResetTracking(void)
+void MBTracker::ResetTracking(void)
 {
     mPendingBullishMB = false;
     mPendingBearishMB = false;
@@ -396,28 +399,36 @@ void CMBTracker::ResetTracking(void)
     mPendingBullishMBLowIndex = -1;
 }
 
-void CMBTracker::GetUnretrievedZonesInMBs(int mbStartingIndex, int mbEndingIndex, int currentBarIndex, CZone &zones[])
+bool MBTracker::GetUnretrievedZonesForNthMostRecentMB(int nthMostRecentMB, int currentBarIndex, Zone* &zones[])
 {
    Update();
    
-   mbStartingIndex = MathMax(mbStartingIndex, mMBsToTrack - mCurrentMBs);
-   
-   for (int i = mbStartingIndex; i <= mbEndingIndex; i++)
+   bool retrievedNewZones = false;
+   if (nthMostRecentMB > mCurrentMBs)
    {
-      // only allow the most recent MB to have zones after it has been validated if there is no pending MB 
-      if (i == (mMBsToTrack - mCurrentMBs) && !mPendingBullishMB && !mPendingBearishMB)
-      {
-         mMBs[i].CheckAddZones(mSymbol, mTimeFrame, currentBarIndex, mAllowZoneMitigation);
-      }
-
-      if (mMBs[i].HasUnretrievedZones())
-      {
-         mMBs[i].GetUnretrievedZones(zones);
-      }
+      Print("Can't get zones for MB: ", nthMostRecentMB, ", Total MBs: ", mCurrentMBs);
+      return false;
    }
+   
+   int i = (mMBsToTrack - mCurrentMBs) + nthMostRecentMB - 1;
+   
+   // only allow the most recent MB to have zones after it has been validated if there is no pending MB 
+   if (i == (mMBsToTrack - mCurrentMBs) && !mPendingBullishMB && !mPendingBearishMB)
+   {
+      mMBs[i].CheckAddZones(mSymbol, mTimeFrame, currentBarIndex, mAllowZoneMitigation);
+   }
+
+   if (mMBs[i].HasUnretrievedZones())
+   {
+      mMBs[i].GetUnretrievedZones(zones);
+      retrievedNewZones = true;
+   }
+   
+   
+   return retrievedNewZones;
 }
 
-void CMBTracker::PrintMBs(int mostRecentMBsToPrint)
+void MBTracker::PrintMBs(int mostRecentMBsToPrint)
 {
    Update();
    
@@ -432,7 +443,7 @@ void CMBTracker::PrintMBs(int mostRecentMBsToPrint)
    } 
 }
 
-void CMBTracker::DrawMBs(int mostRecentMBsToDraw)
+void MBTracker::DrawMBs(int mostRecentMBsToDraw)
 {
    Update();
    
@@ -443,11 +454,11 @@ void CMBTracker::DrawMBs(int mostRecentMBsToDraw)
    
    for (int i = (mMBsToTrack - mCurrentMBs); i < (mMBsToTrack - mCurrentMBs) + mostRecentMBsToDraw; i++)
    {
-      mMBs[i].Draw(mSymbol, mTimeFrame);
+      mMBs[i].Draw(mSymbol, mTimeFrame);     
    } 
 }
 
-void CMBTracker::DrawZones(int mostRecentMBsToDrawZonesFor)
+void MBTracker::DrawZones(int mostRecentMBsToDrawZonesFor)
 {
    Update();
    
@@ -462,8 +473,16 @@ void CMBTracker::DrawZones(int mostRecentMBsToDrawZonesFor)
    } 
 }
 
+bool MBTracker::HasMostRecentConsecutiveMBs(int numberOfMostRecentConsecutiveMBs)
+{
+   MB* tempMBs[];
+   ArrayResize(tempMBs, numberOfMostRecentConsecutiveMBs);
+   
+   return HasMostRecentConsecutiveMBs(numberOfMostRecentConsecutiveMBs, tempMBs);
+}
+
 // Checks for n most recent mbs of the same type
-bool CMBTracker::HasMostRecentConsecutiveMBs(int numberOfMostRecentConsecutiveMBs, CMB* &mbs[])
+bool MBTracker::HasMostRecentConsecutiveMBs(int numberOfMostRecentConsecutiveMBs, MB* &mbs[])
 {
    Update();
    
@@ -480,7 +499,7 @@ bool CMBTracker::HasMostRecentConsecutiveMBs(int numberOfMostRecentConsecutiveMB
    }
    
    int mbType;
-   CMB* tempMBs[];
+   MB* tempMBs[];
    ArrayResize(tempMBs, ArraySize(mbs));
    
    for (int i = 0; i > numberOfMostRecentConsecutiveMBs; i++)
@@ -504,8 +523,16 @@ bool CMBTracker::HasMostRecentConsecutiveMBs(int numberOfMostRecentConsecutiveMB
    return true;
 }
 
+bool MBTracker::IsOppositeMB(int nthMostRecentMB)
+{
+   MB* tempMBs[];
+   ArrayResize(tempMBs, 1);
+   
+   return IsOppositeMB(nthMostRecentMB , tempMBs);
+}
+
 // checks if the nth most recent MB is of opposite type than the one before it
-bool CMBTracker::IsOppositeMB(int nthMostRecentMB, CMB* &mb[])
+bool MBTracker::IsOppositeMB(int nthMostRecentMB, MB* &mb[])
 {
    Update();
    

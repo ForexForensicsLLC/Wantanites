@@ -8,9 +8,9 @@
 #property version   "1.00"
 #property strict
 
-#include <SummitCapitalMT4\Classes\Zone.mqh>
+#include <SummitCapital\InProgress\Zone.mqh>
 
-class CMB
+class MB
 {
    private: 
       int mType;
@@ -22,7 +22,7 @@ class CMB
       
       bool mDrawn;
       
-      CZone* mZones[];
+      Zone* mZones[];
       
       int mMaxZones;
       int mZoneCount;
@@ -30,8 +30,8 @@ class CMB
       bool mHasUnretrievedZones;
                   
    public:
-      CMB(int type, int startIndex, int endIndex, int highIndex, int lowIndex, int maxZones);
-      ~CMB();
+      MB(int type, int startIndex, int endIndex, int highIndex, int lowIndex, int maxZones);
+      ~MB();
       
       int Type() { return mType; }
       int StartIndex() { return mStartIndex; }
@@ -45,7 +45,7 @@ class CMB
       
       void AddZone(int entryIndex, double entryPrice, int exitIndex, double exitPrice);
       void CheckAddZones(string mSymbol, int timeFrame, int barIndex, bool allowZoneMitigation);
-      void GetUnretrievedZones(CZone &zones[]);
+      void GetUnretrievedZones(Zone* &zones[]);
       
       void Draw(string symbol, int timeFrame);
       void DrawZones(string symbol, int timeFrame);
@@ -54,7 +54,7 @@ class CMB
       
 };
 
-CMB::CMB(int type, int startIndex, int endIndex, int highIndex, int lowIndex, int maxZones)
+MB::MB(int type, int startIndex, int endIndex, int highIndex, int lowIndex, int maxZones)
 {
    mType = type;
    mStartIndex = startIndex;
@@ -69,7 +69,7 @@ CMB::CMB(int type, int startIndex, int endIndex, int highIndex, int lowIndex, in
    ArrayResize(mZones, maxZones);
 }
 
-CMB::~CMB()
+MB::~MB()
 {
    ObjectsDeleteAll(ChartID(), "MB", 0, OBJ_RECTANGLE);
    
@@ -79,11 +79,11 @@ CMB::~CMB()
    }
 }
 
-void CMB::AddZone(int entryIndex, double entryPrice, int exitIndex, double exitPrice)
+void MB::AddZone(int entryIndex, double entryPrice, int exitIndex, double exitPrice)
 {
    if (mZoneCount < mMaxZones)
    {
-      CZone* zone = new CZone(mType, entryIndex, entryPrice, exitIndex, exitPrice);
+      Zone* zone = new Zone(mType, entryIndex, entryPrice, exitIndex, exitPrice);
       
       mZones[mZoneCount] = zone;
       mZoneCount += 1;
@@ -94,7 +94,7 @@ void CMB::AddZone(int entryIndex, double entryPrice, int exitIndex, double exitP
 
 // Finds all zones with imbalances before them from startIndex -> endIndex
 // GOES LEFT TO RIGHT 
-void CMB::CheckAddZones(string symbol, int timeFrame, int barIndex, bool allowZoneMitigation)
+void MB::CheckAddZones(string symbol, int timeFrame, int barIndex, bool allowZoneMitigation)
 {
    bool prevImbalance = false;
    bool currentImbalance = false;
@@ -155,7 +155,7 @@ void CMB::CheckAddZones(string symbol, int timeFrame, int barIndex, bool allowZo
    }
 }
 
-void CMB::GetUnretrievedZones(CZone &zones[])
+void MB::GetUnretrievedZones(Zone* &zones[])
 {
    for (int i = 0; i <= mZoneCount - 1; i++)
    {
@@ -169,12 +169,12 @@ void CMB::GetUnretrievedZones(CZone &zones[])
    mHasUnretrievedZones = false;
 }
 
-string CMB::ToString()
+string MB::ToString()
 {
    return "Type: " + ", Start Index: " + mStartIndex + ", End Index: " + mEndIndex + ", High Index: " + mHighIndex + ", Low Index: " + mLowIndex;
 }
 
-void CMB::Draw(string symbol, int timeFrame)
+void MB::Draw(string symbol, int timeFrame)
 {
    if (mDrawn)
    {
@@ -199,10 +199,9 @@ void CMB::Draw(string symbol, int timeFrame)
    ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);    
    
    mDrawn = true;
-
 }
 
-void CMB::DrawZones(string symbol, int timeFrame)
+void MB::DrawZones(string symbol, int timeFrame)
 {
    for (int i = 0; i < mZoneCount; i++)
    {
@@ -210,7 +209,7 @@ void CMB::DrawZones(string symbol, int timeFrame)
    }
 }
 
-void CMB::UpdateIndexes(int barIndex)
+void MB::UpdateIndexes(int barIndex)
 {
    mStartIndex = mStartIndex + barIndex;
    mEndIndex = mEndIndex + barIndex;

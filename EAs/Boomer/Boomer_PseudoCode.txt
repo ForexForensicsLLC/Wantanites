@@ -1,0 +1,40 @@
+// what variables, states, values that you need or need to track
+NEED:
+    // Example
+    Indexes: 
+        StartOfRetracment // need for validation of pending mb
+        LowestCandleIndexInPrevBullishMB // need for when bullish mb is broken
+        HighestCandleIndexInPreviousBearishMB // need for when bearish mb is broken
+
+// Actual variables that you are going to need 
+// ----------------- Tracking -----------------
+// Set(X) = you haven't accounted for setting the varaible
+// Set(O) = you have accounted for setting the variable
+// Cleared(X) = you haven't accounted for clearing the value of the variable
+// Cleared(O) = you have accounted for clearing the value of the variable
+// Reset(X) = you haven't accounted for setting the varialbe after it was cleared
+// Reset(O) = you have accounted for setting the variable after it was cleared
+// --------------------------------------------
+GLOBALS:
+    // Examples
+        int mMBsToTrack Set(O) Cleared(O) Reset(O)// passed into constructor, automatically set and don't need to track
+        int mCurrentMBs Set(O) Cleared(O) Reset(O)
+
+        int mCurrentBullishRetracementIndex Default: -1 Set(O) Cleared(O) Reset(O)
+        int mCurrentBearishRetracementIndex Default: -1 Set(O) Cleared(O) Reset(O) 
+        
+        bool mPendingBullishMB Default: false Set(O) Cleared(O) Reset(O)
+        bool mPendingBearishMB Default: false Set(O) Cleared(O) Reset(O)
+
+        int mPendingBullishMBLowIndex Default: -1 Set(O) Cleared(O) Reset(O)
+        int mPendingBearishMBHighIndex Default: -1 Set(O) Cleared(O) Reset(O)
+
+        double[] mMBTypes Set(O) Cleared(O) Reset(O)
+        double[] mMBStartIndex Set(O) Cleared(O) Reset(O)
+        double[] mMBEndIndex Set(O) Cleared(O) Reset(O)
+        double[] mMBHighIndex Set(O) Cleared(O) Reset(O)
+        double[] mMBLowIndex Set(O) Cleared(O) Reset(O)
+
+// what is going to happen on each tick 
+OnTick():
+    
