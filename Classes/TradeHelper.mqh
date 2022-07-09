@@ -10,9 +10,9 @@
 
 class TradeHelper
 {
-private:
-
-public:
+   private:
+   
+   public:
    
    static double GetLotSize(double stopLossPips, double riskPercent);
    static bool PlaceLimitOrderWithSinglePartial(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, double partialOnePercent, int magicNumber);

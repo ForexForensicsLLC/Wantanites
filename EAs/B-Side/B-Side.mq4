@@ -24,6 +24,13 @@ input int MBsToTrack = 100;
 input int MaxZonesInMB = 5;
 input bool AllowMitigatedZones = false;
 
+// --- Min ROC. Inputs ---
+input int ServerHourStartTime = 16; 
+input int ServerMinuteStartTime = 30;
+input int ServerHourEndTime = 16 ; 
+input int ServerMinuteEndTime = 33;
+input double MinROCPercent = 0.18;
+
 // --- EA Constants ---
 double const MinStopLoss = MarketInfo(Symbol(), MODE_STOPLEVEL) * _Point;
 int const MBsNeeded = 2;
@@ -64,68 +71,92 @@ void OnDeinit(const int reason)
 void OnTick()
 {
    double currentSpread = MarketInfo(Symbol(), MODE_SPREAD);
-   double openPrice  = iCustom(Symbol(), Period(), "Include/SummitCapital/Finished/Min ROC. From Time", 0, 0);
-   if (openPrice != NULL && !StopTrading)
+   double openPrice  = iCustom(Symbol(), Period(), "Include/SummitCapital/Finished/Min ROC. From Time", ServerHourStartTime, ServerMinuteStartTime, ServerHourEndTime, ServerMinuteEndTime, MinROCPercent, 0, 0);
+   
+   // only trade if spread is below the allow maximum and if it is within our trading time 
+   if (currentSpread <= MaxSpread && openPrice != NULL)
    {
-      if (SingleMBSetUp || DoubleMBSetUp)
+      if (!StopTrading)
       {
-         bool tripleMB = MBT.HasMostRecentConsecutiveMBs(3);
-         if (tripleMB)
+         if (SingleMBSetUp || DoubleMBSetUp)
          {
-            StopTrading = true;
-            TradeHelper::MoveAllOrdersToBreakEvenByMagicNumber(MagicNumber);
-            TradeHelper::CancelAllPendingLimitOrdersByMagicNumber(MagicNumber);
-            return;
+            // cancle / move all orders to break even if we've put in 3 consecutive MBs
+            bool tripleMB = MBT.HasMostRecentConsecutiveMBs(3);
+            if (tripleMB)
+            {
+               StopTrading = true;
+               TradeHelper::MoveAllOrdersToBreakEvenByMagicNumber(MagicNumber);
+               TradeHelper::CancelAllPendingLimitOrdersByMagicNumber(MagicNumber);
+               return;
+            }
+            
+            bool brokeRange = (SetUpType == OP_BUY && Close[0] < SetUpRangeEnd) || (SetUpType == OP_SELL && Close[0] > SetUpRangeEnd);
+            bool liquidatedSecondAndContinued = DoubleMBSetUp && MBT.IsOppositeMB(0) && MBT.IsOppositeMB(1);
+            bool crossedOpenPrice = (Close[1] < openPrice && MathMax(Close[0], High[0]) > openPrice) || (Close[1] > openPrice && MathMin(Close[0], Low[0]) < openPrice);
+                   
+            // Stop trading for the day
+            if (brokeRange || liquidatedSecondAndContinued || crossedOpenPrice)
+            {
+               StopTrading = true;
+               TradeHelper::CancelAllPendingLimitOrdersByMagicNumber(MagicNumber);
+            }
          }
          
-         bool brokeRange = (SetUpType == OP_BUY && Close[0] < SetUpRangeEnd) || (SetUpType == OP_SELL && Close[0] > SetUpRangeEnd);
-         bool liquidatedSecondAndContinued = DoubleMBSetUp && MBT.IsOppositeMB(0) && MBT.IsOppositeMB(1);
-         bool crossedOpenPrice = (Close[1] < openPrice && MathMax(Close[0], High[0]) > openPrice) || (Close[1] > openPrice && MathMin(Close[0], Low[0]) < openPrice);
-                
-         if (brokeRange || liquidatedSecondAndContinued || crossedOpenPrice)
-         {
-            StopTrading = true;
-            TradeHelper::CancelAllPendingLimitOrdersByMagicNumber(MagicNumber);
-         }
-      }
-      
-      double minRateOfChange = iCustom(Symbol(), Period(), "Include/SummitCapital/Finished/Min ROC. From Time", 1, 0);
-      HadMinROC = !HadMinROC ? minRateOfChange != NULL : HadMinROC;
-      
-      if (HadMinROC && !SingleMBSetUp && !DoubleMBSetUp && MBT.IsOppositeMB(0, MBs))
-      {
-         SingleMBSetUp = true;        
-         SetUpType = MBs[0].Type();
+         double minRateOfChange = iCustom(Symbol(), Period(), "Include/SummitCapital/Finished/Min ROC. From Time", ServerHourStartTime, ServerMinuteStartTime, ServerHourEndTime, ServerMinuteEndTime, MinROCPercent, 1, 0);
+         HadMinROC = !HadMinROC ? minRateOfChange != NULL : HadMinROC;
          
-         if (SetUpType == OP_BUY)
+         // if we've had a Min ROC and ahven't had a setup yet, and the current MB just broke structure
+         if (HadMinROC && !SingleMBSetUp && !DoubleMBSetUp && MBT.IsOppositeMB(0, MBs))
          {
-            SetUpRangeEnd = iLow(Symbol(), Period(), MBs[0].LowIndex());
-         }
-         else if (MBs[0].Type() == OP_SELL)
+            // only if the setup happened during our session
+            if (TimeMinute(iTime(Symbol(), Period(), MBs[0].StartIndex())) >= 30)
+            {
+               SingleMBSetUp = true;       
+               
+               // store type and range end for ease of access later 
+               SetUpType = MBs[0].Type();
+               
+               if (SetUpType == OP_BUY)
+               {
+                  SetUpRangeEnd = iLow(Symbol(), Period(), MBs[0].LowIndex());
+               }
+               else if (MBs[0].Type() == OP_SELL)
+               {
+                  SetUpRangeEnd = iHigh(Symbol(), Period(), MBs[0].HighIndex());
+               }
+               
+               // place orders on the zones of the first MB
+               if (MBT.GetUnretrievedZonesForNthMostRecentMB(1, 1, Zones))
+               {
+                  PlaceLimitOrders();
+               }
+            }
+            
+            ClearMBs();
+            ClearZones();
+         }   
+         
+         // if we've had a min roc and a single MB break down and a second has just continuted structure
+         if (HadMinROC && SingleMBSetUp && !DoubleMBSetUp && MBT.HasMostRecentConsecutiveMBs(2, MBs))
          {
-            SetUpRangeEnd = iHigh(Symbol(), Period(), MBs[0].HighIndex());
+            DoubleMBSetUp = true;
+            
+            // place orders on the zones of the second MB
+            if (MBT.GetUnretrievedZonesForNthMostRecentMB(2, 1, Zones))
+            {
+               PlaceLimitOrders();
+            }
+            
+            ClearMBs();
+            ClearZones();
          }
          
-         if (currentSpread <= MaxSpread && MBT.GetUnretrievedZonesForNthMostRecentMB(1, 1, Zones))
+         // check for any zones that may have printed after the second MB was validated
+         if (HadMinROC && SingleMBSetUp && DoubleMBSetUp && MBT.GetUnretrievedZonesForNthMostRecentMB(2, 1, Zones))
          {
             PlaceLimitOrders();
+            ClearZones();
          }
-
-         ClearMBs();
-         ClearZones();
-      }   
-      
-      if (HadMinROC && SingleMBSetUp && !DoubleMBSetUp && MBT.HasMostRecentConsecutiveMBs(2, MBs))
-      {
-         DoubleMBSetUp = true;
-         
-         if (currentSpread <= MaxSpread && MBT.GetUnretrievedZonesForNthMostRecentMB(2, 1, Zones))
-         {
-            PlaceLimitOrders();
-         }
-         
-         ClearMBs();
-         ClearZones();
       }
    }
    else
@@ -165,12 +196,15 @@ void PlaceLimitOrders()
       TradeHelper::PlaceLimitOrderWithSinglePartial(orderType, lots, Zones[i].EntryPrice(), stopLoss, takeProfit, PartialOnePercent, MagicNumber);
    }   
 }
+
+// remove all MBs from the array to avoid getting false signals
 void ClearMBs()
 {
    ArrayFree(MBs);
    ArrayResize(MBs, MBsNeeded);
 }
 
+// remove all Zones from the array to avoid getting false signals
 void ClearZones()
 {
    ArrayFree(Zones);
