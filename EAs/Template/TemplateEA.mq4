@@ -20,28 +20,29 @@ input int PartialOneRR = ;
 input double PartialOnePercent = ;
 
 // -- MBTracker Inputs ---
-input int MBsToTrack = 100;
-input int MaxZonesInMB = 5;
+input int MBsToTrack = 100
+input int MaxZonesInMB = 5;;
 input bool AllowMitigatedZones = false;
+input bool AllowZonesAfterMBValidation = true;
 
 // --- EA Constants ---
 double const MinStopLoss = MarketInfo(Symbol(), MODE_STOPLEVEL) * _Point;
 int const MBsNeeded = ;
 int const MagicNumber = ;
 int const MaxTradesPerDay = ;
-int const MaxSpread = ;
+double const MaxSpread = ;
 
 // --- EA Globals ---
 MBTracker* MBT;
-MB* MBs[];
-Zone* Zones[];
+MBState* MBStates[];
+ZoneState* ZoneStates[];
 
 int OnInit()
 {
-   MBT = new MBTracker(MBsToTrack, MaxZonesInMB, AllowMitigatedZones);
+   MBT = new MBTracker(MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation);
    
-   ArrayResize(MBs, MBsNeeded);
-   ArrayResize(Zones, MaxZonesInMB);
+   ArrayResize(MBStates, MBsNeeded);
+   ArrayResize(ZoneStates, MaxZonesInMB);
    
    return(INIT_SUCCEEDED);
 }
