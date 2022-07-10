@@ -13,20 +13,20 @@ input int MBsToTrack = 200;
 input int MaxZonesInMB = 5;
 input int AllowZoneMitigation = false;
 
-#include <SummitCapitalMT4\Classes\MBTracker.mqh>
+#include <SummitCapital\InProgress\MBTracker.mqh>
 
-CMBTracker* MBTracker;
+MBTracker* MBT;
 
 int OnInit()
 {
-   MBTracker = new CMBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowZoneMitigation); 
+   MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowZoneMitigation, true); 
    
    return(INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-   delete MBTracker;
+   delete MBT;
 }
 
 int OnCalculate(const int rates_total,
@@ -40,8 +40,8 @@ int OnCalculate(const int rates_total,
                 const long &volume[],
                 const int &spread[])
 {
-  MBTracker.DrawMBs(-1);
-  MBTracker.DrawZones(-1);
+  MBT.DrawNMostRecentMBs(-1);
+  MBT.DrawZonesForNMostRecentMBs(-1);
   
   return rates_total;
 }
