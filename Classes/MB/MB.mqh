@@ -138,7 +138,7 @@ void MB::UpdateIndexes(int barIndex)
    mHighIndex = mHighIndex + barIndex;
    mLowIndex = mLowIndex + barIndex;
    
-   for (int i = 0; i <= mZoneCount; i++)
+   for (int i = 0; i < mZoneCount; i++)
    {
       mZones[i].UpdateIndexes(barIndex);
    }
