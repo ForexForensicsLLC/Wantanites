@@ -19,17 +19,16 @@ class ZoneState
       double mEntryPrice;
       double mExitPrice;
       
+      bool mAllowWickBreaks;
+      bool mIsBroken;
       bool mWasRetrieved;
-      bool mDrawn;
-      
+      bool mDrawn;     
       string mName;
+      
+      bool BelowDemandZone(string symbol, int timeFrame, int barIndex);
+      bool AboveSupplyZone(string symbol, int timeFrame, int barIndex);
    
    public:
-   /*
-      ZoneState();
-      ~ZoneState();
-      */
-      
       // --- Getters ---
       int Type() { return mType; }
       
@@ -43,37 +42,54 @@ class ZoneState
       
       // --- Computed Properties ---
       double Range() { return MathAbs(mEntryPrice - mExitPrice); }
-      bool IsHolding(string symbol, int timeFrame, bool allowWickBreaks);
+      bool IsHolding(string symbol, int timeFrame);
+      bool IsBroken(string symbol, int timeFrame, int barIndex);
       
       // --- Display Methods ---
       string ToString();
-      void Draw(string symbol, int timeFrame);
+      void Draw(string symbol, int timeFrame, bool printErrors);
 };
-
-/*
-ZoneState::ZoneState()
+bool ZoneState::BelowDemandZone(string symbol, int timeFrame, int barIndex)
 {
+   return (mAllowWickBreaks && MathMin(iOpen(symbol, timeFrame, barIndex), iClose(symbol, timeFrame, barIndex)) < mExitPrice) || (!mAllowWickBreaks && iLow(symbol, timeFrame, barIndex) < mExitPrice);
 }
 
-ZoneState::~ZoneState()
+bool ZoneState::AboveSupplyZone(string symbol, int timeFrame, int barIndex)
 {
+   return (mAllowWickBreaks && MathMax(iOpen(symbol, timeFrame, barIndex), iClose(symbol, timeFrame, barIndex)) > mExitPrice) || (!mAllowWickBreaks && iHigh(symbol, timeFrame, barIndex) > mExitPrice);
 }
-
-*/
 // ----------------- Computed Properties ----------------------
 // checks if price is  currenlty in the zone, and the zone is holding 
-bool ZoneState::IsHolding(string symbol, int timeFrame, bool allowWickBreaks)
+bool ZoneState::IsHolding(string symbol, int timeFrame)
 {
    if (mType == OP_BUY)
    {
-      return iLow(symbol, timeFrame, 0) < mEntryPrice && ((allowWickBreaks && MathMin(iOpen(symbol, timeFrame, 0), iClose(symbol, timeFrame, 0)) > mExitPrice) || (!allowWickBreaks && iLow(symbol, timeFrame, 0) > mExitPrice));
+      return iLow(symbol, timeFrame, 0) < mEntryPrice && !BelowDemandZone(symbol, timeFrame, 0);
    }
    else if (mType == OP_SELL)
    {
-      return iHigh(symbol, timeFrame, 0) > mEntryPrice && ((allowWickBreaks && MathMax(iOpen(symbol, timeFrame, 0), iClose(symbol, timeFrame, 0)) < mExitPrice) || (!allowWickBreaks && iHigh(symbol, timeFrame, 0) < mExitPrice));
+      return iHigh(symbol, timeFrame, 0) > mEntryPrice && !AboveSupplyZone(symbol, timeFrame, 0);
    }
    
    return false;
+}
+
+// checks if a zone was broken from its entry index to barIndex
+bool ZoneState::IsBroken(string symbol, int timeFrame, int barIndex)
+{
+   if (!mIsBroken)
+   {
+      if (mType == OP_BUY)
+      {
+         mIsBroken = BelowDemandZone(symbol, timeFrame, iLowest(symbol, timeFrame, MODE_LOW, mEntryIndex - barIndex, barIndex));
+      }
+      else if (mType == OP_SELL)
+      {
+         mIsBroken = AboveSupplyZone(symbol, timeFrame, iHighest(symbol, timeFrame, MODE_HIGH, mEntryIndex - barIndex, barIndex));
+      }
+   }
+   
+   return mIsBroken;
 }
 
 // ------------------- Display Methods ---------------------
@@ -84,7 +100,7 @@ string ZoneState::ToString()
       ", Exit: " + IntegerToString(mExitIndex); 
 }
 // Draws the zone on the chart if it hasn't been drawn before
-void ZoneState::Draw(string symbol, int timeFrame)
+void ZoneState::Draw(string symbol, int timeFrame, bool printErrors)
 {
    if (mDrawn)
    {
@@ -100,7 +116,11 @@ void ZoneState::Draw(string symbol, int timeFrame)
          iTime(symbol, timeFrame, mExitIndex),  // End
          mExitPrice))                           // Exit
    {
-      Print("Zone Object Creation Failed: ", GetLastError());
+      if (printErrors)
+      {
+         Print("Zone Object Creation Failed: ", GetLastError());
+      }
+      
       return;
    }
    

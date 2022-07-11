@@ -30,7 +30,7 @@ class MB : public MBState
       void AddZone(int entryIndex, double entryPrice, int exitIndex, double exitPrice);
       
       // ----- Retrieving Zones --------
-      bool GetUnretrievedZones(ZoneState* &zoneStates[]);
+      bool GetUnretrievedZones(int mbOffset, ZoneState* &zoneStates[]);
 };
 // #############################################################
 // ####################### Private Methods #####################
@@ -161,7 +161,7 @@ void MB::AddZone(int entryIndex, double entryPrice, int exitIndex, double exitPr
 {
    if (mZoneCount < mMaxZones)
    {
-      Zone* zone = new Zone(mType, entryIndex, entryPrice, exitIndex, exitPrice);
+      Zone* zone = new Zone(mType, entryIndex, entryPrice, exitIndex, exitPrice, false);
       
       mZones[mZoneCount] = zone;
       
@@ -171,7 +171,7 @@ void MB::AddZone(int entryIndex, double entryPrice, int exitIndex, double exitPr
 }
 // ----------------- Zone Retrieval --------------------------
 // Casts all Unretireved zones to a ZoneState and returns them
-bool MB::GetUnretrievedZones(ZoneState* &zoneStates[])
+bool MB::GetUnretrievedZones(int mbOffset, ZoneState* &zoneStates[])
 {
    bool retrievedZones = false;
    for (int i = (mZoneCount - mUnretrievedZoneCount); i < mZoneCount; i++)
@@ -179,7 +179,7 @@ bool MB::GetUnretrievedZones(ZoneState* &zoneStates[])
       if (!mZones[i].WasRetrieved())
       {
          mZones[i].WasRetrieved(true);
-         zoneStates[i] = mZones[i];
+         zoneStates[i + mbOffset] = mZones[i];
          
          retrievedZones = true;
       }

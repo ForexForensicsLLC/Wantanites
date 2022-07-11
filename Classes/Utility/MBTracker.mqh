@@ -19,6 +19,7 @@ class MBTracker
       int mPrevCalculated;
       datetime mFirstBarTime;
       bool mInitialLoad;
+      bool mPrintErrors; // used to prevent printing errors on obj creation. Should be used on 1 second chart to save resources
       
       // --- MB Counting / Tracking--- 
       int mMBsToTrack;
@@ -42,7 +43,7 @@ class MBTracker
       MB* mMBs[];
       
       // --- Tracking Methods --- 
-      void init(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation);  
+      void init(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool printErrors);  
       void Update();
       int MostRecentMBIndex() { return mMBsToTrack - mCurrentMBs; }
       
@@ -60,8 +61,8 @@ class MBTracker
    public:
       // --- Constructors / Destructors ---
       MBTracker();
-      MBTracker(int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation);
-      MBTracker(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation);      
+      MBTracker(int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool printErrors);
+      MBTracker(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool printErrors);      
       ~MBTracker();
       
       // --- Maintenance Methods ---
@@ -75,7 +76,7 @@ class MBTracker
       bool NthMostRecentMBIsOpposite(int nthMB);
       bool NthMostRecentMBIsOpposite(int nthMB, MBState* &mbState[]);
         
-      int NumberOfConsecutiveMBsAfterNthMostRecent(int nthMB);
+      int NumberOfConsecutiveMBsBeforeNthMostRecent(int nthMB);
       
       // --- MB Display Methods ---
       void PrintNMostRecentMBs(int nMBs);     
@@ -83,6 +84,7 @@ class MBTracker
       
       // --- Zone Retrieval Methods ---
       bool GetNthMostRecentMBsUnretrievedZones(int nthMB, ZoneState* &zoneState[]);
+      bool GetNMostRecentMBsUnretrievedZones(int nMBs, ZoneState* &zoneStates[]);
       
       // -- Zone Display Methods -- 
       void DrawZonesForNMostRecentMBs(int nMBs);
@@ -93,13 +95,14 @@ class MBTracker
 // ##############################################################
 
 //----------------------- Tracking Methods ----------------------
-void MBTracker::init(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation)
+void MBTracker::init(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool printErrors)
 {
    mSymbol = symbol;
    mTimeFrame = timeFrame;
    mPrevCalculated = 0;
    mFirstBarTime = 0;
    mInitialLoad = true;
+   mPrintErrors = printErrors;
    
    mMBsToTrack = mbsToTrack;
    mMaxZonesInMB = maxZonesInMB;
@@ -395,7 +398,7 @@ bool MBTracker::InternalHasNMostRecentConsecutiveMBs(int nMBs)
    }
    
    int mbType = -1; 
-   for (int i = 0; i > nMBs; i++)
+   for (int i = 0; i < nMBs; i++)
    {
       if (i == 0)
       {
@@ -410,24 +413,19 @@ bool MBTracker::InternalHasNMostRecentConsecutiveMBs(int nMBs)
    return true;
 }
 
+// Checks if the nthMB is a differnt type than the one before it
 bool MBTracker::InternalNthMostRecentMBIsOpposite(int nthMB)
 {
    Update();
    
-   if (nthMB > mCurrentMBs)
+   if (nthMB == mMBsToTrack - 2)
    {
-      Print("Nth MB, ", nthMB, ", is further than current MBs, ", mCurrentMBs);
+      Print("Can't check MB before, ", nthMB, " MB. Total MBs, ", mMBsToTrack - 1);
       return false;
    }
    
-   int i = MostRecentMBIndex() + nthMB - 1;
-     
-   if (i < mMBsToTrack && mMBs[i].Type() != mMBs[i + 1].Type())
-   {
-      return true;
-   }
-   
-   return false;
+   int i = MostRecentMBIndex() + nthMB;
+   return mMBs[i].Type() != mMBs[i + 1].Type();
 }
 // ##############################################################
 // ######################## Public Methods ######################
@@ -436,17 +434,17 @@ bool MBTracker::InternalNthMostRecentMBIsOpposite(int nthMB)
 // -------------- Constructors / Destructors --------------------
 MBTracker::MBTracker()
 {
-   init(Symbol(), 0, 100, 5, false, true);
+   init(Symbol(), 0, 100, 5, false, true, true);
 }
 
-MBTracker::MBTracker(int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation)
+MBTracker::MBTracker(int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool printErrors)
 {
-   init(Symbol(), 0, mbsToTrack, maxZonesInMB, allowZoneMitigation, allowZonesAfterMBValidation);
+   init(Symbol(), 0, mbsToTrack, maxZonesInMB, allowZoneMitigation, allowZonesAfterMBValidation, printErrors);
 }
 
-MBTracker::MBTracker(string symbol, int timeFrame,int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation)
+MBTracker::MBTracker(string symbol, int timeFrame,int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool printErrors)
 {
-   init(symbol, timeFrame, mbsToTrack, maxZonesInMB, allowZoneMitigation, allowZonesAfterMBValidation);
+   init(symbol, timeFrame, mbsToTrack, maxZonesInMB, allowZoneMitigation, allowZonesAfterMBValidation, printErrors);
 }
 
 MBTracker::~MBTracker()
@@ -502,7 +500,7 @@ bool MBTracker::HasNMostRecentConsecutiveMBs(int nMBs, MBState* &mbStates[])
    
    if (InternalHasNMostRecentConsecutiveMBs(nMBs))
    {
-      for (int i = 0; i > nMBs; i++)
+      for (int i = 0; i < nMBs; i++)
       {
          mbStates[i] = mMBs[MostRecentMBIndex() + i];
       }
@@ -528,8 +526,9 @@ bool MBTracker::NthMostRecentMBIsOpposite(int nthMB, MBState* &mbState[])
    
    return false;
 }
-
-int MBTracker::NumberOfConsecutiveMBsAfterNthMostRecent(int nthMB)
+// Counts how many consecutive MBs of the same type occurred before the nthMB 
+// <Param> nthMB: The index of the MB to start; exclusive <Param> 
+int MBTracker::NumberOfConsecutiveMBsBeforeNthMostRecent(int nthMB)
 {
    if (nthMB > mCurrentMBs)
    {
@@ -541,10 +540,11 @@ int MBTracker::NumberOfConsecutiveMBsAfterNthMostRecent(int nthMB)
    
    int count = 0;
    int type = -1;
+   int startingIndex = MostRecentMBIndex() + nthMB + 1;
    
-   for (int i = MostRecentMBIndex(); i <= MostRecentMBIndex() + nthMB; i ++)
+   for (int i = startingIndex; i <= mMBsToTrack - 1; i++)
    {
-      if (i == MostRecentMBIndex())
+      if (i == startingIndex)
       {
          type = mMBs[i].Type();
       }  
@@ -589,16 +589,18 @@ void MBTracker::DrawNMostRecentMBs(int n)
    
    for (int i = MostRecentMBIndex(); i < MostRecentMBIndex() + n; i++)
    {
-      mMBs[i].Draw(mSymbol, mTimeFrame);     
+      mMBs[i].Draw(mSymbol, mTimeFrame, mPrintErrors);     
    } 
 }
 
 // ------------- Zone Retrieval ----------------
+// Gets all unretrieved zones from the nth most recent MB
+// will place them in the index at which they occured in the MB
 bool MBTracker::GetNthMostRecentMBsUnretrievedZones(int nthMB, ZoneState *&zoneStates[])
 {
    Update();
    
-   if (nthMB > mCurrentMBs)
+   if (nthMB >= mCurrentMBs)
    {
       Print("Can't get zones for MB: ", nthMB, ", Total MBs: ", mCurrentMBs);
       return false;
@@ -608,10 +610,41 @@ bool MBTracker::GetNthMostRecentMBsUnretrievedZones(int nthMB, ZoneState *&zoneS
    
    if (mMBs[MostRecentMBIndex() + nthMB].UnretrievedZoneCount() > 0)
    {
-      return mMBs[MostRecentMBIndex() + nthMB].GetUnretrievedZones(zoneStates);
+      return mMBs[MostRecentMBIndex() + nthMB].GetUnretrievedZones(0, zoneStates);
    }
    
    return false;
+}
+
+// Gets the n most recent mbs unretrieved zones
+// the first 0 -> mMaxZonesInMB zones will be for the first MB,
+// then mMaxZonesInMB -> 2 * mMaxZonesInMB zones will be for the second MB,
+// so on and so on
+bool MBTracker::GetNMostRecentMBsUnretrievedZones(int nMBs, ZoneState* &zoneStates[])
+{
+   Update();
+   
+   if (nMBs > mCurrentMBs)
+   {
+      Print("Can't get ", nMBs, " MBs when there is only ", mCurrentMBs);
+      return false;
+   }
+   
+   if (ArraySize(zoneStates) < nMBs * mMaxZonesInMB)
+   {
+      Print("ZoneStates is not large enough to hold all possible zones");
+      return false;
+   }
+   bool retrievedZones = false;
+   for (int i = 0; i < nMBs; i++)
+   {
+      if (mMBs[MostRecentMBIndex() + i].UnretrievedZoneCount() > 0)
+      {
+         retrievedZones = mMBs[MostRecentMBIndex() + i].GetUnretrievedZones(i * mMaxZonesInMB, zoneStates);
+      }
+   }
+   
+   return retrievedZones;
 }
 
 // ------------- Zone Display ----------------- 
@@ -626,6 +659,6 @@ void MBTracker::DrawZonesForNMostRecentMBs(int nMBs)
    
    for (int i = MostRecentMBIndex(); i < MostRecentMBIndex() + nMBs; i++)
    {
-      mMBs[i].DrawZones(mSymbol, mTimeFrame);
+      mMBs[i].DrawZones(mSymbol, mTimeFrame, mPrintErrors);
    } 
 }

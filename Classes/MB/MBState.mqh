@@ -29,11 +29,6 @@ class MBState
       string mName;
 
    public:
-   /*
-      MBState();
-      ~MBState();
-      */
-   
       // ------------- Getters --------------
       int Type() { return mType; }
       int StartIndex() { return mStartIndex; }
@@ -46,20 +41,9 @@ class MBState
    
       // --------- Display Methods ---------
       string ToString();
-      void Draw(string symbol, int timeFrame);
-      void DrawZones(string symbol, int timeFrame);
+      void Draw(string symbol, int timeFrame, bool printErrors);
+      void DrawZones(string symbol, int timeFrame, bool printErrors);
 };
-
-/*
-MBState::MBState()
-{
-}
-
-MBState::~MBState()
-{
-}
-
-*/
 
 // ---------------- Display Methods -------------------
 // returns a string description of the MB
@@ -72,7 +56,7 @@ string MBState::ToString()
       ", Low: " + IntegerToString(mLowIndex);
 }
 // Draws the current MB if it hasn't been drawn before
-void MBState::Draw(string symbol, int timeFrame)
+void MBState::Draw(string symbol, int timeFrame, bool printErrors)
 {
    if (mDrawn)
    {
@@ -82,13 +66,22 @@ void MBState::Draw(string symbol, int timeFrame)
    color clr = mType == OP_BUY ? clrLimeGreen : clrRed;  
    string name = ToString();
    
+   if (ObjectFind(mName) >= 0)
+   {
+      return;
+   }
+   
    if (!ObjectCreate(0, name, OBJ_RECTANGLE, 0, 
       iTime(symbol, timeFrame, mStartIndex), // Start 
       iHigh(symbol, timeFrame, mHighIndex),  // High
       iTime(symbol, timeFrame, mEndIndex),   // End
       iLow(symbol, timeFrame, mLowIndex)))  // Low
    {
-      Print("MB Object Creation Failed: ", GetLastError());
+      if (printErrors)
+      {
+         Print("MB Object Creation Failed: ", GetLastError());
+      }
+      
       return;
    }
    
@@ -103,10 +96,10 @@ void MBState::Draw(string symbol, int timeFrame)
    mDrawn = true;
 }
 
-void MBState::DrawZones(string symbol, int timeFrame)
+void MBState::DrawZones(string symbol, int timeFrame, bool printErrors)
 {
    for (int i = 0; i < mZoneCount; i++)
    {
-      mZones[i].Draw(symbol, timeFrame);
+      mZones[i].Draw(symbol, timeFrame, printErrors);
    }
 }

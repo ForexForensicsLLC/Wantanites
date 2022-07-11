@@ -10,67 +10,99 @@
 
 class TradeHelper
 {
+   private:
+      static void SendFailedOrderEMail(int orderNumber, int orderType, double entryPrice, double stopLoss, double lots, int magicNumber);
    public:
+      // --- Calculating Orders ---
+      static double RangeToPips(double range);
       static double GetLotSize(double stopLossPips, double riskPercent);
+      
+      // --- Placing Orders ---
       static bool PlaceLimitOrderWithSinglePartial(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, double partialOnePercent, int magicNumber);
-      static bool CancelAllPendingLimitOrdersByMagicNumber(int magicNumber);
+      static bool PlaceStopOrderWithNoPartials(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber);
+      
+      // --- Managing Orders ---
+      static bool CancelAllPendingOrdersByMagicNumber(int magicNumber);
       static bool MoveAllOrdersToBreakEvenByMagicNumber(int magicNumber);
 };
-
-static double TradeHelper::GetLotSize(double stopLossPips, double riskPercent)
+// ######################################################################
+// ####################### Private Methods ##############################
+// ######################################################################
+static void TradeHelper::SendFailedOrderEMail(int orderNumber, int orderType, double entryPrice, double stopLoss, double lots, int magicNumber)
 {
-   double LotSize = 0;
-   // We get the value of a tick.
-   double nTickValue = MarketInfo(Symbol(), MODE_TICKVALUE);
-   // If the digits are 3 or 5, we normalize multiplying by 10.
-   if ((Digits == 3) || (Digits == 5)){
-      nTickValue = nTickValue * 10;
-   }
-   // We apply the formula to calculate the position size and assign the value to the variable.
-   LotSize = (AccountBalance() * riskPercent / 100) / (stopLossPips * nTickValue) / 100;
-   return LotSize;
+   SendMail("Failed to place order" + "\n" + 
+      "Magic Number: " + IntegerToString(magicNumber) + "\n" +
+      "Order Number: " + IntegerToString(orderNumber) + "\n" +
+      "Type: ", IntegerToString(orderType) + "\n" +  
+      "Entry: " + DoubleToString(entryPrice) + "\n" +
+      "Stop Loss: " + DoubleToString(stopLoss) + "\n" +
+      // "Stop Loss Pips: " + DoubleToString(stopLossPips) + "\n" +
+      "Lots: " + DoubleToString(lots) + "\n" + 
+      "Error: " + IntegerToString(GetLastError()));
 }
 
+// ######################################################################
+// ####################### Public Methods ###############################
+// ######################################################################
+// ---------------- Calculating Orders ----------------------------------
+static double TradeHelper::RangeToPips(double range)
+{
+   // do Digits - 1 for pips otherwise it would be in pippetts
+   return range * MathPow(10, Digits - 1);
+}
+static double TradeHelper::GetLotSize(double stopLossPips, double riskPercent)
+{
+   double LotSize = (AccountBalance() * riskPercent / 100) / stopLossPips / MarketInfo(Symbol(), MODE_LOTSIZE);
+   
+   return MathMax(LotSize, MarketInfo(Symbol(), MODE_MINLOT));
+}
+// ----------------- Placing Orders --------------------------------------
 static bool TradeHelper::PlaceLimitOrderWithSinglePartial(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, double partialOnePercent, int magicNumber = 0)
 { 
    bool allOrdersSucceeded = true;
-   if (orderType != OP_BUYLIMIT || OP_SELLLIMIT)
+   if (orderType != OP_BUYLIMIT && orderType != OP_SELLLIMIT)
    {
+      Print("Wrong Order Type: ", IntegerToString(orderType));
       return false;
    }
    
-   int firstOrderTicketNumber = OrderSend(NULL, OP_BUYLIMIT, lots * (partialOnePercent / 100), entryPrice, 0, stopLoss, takeProfit, NULL, magicNumber, 0, clrNONE);
-   int secondOrderTicketNumber = OrderSend(NULL, OP_BUYLIMIT, lots * (1 - (partialOnePercent / 100)), entryPrice, 0, stopLoss, NULL, NULL, magicNumber, 0, clrNONE);       
+   int firstOrderTicketNumber = OrderSend(NULL, orderType, NormalizeDouble(lots * (partialOnePercent / 100), 2), entryPrice, 0, stopLoss, takeProfit, NULL, magicNumber, 0, clrNONE);
+   int secondOrderTicketNumber = OrderSend(NULL, orderType, NormalizeDouble(lots * (1 - (partialOnePercent / 100)), 2), entryPrice, 0, stopLoss, NULL, NULL, magicNumber, 0, clrNONE);       
    
    if (firstOrderTicketNumber < 0)
-   {          
-      SendMail("Failed to place first Buy Limit", 
-              "Entry: " + DoubleToString(entryPrice) + "\n" +
-              "Stop Loss: " + DoubleToString(stopLoss) + "\n" +
-              // "Stop Loss Pips: " + DoubleToString(stopLossPips) + "\n" +
-              "Take Profit:" + DoubleToString(takeProfit) + "\n" + 
-              "Lots: " + DoubleToString(lots * (partialOnePercent / 100)) + "\n" + 
-              IntegerToString(GetLastError()));    
-             
+   {              
+      SendFailedOrderEMail(1, orderType, entryPrice, stopLoss, NormalizeDouble(lots * (partialOnePercent / 100), 2), magicNumber);
       allOrdersSucceeded = false;    
    }    
    
    if (secondOrderTicketNumber < 0)
    {
-      SendMail("Failed to place second Buy Limit", 
-              "Entry: " + DoubleToString(entryPrice) + "\n" +
-              "Stop Loss: " + DoubleToString(stopLoss) + "\n" +
-              // "Stop Loss Pips: " + DoubleToString(stopLossPips) + "\n" +
-              "Lots: " + DoubleToString(lots * (1 - (partialOnePercent / 100))) + "\n" + 
-              IntegerToString(GetLastError()));
-       
+      SendFailedOrderEMail(2, orderType, entryPrice, stopLoss, NormalizeDouble(lots * (1 - (partialOnePercent / 100)), 2), magicNumber);   
       allOrdersSucceeded = false;
    }
    
    return allOrdersSucceeded;
 }
 
-static bool TradeHelper::CancelAllPendingLimitOrdersByMagicNumber(int magicNumber) 
+static bool TradeHelper::PlaceStopOrderWithNoPartials(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber)
+{
+   if (orderType != OP_BUYSTOP && orderType != OP_SELLSTOP)
+   {
+      Print("Wrong order type: ", IntegerToString(orderType));
+      return false;
+   }
+   
+   lots = NormalizeDouble(lots, 2);
+   if (OrderSend(NULL, orderType, lots, entryPrice, 0, stopLoss, takeProfit, NULL, magicNumber, 0, clrNONE) < 0)
+   {
+      SendFailedOrderEMail(1, orderType, entryPrice, stopLoss, lots, magicNumber);
+      return false;
+   }
+   
+   return true;
+}
+// -------------------------- Managing Orders --------------------------------------
+static bool TradeHelper::CancelAllPendingOrdersByMagicNumber(int magicNumber) 
 {
    bool allCancelationsSucceeded = true;
    for (int i = OrdersTotal() - 1; i >= 0; i--)

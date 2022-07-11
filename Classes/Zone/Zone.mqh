@@ -14,7 +14,7 @@ class Zone : public ZoneState
 {
    public:    
       // --- Constructor / Destructor --- 
-      Zone(int type, int entryIndex, double entryPrice, int exitIndex, double exitPrice);
+      Zone(int type, int entryIndex, double entryPrice, int exitIndex, double exitPrice, bool allowWickBreaks);
      ~Zone();
      
      // --- Setters ---
@@ -24,7 +24,7 @@ class Zone : public ZoneState
      void UpdateIndexes(int barIndex);
 };
 
-Zone::Zone(int type, int entryIndex, double entryPrice, int exitIndex, double exitPrice)
+Zone::Zone(int type, int entryIndex, double entryPrice, int exitIndex, double exitPrice, bool allowWickBreaks)
 {
    mType = type;
    mEntryIndex = entryIndex;
@@ -33,6 +33,7 @@ Zone::Zone(int type, int entryIndex, double entryPrice, int exitIndex, double ex
    mEntryPrice = entryPrice;
    mExitPrice = exitPrice;
    
+   mAllowWickBreaks = allowWickBreaks;
    mDrawn = false; 
    mWasRetrieved = false;
 }
