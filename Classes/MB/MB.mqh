@@ -123,7 +123,7 @@ MB::MB(int type, int startIndex, int endIndex, int highIndex, int lowIndex, int 
 
 MB::~MB()
 {
-   ObjectsDeleteAll(ChartID(), "MB", 0, OBJ_RECTANGLE);
+   ObjectsDeleteAll(ChartID(), mName, 0, OBJ_RECTANGLE);
    
    for (int i = 0; i < mZoneCount; i++)
    {

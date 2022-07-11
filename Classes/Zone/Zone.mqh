@@ -39,7 +39,7 @@ Zone::Zone(int type, int entryIndex, double entryPrice, int exitIndex, double ex
 
 Zone::~Zone()
 {
-   ObjectsDeleteAll(ChartID(), "Zone", 0, OBJ_RECTANGLE);
+   ObjectsDeleteAll(ChartID(), mName, 0, OBJ_RECTANGLE);
 }
 // -------------- Maintenance Methods ---------------
 void Zone::UpdateIndexes(int barIndex)

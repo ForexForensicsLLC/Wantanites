@@ -25,6 +25,8 @@ class MBState
       int mMaxZones;
       int mZoneCount;
       int mUnretrievedZoneCount;
+      
+      string mName;
 
    public:
    /*
@@ -90,6 +92,7 @@ void MBState::Draw(string symbol, int timeFrame)
       return;
    }
    
+   mName = name;
    ObjectSetInteger(0, name, OBJPROP_COLOR, clr);
    ObjectSetInteger(0, name, OBJPROP_WIDTH, 2);
    ObjectSetInteger(0, name, OBJPROP_BACK, false);

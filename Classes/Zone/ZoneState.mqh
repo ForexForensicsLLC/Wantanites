@@ -21,6 +21,8 @@ class ZoneState
       
       bool mWasRetrieved;
       bool mDrawn;
+      
+      string mName;
    
    public:
    /*
@@ -102,6 +104,7 @@ void ZoneState::Draw(string symbol, int timeFrame)
       return;
    }
    
+   mName = name;
    ObjectSetInteger(0, name, OBJPROP_COLOR, clr);    
    ObjectSetInteger(0, name, OBJPROP_WIDTH, 1);
    ObjectSetInteger(0, name, OBJPROP_BACK, false);
