@@ -14,7 +14,7 @@
 #include <SummitCapital\InProgress\TradeHelper.mqh>
 
 // --- EA Inputs ---
-input double StopLossPadding = 70;
+input double StopLossPaddingPips = 70;
 input double RiskPercent = 0.25;
 input int PartialOneRR = 13;
 input double PartialOnePercent = 50;
@@ -24,6 +24,7 @@ input int MBsToTrack = 100;
 input int MaxZonesInMB = 5;
 input bool AllowMitigatedZones = false;
 input bool AllowZonesAfterMBValidation = true;
+input bool PrintErrors = false;
 
 // --- Min ROC. Inputs ---
 input int ServerHourStartTime = 16; 
@@ -37,7 +38,7 @@ double const MinStopLoss = MarketInfo(Symbol(), MODE_STOPLEVEL) * _Point;
 int const MBsNeeded = 2;
 int const MagicNumber = 10002;
 int const MaxTradesPerDay = 10;
-int const MaxSpread = 100;
+int const MaxSpreadPips = 100;
 
 // --- EA Globals ---
 MBTracker* MBT;
@@ -56,7 +57,7 @@ bool StopTrading = false;
 
 int OnInit()
 {
-   MBT = new MBTracker(MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation);
+   MBT = new MBTracker(MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, PrintErrors);
    
    ArrayResize(MBStates, MBsNeeded);
    ArrayResize(ZoneStates, MaxZonesInMB);
@@ -71,11 +72,11 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-   double currentSpread = MarketInfo(Symbol(), MODE_SPREAD);
-   double openPrice  = iCustom(Symbol(), Period(), "Include/SummitCapital/Finished/Min ROC. From Time", ServerHourStartTime, ServerMinuteStartTime, ServerHourEndTime, ServerMinuteEndTime, MinROCPercent, 0, 0);
+   double currentSpread = MarketInfo(Symbol(), MODE_SPREAD) / 10;
+   double openPrice  = iCustom(Symbol(), Period(), "Min ROC. From Time", ServerHourStartTime, ServerMinuteStartTime, ServerHourEndTime, ServerMinuteEndTime, MinROCPercent, 0, 0);
    
    // only trade if spread is below the allow maximum and if it is within our trading time 
-   if (currentSpread <= MaxSpread && openPrice != NULL)
+   if (currentSpread <= MaxSpreadPips && openPrice != NULL)
    {
       if (!StopTrading)
       {
@@ -87,7 +88,7 @@ void OnTick()
             {
                StopTrading = true;
                TradeHelper::MoveAllOrdersToBreakEvenByMagicNumber(MagicNumber);
-               TradeHelper::CancelAllPendingLimitOrdersByMagicNumber(MagicNumber);
+               TradeHelper::CancelAllPendingOrdersByMagicNumber(MagicNumber);
                return;
             }
             
@@ -99,11 +100,11 @@ void OnTick()
             if (brokeRange || liquidatedSecondAndContinued || crossedOpenPrice)
             {
                StopTrading = true;
-               TradeHelper::CancelAllPendingLimitOrdersByMagicNumber(MagicNumber);
+               TradeHelper::CancelAllPendingOrdersByMagicNumber(MagicNumber);
             }
          }
          
-         double minRateOfChange = iCustom(Symbol(), Period(), "Include/SummitCapital/Finished/Min ROC. From Time", ServerHourStartTime, ServerMinuteStartTime, ServerHourEndTime, ServerMinuteEndTime, MinROCPercent, 1, 0);
+         double minRateOfChange = iCustom(Symbol(), Period(), "Min ROC. From Time", ServerHourStartTime, ServerMinuteStartTime, ServerHourEndTime, ServerMinuteEndTime, MinROCPercent, 1, 0);
          HadMinROC = !HadMinROC ? minRateOfChange != NULL : HadMinROC;
          
          // if we've had a Min ROC and ahven't had a setup yet, and the current MB just broke structure
@@ -181,20 +182,35 @@ void PlaceLimitOrders()
    {
       if (CheckPointer(ZoneStates[i]) == POINTER_INVALID)
       {
-         return;
+         continue;
       }   
       
       int orderType = SetUpType + 2;
       
-      double stopLossPips = ZoneStates[i].Range() + MaxSpread + StopLossPadding;
-      stopLossPips = stopLossPips < MinStopLoss ? MinStopLoss : stopLossPips;
+      double entryPrice = 0.0;
+      double stopLossRange = 0.0;
+      double stopLoss = 0.0;
+      double takeProfit = 0.0;
+      double lots = 0.0;
       
-      double stopLoss = SetUpType == OP_BUY ? ZoneStates[i].EntryPrice() - stopLossPips : ZoneStates[i].EntryPrice() + stopLossPips;
-      double takeProfit = SetUpType == OP_BUY ? ZoneStates[i].EntryPrice() + (PartialOneRR * stopLossPips) : ZoneStates[i].EntryPrice() - (PartialOneRR * stopLossPips);
+      if (SetUpType == OP_BUY)
+      {
+         entryPrice = ZoneStates[i].EntryPrice();
+         stopLossRange = ZoneStates[i].Range() + TradeHelper::PipsToRange(MaxSpreadPips) + TradeHelper::PipsToRange(StopLossPaddingPips);
+         stopLoss = entryPrice - stopLossRange;
+         takeProfit = entryPrice + (stopLossRange * PartialOneRR);
+      }
+      else if (SetUpType == OP_SELL)
+      {
+         entryPrice = ZoneStates[i].EntryPrice();
+         stopLossRange = ZoneStates[i].Range() + TradeHelper::PipsToRange(MaxSpreadPips) + TradeHelper::PipsToRange(StopLossPaddingPips);
+         stopLoss = entryPrice + stopLossRange;
+         takeProfit = entryPrice - (stopLossRange * PartialOneRR);
+      }
 
-      double lots = TradeHelper::GetLotSize(stopLossPips, RiskPercent);
+      lots = TradeHelper::GetLotSize(TradeHelper::RangeToPips(stopLossRange), RiskPercent);
       
-      TradeHelper::PlaceLimitOrderWithSinglePartial(orderType, lots, ZoneStates[i].EntryPrice(), stopLoss, takeProfit, PartialOnePercent, MagicNumber);
+      TradeHelper::PlaceLimitOrderWithSinglePartial(orderType, lots, entryPrice, stopLoss, takeProfit, PartialOnePercent, MagicNumber);
    }   
 }
 
