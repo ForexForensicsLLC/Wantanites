@@ -10,11 +10,11 @@
 #property show_inputs
 
 //Make sure path is correct
-#include <SummitCapital\InProgress\MBTracker.mqh>
-#include <SummitCapital\InProgress\TradeHelper.mqh>
+#include <SummitCapital\Framework\Trackers\MBTracker.mqh>
+#include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
 
 // --- EA Inputs ---
-input double StopLossPaddingPips = 70;
+input double StopLossPaddingPips = 7;
 input double RiskPercent = 0.25;
 input int PartialOneRR = 13;
 input double PartialOnePercent = 50;
@@ -38,7 +38,7 @@ double const MinStopLoss = MarketInfo(Symbol(), MODE_STOPLEVEL) * _Point;
 int const MBsNeeded = 2;
 int const MagicNumber = 10002;
 int const MaxTradesPerDay = 10;
-int const MaxSpreadPips = 100;
+int const MaxSpreadPips = 10;
 
 // --- EA Globals ---
 MBTracker* MBT;
@@ -87,8 +87,8 @@ void OnTick()
             if (tripleMB)
             {
                StopTrading = true;
-               TradeHelper::MoveAllOrdersToBreakEvenByMagicNumber(MagicNumber);
-               TradeHelper::CancelAllPendingOrdersByMagicNumber(MagicNumber);
+               OrderHelper::MoveAllOrdersToBreakEvenByMagicNumber(MagicNumber);
+               OrderHelper::CancelAllPendingOrdersByMagicNumber(MagicNumber);
                return;
             }
             
@@ -100,7 +100,7 @@ void OnTick()
             if (brokeRange || liquidatedSecondAndContinued || crossedOpenPrice)
             {
                StopTrading = true;
-               TradeHelper::CancelAllPendingOrdersByMagicNumber(MagicNumber);
+               OrderHelper::CancelAllPendingOrdersByMagicNumber(MagicNumber);
             }
          }
          
@@ -196,21 +196,21 @@ void PlaceLimitOrders()
       if (SetUpType == OP_BUY)
       {
          entryPrice = ZoneStates[i].EntryPrice();
-         stopLossRange = ZoneStates[i].Range() + TradeHelper::PipsToRange(MaxSpreadPips) + TradeHelper::PipsToRange(StopLossPaddingPips);
+         stopLossRange = ZoneStates[i].Range() + OrderHelper::PipsToRange(MaxSpreadPips) + OrderHelper::PipsToRange(StopLossPaddingPips);
          stopLoss = entryPrice - stopLossRange;
          takeProfit = entryPrice + (stopLossRange * PartialOneRR);
       }
       else if (SetUpType == OP_SELL)
       {
          entryPrice = ZoneStates[i].EntryPrice();
-         stopLossRange = ZoneStates[i].Range() + TradeHelper::PipsToRange(MaxSpreadPips) + TradeHelper::PipsToRange(StopLossPaddingPips);
+         stopLossRange = ZoneStates[i].Range() + OrderHelper::PipsToRange(MaxSpreadPips) + OrderHelper::PipsToRange(StopLossPaddingPips);
          stopLoss = entryPrice + stopLossRange;
          takeProfit = entryPrice - (stopLossRange * PartialOneRR);
       }
 
-      lots = TradeHelper::GetLotSize(TradeHelper::RangeToPips(stopLossRange), RiskPercent);
+      lots = OrderHelper::GetLotSize(OrderHelper::RangeToPips(stopLossRange), RiskPercent);
       
-      TradeHelper::PlaceLimitOrderWithSinglePartial(orderType, lots, entryPrice, stopLoss, takeProfit, PartialOnePercent, MagicNumber);
+      OrderHelper::PlaceLimitOrderWithSinglePartial(orderType, lots, entryPrice, stopLoss, takeProfit, PartialOnePercent, MagicNumber);
    }   
 }
 
