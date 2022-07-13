@@ -8,18 +8,19 @@
 #property version   "1.00"
 #property strict
 
-class TradeHelper
+class OrderHelper
 {
    private:
       static void SendFailedOrderEMail(int orderNumber, int orderType, double entryPrice, double stopLoss, double lots, int magicNumber);
    public:
       // --- Calculating Orders ---
       static double RangeToPips(double range);
+      static double PipsToRange(double pips);
       static double GetLotSize(double stopLossPips, double riskPercent);
       
       // --- Placing Orders ---
       static bool PlaceLimitOrderWithSinglePartial(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, double partialOnePercent, int magicNumber);
-      static bool PlaceStopOrderWithNoPartials(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber);
+      static bool PlaceStopOrder(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber);
       
       // --- Managing Orders ---
       static bool CancelAllPendingOrdersByMagicNumber(int magicNumber);
@@ -28,12 +29,14 @@ class TradeHelper
 // ######################################################################
 // ####################### Private Methods ##############################
 // ######################################################################
-static void TradeHelper::SendFailedOrderEMail(int orderNumber, int orderType, double entryPrice, double stopLoss, double lots, int magicNumber)
+static void OrderHelper::SendFailedOrderEMail(int orderNumber, int orderType, double entryPrice, double stopLoss, double lots, int magicNumber)
 {
-   SendMail("Failed to place order" + "\n" + 
+   SendMail("Failed to place order",
       "Magic Number: " + IntegerToString(magicNumber) + "\n" +
       "Order Number: " + IntegerToString(orderNumber) + "\n" +
-      "Type: ", IntegerToString(orderType) + "\n" +  
+      "Type: " + IntegerToString(orderType) + "\n" +  
+      "Ask: " + DoubleToString(Ask) + "\n" +
+      "Bid: " + DoubleToString(Bid) + "\n" +
       "Entry: " + DoubleToString(entryPrice) + "\n" +
       "Stop Loss: " + DoubleToString(stopLoss) + "\n" +
       // "Stop Loss Pips: " + DoubleToString(stopLossPips) + "\n" +
@@ -45,19 +48,25 @@ static void TradeHelper::SendFailedOrderEMail(int orderNumber, int orderType, do
 // ####################### Public Methods ###############################
 // ######################################################################
 // ---------------- Calculating Orders ----------------------------------
-static double TradeHelper::RangeToPips(double range)
+// converts a range to pips
+static double OrderHelper::RangeToPips(double range)
 {
    // do Digits - 1 for pips otherwise it would be in pippetts
    return range * MathPow(10, Digits - 1);
 }
-static double TradeHelper::GetLotSize(double stopLossPips, double riskPercent)
+// converts pips to a range
+static double OrderHelper::PipsToRange(double pips)
+{
+   return pips / MathPow(10, Digits - 1);
+}
+static double OrderHelper::GetLotSize(double stopLossPips, double riskPercent)
 {
    double LotSize = (AccountBalance() * riskPercent / 100) / stopLossPips / MarketInfo(Symbol(), MODE_LOTSIZE);
    
    return MathMax(LotSize, MarketInfo(Symbol(), MODE_MINLOT));
 }
 // ----------------- Placing Orders --------------------------------------
-static bool TradeHelper::PlaceLimitOrderWithSinglePartial(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, double partialOnePercent, int magicNumber = 0)
+static bool OrderHelper::PlaceLimitOrderWithSinglePartial(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, double partialOnePercent, int magicNumber = 0)
 { 
    bool allOrdersSucceeded = true;
    if (orderType != OP_BUYLIMIT && orderType != OP_SELLLIMIT)
@@ -84,7 +93,7 @@ static bool TradeHelper::PlaceLimitOrderWithSinglePartial(int orderType, double 
    return allOrdersSucceeded;
 }
 
-static bool TradeHelper::PlaceStopOrderWithNoPartials(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber)
+static bool OrderHelper::PlaceStopOrder(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber)
 {
    if (orderType != OP_BUYSTOP && orderType != OP_SELLSTOP)
    {
@@ -94,7 +103,7 @@ static bool TradeHelper::PlaceStopOrderWithNoPartials(int orderType, double lots
    
    lots = NormalizeDouble(lots, 2);
    if (OrderSend(NULL, orderType, lots, entryPrice, 0, stopLoss, takeProfit, NULL, magicNumber, 0, clrNONE) < 0)
-   {
+   {  
       SendFailedOrderEMail(1, orderType, entryPrice, stopLoss, lots, magicNumber);
       return false;
    }
@@ -102,7 +111,7 @@ static bool TradeHelper::PlaceStopOrderWithNoPartials(int orderType, double lots
    return true;
 }
 // -------------------------- Managing Orders --------------------------------------
-static bool TradeHelper::CancelAllPendingOrdersByMagicNumber(int magicNumber) 
+static bool OrderHelper::CancelAllPendingOrdersByMagicNumber(int magicNumber) 
 {
    bool allCancelationsSucceeded = true;
    for (int i = OrdersTotal() - 1; i >= 0; i--)
@@ -136,7 +145,7 @@ static bool TradeHelper::CancelAllPendingOrdersByMagicNumber(int magicNumber)
    return allCancelationsSucceeded;
 }
 
-static bool TradeHelper::MoveAllOrdersToBreakEvenByMagicNumber(int magicNumber)
+static bool OrderHelper::MoveAllOrdersToBreakEvenByMagicNumber(int magicNumber)
 {
    bool allOrdersMoved = true;
    for (int i = OrdersTotal() - 1; i >= 0; i--)

@@ -8,13 +8,13 @@
 #property version   "1.00"
 #property strict
 
-#include <SummitCapital\InProgress\ZoneState.mqh>
+#include <SummitCapital\Framework\Objects\ZoneState.mqh>
 
 class Zone : public ZoneState
 {
    public:    
       // --- Constructor / Destructor --- 
-      Zone(int type, int entryIndex, double entryPrice, int exitIndex, double exitPrice, bool allowWickBreaks);
+      Zone(string symbol, int timeFrame, int type, int entryIndex, double entryPrice, int exitIndex, double exitPrice, bool allowWickBreaks);
      ~Zone();
      
      // --- Setters ---
@@ -24,9 +24,13 @@ class Zone : public ZoneState
      void UpdateIndexes(int barIndex);
 };
 
-Zone::Zone(int type, int entryIndex, double entryPrice, int exitIndex, double exitPrice, bool allowWickBreaks)
+Zone::Zone(string symbol, int timeFrame, int type, int entryIndex, double entryPrice, int exitIndex, double exitPrice, bool allowWickBreaks)
 {
+   mSymbol = symbol;
+   mTimeFrame = timeFrame;
+   
    mType = type;
+   
    mEntryIndex = entryIndex;
    mExitIndex = exitIndex;
    

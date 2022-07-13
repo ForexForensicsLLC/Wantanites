@@ -8,29 +8,30 @@
 #property version   "1.00"
 #property strict
 
-#include <SummitCapital\InProgress\MBState.mqh>
-#include <SummitCapital\InProgress\Zone.mqh>
+#include <SummitCapital\Framework\Objects\MBState.mqh>
+#include <SummitCapital\Framework\Objects\Zone.mqh>
 
 class MB : public MBState
 {         
    private:
-      void InternalCheckAddZones(string symbol, int timeFrame, int startingIndex, int endingIndex, bool allowZoneMitigation);
+      void InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZoneMitigation);
       
    public:
       // --- Constructors / Destructors ----------
-      MB(int type, int startIndex, int endIndex, int highIndex, int lowIndex, int maxZones);
+      MB(string symbol, int timeFrame, int type, int startIndex, int endIndex, int highIndex, int lowIndex, int maxZones);
       ~MB();
       
       // --- Maintenance Methods ---
       void UpdateIndexes(int barIndex);
       
       // ---- Adding Zones -------------
-      void CheckAddZones(string symbol, int timeFrame, bool allowZoneMitigation);
-      void CheckAddZonesAfterMBValidation(string symbol, int timeFrame, int barIndex, bool allowZoneMitigation);
+      void CheckAddZones(bool allowZoneMitigation);
+      void CheckAddZonesAfterMBValidation(int barIndex, bool allowZoneMitigation);
       void AddZone(int entryIndex, double entryPrice, int exitIndex, double exitPrice);
       
       // ----- Retrieving Zones --------
       bool GetUnretrievedZones(int mbOffset, ZoneState* &zoneStates[]);
+      bool GetClosestValidZone(ZoneState* &zoneStates[]);
 };
 // #############################################################
 // ####################### Private Methods #####################
@@ -38,7 +39,7 @@ class MB : public MBState
 // ------------- Helper Methods ---------------
 // Checks for zones with imbalances after and adds them if they are not already added
 // GOES LEFT TO RIGHT 
-void MB::InternalCheckAddZones(string symbol, int timeFrame, int startingIndex, int endingIndex, bool allowZoneMitigation)
+void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZoneMitigation)
 {
    bool prevImbalance = false;
    bool currentImbalance = false;
@@ -51,13 +52,13 @@ void MB::InternalCheckAddZones(string symbol, int timeFrame, int startingIndex, 
       for (int i = startingIndex; i >= endingIndex; i--)
       {        
          // make sure imbalance is in current mb. This allows for imbalances after the MB was valdiated
-         double imbalanceExit = iLow(symbol, timeFrame, iLowest(symbol, timeFrame, MODE_LOW, 2, i));
-         currentImbalance = iHigh(symbol, timeFrame, i + 1) < iLow(symbol, timeFrame, i - 1) && imbalanceExit < iHigh(symbol, timeFrame, mStartIndex);
+         double imbalanceExit = iLow(mSymbol, mTimeFrame, iLowest(mSymbol, mTimeFrame, MODE_LOW, 2, i));
+         currentImbalance = iHigh(mSymbol, mTimeFrame, i + 1) < iLow(mSymbol, mTimeFrame, i - 1) && imbalanceExit < iHigh(mSymbol, mTimeFrame, mStartIndex);
          
          if (currentImbalance && !prevImbalance)
          {
-            double imbalanceEntry = iHigh(symbol, timeFrame, i + 1);
-            double mitigatedZone = iLow(symbol, timeFrame, iLowest(symbol, timeFrame, MODE_LOW, i - endingIndex, endingIndex)) < imbalanceEntry;
+            double imbalanceEntry = iHigh(mSymbol, mTimeFrame, i + 1);
+            double mitigatedZone = iLow(mSymbol, mTimeFrame, iLowest(mSymbol, mTimeFrame, MODE_LOW, i - endingIndex, endingIndex)) < imbalanceEntry;
             
             // only allow zones we haven't added yet and that follow the mitigation parameter
             if (zoneCount >= mZoneCount && (allowZoneMitigation || !mitigatedZone))
@@ -78,13 +79,13 @@ void MB::InternalCheckAddZones(string symbol, int timeFrame, int startingIndex, 
       for (int i = startingIndex; i >= endingIndex; i--)
       {
          // make sure imbalance is in current mb. This allows for imbalances after the MB was validated
-         double imbalanceExit = iHigh(symbol, timeFrame, iHighest(symbol, timeFrame, MODE_HIGH, 2, i));
-         currentImbalance = iLow(symbol, timeFrame, i +1) > iHigh(symbol, timeFrame, i - 1) && imbalanceExit > iLow(symbol, timeFrame, mStartIndex);
+         double imbalanceExit = iHigh(mSymbol, mTimeFrame, iHighest(mSymbol, mTimeFrame, MODE_HIGH, 2, i));
+         currentImbalance = iLow(mSymbol, mTimeFrame, i +1) > iHigh(mSymbol, mTimeFrame, i - 1) && imbalanceExit > iLow(mSymbol, mTimeFrame, mStartIndex);
          
          if (currentImbalance && !prevImbalance)
          {
-            double imbalanceEntry = iLow(symbol, timeFrame, i + 1);
-            double mitigatedZone = iHigh(symbol, timeFrame, iHighest(symbol, timeFrame, MODE_HIGH, i - endingIndex, endingIndex)) > imbalanceEntry;
+            double imbalanceEntry = iLow(mSymbol, mTimeFrame, i + 1);
+            double mitigatedZone = iHigh(mSymbol, mTimeFrame, iHighest(mSymbol, mTimeFrame, MODE_HIGH, i - endingIndex, endingIndex)) > imbalanceEntry;
             
             // only allow zones we haven't added yet and that follow the mitigation parameter
             if (zoneCount >= mZoneCount && (allowZoneMitigation || !mitigatedZone))
@@ -104,8 +105,11 @@ void MB::InternalCheckAddZones(string symbol, int timeFrame, int startingIndex, 
 // ####################### Public Methods ######################
 // #############################################################
 // --------- Constructor / Destructor --------
-MB::MB(int type, int startIndex, int endIndex, int highIndex, int lowIndex, int maxZones)
+MB::MB(string symbol, int timeFrame, int type, int startIndex, int endIndex, int highIndex, int lowIndex, int maxZones)
 {
+   mSymbol = symbol;
+   mTimeFrame = timeFrame;
+   
    mType = type;
    mStartIndex = startIndex;
    mEndIndex = endIndex;
@@ -145,15 +149,15 @@ void MB::UpdateIndexes(int barIndex)
 }
 // --------------- Adding Zones -------------------
 // Checks for zones that are within the MB
-void MB::CheckAddZones(string symbol, int timeFrame, bool allowZoneMitigation)
+void MB::CheckAddZones(bool allowZoneMitigation)
 {
    int startIndex = mType == OP_BUY ? mLowIndex : mHighIndex;
-   InternalCheckAddZones(symbol, timeFrame, startIndex, mEndIndex, allowZoneMitigation);
+   InternalCheckAddZones(startIndex, mEndIndex, allowZoneMitigation);
 }
 // Checks for  zones that occur after the MB
-void MB::CheckAddZonesAfterMBValidation(string symbol, int timeFrame, int barIndex, bool allowZoneMitigation)
+void MB::CheckAddZonesAfterMBValidation(int barIndex, bool allowZoneMitigation)
 {
-   InternalCheckAddZones(symbol, timeFrame, mEndIndex, barIndex, allowZoneMitigation);
+   InternalCheckAddZones(mEndIndex, barIndex, allowZoneMitigation);
 }
 
 // Add zones 
@@ -161,7 +165,7 @@ void MB::AddZone(int entryIndex, double entryPrice, int exitIndex, double exitPr
 {
    if (mZoneCount < mMaxZones)
    {
-      Zone* zone = new Zone(mType, entryIndex, entryPrice, exitIndex, exitPrice, false);
+      Zone* zone = new Zone(mSymbol, mTimeFrame, mType, entryIndex, entryPrice, exitIndex, exitPrice, false);
       
       mZones[mZoneCount] = zone;
       
@@ -187,4 +191,18 @@ bool MB::GetUnretrievedZones(int mbOffset, ZoneState* &zoneStates[])
    
    mUnretrievedZoneCount = 0;
    return retrievedZones;
+}
+
+bool MB::GetClosestValidZone(ZoneState* &zoneStates[])
+{
+   for (int i = mZoneCount - 1; i >= 0; i--)
+   {
+      if (CheckPointer(mZones[i]) != POINTER_INVALID && !mZones[i].IsBroken(0))
+      {
+         zoneStates[0] = mZones[i];
+         return true;
+      }
+   }
+   
+   return false;
 }

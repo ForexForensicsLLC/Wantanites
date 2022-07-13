@@ -8,7 +8,7 @@
 #property version   "1.00"
 #property strict
 
-#include <SummitCapital\InProgress\MB.mqh>
+#include <SummitCapital\Framework\Objects\MB.mqh>
 
 class MBTracker
 {
@@ -69,7 +69,7 @@ class MBTracker
       void UpdateIndexes(int barIndex);
       
       // --- MB Schematic Methods ---
-      bool GetNthMostRecentMB(int nthMB, MBState* &mbState[]);
+      bool GetNthMostRecentMB(int nthMB, MBState* &mbState);
       bool HasNMostRecentConsecutiveMBs(int nMBs);
       bool HasNMostRecentConsecutiveMBs(int nMBs, MBState* &mbStates[]);
       
@@ -85,6 +85,8 @@ class MBTracker
       // --- Zone Retrieval Methods ---
       bool GetNthMostRecentMBsUnretrievedZones(int nthMB, ZoneState* &zoneState[]);
       bool GetNMostRecentMBsUnretrievedZones(int nMBs, ZoneState* &zoneStates[]);
+      bool GetNthMostRecentMBsClosestValidZone(int nthMB, ZoneState* &zoneState[]);
+      bool NthMostRecentMBsClosestValidZoneIsHolding(int nthMB, ZoneState* &zoneState[]);
       
       // -- Zone Display Methods -- 
       void DrawZonesForNMostRecentMBs(int nMBs);
@@ -199,7 +201,7 @@ void MBTracker::CalculateMB(int barIndex)
       // only allow the most recent MB to have zones after it has been validated if there is no pending MB 
       else if (mAllowZonesAfterMBValidation)
       {
-         mMBs[MostRecentMBIndex()].CheckAddZonesAfterMBValidation(mSymbol, mTimeFrame, barIndex, mAllowZoneMitigation);
+         mMBs[MostRecentMBIndex()].CheckAddZonesAfterMBValidation(barIndex, mAllowZoneMitigation);
       }
    }
    // prev mb was bearish
@@ -227,7 +229,7 @@ void MBTracker::CalculateMB(int barIndex)
       // only allow the most recent MB to have zones after it has been validated if there is no pending MB 
       else if (mAllowZonesAfterMBValidation)
       {
-         mMBs[MostRecentMBIndex()].CheckAddZonesAfterMBValidation(mSymbol, mTimeFrame, barIndex, mAllowZoneMitigation);
+         mMBs[MostRecentMBIndex()].CheckAddZonesAfterMBValidation(barIndex, mAllowZoneMitigation);
       }
    }
 }
@@ -359,14 +361,14 @@ void MBTracker::CreateMB(int mbType, int startIndex, int endIndex, int highIndex
         delete mMBs[mMBsToTrack - 1];
         ArrayCopy(mMBs, mMBs, 1, 0, mMBsToTrack - 1);
         
-        MB* mb = new MB(mbType, startIndex, endIndex, highIndex, lowIndex, mMaxZonesInMB);
-        mb.CheckAddZones(mSymbol, mTimeFrame, mAllowZoneMitigation);       
+        MB* mb = new MB(mSymbol, mTimeFrame, mbType, startIndex, endIndex, highIndex, lowIndex, mMaxZonesInMB);
+        mb.CheckAddZones(mAllowZoneMitigation);       
         mMBs[0] = mb;
     }
     else
     {
-        MB* mb = new MB(mbType, startIndex, endIndex, highIndex, lowIndex, mMaxZonesInMB);       
-        mb.CheckAddZones(mSymbol, mTimeFrame, mAllowZoneMitigation);
+        MB* mb = new MB(mSymbol, mTimeFrame, mbType, startIndex, endIndex, highIndex, lowIndex, mMaxZonesInMB);       
+        mb.CheckAddZones(mAllowZoneMitigation);
         mMBs[(mMBsToTrack - 1) - mCurrentMBs] = mb;
         
         mCurrentMBs += 1;
@@ -471,7 +473,7 @@ void MBTracker::UpdateIndexes(int barIndex)
 }
 
 // -------------- MB Schematic Mehthods ---------------
-bool MBTracker::GetNthMostRecentMB(int nthMB, MBState *&mbState[])
+bool MBTracker::GetNthMostRecentMB(int nthMB, MBState *&mbState)
 {
    Update();
    
@@ -481,7 +483,7 @@ bool MBTracker::GetNthMostRecentMB(int nthMB, MBState *&mbState[])
       return false;
    }
    
-   mbState[0] = mMBs[MostRecentMBIndex() + nthMB];
+   mbState = mMBs[MostRecentMBIndex() + nthMB];
    return true;
 }
 
@@ -554,9 +556,9 @@ int MBTracker::NumberOfConsecutiveMBsBeforeNthMostRecent(int nthMB)
          {
             return count;
          }
-         
-         count += 1;
       }
+          
+      count += 1;
    }
    
    return count;
@@ -589,7 +591,7 @@ void MBTracker::DrawNMostRecentMBs(int n)
    
    for (int i = MostRecentMBIndex(); i < MostRecentMBIndex() + n; i++)
    {
-      mMBs[i].Draw(mSymbol, mTimeFrame, mPrintErrors);     
+      mMBs[i].Draw(mPrintErrors);     
    } 
 }
 
@@ -647,6 +649,29 @@ bool MBTracker::GetNMostRecentMBsUnretrievedZones(int nMBs, ZoneState* &zoneStat
    return retrievedZones;
 }
 
+bool MBTracker::GetNthMostRecentMBsClosestValidZone(int nthMB, ZoneState* &zoneState[])
+{
+   Update();
+   
+   if (nthMB >= mCurrentMBs)
+   {
+      Print("Can't get zone for MB: ", nthMB, ", Total MBs: ", mCurrentMBs);
+      return false;
+   }
+   
+   return mMBs[MostRecentMBIndex() + nthMB].GetClosestValidZone(zoneState);
+}
+
+bool MBTracker::NthMostRecentMBsClosestValidZoneIsHolding(int nthMB, ZoneState* &zoneState[])
+{
+   if (GetNthMostRecentMBsClosestValidZone(nthMB, zoneState))
+   {
+      return zoneState[0].IsHolding();
+   }
+   
+   return false;
+}
+
 // ------------- Zone Display ----------------- 
 void MBTracker::DrawZonesForNMostRecentMBs(int nMBs)
 {
@@ -659,6 +684,6 @@ void MBTracker::DrawZonesForNMostRecentMBs(int nMBs)
    
    for (int i = MostRecentMBIndex(); i < MostRecentMBIndex() + nMBs; i++)
    {
-      mMBs[i].DrawZones(mSymbol, mTimeFrame, mPrintErrors);
+      mMBs[i].DrawZones(mPrintErrors);
    } 
 }

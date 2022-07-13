@@ -8,11 +8,14 @@
 #property version   "1.00"
 #property strict
 
-#include <SummitCapital\InProgress\Zone.mqh>
+#include <SummitCapital\Framework\Objects\Zone.mqh>
 
 class MBState
 {
    protected:
+      string mSymbol;
+      int mTimeFrame;
+      
       int mType;
       int mStartIndex;
       int mEndIndex;
@@ -30,6 +33,8 @@ class MBState
 
    public:
       // ------------- Getters --------------
+      string Symbol() { return mSymbol; }
+      int TimeFrame() { return mTimeFrame; }
       int Type() { return mType; }
       int StartIndex() { return mStartIndex; }
       int EndIndex() { return mEndIndex; }
@@ -41,22 +46,23 @@ class MBState
    
       // --------- Display Methods ---------
       string ToString();
-      void Draw(string symbol, int timeFrame, bool printErrors);
-      void DrawZones(string symbol, int timeFrame, bool printErrors);
+      void Draw(bool printErrors);
+      void DrawZones(bool printErrors);
 };
 
 // ---------------- Display Methods -------------------
 // returns a string description of the MB
 string MBState::ToString()
 {
-   return "MB - Type: " + IntegerToString(mType) + 
+   return "MB - TF: " + IntegerToString(mTimeFrame) + 
+      ", Type: " + IntegerToString(mType) + 
       ", Start: " + IntegerToString(mStartIndex) + 
       ", End: " + IntegerToString(mEndIndex) + 
       ", High: " + IntegerToString(mHighIndex) + 
       ", Low: " + IntegerToString(mLowIndex);
 }
 // Draws the current MB if it hasn't been drawn before
-void MBState::Draw(string symbol, int timeFrame, bool printErrors)
+void MBState::Draw(bool printErrors)
 {
    if (mDrawn)
    {
@@ -72,10 +78,10 @@ void MBState::Draw(string symbol, int timeFrame, bool printErrors)
    }
    
    if (!ObjectCreate(0, name, OBJ_RECTANGLE, 0, 
-      iTime(symbol, timeFrame, mStartIndex), // Start 
-      iHigh(symbol, timeFrame, mHighIndex),  // High
-      iTime(symbol, timeFrame, mEndIndex),   // End
-      iLow(symbol, timeFrame, mLowIndex)))  // Low
+      iTime(mSymbol, mTimeFrame, mStartIndex), // Start 
+      iHigh(mSymbol, mTimeFrame, mHighIndex),  // High
+      iTime(mSymbol, mTimeFrame, mEndIndex),   // End
+      iLow(mSymbol, mTimeFrame, mLowIndex)))  // Low
    {
       if (printErrors)
       {
@@ -96,10 +102,10 @@ void MBState::Draw(string symbol, int timeFrame, bool printErrors)
    mDrawn = true;
 }
 
-void MBState::DrawZones(string symbol, int timeFrame, bool printErrors)
+void MBState::DrawZones(bool printErrors)
 {
    for (int i = 0; i < mZoneCount; i++)
    {
-      mZones[i].Draw(symbol, timeFrame, printErrors);
+      mZones[i].Draw(printErrors);
    }
 }

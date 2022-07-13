@@ -8,7 +8,7 @@
 #property version   "1.00"
 #property strict
 
-class ConfirmationHelper
+class ConfirmationRetrievers
 {
    public:
       static bool Hammer(string symbol, int timeFrame);
@@ -20,7 +20,7 @@ class ConfirmationHelper
 
 // bullish candlestick pattern where a candle wick liquidates the candle low before it
 // hopint to see price break up after
-static bool ConfirmationHelper::Hammer(string symbol,int timeFrame)
+static bool ConfirmationRetrievers::Hammer(string symbol,int timeFrame)
 {
    bool HighNotAbovePreviuos = iHigh(symbol, timeFrame, 0) < iHigh(symbol, timeFrame, 1);
    bool bodyNotBelowPrevious = MathMin(iOpen(symbol, timeFrame, 0), iClose(symbol, timeFrame, 0)) > iLow(symbol, timeFrame, 1);
@@ -29,7 +29,7 @@ static bool ConfirmationHelper::Hammer(string symbol,int timeFrame)
    return HighNotAbovePreviuos && bodyNotBelowPrevious && wickBelowPreviuos;
 }
 
-static bool ConfirmationHelper::HammerBreak(string symbol, int timeFrame, bool useBody)
+static bool ConfirmationRetrievers::HammerBreak(string symbol, int timeFrame, bool useBody)
 {
    bool HighNotAbovePreviuos = iHigh(symbol, timeFrame, 1) < iHigh(symbol, timeFrame, 2);
    bool bodyNotBelowPrevious = MathMin(iOpen(symbol, timeFrame, 1), iClose(symbol, timeFrame, 1)) > iLow(symbol, timeFrame, 2);
@@ -41,7 +41,7 @@ static bool ConfirmationHelper::HammerBreak(string symbol, int timeFrame, bool u
 
 // bearish candlestick pattern where a candle wick liqudiates the candle high before it
 // hopint to see price break down after 
-static bool ConfirmationHelper::ShootingStar(string symbol,int timeFrame)
+static bool ConfirmationRetrievers::ShootingStar(string symbol,int timeFrame)
 {
    bool lowNotBelowPrevious = iLow(symbol, timeFrame, 0) > iLow(symbol, timeFrame, 1);
    bool bodyNotAbovePrevious = MathMax(iOpen(symbol, timeFrame, 0), iClose(symbol, timeFrame, 0)) < iHigh(symbol, timeFrame, 1);
@@ -50,7 +50,7 @@ static bool ConfirmationHelper::ShootingStar(string symbol,int timeFrame)
    return lowNotBelowPrevious && bodyNotAbovePrevious && wickAbovePrevious;
 }
 
-static bool ConfirmationHelper::ShootingStarBreak(string symbol,int timeFrame,bool useBody)
+static bool ConfirmationRetrievers::ShootingStarBreak(string symbol,int timeFrame,bool useBody)
 {
    bool lowNotBelowPrevious = iLow(symbol, timeFrame, 1) > iLow(symbol, timeFrame, 2);
    bool bodyNotAbovePrevious = MathMax(iOpen(symbol, timeFrame, 1), iClose(symbol, timeFrame, 1)) < iHigh(symbol, timeFrame, 2);
