@@ -14,7 +14,7 @@
 class MB : public MBState
 {         
    private:
-      void InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZoneMitigation);
+      void InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZoneMitigation, bool calculatingOnCurrentCandle);
       
    public:
       // --- Constructors / Destructors ----------
@@ -39,36 +39,40 @@ class MB : public MBState
 // ------------- Helper Methods ---------------
 // Checks for zones with imbalances after and adds them if they are not already added
 // GOES LEFT TO RIGHT 
-void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZoneMitigation)
+void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZoneMitigation, bool calculatingOnCurrentCandle)
 {
    bool prevImbalance = false;
    bool currentImbalance = false;
    
-   int zoneCount = 0;
+   int runningZoneCount = 0;
    
    if (mType == OP_BUY)
    {
       // only go from low -> current so that we only grab imbalances that are in the imbpulse that broke structure and not in the move down
       for (int i = startingIndex; i >= endingIndex; i--)
       {        
+         // can only calculate imbalances for candles that we have a candle before and after for. 
+         // If we're on the current candle, then we don't have one after and we have to do the calculation on the previous candle 
+         int index = calculatingOnCurrentCandle ? i + 1 : i;
+         
          // make sure imbalance is in current mb. This allows for imbalances after the MB was valdiated
-         double imbalanceExit = iLow(mSymbol, mTimeFrame, iLowest(mSymbol, mTimeFrame, MODE_LOW, 2, i));
-         currentImbalance = iHigh(mSymbol, mTimeFrame, i + 1) < iLow(mSymbol, mTimeFrame, i - 1) && imbalanceExit < iHigh(mSymbol, mTimeFrame, mStartIndex);
+         double imbalanceExit = iLow(mSymbol, mTimeFrame, iLowest(mSymbol, mTimeFrame, MODE_LOW, 2, index));
+         currentImbalance = iHigh(mSymbol, mTimeFrame, index + 1) < iLow(mSymbol, mTimeFrame, index - 1) && imbalanceExit < iHigh(mSymbol, mTimeFrame, mStartIndex);
          
          if (currentImbalance && !prevImbalance)
          {
-            double imbalanceEntry = iHigh(mSymbol, mTimeFrame, i + 1);
-            double mitigatedZone = iLow(mSymbol, mTimeFrame, iLowest(mSymbol, mTimeFrame, MODE_LOW, i - endingIndex, endingIndex)) < imbalanceEntry;
+            double imbalanceEntry = iHigh(mSymbol, mTimeFrame, index + 1);
+            double mitigatedZone = iLow(mSymbol, mTimeFrame, iLowest(mSymbol, mTimeFrame, MODE_LOW, index - endingIndex, endingIndex)) < imbalanceEntry;
             
-            // only allow zones we haven't added yet and that follow the mitigation parameter and that aren't single ticks
-            if (zoneCount >= mZoneCount && (allowZoneMitigation || !mitigatedZone) && imbalanceEntry != imbalanceExit)
+            // only allow zones we haven't added yet, that follow the mitigation parameter, that arenen't single ticks, and occur after the start of the zone
+            if (runningZoneCount >= mZoneCount && (allowZoneMitigation || !mitigatedZone) && imbalanceEntry != imbalanceExit && index + 1 <= mStartIndex)
             {
                // account for zones after the validaiton of an mb
-               int endIndex = mEndIndex <= i ? mEndIndex : i;
-               AddZone(i + 1, imbalanceEntry, endIndex, imbalanceExit);
+               int endIndex = mEndIndex <= index ? mEndIndex : index;
+               AddZone(index + 1, imbalanceEntry, endIndex, imbalanceExit);
             }
             
-            zoneCount += 1;
+            runningZoneCount += 1;
          }
          
          prevImbalance = currentImbalance;          
@@ -79,23 +83,27 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
       // only go from high -> current so that we only grab imbalances that are in the impulse taht broke sructure and not in the move up
       for (int i = startingIndex; i >= endingIndex; i--)
       {
+         // can only calculate imbalances for candles that we have a candle before and after for. 
+         // If we're on the current candle, then we don't have one after and we have to do the calculation on the previous candle 
+         int index = calculatingOnCurrentCandle ? i + 1 : i;
+         
          // make sure imbalance is in current mb. This allows for imbalances after the MB was validated
-         double imbalanceExit = iHigh(mSymbol, mTimeFrame, iHighest(mSymbol, mTimeFrame, MODE_HIGH, 2, i));
-         currentImbalance = iLow(mSymbol, mTimeFrame, i + 1) > iHigh(mSymbol, mTimeFrame, i - 1) && imbalanceExit > iLow(mSymbol, mTimeFrame, mStartIndex);
+         double imbalanceExit = iHigh(mSymbol, mTimeFrame, iHighest(mSymbol, mTimeFrame, MODE_HIGH, 2, index));
+         currentImbalance = iLow(mSymbol, mTimeFrame, index + 1) > iHigh(mSymbol, mTimeFrame, index - 1) && imbalanceExit > iLow(mSymbol, mTimeFrame, mStartIndex);
          
          if (currentImbalance && !prevImbalance)
          {
-            double imbalanceEntry = iLow(mSymbol, mTimeFrame, i + 1);
-            double mitigatedZone = iHigh(mSymbol, mTimeFrame, iHighest(mSymbol, mTimeFrame, MODE_HIGH, i - endingIndex, endingIndex)) > imbalanceEntry;
+            double imbalanceEntry = iLow(mSymbol, mTimeFrame, index + 1);
+            double mitigatedZone = iHigh(mSymbol, mTimeFrame, iHighest(mSymbol, mTimeFrame, MODE_HIGH, index - endingIndex, endingIndex)) > imbalanceEntry;
             
-            // only allow zones we haven't added yet and that follow the mitigation parameter and that arenen't single ticks
-            if (zoneCount >= mZoneCount && (allowZoneMitigation || !mitigatedZone) && imbalanceEntry != imbalanceExit)
+            // only allow zones we haven't added yet, that follow the mitigation parameter, that arenen't single ticks, and occur after the start of the zone
+            if (runningZoneCount >= mZoneCount && (allowZoneMitigation || !mitigatedZone) && imbalanceEntry != imbalanceExit && index + 1 <= mStartIndex)
             {
-               int endIndex = mEndIndex <= i ? mEndIndex : i;
-               AddZone(i + 1, imbalanceEntry, endIndex, imbalanceExit); 
+               int endIndex = mEndIndex <= index ? mEndIndex : index;
+               AddZone(index + 1, imbalanceEntry, endIndex, imbalanceExit); 
             }
             
-            zoneCount += 1;
+            runningZoneCount += 1;
          }
                 
          prevImbalance = currentImbalance;
@@ -155,12 +163,12 @@ void MB::UpdateIndexes(int barIndex)
 void MB::CheckAddZones(bool allowZoneMitigation)
 {
    int startIndex = mType == OP_BUY ? mLowIndex : mHighIndex;
-   InternalCheckAddZones(startIndex, mEndIndex, allowZoneMitigation);
+   InternalCheckAddZones(startIndex, mEndIndex, allowZoneMitigation, false);
 }
 // Checks for  zones that occur after the MB
 void MB::CheckAddZonesAfterMBValidation(int barIndex, bool allowZoneMitigation)
 {
-   InternalCheckAddZones(mEndIndex, barIndex, allowZoneMitigation);
+   InternalCheckAddZones(mEndIndex, barIndex, allowZoneMitigation, true);
 }
 
 // Add zones 
