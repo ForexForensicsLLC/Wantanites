@@ -115,9 +115,8 @@ void ZoneState::Draw(bool printErrors)
    }
    
    color clr = mType == OP_BUY ? clrGold : clrMediumVioletRed;
-   string name = ToString();
    
-   if (!ObjectCreate(0, name, OBJ_RECTANGLE, 0, 
+   if (!ObjectCreate(0, mName, OBJ_RECTANGLE, 0, 
          iTime(mSymbol, mTimeFrame, mEntryIndex), // Start
          mEntryPrice,                           // Entry 
          iTime(mSymbol, mTimeFrame, mExitIndex),  // End
@@ -131,13 +130,12 @@ void ZoneState::Draw(bool printErrors)
       return;
    }
    
-   mName = name;
-   ObjectSetInteger(0, name, OBJPROP_COLOR, clr);    
-   ObjectSetInteger(0, name, OBJPROP_WIDTH, 1);
-   ObjectSetInteger(0, name, OBJPROP_BACK, false);
-   ObjectSetInteger(0, name, OBJPROP_FILL, true);
-   ObjectSetInteger(0, name, OBJPROP_SELECTED, false);
-   ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);
+   ObjectSetInteger(0, mName, OBJPROP_COLOR, clr);    
+   ObjectSetInteger(0, mName, OBJPROP_WIDTH, 1);
+   ObjectSetInteger(0, mName, OBJPROP_BACK, false);
+   ObjectSetInteger(0, mName, OBJPROP_FILL, true);
+   ObjectSetInteger(0, mName, OBJPROP_SELECTED, false);
+   ObjectSetInteger(0, mName, OBJPROP_SELECTABLE, false);
    
    mDrawn = true;
 }

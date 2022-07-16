@@ -24,6 +24,7 @@ class MBTracker
       // --- MB Counting / Tracking--- 
       int mMBsToTrack;
       int mCurrentMBs;
+      int mMBsCreated;
       
       int mCurrentBullishRetracementIndex;
       int mCurrentBearishRetracementIndex;
@@ -108,6 +109,7 @@ void MBTracker::init(string symbol, int timeFrame, int mbsToTrack, int maxZonesI
    
    mMBsToTrack = mbsToTrack;
    mMaxZonesInMB = maxZonesInMB;
+   mMBsCreated = 0;
    mAllowZoneMitigation = allowZoneMitigation;
    mAllowZonesAfterMBValidation = allowZonesAfterMBValidation;
    
@@ -361,18 +363,20 @@ void MBTracker::CreateMB(int mbType, int startIndex, int endIndex, int highIndex
         delete mMBs[mMBsToTrack - 1];
         ArrayCopy(mMBs, mMBs, 1, 0, mMBsToTrack - 1);
         
-        MB* mb = new MB(mSymbol, mTimeFrame, mbType, startIndex, endIndex, highIndex, lowIndex, mMaxZonesInMB);
+        MB* mb = new MB(mSymbol, mTimeFrame, mMBsCreated, mbType, startIndex, endIndex, highIndex, lowIndex, mMaxZonesInMB);
         mb.CheckAddZones(mAllowZoneMitigation);       
         mMBs[0] = mb;
     }
     else
     {
-        MB* mb = new MB(mSymbol, mTimeFrame, mbType, startIndex, endIndex, highIndex, lowIndex, mMaxZonesInMB);       
+        MB* mb = new MB(mSymbol, mTimeFrame, mMBsCreated, mbType, startIndex, endIndex, highIndex, lowIndex, mMaxZonesInMB);       
         mb.CheckAddZones(mAllowZoneMitigation);
         mMBs[(mMBsToTrack - 1) - mCurrentMBs] = mb;
         
         mCurrentMBs += 1;
     }
+    
+    mMBsCreated += 1;
 }
 
 // method that resets all tracking
@@ -420,7 +424,7 @@ bool MBTracker::InternalNthMostRecentMBIsOpposite(int nthMB)
 {
    Update();
    
-   if (nthMB == mMBsToTrack - 2)
+   if (nthMB >= mCurrentMBs - 1)
    {
       Print("Can't check MB before, ", nthMB, " MB. Total MBs, ", mMBsToTrack - 1);
       return false;
@@ -451,6 +455,7 @@ MBTracker::MBTracker(string symbol, int timeFrame,int mbsToTrack, int maxZonesIn
 
 MBTracker::~MBTracker()
 {
+   Print("Deint MBTracker");
    for (int i = (mMBsToTrack - mCurrentMBs); i < mMBsToTrack; i++)
    {
       delete mMBs[i];

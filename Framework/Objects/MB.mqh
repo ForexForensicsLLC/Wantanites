@@ -18,7 +18,7 @@ class MB : public MBState
       
    public:
       // --- Constructors / Destructors ----------
-      MB(string symbol, int timeFrame, int type, int startIndex, int endIndex, int highIndex, int lowIndex, int maxZones);
+      MB(string symbol, int timeFrame, int number, int type, int startIndex, int endIndex, int highIndex, int lowIndex, int maxZones);
       ~MB();
       
       // --- Maintenance Methods ---
@@ -60,10 +60,11 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
             double imbalanceEntry = iHigh(mSymbol, mTimeFrame, i + 1);
             double mitigatedZone = iLow(mSymbol, mTimeFrame, iLowest(mSymbol, mTimeFrame, MODE_LOW, i - endingIndex, endingIndex)) < imbalanceEntry;
             
-            // only allow zones we haven't added yet and that follow the mitigation parameter
-            if (zoneCount >= mZoneCount && (allowZoneMitigation || !mitigatedZone))
+            // only allow zones we haven't added yet and that follow the mitigation parameter and that aren't single ticks
+            if (zoneCount >= mZoneCount && (allowZoneMitigation || !mitigatedZone) && imbalanceEntry != imbalanceExit)
             {
-               int endIndex = mEndIndex <= i ? mEndIndex : i - 5;
+               // account for zones after the validaiton of an mb
+               int endIndex = mEndIndex <= i ? mEndIndex : i;
                AddZone(i + 1, imbalanceEntry, endIndex, imbalanceExit);
             }
             
@@ -80,17 +81,17 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
       {
          // make sure imbalance is in current mb. This allows for imbalances after the MB was validated
          double imbalanceExit = iHigh(mSymbol, mTimeFrame, iHighest(mSymbol, mTimeFrame, MODE_HIGH, 2, i));
-         currentImbalance = iLow(mSymbol, mTimeFrame, i +1) > iHigh(mSymbol, mTimeFrame, i - 1) && imbalanceExit > iLow(mSymbol, mTimeFrame, mStartIndex);
+         currentImbalance = iLow(mSymbol, mTimeFrame, i + 1) > iHigh(mSymbol, mTimeFrame, i - 1) && imbalanceExit > iLow(mSymbol, mTimeFrame, mStartIndex);
          
          if (currentImbalance && !prevImbalance)
          {
             double imbalanceEntry = iLow(mSymbol, mTimeFrame, i + 1);
             double mitigatedZone = iHigh(mSymbol, mTimeFrame, iHighest(mSymbol, mTimeFrame, MODE_HIGH, i - endingIndex, endingIndex)) > imbalanceEntry;
             
-            // only allow zones we haven't added yet and that follow the mitigation parameter
-            if (zoneCount >= mZoneCount && (allowZoneMitigation || !mitigatedZone))
+            // only allow zones we haven't added yet and that follow the mitigation parameter and that arenen't single ticks
+            if (zoneCount >= mZoneCount && (allowZoneMitigation || !mitigatedZone) && imbalanceEntry != imbalanceExit)
             {
-               int endIndex = mEndIndex <= i ? mEndIndex : i - 5;
+               int endIndex = mEndIndex <= i ? mEndIndex : i;
                AddZone(i + 1, imbalanceEntry, endIndex, imbalanceExit); 
             }
             
@@ -105,11 +106,12 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
 // ####################### Public Methods ######################
 // #############################################################
 // --------- Constructor / Destructor --------
-MB::MB(string symbol, int timeFrame, int type, int startIndex, int endIndex, int highIndex, int lowIndex, int maxZones)
+MB::MB(string symbol, int timeFrame, int number, int type, int startIndex, int endIndex, int highIndex, int lowIndex, int maxZones)
 {
    mSymbol = symbol;
    mTimeFrame = timeFrame;
    
+   mNumber = number;
    mType = type;
    mStartIndex = startIndex;
    mEndIndex = endIndex;
@@ -120,6 +122,7 @@ MB::MB(string symbol, int timeFrame, int type, int startIndex, int endIndex, int
    mZoneCount = 0;
    mUnretrievedZoneCount = 0;
    
+   mName = "MB: " + IntegerToString(MathRand()) + ", Sym: " + mSymbol + ", TF: " + IntegerToString(mTimeFrame);
    mDrawn = false;
    
    ArrayResize(mZones, maxZones);

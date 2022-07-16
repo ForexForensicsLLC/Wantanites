@@ -8,6 +8,8 @@
 #property version   "1.00"
 #property strict
 
+#include <SummitCapital\Framework\Objects\MBState.mqh>
+
 class OrderHelper
 {
    private:
@@ -25,6 +27,7 @@ class OrderHelper
       // --- Managing Orders ---
       static bool CancelAllPendingOrdersByMagicNumber(int magicNumber);
       static bool MoveAllOrdersToBreakEvenByMagicNumber(int magicNumber);
+      static bool TrailAllOrdersToMBUpToBreakEven(int magicNumber, double paddingPips, double spreadPips, MBState* &mbState);
 };
 // ######################################################################
 // ####################### Private Methods ##############################
@@ -32,6 +35,7 @@ class OrderHelper
 static void OrderHelper::SendFailedOrderEMail(int orderNumber, int orderType, double entryPrice, double stopLoss, double lots, int magicNumber)
 {
    SendMail("Failed to place order",
+      "Time: " + IntegerToString(Hour())+ ":" + IntegerToString(Minute()) +":" + IntegerToString(Seconds()) + "\n" +
       "Magic Number: " + IntegerToString(magicNumber) + "\n" +
       "Order Number: " + IntegerToString(orderNumber) + "\n" +
       "Type: " + IntegerToString(orderType) + "\n" +  
@@ -62,7 +66,6 @@ static double OrderHelper::PipsToRange(double pips)
 static double OrderHelper::GetLotSize(double stopLossPips, double riskPercent)
 {
    double LotSize = (AccountBalance() * riskPercent / 100) / stopLossPips / MarketInfo(Symbol(), MODE_LOTSIZE);
-   
    return MathMax(LotSize, MarketInfo(Symbol(), MODE_MINLOT));
 }
 // ----------------- Placing Orders --------------------------------------
@@ -161,7 +164,7 @@ static bool OrderHelper::MoveAllOrdersToBreakEvenByMagicNumber(int magicNumber)
       }     
       
       // OP_BUY or OP_SELL
-      if(OrderType() > 2 && OrderMagicNumber() == magicNumber)
+      if(OrderType() < 2 && OrderMagicNumber() == magicNumber)
       {
          if(!OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice(), OrderTakeProfit(), OrderExpiration(), clrGreen))
          {          
@@ -180,3 +183,62 @@ static bool OrderHelper::MoveAllOrdersToBreakEvenByMagicNumber(int magicNumber)
    return allOrdersMoved;
 }
 
+static bool OrderHelper::TrailAllOrdersToMBUpToBreakEven(int magicNumber, double paddingPips, double spreadPips, MBState* &mbState)
+{
+   bool allOrdersMoved = true;
+   for (int i = OrdersTotal() - 1; i >= 0; i--)
+   {
+      if (!OrderSelect(i, SELECT_BY_POS))
+      {
+         SendMail("Failed To Select Order When Moving To Break Even",
+                  "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
+                  "Current Order: " + IntegerToString(i) + "\n" +
+                  IntegerToString(GetLastError()));
+                  
+         allOrdersMoved = false;        
+      }     
+      
+      // OP_BUY or OP_SELL
+      if(OrderType() < 2 && OrderMagicNumber() == magicNumber)
+      {
+         double currentStopLoss = OrderStopLoss();
+         double newStopLoss = 0.0;
+         
+         if (mbState.Type() == OP_BUY)
+         {
+            newStopLoss = MathMin(
+               OrderOpenPrice(), MathMax(
+                  currentStopLoss, iLow(mbState.Symbol(), mbState.TimeFrame(), mbState.LowIndex()) - OrderHelper::PipsToRange(paddingPips)));
+         }
+         else if (mbState.Type() == OP_SELL)
+         {
+            newStopLoss = MathMax(
+               OrderOpenPrice(), MathMin(
+                  currentStopLoss, iHigh(mbState.Symbol(), mbState.TimeFrame(), mbState.HighIndex()) + OrderHelper::PipsToRange(paddingPips) + OrderHelper::PipsToRange(spreadPips)));
+         }
+         
+         if (newStopLoss == currentStopLoss)
+         {
+            continue;
+         }
+         
+         if(!OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, OrderTakeProfit(), OrderExpiration(), clrGreen))
+         {          
+            SendMail("Failed to trail stop loss",
+               "Time: " + IntegerToString(Hour())+ ":" + IntegerToString(Minute()) +":" + IntegerToString(Seconds()) + "\n" +
+               "Magic Number: " + IntegerToString(magicNumber) + "\n" +
+               "Type: " + IntegerToString(OrderType()) + "\n" +  
+               "Ask: " + DoubleToString(Ask) + "\n" +
+               "Bid: " + DoubleToString(Bid) + "\n" +
+               "Entry: " + DoubleToString(OrderOpenPrice()) + "\n" +
+               "Current Stop Loss: " + DoubleToString(currentStopLoss) + "\n" +
+               "New Stop Loss: " + DoubleToString(newStopLoss) + "\n" +
+               "Error: " + IntegerToString(GetLastError()));
+         
+            allOrdersMoved = false;                  
+         }
+      }
+   }
+   
+   return allOrdersMoved;
+}

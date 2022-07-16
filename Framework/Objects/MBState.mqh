@@ -16,6 +16,7 @@ class MBState
       string mSymbol;
       int mTimeFrame;
       
+      int mNumber;
       int mType;
       int mStartIndex;
       int mEndIndex;
@@ -35,6 +36,7 @@ class MBState
       // ------------- Getters --------------
       string Symbol() { return mSymbol; }
       int TimeFrame() { return mTimeFrame; }
+      int Number() { return mNumber; }
       int Type() { return mType; }
       int StartIndex() { return mStartIndex; }
       int EndIndex() { return mEndIndex; }
@@ -70,14 +72,8 @@ void MBState::Draw(bool printErrors)
    }
    
    color clr = mType == OP_BUY ? clrLimeGreen : clrRed;  
-   string name = ToString();
    
-   if (ObjectFind(mName) >= 0)
-   {
-      return;
-   }
-   
-   if (!ObjectCreate(0, name, OBJ_RECTANGLE, 0, 
+   if (!ObjectCreate(0, mName, OBJ_RECTANGLE, 0, 
       iTime(mSymbol, mTimeFrame, mStartIndex), // Start 
       iHigh(mSymbol, mTimeFrame, mHighIndex),  // High
       iTime(mSymbol, mTimeFrame, mEndIndex),   // End
@@ -91,13 +87,12 @@ void MBState::Draw(bool printErrors)
       return;
    }
    
-   mName = name;
-   ObjectSetInteger(0, name, OBJPROP_COLOR, clr);
-   ObjectSetInteger(0, name, OBJPROP_WIDTH, 2);
-   ObjectSetInteger(0, name, OBJPROP_BACK, false);
-   ObjectSetInteger(0, name, OBJPROP_FILL, false);
-   ObjectSetInteger(0, name, OBJPROP_SELECTED, false);
-   ObjectSetInteger(0, name, OBJPROP_SELECTABLE, false);    
+   ObjectSetInteger(0, mName, OBJPROP_COLOR, clr);
+   ObjectSetInteger(0, mName, OBJPROP_WIDTH, 2);
+   ObjectSetInteger(0, mName, OBJPROP_BACK, false);
+   ObjectSetInteger(0, mName, OBJPROP_FILL, false);
+   ObjectSetInteger(0, mName, OBJPROP_SELECTED, false);
+   ObjectSetInteger(0, mName, OBJPROP_SELECTABLE, false);    
    
    mDrawn = true;
 }

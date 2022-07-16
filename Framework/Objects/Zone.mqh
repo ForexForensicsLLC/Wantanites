@@ -40,6 +40,8 @@ Zone::Zone(string symbol, int timeFrame, int type, int entryIndex, double entryP
    mAllowWickBreaks = allowWickBreaks;
    mDrawn = false; 
    mWasRetrieved = false;
+   
+   mName = "Zone: " + IntegerToString(MathRand()) + ", Sym: " + mSymbol + ", TF: " + IntegerToString(mTimeFrame);
 }
 
 Zone::~Zone()
