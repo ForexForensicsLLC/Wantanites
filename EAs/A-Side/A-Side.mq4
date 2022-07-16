@@ -19,8 +19,8 @@ input double RiskPercent = 0.25;
 input int PartialOneRR = 13;
 input double PartialOnePercent = 50;
 
-// -- MBTracker Inputs ---
-input int MBsToTrack = 100;
+// -- MBTracker Inputs 
+input int MBsToTrack = 3;
 input int MaxZonesInMB = 5;
 input bool AllowMitigatedZones = false;
 input bool AllowZonesAfterMBValidation = true;
@@ -38,7 +38,7 @@ double const MinStopLoss = MarketInfo(Symbol(), MODE_STOPLEVEL) * _Point;
 int const MBsNeeded = 2;
 int const MagicNumber = 10001;
 int const MaxTradesPerDay = 10;
-int const MaxSpreadPips = 10;
+int const MaxSpreadPips = 7;
 
 // --- EA Globals ---
 MBTracker* MBT;
@@ -48,9 +48,12 @@ ZoneState* ZoneStates[];
 bool StopTrading = false;
 bool DoubleMBSetUp = false;
 
+bool CanceledAllPendingOrders = false;
+
 int SetUps = 0;
 int SetUpType = -1;
-double SetUpRangeEnd = -1;
+double SetUpRangeStart = -1;
+int MBTwoNumber = -1;
 
 int OnInit()
 {
@@ -69,16 +72,47 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-   double currentSpread = MarketInfo(Symbol(), MODE_SPREAD) / 10;
+   MBT.DrawNMostRecentMBs(-1);
+   MBT.DrawZonesForNMostRecentMBs(-1);
+   
+   if (OrdersTotal() > 0)
+   {
+      MBState* mbState; 
+      if (MBT.GetNthMostRecentMB(0, mbState) && mbState.Number() > MBTwoNumber && mbState.Type() == SetUpType)
+      {
+         // TODO: Add Spread Back
+         OrderHelper::TrailAllOrdersToMBUpToBreakEven(MagicNumber, 0, 0, mbState);      
+      }
+      
+      if (!CanceledAllPendingOrders)
+      {  
+         bool tripleMB = MBT.HasNMostRecentConsecutiveMBs(3);
+         bool liquidatedSecondAndContinued = DoubleMBSetUp && MBT.NthMostRecentMBIsOpposite(0) && MBT.NthMostRecentMBIsOpposite(1);
+                
+         //Print("Checking to cancel");
+         // Stop trading for the day
+         if (tripleMB || liquidatedSecondAndContinued)
+         {
+            Print("Canceling");
+            StopTrading = true;
+            OrderHelper::CancelAllPendingOrdersByMagicNumber(MagicNumber);
+            CanceledAllPendingOrders = true;
+         }
+      }
+   }
+   
    double openPrice = iCustom(Symbol(), Period(), "Min ROC. From Time", ServerHourStartTime, ServerMinuteStartTime, ServerHourEndTime, ServerMinuteEndTime, MinROCPercent, 0, 0);
    
    // only trade if our spread is below the maximum and we are within our trading time
-   if (currentSpread <= MaxSpreadPips && openPrice != NULL)
+   if (openPrice != NULL)
    {
-      if (!StopTrading)
+      double currentSpread = MarketInfo(Symbol(), MODE_SPREAD) / 10;
+      
+      if (currentSpread <= MaxSpreadPips)
       {
          // stop trading if we've gone further than 0.18% past the start of the day
          double minROC = iCustom(Symbol(), Period(), "Min ROC. From Time", ServerHourStartTime, ServerMinuteStartTime, ServerHourEndTime, ServerMinuteEndTime, MinROCPercent, 1, 0);
+         
          if (minROC != NULL)
          {
             StopTrading = true;
@@ -86,79 +120,64 @@ void OnTick()
             return;
          }
          
-         if (DoubleMBSetUp)
+         bool brokeStartRange = (SetUpType == OP_BUY && Close[0] < SetUpRangeStart) || (SetUpType == OP_SELL && Close[0] > SetUpRangeStart);
+         if (brokeStartRange)
          {
-            // cancel / move all orders to break even if we put in a third consecutive MB
-            if (MBT.HasNMostRecentConsecutiveMBs(3))
-            {
-               DoubleMBSetUp = false;
-               OrderHelper::MoveAllOrdersToBreakEvenByMagicNumber(MagicNumber);
-               OrderHelper::CancelAllPendingOrdersByMagicNumber(MagicNumber);
-               
-               // if its our second setup, stop trading for the day
-               if (SetUps == 2)
-               {
-                  StopTrading = true;
-               }
-               
-               return;
-            }
+            DoubleMBSetUp = false;
             
-            // we've broken the range
-            if ((SetUpType == OP_BUY && Close[0] < SetUpRangeEnd) || (SetUpType == OP_SELL && Close[0] > SetUpRangeEnd))
+            if (SetUps == 2)
             {
-               DoubleMBSetUp = false;
-               
-               // if its our second set up, stop trading for the day
-               if (SetUps == 2)
-               {
-                  StopTrading = true;
-               }
-               
-               return;
-            }     
+               StopTrading = true;
+            }
          }
-         
-         // if its either the first or second Double MB of the session and aren't currently in a set up
-         if (SetUps < 2 && !DoubleMBSetUp && MBT.HasNMostRecentConsecutiveMBs(2, MBStates))
-         {
-            // if the entire set up happened after the start of the session
-            if (TimeMinute(iTime(Symbol(), Period(), MBStates[1].StartIndex())) >= 30)
+            
+         if (!StopTrading)
+         {            
+            // if its either the first or second Double MB of the session and aren't currently in a set up
+            if (SetUps < 2 && !DoubleMBSetUp && MBT.HasNMostRecentConsecutiveMBs(2, MBStates))
             {
-               SetUps += 1;
-               DoubleMBSetUp = true;
-               
-               // store type and range end for ease of access later
-               SetUpType = MBStates[1].Type();
-               
-               if (SetUpType == OP_BUY)
+               // if the entire set up happened after the start of the session
+               if (TimeMinute(iTime(Symbol(), Period(), MBStates[1].StartIndex())) >= ServerMinuteStartTime)
                {
-                  SetUpRangeEnd = iLow(Symbol(), Period(), MBStates[1].LowIndex());
-               }
-               else if (SetUpType == OP_SELL)
-               {
-                  SetUpRangeEnd = iHigh(Symbol(), Period(), MBStates[1].HighIndex());
-               }
-               
-               // loop through both MBs and place orders on every zone
-               for (int i = 0; i < MBsNeeded; i++)
-               {
-                  if (MBT.GetNthMostRecentMBsUnretrievedZones(i, ZoneStates))
+                  SetUps += 1;
+                  DoubleMBSetUp = true;
+                  
+                  // store type and range end for ease of access later
+                  SetUpType = MBStates[1].Type();
+                  
+                  if (SetUpType == OP_BUY)
                   {
-                     PlaceLimitOrders();
-                     ClearZones();
+                     SetUpRangeStart = iLow(Symbol(), Period(), MBStates[1].LowIndex());
+                  }
+                  else if (SetUpType == OP_SELL)
+                  {
+                     SetUpRangeStart = iHigh(Symbol(), Period(), MBStates[1].HighIndex());
+                  }
+                  
+                  // loop through both MBs and place orders on every zone
+                  for (int i = 0; i < MBsNeeded; i++)
+                  {
+                     if (MBT.GetNthMostRecentMBsUnretrievedZones(i, ZoneStates))
+                     {
+                        PlaceLimitOrders();
+                        ClearZones();
+                     }
                   }
                }
+               
+               ClearMBs();
             }
             
-            ClearMBs();
-         }
-         
-         // check to see if a new zones was created after the double mb
-         if (DoubleMBSetUp && MBT.GetNthMostRecentMBsUnretrievedZones(0, ZoneStates))
-         {
-            PlaceLimitOrders();
-            ClearZones();         
+            // check to see if a new zones was created after the double mb
+            MBState* tempMBState;
+            if (DoubleMBSetUp && MBT.GetNthMostRecentMB(0, tempMBState))
+            {
+               if (tempMBState.Number() == MBTwoNumber && MBT.GetNthMostRecentMBsUnretrievedZones(0, ZoneStates))
+               {            
+                  PlaceLimitOrders();
+                  ClearZones();  
+               }       
+            }
          }
       }
    }
@@ -167,9 +186,12 @@ void OnTick()
       StopTrading = false;
       DoubleMBSetUp = false;
       
+      CanceledAllPendingOrders = false;
+      
       SetUps = 0;
       SetUpType = -1;
-      SetUpRangeEnd = -1;
+      SetUpRangeStart = -1;
+      MBTwoNumber = -1;
    }
 }
 
@@ -192,7 +214,7 @@ void PlaceLimitOrders()
       
       if (SetUpType == OP_BUY)
       {
-         entryPrice = ZoneStates[i].EntryPrice();
+         entryPrice = ZoneStates[i].EntryPrice() + OrderHelper::PipsToRange(MaxSpreadPips);
          stopLossRange = ZoneStates[i].Range() + OrderHelper::PipsToRange(MaxSpreadPips) + OrderHelper::PipsToRange(StopLossPaddingPips);
          stopLoss = entryPrice - stopLossRange;
          takeProfit = entryPrice + (stopLossRange * PartialOneRR);
@@ -208,6 +230,7 @@ void PlaceLimitOrders()
       lots = OrderHelper::GetLotSize(OrderHelper::RangeToPips(stopLossRange), RiskPercent);
       
       OrderHelper::PlaceLimitOrderWithSinglePartial(orderType, lots, entryPrice, stopLoss, takeProfit, PartialOnePercent, MagicNumber);
+      CanceledAllPendingOrders = false;
    }   
 }
 
