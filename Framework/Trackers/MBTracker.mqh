@@ -38,8 +38,7 @@ class MBTracker
       // --- Zone Counting / Tracking---
       int mMaxZonesInMB;
       bool mAllowZoneMitigation;
-      bool mAllowZonesAfterMBValidation;
-      
+      bool mAllowZonesAfterMBValidation;    
       
       MB* mMBs[];
       
@@ -181,22 +180,31 @@ void MBTracker::CalculateMB(int barIndex)
    // prev mb was bullish
    else if (mMBs[MostRecentMBIndex()].Type() == OP_BUY)
    {
-      CheckSetRetracement(barIndex, OP_BUY, OP_BUY);
+      // first check to make sure we didn't break our previous MB
+      if (iLow(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].LowIndex()))
+      {
+         int highestIndex = iHighest(mSymbol, mTimeFrame, MODE_HIGH, mMBs[MostRecentMBIndex()].StartIndex() - barIndex, barIndex);
+         CreateMB(OP_SELL, mMBs[MostRecentMBIndex()].LowIndex(), barIndex, highestIndex, mMBs[MostRecentMBIndex()].LowIndex());
+         ResetTracking();
+         
+         return;
+      }
+      
+      // check pending first so that a single candle can trigger the pending flag and confirm an MB else retracement will get reset in CheckSetRetracement()
       CheckSetPendingMB(barIndex, OP_BUY);
+      CheckSetRetracement(barIndex, OP_BUY, OP_BUY);
       
       if (mPendingBullishMB)
       {
-         // new bullish mb has been validated, create new one
+         // new bullish mb has been validated
          if (iHigh(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex))
          {
-            CreateMB(OP_BUY, mCurrentBullishRetracementIndex, barIndex, mCurrentBullishRetracementIndex, mPendingBullishMBLowIndex);
-            ResetTracking();
-         }
-         // previous bullish mb has been broken, create bearish MB
-         else if (iLow(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mMBs[mMBsToTrack - mCurrentMBs].LowIndex()))
-         {
-            int highestIndex = iHighest(mSymbol, mTimeFrame, MODE_HIGH, mMBs[mMBsToTrack - mCurrentMBs].StartIndex() - barIndex, barIndex);
-            CreateMB(OP_SELL, mMBs[mMBsToTrack - mCurrentMBs].LowIndex(), barIndex, highestIndex, mMBs[mMBsToTrack - mCurrentMBs].LowIndex());
+            // only create the mb if it is longer than 1 candle
+            if (mCurrentBullishRetracementIndex - barIndex > 1)
+            {
+               CreateMB(OP_BUY, mCurrentBullishRetracementIndex, barIndex, mCurrentBullishRetracementIndex, mPendingBullishMBLowIndex);
+            }
+
             ResetTracking();
          }
       }
@@ -208,23 +216,32 @@ void MBTracker::CalculateMB(int barIndex)
    }
    // prev mb was bearish
    else if (mMBs[MostRecentMBIndex()].Type() == OP_SELL)
-   {
-      CheckSetRetracement(barIndex, OP_SELL, OP_SELL);
+   { 
+      // first check to make sure we didn't break our previous mb
+      if (iHigh(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].HighIndex()))
+      {
+         int lowestIndex = iLowest(mSymbol, mTimeFrame, MODE_LOW, mMBs[MostRecentMBIndex()].StartIndex() - barIndex, barIndex);
+         CreateMB(OP_BUY, mMBs[MostRecentMBIndex()].HighIndex(), barIndex, mMBs[MostRecentMBIndex()].HighIndex(), lowestIndex);       
+         ResetTracking();
+         
+         return;
+      }
+      
+      // check pending first so that a single candle can trigger the pending flag and confirm an MB else retracement will get reset in CheckSetRetracement()
       CheckSetPendingMB(barIndex, OP_SELL);
+      CheckSetRetracement(barIndex, OP_SELL, OP_SELL);
       
       if (mPendingBearishMB)
       {
-         // new bearish mb has been validated, create new one
+         // new bearish mb has been validated
          if  (iLow(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex))
          {
-            CreateMB(OP_SELL, mCurrentBearishRetracementIndex, barIndex, mPendingBearishMBHighIndex, mCurrentBearishRetracementIndex);
-            ResetTracking();
-         }
-         // previous bearish mb has been broken, create bullish MB
-         else if (iHigh(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mMBs[mMBsToTrack - mCurrentMBs].HighIndex()))
-         {
-            int lowestIndex = iLowest(mSymbol, mTimeFrame, MODE_LOW, mMBs[mMBsToTrack - mCurrentMBs].StartIndex() - barIndex, barIndex);
-            CreateMB(OP_BUY, mMBs[mMBsToTrack - mCurrentMBs].HighIndex(), barIndex, mMBs[mMBsToTrack - mCurrentMBs].HighIndex(), lowestIndex);
+            // only create the mb if it is longer than 1 candle
+            if (mCurrentBearishRetracementIndex - barIndex > 1)
+            {
+               CreateMB(OP_SELL, mCurrentBearishRetracementIndex, barIndex, mPendingBearishMBHighIndex, mCurrentBearishRetracementIndex);
+            }
+
             ResetTracking();
          }
       }
@@ -244,11 +261,23 @@ void MBTracker::CheckSetRetracement(int startingIndex, int mbType, int prevMBTyp
    if (mbType == OP_BUY)
    {
       // candle that has a high that is lower than the one before it, bullish retracement started 
-      if (mCurrentBullishRetracementIndex == -1 && iHigh(mSymbol, mTimeFrame, startingIndex) < iHigh(mSymbol, mTimeFrame, startingIndex + 1))
+      if (mCurrentBullishRetracementIndex == -1 && 
+         (iHigh(mSymbol, mTimeFrame, startingIndex) < iHigh(mSymbol, mTimeFrame, startingIndex + 1) || iLow(mSymbol, mTimeFrame, startingIndex) < iLow(mSymbol, mTimeFrame, startingIndex + 1)))
       {
          if (prevMBType == OP_BUY)
          {
-            mCurrentBullishRetracementIndex = iHighest(mSymbol, mTimeFrame, MODE_HIGH, mMBs[mMBsToTrack - mCurrentMBs].EndIndex() - startingIndex + 1, startingIndex);
+            // Add one to this in case the highest candle of the next mb is the ending index of the previous
+            mCurrentBullishRetracementIndex = iHighest(mSymbol, mTimeFrame, MODE_HIGH, mMBs[MostRecentMBIndex()].EndIndex() - startingIndex + 1, startingIndex);
+            
+            // if we had equal Highs, iHighest will return the one that came first. This can cause issues if its equal highs with a huge impulsivie candles as the mb will be considered the whole impulse and
+            // not the actual retracement. We'll just set the retracement to the next candle since they are equal highs anyways    
+            if (mCurrentBullishRetracementIndex > 0 && 
+               iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex) == iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex - 1) &&
+               iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex + 1))
+            {
+               mCurrentBullishRetracementIndex -= 1;
+            }
+            
          }
          else 
          {
@@ -264,11 +293,23 @@ void MBTracker::CheckSetRetracement(int startingIndex, int mbType, int prevMBTyp
    else if (mbType == OP_SELL)
    {
       // candle that has a low that is higher than the one before it, bearish retraceemnt started
-      if (mCurrentBearishRetracementIndex == -1 && iLow(mSymbol, mTimeFrame, startingIndex) > iLow(mSymbol, mTimeFrame, startingIndex + 1))
+      if (mCurrentBearishRetracementIndex == -1 && 
+         (iLow(mSymbol, mTimeFrame, startingIndex) > iLow(mSymbol, mTimeFrame, startingIndex + 1) || iHigh(mSymbol, mTimeFrame, startingIndex) > iHigh(mSymbol, mTimeFrame, startingIndex + 1)))
       {
          if (prevMBType == OP_SELL)
          {
-            mCurrentBearishRetracementIndex = iLowest(mSymbol, mTimeFrame, MODE_LOW, mMBs[mMBsToTrack - mCurrentMBs].EndIndex() - startingIndex + 1, startingIndex);
+            // Add one to this in case the low of the next mb is the ending index of the previous
+            mCurrentBearishRetracementIndex = iLowest(mSymbol, mTimeFrame, MODE_LOW, mMBs[MostRecentMBIndex()].EndIndex() - startingIndex + 1, startingIndex);
+            
+            // if we had equal Lows, iLowest will return the one that came first. This can cause issues if its equal lows with a huge impulsivie candles as the mb will be considered the whole impulse and
+            // not the actual retracement. We'll just set the retracement to the next candle since they are equal lows anyways           
+            if (mCurrentBearishRetracementIndex > 0 &&
+               iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex) == iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex - 1) && 
+               iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex + 1))
+            {
+               mCurrentBearishRetracementIndex -= 1;
+            }
+            
          }
          else 
          {
@@ -291,18 +332,26 @@ void MBTracker::CheckSetPendingMB(int startingIndex, int mbType)
       // if we already have a pending bullish mb, we just need to find the index of the lowest candle within it
       if (mPendingBullishMB)
       {
-         mPendingBullishMBLowIndex = iLowest(mSymbol, mTimeFrame, MODE_LOW, mCurrentBullishRetracementIndex - startingIndex, startingIndex);
+         // Only add 1 to the count if our current bar index isn't the same as the previous ending index. 
+         // Basically don't want the impulses that just broke and started the retacement to be considered
+         int count = mCurrentBullishRetracementIndex - startingIndex;
+         count = mCurrentMBs == 0 || (mCurrentMBs > 0 && startingIndex != mMBs[MostRecentMBIndex()].EndIndex()) ? count + 1 : count;
+         
+         mPendingBullishMBLowIndex = iLowest(mSymbol, mTimeFrame, MODE_LOW, count, startingIndex);
       }   
-      // loop through each bar and check every bar before it up to the retracement start and see if there is one with a body further than our current
       else
       {
-         for (int j = startingIndex; j <= mCurrentBullishRetracementIndex; j++)
+         // loop through each bar and check every bar before it up to the retracement start and see if there is one with a body further than our current
+         // Add 1 so that the retracmeent candle can start the pending MB i.e. in case the retracement candle has a body lower but no candles after it do
+         for (int j = startingIndex; j <= mCurrentBullishRetracementIndex + 1; j++)
          {
-            for (int k = j; k <= mCurrentBullishRetracementIndex; k++)
+            for (int k = j; k <= mCurrentBullishRetracementIndex + 1; k++)
             {
                if (MathMin(iOpen(mSymbol, mTimeFrame, j), iClose(mSymbol, mTimeFrame, j)) < iLow(mSymbol, mTimeFrame, k))
                {
-                  mPendingBullishMB = true;
+                  // pending MBs can't be the same as the ending index of the previous MB because it can lead to false positives
+                  // not having any mbs bypasses this
+                  mPendingBullishMB = mCurrentMBs == 0 || (mCurrentMBs > 0 && j != mMBs[MostRecentMBIndex()].EndIndex());                
                   break;
                }   
             } 
@@ -316,7 +365,12 @@ void MBTracker::CheckSetPendingMB(int startingIndex, int mbType)
          // find index of lowest candle within pending mb
          if (mPendingBullishMB)
          {
-            mPendingBullishMBLowIndex = iLowest(mSymbol, mTimeFrame, MODE_LOW, mCurrentBullishRetracementIndex - startingIndex, startingIndex);
+            // Only add 1 to the count if our current bar index isn't the same as the previous ending index. 
+            // Basically don't want the impulses that just broke and started the retacement to be considered
+            int count = mCurrentBullishRetracementIndex - startingIndex;
+            count = mCurrentMBs == 0 || (mCurrentMBs > 0 && startingIndex != mMBs[MostRecentMBIndex()].EndIndex()) ? count + 1 : count;
+            
+            mPendingBullishMBLowIndex = iLowest(mSymbol, mTimeFrame, MODE_LOW, count, startingIndex);
          } 
       }      
    }         
@@ -325,18 +379,26 @@ void MBTracker::CheckSetPendingMB(int startingIndex, int mbType)
       // if we already have a pending bearish mb, we just need to find the index of the highest candle within it
       if (mPendingBearishMB)
       {
-         mPendingBearishMBHighIndex = iHighest(mSymbol, mTimeFrame, MODE_HIGH, mCurrentBearishRetracementIndex - startingIndex, startingIndex);
+         // Only add 1 to the count if our current bar index isn't the same as the previous ending index. 
+         // Basically don't want the impulses that just broke and started the retacement to be considered
+         int count = mCurrentBearishRetracementIndex - startingIndex;
+         count = mCurrentMBs == 0 || (mCurrentMBs > 0 && startingIndex != mMBs[MostRecentMBIndex()].EndIndex()) ? count + 1 : count;
+            
+         mPendingBearishMBHighIndex = iHighest(mSymbol, mTimeFrame, MODE_HIGH, count, startingIndex);
       }
-      // loop through each bar and check every bar before it up to the retracement start and see if there is one with a body further than our current
       else
       {
-         for (int j = startingIndex; j <= mCurrentBearishRetracementIndex; j++)
+         // loop through each bar and check every bar before it up to the retracement start and see if there is one with a body further than our current
+         // Add one so that the retracement candle can start the pending MB i.e. in case the retracement candle has a body higher but no candles after it do
+         for (int j = startingIndex; j <= mCurrentBearishRetracementIndex + 1; j++)
          {
-            for (int k = j; k <= mCurrentBearishRetracementIndex; k++)
+            for (int k = j; k <= mCurrentBearishRetracementIndex + 1; k++)
             {
                if (MathMax(iOpen(mSymbol, mTimeFrame, j), iClose(mSymbol, mTimeFrame, j)) > iHigh(mSymbol, mTimeFrame, k))
                {
-                  mPendingBearishMB = true;
+                  // pending MBs can't be the same as the ending index of the previous MB because it can lead to false positives
+                  // not having any mbs bypasses this
+                  mPendingBearishMB = mCurrentMBs == 0 || (mCurrentMBs > 0 && j != mMBs[MostRecentMBIndex()].EndIndex());
                }
             }
             
@@ -349,7 +411,12 @@ void MBTracker::CheckSetPendingMB(int startingIndex, int mbType)
          // find index of highest candle within pending mb
          if (mPendingBearishMB)
          {
-            mPendingBearishMBHighIndex = iHighest(mSymbol, mTimeFrame, MODE_HIGH, mCurrentBearishRetracementIndex - startingIndex, startingIndex);
+            // Only add 1 to the count if our current bar index isn't the same as the previous ending index. 
+            // Basically don't want the impulses that just broke and started the retacement to be considered
+            int count = mCurrentBearishRetracementIndex - startingIndex;
+            count = mCurrentMBs == 0 || (mCurrentMBs > 0 && startingIndex != mMBs[MostRecentMBIndex()].EndIndex()) ? count + 1 : count;
+            
+            mPendingBearishMBHighIndex = iHighest(mSymbol, mTimeFrame, MODE_HIGH, count, startingIndex);
          }      
       }
    }

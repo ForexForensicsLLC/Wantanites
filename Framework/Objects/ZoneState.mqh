@@ -14,6 +14,8 @@ class ZoneState
       string mSymbol;
       int mTimeFrame;
       
+      int mMBNumber;
+      int mNumber;
       int mType;
       
       int mEntryIndex;
@@ -36,6 +38,8 @@ class ZoneState
       string Symbol() { return mSymbol; }
       int TimeFrame() { return mTimeFrame; }
       
+      int Number() { return mNumber; }
+      int MBNumber() { return mMBNumber; }
       int Type() { return mType; }
       
       int EntryIndex() { return mEntryIndex; }

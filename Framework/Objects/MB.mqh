@@ -122,7 +122,7 @@ MB::MB(string symbol, int timeFrame, int number, int type, int startIndex, int e
    mZoneCount = 0;
    mUnretrievedZoneCount = 0;
    
-   mName = "MB: " + IntegerToString(MathRand()) + ", Sym: " + mSymbol + ", TF: " + IntegerToString(mTimeFrame);
+   mName = "MB: " + IntegerToString(number);
    mDrawn = false;
    
    ArrayResize(mZones, maxZones);
@@ -168,7 +168,7 @@ void MB::AddZone(int entryIndex, double entryPrice, int exitIndex, double exitPr
 {
    if (mZoneCount < mMaxZones)
    {
-      Zone* zone = new Zone(mSymbol, mTimeFrame, mType, entryIndex, entryPrice, exitIndex, exitPrice, false);
+      Zone* zone = new Zone(mSymbol, mTimeFrame, mNumber, mZoneCount, mType, entryIndex, entryPrice, exitIndex, exitPrice, false);
       
       mZones[mZoneCount] = zone;
       

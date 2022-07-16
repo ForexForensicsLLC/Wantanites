@@ -14,7 +14,7 @@ class Zone : public ZoneState
 {
    public:    
       // --- Constructor / Destructor --- 
-      Zone(string symbol, int timeFrame, int type, int entryIndex, double entryPrice, int exitIndex, double exitPrice, bool allowWickBreaks);
+      Zone(string symbol, int timeFrame, int mbNumber, int zoneNumber, int type, int entryIndex, double entryPrice, int exitIndex, double exitPrice, bool allowWickBreaks);
      ~Zone();
      
      // --- Setters ---
@@ -24,11 +24,13 @@ class Zone : public ZoneState
      void UpdateIndexes(int barIndex);
 };
 
-Zone::Zone(string symbol, int timeFrame, int type, int entryIndex, double entryPrice, int exitIndex, double exitPrice, bool allowWickBreaks)
+Zone::Zone(string symbol, int timeFrame, int mbNumber, int zoneNumber, int type, int entryIndex, double entryPrice, int exitIndex, double exitPrice, bool allowWickBreaks)
 {
    mSymbol = symbol;
    mTimeFrame = timeFrame;
    
+   mNumber = zoneNumber;
+   mMBNumber = mbNumber;
    mType = type;
    
    mEntryIndex = entryIndex;
@@ -41,7 +43,7 @@ Zone::Zone(string symbol, int timeFrame, int type, int entryIndex, double entryP
    mDrawn = false; 
    mWasRetrieved = false;
    
-   mName = "Zone: " + IntegerToString(MathRand()) + ", Sym: " + mSymbol + ", TF: " + IntegerToString(mTimeFrame);
+   mName = "Zone: " + IntegerToString(mNumber) + ", MB: " + IntegerToString(mMBNumber);
 }
 
 Zone::~Zone()
