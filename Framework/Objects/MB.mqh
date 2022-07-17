@@ -31,7 +31,7 @@ class MB : public MBState
       
       // ----- Retrieving Zones --------
       bool GetUnretrievedZones(int mbOffset, ZoneState* &zoneStates[]);
-      bool GetClosestValidZone(ZoneState* &zoneStates[]);
+      bool GetClosestValidZone(ZoneState* &zoneStates);
 };
 // #############################################################
 // ####################### Private Methods #####################
@@ -204,13 +204,13 @@ bool MB::GetUnretrievedZones(int mbOffset, ZoneState* &zoneStates[])
    return retrievedZones;
 }
 
-bool MB::GetClosestValidZone(ZoneState* &zoneStates[])
+bool MB::GetClosestValidZone(ZoneState* &zoneState)
 {
    for (int i = mZoneCount - 1; i >= 0; i--)
    {
       if (CheckPointer(mZones[i]) != POINTER_INVALID && !mZones[i].IsBroken(0))
       {
-         zoneStates[0] = mZones[i];
+         zoneState = mZones[i];
          return true;
       }
    }

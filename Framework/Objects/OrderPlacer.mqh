@@ -12,7 +12,6 @@
 
 class OrderPlacer
 { 
-   typedef void (*TDynamicPartialFunc)(OrderPlacer &op, MBTracker* &mbts[]);   // Functions that add additional Partials to mParialRR and mPartialPercent right before placing the orders
    typedef double (*TGetStopLossFunc)(ZoneState* &zoneState);                  // Functions that return the PRICE of the stop loss
    typedef bool (*TPlaceOrderFunc)(OrderPlacer &op, ZoneState* &zoneStates[]); // Functions that place the order(s)
    

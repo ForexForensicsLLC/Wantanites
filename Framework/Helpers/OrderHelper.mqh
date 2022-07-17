@@ -21,7 +21,7 @@ class OrderHelper
       static double GetLotSize(double stopLossPips, double riskPercent);
       
       // --- Placing Orders ---
-      static bool PlaceLimitOrderWithSinglePartial(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, double partialOnePercent, int magicNumber);
+      static bool PlaceLimitOrderWithSinglePartial(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, double partialOnePercent, int magicNumber);     
       static bool PlaceStopOrder(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber);
       
       // --- Managing Orders ---
@@ -113,6 +113,7 @@ static bool OrderHelper::PlaceStopOrder(int orderType, double lots, double entry
    
    return true;
 }
+
 // -------------------------- Managing Orders --------------------------------------
 static bool OrderHelper::CancelAllPendingOrdersByMagicNumber(int magicNumber) 
 {

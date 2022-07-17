@@ -11,10 +11,12 @@
 #include <SummitCapital\Framework\Objects\SetUp.mqh>
 #include <SummitCapital\Framework\Objects\OrderPlacer.mqh>
 
-class MultiSetupTracker
+class MBSetupTracker
 {
    typedef bool (*TValidZoneRetrieverFunc)(MBTracker* &mbt, ZoneState* &zoneStates[]);
-   typedef bool (*TConfirmationFunc)(MBTracker* &mbt);
+   typedef bool (*TConfirmationFunc)(MBTracker* &mbt);                                    // For MB Related Confirmations
+   typedef bool (*TConfirmationFunc)();                                                   // For any generic Confirmations
+   typedef void (*TDynamicPartialFunc)(OrderPlacer &op, MBTracker* &mbts[]);              // Functions that add additional Partials to mParialRR and mPartialPercent right before placing the orders
    
    private:    
       int mTotalSetUps; 
@@ -23,18 +25,22 @@ class MultiSetupTracker
       SetUp* mSetUps[];
       OrderPlacer* mOrderPlacer;
      
-      TValidZoneRetrieverFunc mGetValidZones[];     
+      TMBValidZoneRetrieverFunc mGetValidZones[]; 
+      
+      TMBConfirmationFunc mMBFinalConfirmation;
       TConfirmationFunc mFinalConfirmation;
+      
+      TMBDynamicPartialFunc mSetDynamicPartials;
         
    public:
-      MultiSetupTracker(TConfirmationFunc finalConfirmationFunc, OrderPlacer* &orderPlacer);
-      ~MultiSetupTracker();
+      MBSetupTracker(TConfirmationFunc finalConfirmationFunc, OrderPlacer* &orderPlacer);
+      ~MBSetupTracker();
       
       void AddSetUp(MBTracker* &mbt, SetUp* &setUp, TValidZoneRetrieverFunc validZoneRetrieverFunc);      
       void Check();
 };
 
-MultiSetupTracker::MultiSetupTracker(TConfirmationFunc finalConfiramtionFunc, OrderPlacer* &orderPlacer)
+MBSetupTracker::MBSetupTracker(TConfirmationFunc finalConfiramtionFunc, OrderPlacer* &orderPlacer)
 {
    mTotalSetUps = 0;
    
@@ -46,11 +52,11 @@ MultiSetupTracker::MultiSetupTracker(TConfirmationFunc finalConfiramtionFunc, Or
    mOrderPlacer = orderPlacer;
 }
 
-MultiSetupTracker::~MultiSetupTracker()
+MBSetupTracker::~MBSetupTracker()
 {
 }
 
-void MultiSetupTracker::AddSetUp(MBTracker *&mbt, SetUp* &setUp, TValidZoneRetrieverFunc validZoneRetrieverFunc)
+void MBSetupTracker::AddSetUp(MBTracker *&mbt, SetUp* &setUp, TValidZoneRetrieverFunc validZoneRetrieverFunc)
 {
    if (ArraySize(mMBTrackers) < mTotalSetUps)
    {
@@ -66,7 +72,7 @@ void MultiSetupTracker::AddSetUp(MBTracker *&mbt, SetUp* &setUp, TValidZoneRetri
    mTotalSetUps += 1;
 }
 
-void MultiSetupTracker::Check()
+void MBSetupTracker::Check()
 {
    /* TODO
    if (OrdersTotal() > 0)
