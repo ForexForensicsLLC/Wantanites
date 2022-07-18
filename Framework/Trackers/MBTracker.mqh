@@ -19,7 +19,8 @@ class MBTracker
       int mPrevCalculated;
       datetime mFirstBarTime;
       bool mInitialLoad;
-      bool mPrintErrors; // used to prevent printing errors on obj creation. Should be used on 1 second chart to save resources
+      bool mPrintErrors;      // used to prevent printing errors on obj creation. Should be used on 1 second chart to save resources
+      bool mCalculateOnTick;  // Needs to be true when on the 1 second chart or else we'll miss values
       
       // --- MB Counting / Tracking--- 
       int mMBsToTrack;
@@ -43,7 +44,7 @@ class MBTracker
       MB* mMBs[];
       
       // --- Tracking Methods --- 
-      void init(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool printErrors);  
+      void init(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool printErrors, bool calculateOnTick);  
       void Update();
       int MostRecentMBIndex() { return mMBsToTrack - mCurrentMBs; }
       
@@ -64,8 +65,8 @@ class MBTracker
       int CurrentBearishRetracementIndex() { return mCurrentBearishRetracementIndex; }
       // --- Constructors / Destructors ---
       MBTracker();
-      MBTracker(int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool printErrors);
-      MBTracker(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool printErrors);      
+      MBTracker(int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool printErrors, bool calculateOnTick);
+      MBTracker(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool printErrors, bool calculateOnTick);      
       ~MBTracker();
       
       // --- Maintenance Methods ---
@@ -104,7 +105,7 @@ class MBTracker
 // ##############################################################
 
 //----------------------- Tracking Methods ----------------------
-void MBTracker::init(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool printErrors)
+void MBTracker::init(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool printErrors, bool calculateOnTick)
 {
    mSymbol = symbol;
    mTimeFrame = timeFrame;
@@ -112,6 +113,7 @@ void MBTracker::init(string symbol, int timeFrame, int mbsToTrack, int maxZonesI
    mFirstBarTime = 0;
    mInitialLoad = true;
    mPrintErrors = printErrors;
+   mCalculateOnTick = calculateOnTick;
    
    mMBsToTrack = mbsToTrack;
    mMaxZonesInMB = maxZonesInMB;
@@ -145,6 +147,11 @@ void MBTracker::Update()
    {
       limit = bars;
       mFirstBarTime = firstBarTime;
+   }
+   
+   if (mCalculateOnTick && limit == 0)
+   {
+      limit += 1;
    }
    
    // Calcualte MBs for each bar we have left
@@ -513,17 +520,17 @@ bool MBTracker::InternalNthMostRecentMBIsOpposite(int nthMB)
 // -------------- Constructors / Destructors --------------------
 MBTracker::MBTracker()
 {
-   init(Symbol(), 0, 100, 5, false, true, true);
+   init(Symbol(), 0, 100, 5, false, true, true, false);
 }
 
-MBTracker::MBTracker(int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool printErrors)
+MBTracker::MBTracker(int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool printErrors, bool calculateOnTick)
 {
-   init(Symbol(), 0, mbsToTrack, maxZonesInMB, allowZoneMitigation, allowZonesAfterMBValidation, printErrors);
+   init(Symbol(), 0, mbsToTrack, maxZonesInMB, allowZoneMitigation, allowZonesAfterMBValidation, printErrors, calculateOnTick);
 }
 
-MBTracker::MBTracker(string symbol, int timeFrame,int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool printErrors)
+MBTracker::MBTracker(string symbol, int timeFrame,int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool printErrors, bool calculateOnTick)
 {
-   init(symbol, timeFrame, mbsToTrack, maxZonesInMB, allowZoneMitigation, allowZonesAfterMBValidation, printErrors);
+   init(symbol, timeFrame, mbsToTrack, maxZonesInMB, allowZoneMitigation, allowZonesAfterMBValidation, printErrors, calculateOnTick);
 }
 
 MBTracker::~MBTracker()
