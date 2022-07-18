@@ -74,11 +74,13 @@ bool ZoneState::IsHolding()
 {
    if (mType == OP_BUY)
    {
-      return iLow(mSymbol, mTimeFrame, 0) < mEntryPrice && !BelowDemandZone(0);
+      // Subtract 2 so that the imbalance candle can't count as having entered the zone
+      return iLow(mSymbol, mTimeFrame, iLowest(mSymbol, mTimeFrame, MODE_LOW, mEntryIndex - 2, 0)) <= mEntryPrice && !BelowDemandZone(0);
    }
    else if (mType == OP_SELL)
    {
-      return iHigh(mSymbol, mTimeFrame, 0) > mEntryPrice && !AboveSupplyZone(0);
+      // subtract 2 so that the imbalance candle can't count as having entered the zone
+      return iHigh(mSymbol, mTimeFrame, iHighest(mSymbol, mTimeFrame, MODE_HIGH, mEntryIndex - 2, 0)) >= mEntryPrice && !AboveSupplyZone(0);
    }
    
    return false;

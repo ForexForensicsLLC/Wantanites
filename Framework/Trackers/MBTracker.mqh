@@ -143,7 +143,6 @@ void MBTracker::Update()
    
    if (mFirstBarTime != firstBarTime)
    {
-      Print("Not Equal Time");
       limit = bars;
       mFirstBarTime = firstBarTime;
    }
@@ -758,7 +757,9 @@ bool MBTracker::NthMostRecentMBsClosestValidZoneIsHolding(int nthMB, ZoneState* 
 
 bool MBTracker::MBsClosestValidZoneIsHolding(int mbNumber)
 {
-   for (int i = 0; i >= mMBsToTrack - 1; i--)
+   Update();
+   
+   for (int i = 0; i <= mMBsToTrack - 1; i++)
    {
       if (mMBs[MostRecentMBIndex() + i].Number() == mbNumber)
       {

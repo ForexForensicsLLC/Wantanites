@@ -14,6 +14,7 @@ class OrderHelper
 {
    private:
       static void SendFailedOrderEMail(int orderNumber, int orderType, double entryPrice, double stopLoss, double lots, int magicNumber);
+      static bool SelectOrderByPosition(int position, string action);
    public:
       // --- Calculating Orders ---
       static double RangeToPips(double range);
@@ -23,6 +24,9 @@ class OrderHelper
       // --- Placing Orders ---
       static bool PlaceLimitOrderWithSinglePartial(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, double partialOnePercent, int magicNumber);     
       static bool PlaceStopOrder(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber);
+      
+      // -- Editing Orders ---
+      static bool EditStopLoss(double newStopLoss, double newLots, int magicNumber);
       
       // --- Managing Orders ---
       static bool CancelAllPendingOrdersByMagicNumber(int magicNumber);
@@ -47,6 +51,21 @@ static void OrderHelper::SendFailedOrderEMail(int orderNumber, int orderType, do
       "Lots: " + DoubleToString(lots) + "\n" + 
       "Error: " + IntegerToString(GetLastError()));
 }
+
+static bool OrderHelper::SelectOrderByPosition(int position, string action)
+{
+   if (!OrderSelect(position, SELECT_BY_POS))
+   {
+      SendMail("Failed To Select Order When " + action,
+            "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
+            "Current Order Index: " + IntegerToString(position) + "\n" +
+            IntegerToString(GetLastError()));
+      
+      return false;
+   }
+   
+   return true;
+}   
 
 // ######################################################################
 // ####################### Public Methods ###############################
@@ -114,21 +133,49 @@ static bool OrderHelper::PlaceStopOrder(int orderType, double lots, double entry
    return true;
 }
 
+// Edits the orders stop loss if it is different than the passed in stop loss
+// Assumes that there will only ever be 1 pending order
+static bool OrderHelper::EditStopLoss(double newStopLoss, double newLots, int magicNumber)
+{
+   if (OrdersTotal() == 1)
+   {
+      if (!SelectOrderByPosition(0, "Editing Stop Loss"))
+      {
+         return false;
+      }
+      
+      if (OrderStopLoss() != newStopLoss)
+      {
+         int type = OrderType();
+         double entryPrice = OrderOpenPrice();
+         double takeProfit = OrderTakeProfit();
+         string comment = OrderComment();
+         datetime expireation = OrderExpiration();
+         
+         if (!CancelAllPendingOrdersByMagicNumber(magicNumber))
+         {
+            return false;
+         }
+         
+         if (!OrderSend(Symbol(), type, newLots, entryPrice, 0, newStopLoss, takeProfit, comment, magicNumber, expireation, clrNONE))
+         {
+            SendFailedOrderEMail(1, type, entryPrice, newStopLoss, newLots, magicNumber);
+            return false;
+         }
+      }
+   }
+   
+   return true;
+}
 // -------------------------- Managing Orders --------------------------------------
 static bool OrderHelper::CancelAllPendingOrdersByMagicNumber(int magicNumber) 
 {
    bool allCancelationsSucceeded = true;
    for (int i = OrdersTotal() - 1; i >= 0; i--)
    {
-      if (!OrderSelect(i, SELECT_BY_POS))
+      if (!SelectOrderByPosition(i, "Canceling"))
       {
-         SendMail("Failed To Select Order When Canceling",
-                  "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
-                  "Current Order: " + IntegerToString(i) + "\n" +
-                  IntegerToString(GetLastError()));
-                  
          allCancelationsSucceeded = false;
-                  
       }
       
       if (OrderMagicNumber() == magicNumber && OrderType() > 1)
@@ -154,15 +201,10 @@ static bool OrderHelper::MoveAllOrdersToBreakEvenByMagicNumber(int magicNumber)
    bool allOrdersMoved = true;
    for (int i = OrdersTotal() - 1; i >= 0; i--)
    {
-      if (!OrderSelect(i, SELECT_BY_POS))
+      if (!SelectOrderByPosition(i, "Moving To Break Even"))
       {
-         SendMail("Failed To Select Order When Moving To Break Even",
-                  "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
-                  "Current Order: " + IntegerToString(i) + "\n" +
-                  IntegerToString(GetLastError()));
-                  
-         allOrdersMoved = false;        
-      }     
+         allOrdersMoved = false;
+      }   
       
       // OP_BUY or OP_SELL
       if(OrderType() < 2 && OrderMagicNumber() == magicNumber)
@@ -189,15 +231,10 @@ static bool OrderHelper::TrailAllOrdersToMBUpToBreakEven(int magicNumber, double
    bool allOrdersMoved = true;
    for (int i = OrdersTotal() - 1; i >= 0; i--)
    {
-      if (!OrderSelect(i, SELECT_BY_POS))
+      if (!SelectOrderByPosition(i, "Trailing to MB Up to Break Even"))
       {
-         SendMail("Failed To Select Order When Moving To Break Even",
-                  "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
-                  "Current Order: " + IntegerToString(i) + "\n" +
-                  IntegerToString(GetLastError()));
-                  
-         allOrdersMoved = false;        
-      }     
+         allOrdersMoved = false;
+      }
       
       // OP_BUY or OP_SELL
       if(OrderType() < 2 && OrderMagicNumber() == magicNumber)
