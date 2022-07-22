@@ -52,7 +52,7 @@ class ZoneState
       
       // --- Computed Properties ---
       double Range() { return MathAbs(mEntryPrice - mExitPrice); }
-      bool IsHolding();
+      bool IsHolding(int barIndex);
       bool IsBroken(int barIndex);
       
       // --- Display Methods ---
@@ -70,17 +70,17 @@ bool ZoneState::AboveSupplyZone(int barIndex)
 }
 // ----------------- Computed Properties ----------------------
 // checks if price is  currenlty in the zone, and the zone is holding 
-bool ZoneState::IsHolding()
+bool ZoneState::IsHolding(int barIndex)
 {
    if (mType == OP_BUY)
    {
       // Subtract 2 so that the imbalance candle can't count as having entered the zone
-      return iLow(mSymbol, mTimeFrame, iLowest(mSymbol, mTimeFrame, MODE_LOW, mEntryIndex - 2, 0)) <= mEntryPrice && !BelowDemandZone(0);
+      return iLow(mSymbol, mTimeFrame, iLowest(mSymbol, mTimeFrame, MODE_LOW, barIndex, 0)) <= mEntryPrice && !BelowDemandZone(0);
    }
    else if (mType == OP_SELL)
    {
       // subtract 2 so that the imbalance candle can't count as having entered the zone
-      return iHigh(mSymbol, mTimeFrame, iHighest(mSymbol, mTimeFrame, MODE_HIGH, mEntryIndex - 2, 0)) >= mEntryPrice && !AboveSupplyZone(0);
+      return iHigh(mSymbol, mTimeFrame, iHighest(mSymbol, mTimeFrame, MODE_HIGH, barIndex, 0)) >= mEntryPrice && !AboveSupplyZone(0);
    }
    
    return false;

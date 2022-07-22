@@ -28,10 +28,6 @@ class MB : public MBState
       void CheckAddZones(bool allowZoneMitigation);
       void CheckAddZonesAfterMBValidation(int barIndex, bool allowZoneMitigation);
       void AddZone(int entryIndex, double entryPrice, int exitIndex, double exitPrice);
-      
-      // ----- Retrieving Zones --------
-      bool GetUnretrievedZones(int mbOffset, ZoneState* &zoneStates[]);
-      bool GetClosestValidZone(ZoneState* &zoneStates);
 };
 // #############################################################
 // ####################### Private Methods #####################
@@ -126,6 +122,8 @@ MB::MB(string symbol, int timeFrame, int number, int type, int startIndex, int e
    mHighIndex = highIndex;
    mLowIndex = lowIndex;
    
+   mIsBroken  = false;
+   
    mMaxZones = maxZones;
    mZoneCount = 0;
    mUnretrievedZoneCount = 0;
@@ -183,37 +181,4 @@ void MB::AddZone(int entryIndex, double entryPrice, int exitIndex, double exitPr
       mZoneCount += 1;
       mUnretrievedZoneCount += 1;
    }
-}
-// ----------------- Zone Retrieval --------------------------
-// Casts all Unretireved zones to a ZoneState and returns them
-bool MB::GetUnretrievedZones(int mbOffset, ZoneState* &zoneStates[])
-{
-   bool retrievedZones = false;
-   for (int i = (mZoneCount - mUnretrievedZoneCount); i < mZoneCount; i++)
-   {
-      if (!mZones[i].WasRetrieved())
-      {
-         mZones[i].WasRetrieved(true);
-         zoneStates[i + mbOffset] = mZones[i];
-         
-         retrievedZones = true;
-      }
-   }
-   
-   mUnretrievedZoneCount = 0;
-   return retrievedZones;
-}
-
-bool MB::GetClosestValidZone(ZoneState* &zoneState)
-{
-   for (int i = mZoneCount - 1; i >= 0; i--)
-   {
-      if (CheckPointer(mZones[i]) != POINTER_INVALID && !mZones[i].IsBroken(0))
-      {
-         zoneState = mZones[i];
-         return true;
-      }
-   }
-   
-   return false;
 }

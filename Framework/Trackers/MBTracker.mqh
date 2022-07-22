@@ -61,6 +61,9 @@ class MBTracker
 
    public:
       //  --- Getters ---
+      string Symbol() { return mSymbol; }
+      int TimeFrame() { return mTimeFrame; }
+      
       int CurrentBullishRetracementIndex() { return mCurrentBullishRetracementIndex; }
       int CurrentBearishRetracementIndex() { return mCurrentBearishRetracementIndex; }
       // --- Constructors / Destructors ---
@@ -74,6 +77,9 @@ class MBTracker
       
       // --- MB Schematic Methods ---
       bool GetNthMostRecentMB(int nthMB, MBState* &mbState);
+      bool GetMB(int mbNumber, MBState* &mbState);
+      bool GetNMostRecentMBs(int nMostRecent, MBState* &mbStates[]);
+      
       bool HasNMostRecentConsecutiveMBs(int nMBs);
       bool HasNMostRecentConsecutiveMBs(int nMBs, MBState* &mbStates[]);
       
@@ -83,6 +89,7 @@ class MBTracker
       int NumberOfConsecutiveMBsBeforeNthMostRecent(int nthMB);
       
       bool MBIsMostRecent(int mbNumber);
+      bool MBIsMostRecent(int mbNumber, MBState* &mbState);
       
       // --- MB Display Methods ---
       void PrintNMostRecentMBs(int nMBs);     
@@ -93,8 +100,8 @@ class MBTracker
       bool GetNMostRecentMBsUnretrievedZones(int nMBs, ZoneState* &zoneStates[]);
       bool GetNthMostRecentMBsClosestValidZone(int nthMB, ZoneState* &zoneState);
       
-      bool NthMostRecentMBsClosestValidZoneIsHolding(int nthMB, ZoneState* &zoneState);
-      bool MBsClosestValidZoneIsHolding(int mbNumber);
+      bool NthMostRecentMBsClosestValidZoneIsHolding(int nthMB, ZoneState* &zoneState, int barIndex);
+      bool MBsClosestValidZoneIsHolding(int mbNumber, int barIndex);
       
       // -- Zone Display Methods -- 
       void DrawZonesForNMostRecentMBs(int nMBs);
@@ -572,6 +579,40 @@ bool MBTracker::GetNthMostRecentMB(int nthMB, MBState *&mbState)
    return true;
 }
 
+bool MBTracker::GetMB(int mbNumber, MBState* &mbState)
+{
+   Update();
+   
+   for (int i = 0; i <= mCurrentMBs - 1; i++)
+   {
+      if (mMBs[MostRecentMBIndex() + i].Number() == mbNumber)
+      {
+         mbState = mMBs[MostRecentMBIndex() + i];
+         return true;
+      }
+   }
+   
+   return false;
+}
+
+bool MBTracker::GetNMostRecentMBs(int nMostRecent, MBState *&mbStates[])
+{
+   if (nMostRecent > mCurrentMBs)
+   {
+      Print("Can't Retrieve More MBs than there are");
+      return false;
+   }
+   
+   ArrayResize(mbStates, nMostRecent);
+   
+   for (int i = 0; i < nMostRecent; i++)
+   {
+      mbStates[i] = mMBs[MostRecentMBIndex() + i];
+   }
+   
+   return true;
+}
+
 bool MBTracker::HasNMostRecentConsecutiveMBs(int nMBs)
 {
   return InternalHasNMostRecentConsecutiveMBs(nMBs);
@@ -651,7 +692,19 @@ int MBTracker::NumberOfConsecutiveMBsBeforeNthMostRecent(int nthMB)
 
 bool MBTracker::MBIsMostRecent(int mbNumber)
 {
+   Update();
+   
    return mMBs[MostRecentMBIndex()].Number() == mbNumber;
+}
+
+bool MBTracker::MBIsMostRecent(int mbNumber, MBState* &mbState)
+{
+   if (MBIsMostRecent(mbNumber))
+   {
+      return GetMB(mbNumber, mbState);
+   }
+   
+   return false;
 }
 
 // ---------------- MB Display Methods --------------
@@ -752,30 +805,22 @@ bool MBTracker::GetNthMostRecentMBsClosestValidZone(int nthMB, ZoneState* &zoneS
    return mMBs[MostRecentMBIndex() + nthMB].GetClosestValidZone(zoneState);
 }
 
-bool MBTracker::NthMostRecentMBsClosestValidZoneIsHolding(int nthMB, ZoneState* &zoneState)
+bool MBTracker::NthMostRecentMBsClosestValidZoneIsHolding(int nthMB, ZoneState* &zoneState, int barIndex = -1)
 {
    if (GetNthMostRecentMBsClosestValidZone(nthMB, zoneState))
    {
-      return zoneState.IsHolding();
+      return mMBs[MostRecentMBIndex() + nthMB].ClosestValidZoneIsHolding(barIndex);
    }
    
    return false;
 }
 
-bool MBTracker::MBsClosestValidZoneIsHolding(int mbNumber)
+bool MBTracker::MBsClosestValidZoneIsHolding(int mbNumber, int barIndex = -1)
 {
-   Update();
-   
-   for (int i = 0; i <= mMBsToTrack - 1; i++)
+   MBState* tempMBState;
+   if (GetMB(mbNumber, tempMBState))
    {
-      if (mMBs[MostRecentMBIndex() + i].Number() == mbNumber)
-      {
-         ZoneState* tempZoneState;
-         if(mMBs[MostRecentMBIndex() + i].GetClosestValidZone(tempZoneState))
-         {
-            return tempZoneState.IsHolding();
-         }
-      }
+      return tempMBState.ClosestValidZoneIsHolding(barIndex);
    }
    
    return false;

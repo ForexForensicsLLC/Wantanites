@@ -23,6 +23,7 @@ class MBState
       int mHighIndex;
       int mLowIndex;
       
+      bool mIsBroken;
       bool mDrawn;
       
       Zone* mZones[];
@@ -45,12 +46,87 @@ class MBState
       
       int ZoneCount() { return mZoneCount; }
       int UnretrievedZoneCount() { return mUnretrievedZoneCount; }
+      
+      bool IsBroken(int barIndex);
+      
+      bool GetUnretrievedZones(int mbOffset, ZoneState* &zoneStates[]);
+      bool GetClosestValidZone(ZoneState* &zoneStates);
+      bool ClosestValidZoneIsHolding(int barIndex);
    
       // --------- Display Methods ---------
       string ToString();
       void Draw(bool printErrors);
       void DrawZones(bool printErrors);
 };
+
+bool MBState::IsBroken(int barIndex)
+{
+   if (!mIsBroken)
+   {
+      if (mType == OP_BUY)
+      {
+         Print("Checking for bullish Broken MB");
+         Print("Bar Index: ", barIndex, ", Lowest Price from bar index: ", iLow(mSymbol, mTimeFrame, iLowest(mSymbol, mTimeFrame, MODE_LOW, barIndex, 0)), ", Low Index: ", mLowIndex, ", Low Index Price: ", iHigh(mSymbol, mTimeFrame, mLowIndex));
+         mIsBroken = iLow(mSymbol, mTimeFrame, iLowest(mSymbol, mTimeFrame, MODE_LOW, barIndex, 0)) < iLow(mSymbol, mTimeFrame, mLowIndex);
+      }
+      else if (mType == OP_SELL)
+      {
+         Print("Checking for bearish Broken MB");
+         Print("Bar Index: ", barIndex,", Highest price from bar index: ",iHigh(mSymbol, mTimeFrame, iHighest(mSymbol, mTimeFrame, MODE_HIGH, barIndex, 0)),  ", High Index: ", mHighIndex, ", High Index Price: ", iHigh(mSymbol, mTimeFrame, mHighIndex));
+         mIsBroken = iHigh(mSymbol, mTimeFrame, iHighest(mSymbol, mTimeFrame, MODE_HIGH, barIndex, 0)) > iHigh(mSymbol, mTimeFrame, mHighIndex);
+      }
+   }
+   
+   return mIsBroken;
+}
+
+bool MBState::GetUnretrievedZones(int mbOffset, ZoneState* &zoneStates[])
+{
+   bool retrievedZones = false;
+   for (int i = (mZoneCount - mUnretrievedZoneCount); i < mZoneCount; i++)
+   {
+      if (!mZones[i].WasRetrieved())
+      {
+         mZones[i].WasRetrieved(true);
+         zoneStates[i + mbOffset] = mZones[i];
+         
+         retrievedZones = true;
+      }
+   }
+   
+   mUnretrievedZoneCount = 0;
+   return retrievedZones;
+}
+
+bool MBState::GetClosestValidZone(ZoneState* &zoneState)
+{
+   for (int i = mZoneCount - 1; i >= 0; i--)
+   {
+      if (CheckPointer(mZones[i]) != POINTER_INVALID && !mZones[i].IsBroken(0))
+      {
+         zoneState = mZones[i];
+         return true;
+      }
+   }
+   
+   return false;
+}
+
+bool MBState::ClosestValidZoneIsHolding(int barIndex)
+{
+   if (barIndex == -1)
+   {
+      barIndex = mEndIndex;
+   }
+   
+   ZoneState* tempZoneState;
+   if (GetClosestValidZone(tempZoneState))
+   {
+      return tempZoneState.IsHolding(barIndex);
+   }
+   
+   return false;
+}
 
 // ---------------- Display Methods -------------------
 // returns a string description of the MB
