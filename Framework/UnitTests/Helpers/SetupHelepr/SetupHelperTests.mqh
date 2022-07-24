@@ -86,6 +86,14 @@ void OnTick()
 
 void BrokeMBRangeStart_BullishMBTrue()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     static int mbNumber = -1;
 
     MBState *tempMBState;
@@ -130,12 +138,25 @@ void BrokeMBRangeStart_BullishMBTrue()
         return;
     }
 
-    UT.addTest(__FUNCTION__);
+    if (tests == 0)
+    {
+        UT.addTest(__FUNCTION__);
+    }
+
     UT.assertEquals(__FUNCTION__, "Broke MB Start Range on Bullish MB", expected, actual);
+    tests += 1;
 }
 
 void BrokeMBRangeStart_BearishMBTrue()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     static int mbNumber = -1;
 
     MBState *tempMBState;
@@ -180,8 +201,13 @@ void BrokeMBRangeStart_BearishMBTrue()
         return;
     }
 
-    UT.addTest(__FUNCTION__);
+    if (tests == 0)
+    {
+        UT.addTest(__FUNCTION__);
+    }
+
     UT.assertEquals(__FUNCTION__, "Broke MB Start Range on Bearish MB", expected, actual);
+    tests += 1;
 }
 
 void BrokeMBRangeStart_BullishMBFalse()
@@ -236,6 +262,14 @@ void BrokeMBRangeStart_BearishMBFalse()
 
 void BrokeDoubleMBPlusLiquidationEnd_BullishSetupTrue()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     static int secondMBNumber = -1;
     static int thirdMBNumber = -1;
     static int setupType = -1;
@@ -306,8 +340,13 @@ void BrokeDoubleMBPlusLiquidationEnd_BullishSetupTrue()
             int error = SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(secondMBNumber, setupType, MBT, actual);
             if (error != ERR_NO_ERROR)
             {
-                UT.addTest(__FUNCTION__);
+                if (tests == 0)
+                {
+                    UT.addTest(__FUNCTION__);
+                }
+
                 UT.assertEquals(__FUNCTION__, "Broke Double MB Plus Liquidation Bullish Setup True", expected, actual);
+                tests += 1;
             }
         }
     }
@@ -315,6 +354,14 @@ void BrokeDoubleMBPlusLiquidationEnd_BullishSetupTrue()
 
 void BrokeDoubleMBPlusLiquidationEnd_BearishSetupTrue()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     static int secondMBNumber = -1;
     static int thirdMBNumber = -1;
     static int setupType = -1;
@@ -385,8 +432,13 @@ void BrokeDoubleMBPlusLiquidationEnd_BearishSetupTrue()
             int error = SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(secondMBNumber, setupType, MBT, actual);
             if (error != ERR_NO_ERROR)
             {
-                UT.addTest(__FUNCTION__);
+                if (tests == 0)
+                {
+                    UT.addTest(__FUNCTION__);
+                }
+
                 UT.assertEquals(__FUNCTION__, "Broke Double MB Plus Liquidation Bearish Setup True", expected, actual);
+                tests += 1;
             }
         }
     }
@@ -394,6 +446,14 @@ void BrokeDoubleMBPlusLiquidationEnd_BearishSetupTrue()
 
 void BrokeDoubleMBPlusLiquidationEnd_BullishSetupFalse()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     static int secondMBNumber = -1;
     static int thirdMBNumber = -1;
     static int setupType = -1;
@@ -464,8 +524,13 @@ void BrokeDoubleMBPlusLiquidationEnd_BullishSetupFalse()
             int error = SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(secondMBNumber, setupType, MBT, actual);
             if (error != ERR_NO_ERROR)
             {
-                UT.addTest(__FUNCTION__);
+                if (tests == 0)
+                {
+                    UT.addTest(__FUNCTION__);
+                }
+
                 UT.assertEquals(__FUNCTION__, "Did Not Break Double MB Plus Liquidation Bullish Setup", expected, actual);
+                tests += 1;
             }
         }
     }
@@ -473,6 +538,14 @@ void BrokeDoubleMBPlusLiquidationEnd_BullishSetupFalse()
 
 void BrokeDoubleMBPlusLiquidationEnd_BearishSetupFalse()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     static int secondMBNumber = -1;
     static int thirdMBNumber = -1;
     static int setupType = -1;
@@ -543,8 +616,13 @@ void BrokeDoubleMBPlusLiquidationEnd_BearishSetupFalse()
             int error = SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(secondMBNumber, setupType, MBT, actual);
             if (error != ERR_NO_ERROR)
             {
-                UT.addTest(__FUNCTION__);
+                if (tests == 0)
+                {
+                    UT.addTest(__FUNCTION__);
+                }
+
                 UT.assertEquals(__FUNCTION__, "Did Not Break Double MB Plus Liquidation Bearish Setup", expected, actual);
+                tests += 1;
             }
         }
     }
@@ -552,6 +630,14 @@ void BrokeDoubleMBPlusLiquidationEnd_BearishSetupFalse()
 
 void BrokeDoubleMBPlusLiquidationEnd_EqualBullishTypesError()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     if (!MBT.HasNMostRecentConsecutiveMBs(3))
     {
         return;
@@ -568,17 +654,29 @@ void BrokeDoubleMBPlusLiquidationEnd_EqualBullishTypesError()
         return;
     }
 
-    UT.addTest(__FUNCTION__);
+    if (tests == 0)
+    {
+        UT.addTest(__FUNCTION__);
+    }
 
     bool isTrue = false;
     int expected = Errors::ERR_EQUAL_MB_TYPES;
     int actual = SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(secondTempMBState.Number(), secondTempMBState.Type(), MBT, isTrue);
 
     UT.assertEquals(__FUNCTION__, "Broke Double MB Plus Liquidation Equal Bullish Types Error", expected, actual);
+    tests += 1;
 }
 
 void BrokeDoubleMBPlusLiquidationEnd_EqualBearishTypesError()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     if (!MBT.HasNMostRecentConsecutiveMBs(3))
     {
         return;
@@ -595,34 +693,58 @@ void BrokeDoubleMBPlusLiquidationEnd_EqualBearishTypesError()
         return;
     }
 
-    UT.addTest(__FUNCTION__);
+    if (tests == 0)
+    {
+        UT.addTest(__FUNCTION__);
+    }
 
     bool isTrue = false;
     int expected = Errors::ERR_EQUAL_MB_TYPES;
     int actual = SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(secondTempMBState.Number(), secondTempMBState.Type(), MBT, isTrue);
 
     UT.assertEquals(__FUNCTION__, "Broke Double MB Plus Liquidation Equal Bearish Types Error", expected, actual);
+    tests += 1;
 }
 
 void MostRecentMBPlusHoldingZone_MostRecentError()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(1, tempMBState))
     {
         return;
     }
 
-    UT.addTest(__FUNCTION__);
+    if (tests == 0)
+    {
+        UT.addTest(__FUNCTION__);
+    }
 
     bool isTrue = false;
     int expected = Errors::ERR_MB_IS_NOT_MOST_RECENT;
     int actual = SetupHelper::MostRecentMBPlusHoldingZone(tempMBState.Number(), MBT, isTrue);
 
     UT.assertEquals(__FUNCTION__, "Most Recent Pending MB Plus Zone Is Holding Most Recent Error", expected, actual);
+    tests += 1;
 }
 
 void MostRecentMBPlusHoldingZone_True()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
@@ -634,17 +756,29 @@ void MostRecentMBPlusHoldingZone_True()
         return;
     }
 
-    UT.addTest(__FUNCTION__);
+    if (tests == 0)
+    {
+        UT.addTest(__FUNCTION__);
+    }
 
     bool expected = true;
     bool actual = false;
     SetupHelper::MostRecentMBPlusHoldingZone(tempMBState.Number(), MBT, actual);
 
     UT.assertEquals(__FUNCTION__, "Most Recent Pending MB Plus Zone Is Holding True", expected, actual);
+    tests += 1;
 }
 
 void MostRecentMBPlusHoldingZone_False()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
@@ -656,17 +790,29 @@ void MostRecentMBPlusHoldingZone_False()
         return;
     }
 
-    UT.addTest(__FUNCTION__);
+    if (tests == 0)
+    {
+        UT.addTest(__FUNCTION__);
+    }
 
     bool expected = false;
     bool actual = true;
     SetupHelper::MostRecentMBPlusHoldingZone(tempMBState.Number(), MBT, actual);
 
     UT.assertEquals(__FUNCTION__, "Most Recent Pending MB Plus Zone Is Holding False", expected, actual);
+    tests += 1;
 }
 
 void FirstMBAfterLiquidationOfSecondPlusHoldingZone_BullishTrue()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     static int secondMBNumber = -1;
     static int thirdMBNumber = -1;
     static int setupType = -1;
@@ -750,13 +896,26 @@ void FirstMBAfterLiquidationOfSecondPlusHoldingZone_BullishTrue()
             return;
         }
 
-        UT.addTest(__FUNCTION__);
+        if (tests == 0)
+        {
+            UT.addTest(__FUNCTION__);
+        }
+
         UT.assertEquals(__FUNCTION__, "First MB After Liquidation Of Second Plush Holding Zone Bullish Setup True", expected, actual);
+        tests += 1;
     }
 }
 
 void FirstMBAfterLiquidationOfSecondPlusHoldingZone_BearishTrue()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     static int secondMBNumber = -1;
     static int thirdMBNumber = -1;
     static int setupType = -1;
@@ -840,8 +999,13 @@ void FirstMBAfterLiquidationOfSecondPlusHoldingZone_BearishTrue()
             return;
         }
 
-        UT.addTest(__FUNCTION__);
+        if (tests == 0)
+        {
+            UT.addTest(__FUNCTION__);
+        }
+
         UT.assertEquals(__FUNCTION__, "First MB After Liquidation Of Second Plush Holding Zone Bearish Setup True", expected, actual);
+        tests += 1;
     }
 }
 
@@ -901,6 +1065,14 @@ void BreakAfterMinROC_NoMinROCIsTrueEqualsFalse()
 
 void BreakAfterMinROC_NotOppositeMBIsTrueEqualsFalse()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     if (MBT.NthMostRecentMBIsOpposite(0))
     {
         return;
@@ -917,12 +1089,25 @@ void BreakAfterMinROC_NotOppositeMBIsTrueEqualsFalse()
         return;
     }
 
-    UT.addTest(__FUNCTION__);
+    if (tests == 0)
+    {
+        UT.addTest(__FUNCTION__);
+    }
+
     UT.assertEquals(__FUNCTION__, "Break After Min ROC. Not Opposite MB isTrue returns false", expected, actual);
+    tests += 1;
 }
 
 void BreakAfterMinROC_BullishSetupTrue()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     static MinROCFromTimeStamp *tempMRFTS;
 
     if (CheckPointer(tempMRFTS) == POINTER_INVALID)
@@ -956,13 +1141,26 @@ void BreakAfterMinROC_BullishSetupTrue()
         bool actual = false;
         SetupHelper::BreakAfterMinROC(tempMRFTS, MBT, actual);
 
-        UT.addTest(__FUNCTION__);
+        if (tests == 0)
+        {
+            UT.addTest(__FUNCTION__);
+        }
+
         UT.assertEquals(__FUNCTION__, "Break After Min. ROC Bullish Setup True", expected, actual);
+        tests += 1;
     }
 }
 
 void BreakAfterMinROC_BearishSetupTrue()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     static MinROCFromTimeStamp *tempMRFTS;
 
     if (CheckPointer(tempMRFTS) == POINTER_INVALID)
@@ -996,7 +1194,12 @@ void BreakAfterMinROC_BearishSetupTrue()
         bool actual = false;
         SetupHelper::BreakAfterMinROC(tempMRFTS, MBT, actual);
 
-        UT.addTest(__FUNCTION__);
+        if (tests == 0)
+        {
+            UT.addTest(__FUNCTION__);
+        }
+
         UT.assertEquals(__FUNCTION__, "Break After Min. ROC Bearish Setup True", expected, actual);
+        tests += 1;
     }
 }

@@ -161,6 +161,14 @@ void PipsToRange_EURUSD()
 
 void GetEntryPriceForStopOrder_BullishMBNoErrors()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
@@ -178,7 +186,10 @@ void GetEntryPriceForStopOrder_BullishMBNoErrors()
         return;
     }
 
-    UT.addTest(__FUNCTION__);
+    if (tests == 0)
+    {
+        UT.addTest(__FUNCTION__);
+    }
 
     double entryPrice = 0.0;
     double spreadPips = 0.0;
@@ -188,10 +199,19 @@ void GetEntryPriceForStopOrder_BullishMBNoErrors()
     int actual = OrderHelper::GetEntryPriceForStopOrderOnMostRecentPendingMB(spreadPips, setupType, MBT, entryPrice);
 
     UT.assertEquals(__FUNCTION__, "Get Entry Price For Stop Order On Most Recent Pending Bullish MB No Error", expected, actual);
+    tests += 1;
 }
 
 void GetEntryPriceForStopOrder_BearishMBNoErrors()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
@@ -209,7 +229,10 @@ void GetEntryPriceForStopOrder_BearishMBNoErrors()
         return;
     }
 
-    UT.addTest(__FUNCTION__);
+    if (tests == 0)
+    {
+        UT.addTest(__FUNCTION__);
+    }
 
     double entryPrice = 0.0;
     double spreadPips = 0.0;
@@ -219,10 +242,19 @@ void GetEntryPriceForStopOrder_BearishMBNoErrors()
     int actual = OrderHelper::GetEntryPriceForStopOrderOnMostRecentPendingMB(spreadPips, setupType, MBT, entryPrice);
 
     UT.assertEquals(__FUNCTION__, "Get Entry Price For Stop Order On Most Recent Pending Bearish MB No Error", expected, actual);
+    tests += 1;
 }
 
 void GetEntryPriceForStopOrder_BullishMBEmptyRetracement()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
@@ -240,7 +272,10 @@ void GetEntryPriceForStopOrder_BullishMBEmptyRetracement()
         return;
     }
 
-    UT.addTest(__FUNCTION__);
+    if (tests == 0)
+    {
+        UT.addTest(__FUNCTION__);
+    }
 
     double entryPrice = 0.0;
     double spreadPips = 0.0;
@@ -250,10 +285,19 @@ void GetEntryPriceForStopOrder_BullishMBEmptyRetracement()
     int actual = OrderHelper::GetEntryPriceForStopOrderOnMostRecentPendingMB(spreadPips, setupType, MBT, entryPrice);
 
     UT.assertEquals(__FUNCTION__, "Get Entry Price For Stop Order On Most Recent Pending Bullish MB Invalid Retracement", expected, actual);
+    tests += 1;
 }
 
 void GetEntryPriceForStopOrder_BearishMBEmptyRetracement()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
@@ -271,7 +315,10 @@ void GetEntryPriceForStopOrder_BearishMBEmptyRetracement()
         return;
     }
 
-    UT.addTest(__FUNCTION__);
+    if (tests == 0)
+    {
+        UT.addTest(__FUNCTION__);
+    }
 
     double entryPrice = 0.0;
     double spreadPips = 0.0;
@@ -281,10 +328,19 @@ void GetEntryPriceForStopOrder_BearishMBEmptyRetracement()
     int actual = OrderHelper::GetEntryPriceForStopOrderOnMostRecentPendingMB(spreadPips, setupType, MBT, entryPrice);
 
     UT.assertEquals(__FUNCTION__, "Get Entry Price For Stop Order On Most Recent Pending Bullish MB Invalid Retracement", expected, actual);
+    tests += 1;
 }
 
 void GetEntryPriceForStopOrder_CorrectBullishMBEntryPrice()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
@@ -302,7 +358,10 @@ void GetEntryPriceForStopOrder_CorrectBullishMBEntryPrice()
         return;
     }
 
-    UT.addTest(__FUNCTION__);
+    if (tests == 0)
+    {
+        UT.addTest(__FUNCTION__);
+    }
 
     double entryPrice = 0.0;
     double spreadPips = 0.0;
@@ -314,10 +373,19 @@ void GetEntryPriceForStopOrder_CorrectBullishMBEntryPrice()
     int actual = MathFloor((entryPrice * MathPow(10, _Digits)));
 
     UT.assertEquals(__FUNCTION__, "Get Entry Price For Buy Stop Order On Most Recent Bullish Pending MB Correct Entry", expected, actual);
+    tests += 1;
 }
 
 void GetEntryPriceForStopOrder_CorrectBearishMBEntryPrice()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
@@ -335,7 +403,10 @@ void GetEntryPriceForStopOrder_CorrectBearishMBEntryPrice()
         return;
     }
 
-    UT.addTest(__FUNCTION__);
+    if (tests == 0)
+    {
+        UT.addTest(__FUNCTION__);
+    }
 
     double entryPrice = 0.0;
     double spreadPips = 0.0;
@@ -347,6 +418,7 @@ void GetEntryPriceForStopOrder_CorrectBearishMBEntryPrice()
     int actual = MathFloor((entryPrice * MathPow(10, _Digits)));
 
     UT.assertEquals(__FUNCTION__, "Get Entry Price For Sell Stop Order On Most Recent Bearish Pending MB Correct Entry", expected, actual);
+    tests += 1;
 }
 
 void SelectOpenOrderByTicket_NoError()
@@ -642,6 +714,14 @@ void PlaceStopOrder_StopLossBelowSellStopEntry()
 
 void PlaceStopOrderOnMostRecentPendingMB_BullishMBNoError()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
@@ -659,7 +739,10 @@ void PlaceStopOrderOnMostRecentPendingMB_BullishMBNoError()
         return;
     }
 
-    UT.addTest(__FUNCTION__);
+    if (tests == 0)
+    {
+        UT.addTest(__FUNCTION__);
+    }
 
     int ticket = -1;
     const int paddingPips = 0.0;
@@ -674,10 +757,19 @@ void PlaceStopOrderOnMostRecentPendingMB_BullishMBNoError()
     UT.assertEquals(__FUNCTION__, "Place Stop Order On Most Recent Bullish MB No Error", expected, actual);
 
     OrderDelete(ticket, clrNONE);
+    tests += 1;
 }
 
 void PlaceStopOrderOnMostRecentPendingMB_BearishMBNoError()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
@@ -695,7 +787,10 @@ void PlaceStopOrderOnMostRecentPendingMB_BearishMBNoError()
         return;
     }
 
-    UT.addTest(__FUNCTION__);
+    if (tests == 0)
+    {
+        UT.addTest(__FUNCTION__);
+    }
 
     int ticket = -1;
     const int paddingPips = 0.0;
@@ -710,17 +805,29 @@ void PlaceStopOrderOnMostRecentPendingMB_BearishMBNoError()
     UT.assertEquals(__FUNCTION__, "Place Stop Order On Most Recent Bearish MB No Error", expected, actual);
 
     OrderDelete(ticket, clrNONE);
+    tests += 1;
 }
 
 void PlaceStopOrderOnMostRecentPendingMB_NotMostRecentMB()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(2, tempMBState))
     {
         return;
     }
 
-    UT.addTest(__FUNCTION__);
+    if (tests == 0)
+    {
+        UT.addTest(__FUNCTION__);
+    }
 
     int ticket = -1;
     const int paddingPips = 0.0;
@@ -733,10 +840,19 @@ void PlaceStopOrderOnMostRecentPendingMB_NotMostRecentMB()
     int actual = OrderHelper::PlaceStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, riskPercent, magicNumber, setupMBNumber, MBT, ticket);
 
     UT.assertEquals(__FUNCTION__, "Place Stop Order On Not Most Recent MB", expected, actual);
+    tests += 1;
 }
 
 void CheckEditStopLossForMostRecentMBStopOrder_SameTicket()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     static int ticket = -1;
     static double stopLoss = 0.0;
     static int mbNumber = -1;
@@ -801,17 +917,30 @@ void CheckEditStopLossForMostRecentMBStopOrder_SameTicket()
             return;
         }
 
-        UT.addTest(__FUNCTION__);
+        if (tests == 0)
+        {
+            UT.addTest(__FUNCTION__);
+        }
 
         bool expected = true;
         bool actual = oldTicket == ticket;
 
         UT.assertEquals(__FUNCTION__, "Check Edit Stop Loss For Most Recent MB Same Ticket", expected, actual);
+
+        tests += 1;
     }
 }
 
 void CheckEditStopLossForMostRecentMBStopOrder_DifferentStopLoss()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     static int ticket = -1;
     static double stopLoss = 0.0;
     static int mbNumber = -1;
@@ -882,12 +1011,16 @@ void CheckEditStopLossForMostRecentMBStopOrder_DifferentStopLoss()
             return;
         }
 
-        UT.addTest(__FUNCTION__);
+        if (tests == 0)
+        {
+            UT.addTest(__FUNCTION__);
+        }
 
         bool expected = true;
         bool actual = stopLoss == OrderStopLoss();
 
         UT.assertEquals(__FUNCTION__, "Check Edit Stop Loss For Most Recent MB Different Stop Loss", expected, actual);
+        tests += 1;
     }
 }
 
@@ -941,6 +1074,14 @@ void CancelPendingOrderByTicket_ErrorsNotEmptyTicket()
 
 void CheckTrailStopLossWithMB_TrailNoErrorsDifferntStopLoss()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     static int ticket = -1;
     static int mbNumber = -1;
     static int setupType = -1;
@@ -1012,7 +1153,10 @@ void CheckTrailStopLossWithMB_TrailNoErrorsDifferntStopLoss()
             return;
         }
 
-        UT.addTest(__FUNCTION__);
+        if (tests == 0)
+        {
+            UT.addTest(__FUNCTION__);
+        }
 
         const bool expected = true;
         const bool actual = OrderStopLoss() != stopLoss;
@@ -1020,11 +1164,21 @@ void CheckTrailStopLossWithMB_TrailNoErrorsDifferntStopLoss()
         UT.assertEquals(__FUNCTION__, "Check Trail Stop Loss With MB Up To Break Even No Errors Differnt Stop Loss", expected, actual);
 
         OrderClose(ticket, OrderLots(), Ask, 0, clrNONE);
+
+        tests += 1;
     }
 }
 
 void CheckTrailStopLossWithMB_TrailNotPastOpen()
 {
+    static int tests = 0;
+    static int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     static int ticket = -1;
     static int mbNumber = -1;
     static int setupType = -1;
@@ -1098,7 +1252,10 @@ void CheckTrailStopLossWithMB_TrailNotPastOpen()
             return;
         }
 
-        UT.addTest(__FUNCTION__);
+        if (tests == 0)
+        {
+            UT.addTest(__FUNCTION__);
+        }
 
         const bool expected = true;
         bool actual = false;
@@ -1113,5 +1270,6 @@ void CheckTrailStopLossWithMB_TrailNotPastOpen()
         }
 
         UT.assertEquals(__FUNCTION__, "Check Trail Stop Loss With MB Up To Break Even Not Past Open", expected, actual);
+        tests += 1;
     }
 }
