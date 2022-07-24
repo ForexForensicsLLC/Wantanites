@@ -25,8 +25,6 @@ public:
    static int ERR_EMPTY_BEARISH_RETRACEMENT;
 
    // 400s are for order errors
-   static int ERR_FAILED_TO_SELECT_ORDER_BY_POS;
-   static int ERR_FAILED_TO_SELECT_ORDER_BY_TICKET;
    static int ERR_WRONG_ORDER_TYPE;
    static int ERR_STOPLOSS_ABOVE_ENTRY;
    static int ERR_NEW_STOPLOSS_EQUALS_OLD;

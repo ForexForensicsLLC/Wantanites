@@ -11,6 +11,7 @@
 
 // Make sure path is correct
 #include <SummitCapital\Framework\Trackers\MBTracker.mqh>
+#include <SummitCapital\Framework\Helpers\SetupHelper.mqh>
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
 #include <SummitCapital\Framework\UnitTests\UnitTest.mqh>
 
@@ -27,7 +28,7 @@ input bool PrintErrors = false;
 input bool CalculateOnTick = true;
 
 // --- EA Globals ---
-UnitTest *UnitTest;
+UnitTest *UT;
 MBTracker *MBT;
 
 bool FirstTick = true;
@@ -35,7 +36,7 @@ bool FirstTick = true;
 int OnInit()
 {
     MBT = new MBTracker(MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, PrintErrors, CalculateOnTick);
-    UnitTest = new UnitTest();
+    UT = new UnitTest();
 
     return (INIT_SUCCEEDED);
 }
@@ -47,110 +48,118 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    if (firstTick)
+    if (FirstTick)
     {
-        OrderHelper_RangeToPips_NASDAQ_Test();
-        OrderHelper_RangeToPips_EURUSD_Test();
+        RangeToPips_EURUSD();
+        RangeToPips_NASDAQ();
 
-        OrderHelper_PipsToRange_NASDAQ_Test();
-        OrderHelper_PipsToRange_EURUSD_Test();
+        PipsToRange_NASDAQ();
+        PipsToRange_EURUSD();
 
-        OrderHelper_SelectOpenOrderByTicket_NoError_Test();
-        OrderHelper_SelectOpenOrderByTicket_Error_Test();
+        SelectOpenOrderByTicket_NoError();
+        SelectOpenOrderByTicket_Error();
 
-        OrderHelper_IsPendingOrder_OP_BUYSTOP_Test();
-        OrderHelper_IsPendingOrder_OP_SELLSTOP_Test();
-        OrderHelper_IsPendingOrder_OP_BUYLIMIT_Test();
-        OrderHelper_IsPendingOrder_OP_SELLLIMIT_Test();
+        IsPendingOrder_OP_BUYSTOP();
+        IsPendingOrder_OP_SELLSTOP();
+        IsPendingOrder_OP_BUYLIMIT();
+        IsPendingOrder_OP_SELLLIMIT();
 
-        OrderHelper_OtherEAOrders_None_Test();
-        OrderHelper_OtherEAOrders_MultipleOrdersFromOneEA_Test();
-        OrderHelper_OtherEAOrders_MultipleOrdersFromMultipleEAs_Test();
+        OtherEAOrders_None();
+        OtherEAOrders_MultipleOrdersFromOneEA();
+        OtherEAOrders_MultipleOrdersFromMultipleEAs();
 
-        OrderHelper_PlaceStopOrder_NoError_Test();
-        OrderHelper_PlaceStopOrder_WrongOrderType_Test();
-        OrderHelper_PlaceStopOrder_StopLossAboveBuyStopEntry_Test();
-        OrderHelper_PlaceStopOrder_StopLossBelowSellStopEntry_Test();
+        PlaceStopOrder_NoError();
+        PlaceStopOrder_WrongOrderType();
+        PlaceStopOrder_StopLossAboveBuyStopEntry();
+        PlaceStopOrder_StopLossBelowSellStopEntry();
+
+        CancelPendingOrderByTicket_NoErrorsEmptyTicket();
+        CancelPendingOrderByTicket_ErrorsNotEmptyTicket();
+
+        FirstTick = false;
     }
     else
     {
-        OrderHelper_GetEntryPriceForStopOrderOnMostRecentPendingMB_BullishMBNoErrors_Test();
-        OrderHelper_GetEntryPriceForStopOrderOnMostRecentPendingMB_BearishMBNoErrors_Test();
-        OrderHelper_GetEntryPriceForStopOrderOnMostRecentPendingMB_BullishMBEmptyRetracement_Test();
-        OrderHelper_GetEntryPriceForStopOrderOnMostRecentPendingMB_BearishMBEmptyRetracement_Test();
-        OrderHelper_GetEntryPriceForStopOrderOnMostRecentPendingMB_CorrectBullishMBEntryPrice_Test();
-        OrderHelper_GetEntryPriceForStopOrderOnMostRecentPendingMB_CorrectBearishMBEntryPrice_Test();
+        GetEntryPriceForStopOrder_BullishMBNoErrors();
+        GetEntryPriceForStopOrder_BearishMBNoErrors();
+        GetEntryPriceForStopOrder_BullishMBEmptyRetracement();
+        GetEntryPriceForStopOrder_BearishMBEmptyRetracement();
+        GetEntryPriceForStopOrder_CorrectBullishMBEntryPrice();
+        GetEntryPriceForStopOrder_CorrectBearishMBEntryPrice();
 
-        OrderHelper_PlaceStopOrderOnMostRecentPendingMB_BullishMBNoError_Test();
-        OrderHelper_PlaceStopOrderOnMostRecentPendingMB_BearishMBNoError_Test();
-        OrderHelper_PlaceStopOrderOnMostRecentPendingMB_NotMostRecentMB_Test();
+        PlaceStopOrderOnMostRecentPendingMB_BullishMBNoError();
+        PlaceStopOrderOnMostRecentPendingMB_BearishMBNoError();
+        PlaceStopOrderOnMostRecentPendingMB_NotMostRecentMB();
 
-        OrderHelper_CheckEditStopLossForMostRecentMBStopOrder_SameTicket_Test();
-        OrderHelper_CheckEditStopLossForMostRecentMBStopOrder_DifferentStopLoss_Test();
+        CheckEditStopLossForMostRecentMBStopOrder_SameTicket();
+        CheckEditStopLossForMostRecentMBStopOrder_DifferentStopLoss();
+
+        CheckTrailStopLossWithMB_TrailNoErrorsDifferntStopLoss();
+        CheckTrailStopLossWithMB_TrailNotPastOpen();
     }
 }
 
-void OrderHelper_RangeToPips_NASDAQ_Test()
+void RangeToPips_NASDAQ()
 {
     if (Symbol() == "US100.cash")
     {
-        UnitTest.addTest(__FUNCTION__);
+        UT.addTest(__FUNCTION__);
 
         const double range = 0.1;
 
         const double actual = OrderHelper::RangeToPips(range);
-        const double expect = 1;
+        const double expected = 1.0;
 
-        UnitTest.assertEquals(__FUNCTION__, "Range to Pips", expected, actual);
+        UT.assertEquals(__FUNCTION__, "Range to Pips", expected, actual);
     }
 }
 
-void OrderHelper_RangeToPips_EURUSD_Test()
+void RangeToPips_EURUSD()
 {
     if (Symbol() == "EURUSD")
     {
-        UnitTest.addTest(__FUNCTION__);
+        UT.addTest(__FUNCTION__);
 
         const double range = 0.00001;
 
         const double actual = OrderHelper::RangeToPips(range);
-        const double expect = 1;
+        const double expected = 1;
 
-        UnitTest.assertEquals(__FUNCTION__, "Range to Pips", expected, actual);
+        UT.assertEquals(__FUNCTION__, "Range to Pips", expected, actual);
     }
 }
 
-void OrderHelper_PipsToRange_NASDAQ_Test()
+void PipsToRange_NASDAQ()
 {
     if (Symbol() == "US100.cash")
     {
-        UnitTest.addTest(__FUNCTION__);
+        UT.addTest(__FUNCTION__);
 
         const double pips = 1;
 
         const double actual = OrderHelper::PipsToRange(pips);
-        const double expect = 0.1;
+        const double expected = 0.1;
 
-        UnitTest.assertEquals(__FUNCTION__, "Pips to Range", expected, actual);
+        UT.assertEquals(__FUNCTION__, "Pips to Range", expected, actual);
     }
 }
 
-void OrderHelper_PipsToRange_EURUSD_Test()
+void PipsToRange_EURUSD()
 {
     if (Symbol() == "EURUSD")
     {
-        UnitTest.addTest(__FUNCTION__);
+        UT.addTest(__FUNCTION__);
 
         const double pips = 1;
 
         const double actual = OrderHelper::PipsToRange(pips);
-        const double expect = 0.00001;
+        const double expected = 0.00001;
 
-        UnitTest.assertEquals(__FUNCTION__, "Pips to Range", expected, actual);
+        UT.assertEquals(__FUNCTION__, "Pips to Range", expected, actual);
     }
 }
 
-void OrderHelper_GetEntryPriceForStopOrderOnMostRecentPendingMB_BullishMBNoErrors_Test()
+void GetEntryPriceForStopOrder_BullishMBNoErrors()
 {
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
@@ -169,17 +178,19 @@ void OrderHelper_GetEntryPriceForStopOrderOnMostRecentPendingMB_BullishMBNoError
         return;
     }
 
-    int entryPrice = 0.0;
+    UT.addTest(__FUNCTION__);
+
+    double entryPrice = 0.0;
     double spreadPips = 0.0;
     int setupType = OP_BUY;
 
     int expected = ERR_NO_ERROR;
     int actual = OrderHelper::GetEntryPriceForStopOrderOnMostRecentPendingMB(spreadPips, setupType, MBT, entryPrice);
 
-    UnitTest.assertEquals(__FUNCTION__, "Get Entry Price For Stop Order On Most Recent Pending Bullish MB No Error", expected, actual);
+    UT.assertEquals(__FUNCTION__, "Get Entry Price For Stop Order On Most Recent Pending Bullish MB No Error", expected, actual);
 }
 
-void OrderHelper_GetEntryPriceForStopOrderOnMostRecentPendingMB_BearishMBNoErrors_Test()
+void GetEntryPriceForStopOrder_BearishMBNoErrors()
 {
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
@@ -198,17 +209,19 @@ void OrderHelper_GetEntryPriceForStopOrderOnMostRecentPendingMB_BearishMBNoError
         return;
     }
 
-    int entryPrice = 0.0;
+    UT.addTest(__FUNCTION__);
+
+    double entryPrice = 0.0;
     double spreadPips = 0.0;
     int setupType = OP_BUY;
 
     int expected = ERR_NO_ERROR;
     int actual = OrderHelper::GetEntryPriceForStopOrderOnMostRecentPendingMB(spreadPips, setupType, MBT, entryPrice);
 
-    UnitTest.assertEquals(__FUNCTION__, "Get Entry Price For Stop Order On Most Recent Pending Bearish MB No Error", expected, actual);
+    UT.assertEquals(__FUNCTION__, "Get Entry Price For Stop Order On Most Recent Pending Bearish MB No Error", expected, actual);
 }
 
-void OrderHelper_GetEntryPriceForStopOrderOnMostRecentPendingMB_BullishMBEmptyRetracement_Test()
+void GetEntryPriceForStopOrder_BullishMBEmptyRetracement()
 {
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
@@ -227,17 +240,19 @@ void OrderHelper_GetEntryPriceForStopOrderOnMostRecentPendingMB_BullishMBEmptyRe
         return;
     }
 
-    int entryPrice = 0.0;
+    UT.addTest(__FUNCTION__);
+
+    double entryPrice = 0.0;
     double spreadPips = 0.0;
     int setupType = OP_BUY;
 
     int expected = Errors::ERR_EMPTY_BULLISH_RETRACEMENT;
     int actual = OrderHelper::GetEntryPriceForStopOrderOnMostRecentPendingMB(spreadPips, setupType, MBT, entryPrice);
 
-    UnitTest.assertEquals(__FUNCTION__, "Get Entry Price For Stop Order On Most Recent Pending Bullish MB Invalid Retracement", expected, actual);
+    UT.assertEquals(__FUNCTION__, "Get Entry Price For Stop Order On Most Recent Pending Bullish MB Invalid Retracement", expected, actual);
 }
 
-void OrderHelper_GetEntryPriceForStopOrderOnMostRecentPendingMB_BearishMBEmptyRetracement_Test()
+void GetEntryPriceForStopOrder_BearishMBEmptyRetracement()
 {
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
@@ -256,17 +271,19 @@ void OrderHelper_GetEntryPriceForStopOrderOnMostRecentPendingMB_BearishMBEmptyRe
         return;
     }
 
-    int entryPrice = 0.0;
+    UT.addTest(__FUNCTION__);
+
+    double entryPrice = 0.0;
     double spreadPips = 0.0;
     int setupType = OP_BUY;
 
     int expected = Errors::ERR_EMPTY_BEARISH_RETRACEMENT;
     int actual = OrderHelper::GetEntryPriceForStopOrderOnMostRecentPendingMB(spreadPips, setupType, MBT, entryPrice);
 
-    UnitTest.assertEquals(__FUNCTION__, "Get Entry Price For Stop Order On Most Recent Pending Bullish MB Invalid Retracement", expected, actual);
+    UT.assertEquals(__FUNCTION__, "Get Entry Price For Stop Order On Most Recent Pending Bullish MB Invalid Retracement", expected, actual);
 }
 
-void OrderHelper_GetEntryPriceForStopOrderOnMostRecentPendingMB_CorrectBullishMBEntryPrice_Test()
+void GetEntryPriceForStopOrder_CorrectBullishMBEntryPrice()
 {
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
@@ -285,9 +302,9 @@ void OrderHelper_GetEntryPriceForStopOrderOnMostRecentPendingMB_CorrectBullishMB
         return;
     }
 
-    UnitTest.addTest(__FUNCTION__);
+    UT.addTest(__FUNCTION__);
 
-    int entryPrice = 0.0;
+    double entryPrice = 0.0;
     double spreadPips = 0.0;
     int setupType = OP_BUY;
 
@@ -296,10 +313,10 @@ void OrderHelper_GetEntryPriceForStopOrderOnMostRecentPendingMB_CorrectBullishMB
     int expected = MathFloor((iHigh(Symbol(), Period(), retracementIndex) * MathPow(10, _Digits)));
     int actual = MathFloor((entryPrice * MathPow(10, _Digits)));
 
-    UnitTest.assertEquals(__FUNCTION__, "Get Entry Price For Buy Stop Order On Most Recent Bullish Pending MB Correct Entry", expected, actual);
+    UT.assertEquals(__FUNCTION__, "Get Entry Price For Buy Stop Order On Most Recent Bullish Pending MB Correct Entry", expected, actual);
 }
 
-void OrderHelper_GetEntryPriceForStopOrderOnMostRecentPendingMB_CorrectBearishMBEntryPrice_Test()
+void GetEntryPriceForStopOrder_CorrectBearishMBEntryPrice()
 {
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
@@ -312,15 +329,15 @@ void OrderHelper_GetEntryPriceForStopOrderOnMostRecentPendingMB_CorrectBearishMB
         return;
     }
 
-    int retracementIndex = MBT.CurrentBearishRetracmentIndex();
+    int retracementIndex = MBT.CurrentBearishRetracementIndex();
     if (retracementIndex == EMPTY)
     {
         return;
     }
 
-    UnitTest.addTest(__FUNCTION__);
+    UT.addTest(__FUNCTION__);
 
-    int entryPrice = 0.0;
+    double entryPrice = 0.0;
     double spreadPips = 0.0;
     int setupType = OP_BUY;
 
@@ -329,14 +346,14 @@ void OrderHelper_GetEntryPriceForStopOrderOnMostRecentPendingMB_CorrectBearishMB
     int expected = MathFloor((iLow(Symbol(), Period(), retracementIndex) * MathPow(10, _Digits)));
     int actual = MathFloor((entryPrice * MathPow(10, _Digits)));
 
-    UnitTest.assertEquals(__FUNCTION__, "Get Entry Price For Sell Stop Order On Most Recent Bearish Pending MB Correct Entry", expected, actual);
+    UT.assertEquals(__FUNCTION__, "Get Entry Price For Sell Stop Order On Most Recent Bearish Pending MB Correct Entry", expected, actual);
 }
 
-void OrderHelper_SelectOpenOrderByTicket_NoError_Test()
+void SelectOpenOrderByTicket_NoError()
 {
-    UnitTest.addTest(__FUNCTION__);
+    UT.addTest(__FUNCTION__);
 
-    const int ticket = -1;
+    int ticket = -1;
     const double entryPrice = Ask + OrderHelper::PipsToRange(10);
     const double lots = 0.1;
     const int slippage = 0;
@@ -352,16 +369,16 @@ void OrderHelper_SelectOpenOrderByTicket_NoError_Test()
     int expected = ERR_NO_ERROR;
     int actual = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing selecing order");
 
-    UnitTest.assertEquals(__FUNCTION__, "Select Order By Ticket No Errors", expected, actual);
+    UT.assertEquals(__FUNCTION__, "Select Order By Ticket No Errors", expected, actual);
 
-    OrderDelete(ticket, clrNone);
+    OrderDelete(ticket, clrNONE);
 }
 
-void OrderHelper_SelectOpenOrderByTicket_Error_Test()
+void SelectOpenOrderByTicket_Error()
 {
-    UnitTest.addTest(__FUNCTION__);
+    UT.addTest(__FUNCTION__);
 
-    const int ticket = -1;
+    int ticket = -1;
     const double entryPrice = Ask + OrderHelper::PipsToRange(10);
     const double lots = 0.1;
     const int slippage = 0;
@@ -373,7 +390,7 @@ void OrderHelper_SelectOpenOrderByTicket_Error_Test()
     const color col = clrNONE;
 
     ticket = OrderSend(Symbol(), OP_BUYSTOP, lots, entryPrice, slippage, stopLoss, takeProfit, comment, magicNumber, expiration, col);
-    OrderDelete(ticket, clrNone);
+    OrderDelete(ticket, clrNONE);
 
     int expected = ERR_NO_ERROR;
     int actual = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing selecing order");
@@ -383,10 +400,10 @@ void OrderHelper_SelectOpenOrderByTicket_Error_Test()
         expected = actual;
     }
 
-    UnitTest.assertEquals(__FUNCTION__, "Select Order By Ticket When No Current Orders Errors", expected, actual);
+    UT.assertEquals(__FUNCTION__, "Select Order By Ticket When No Current Orders Errors", expected, actual);
 }
 
-void OrderHelper_IsPendingOrder_OP_BUYSTOP_Test()
+void IsPendingOrder_OP_BUYSTOP()
 {
     int type = OP_BUYSTOP;
     int entryPrice = Ask + OrderHelper::PipsToRange(10);
@@ -394,16 +411,17 @@ void OrderHelper_IsPendingOrder_OP_BUYSTOP_Test()
     int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, 0, 0, clrNONE);
     if (ticket > 0)
     {
-        UnitTest.addTest(__FUNCTION__);
+        UT.addTest(__FUNCTION__);
 
-        const bool actual = OrderHelper::IsPendingOrder(ticket);
+        bool actual = false;
+        OrderHelper::IsPendingOrder(ticket, actual);
         const bool expected = true;
 
-        UnitTest.assertEquals(__FUNCTION__, "Buy Stop is Pending Order", expected, actual);
+        UT.assertEquals(__FUNCTION__, "Buy Stop is Pending Order", expected, actual);
     }
 }
 
-void OrderHelper_IsPendingOrder_OP_SELLSTOP_Test()
+void IsPendingOrder_OP_SELLSTOP()
 {
     int type = OP_SELLSTOP;
     int entryPrice = Bid - OrderHelper::PipsToRange(10);
@@ -411,16 +429,17 @@ void OrderHelper_IsPendingOrder_OP_SELLSTOP_Test()
     int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, 0, 0, clrNONE);
     if (ticket > 0)
     {
-        UnitTest.addTest(__FUNCTION__);
+        UT.addTest(__FUNCTION__);
 
-        const bool actual = OrderHelper::IsPendingOrder(ticket);
+        bool actual = false;
+        OrderHelper::IsPendingOrder(ticket, actual);
         const bool expected = true;
 
-        UnitTest.assertEquals(__FUNCTION__, "Sell Stop is Pending Order", expected, actual);
+        UT.assertEquals(__FUNCTION__, "Sell Stop is Pending Order", expected, actual);
     }
 }
 
-void OrderHelper_IsPendingOrder_OP_BUYLIMIT_Test()
+void IsPendingOrder_OP_BUYLIMIT()
 {
     int type = OP_BUYLIMIT;
     int entryPrice = Bid - OrderHelper::PipsToRange(10);
@@ -428,16 +447,17 @@ void OrderHelper_IsPendingOrder_OP_BUYLIMIT_Test()
     int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, 0, 0, clrNONE);
     if (ticket > 0)
     {
-        UnitTest.addTest(__FUNCTION__);
+        UT.addTest(__FUNCTION__);
 
-        const bool actual = OrderHelper::IsPendingOrder(ticket);
+        bool actual = false;
+        OrderHelper::IsPendingOrder(ticket, actual);
         const bool expected = true;
 
-        UnitTest.assertEquals(__FUNCTION__, "Buy Limit is Pending Order", expected, actual);
+        UT.assertEquals(__FUNCTION__, "Buy Limit is Pending Order", expected, actual);
     }
 }
 
-void OrderHelper_IsPendingOrder_OP_SELLLIMIT_Test()
+void IsPendingOrder_OP_SELLLIMIT()
 {
     int type = OP_SELLLIMIT;
     int entryPrice = Ask + OrderHelper::PipsToRange(10);
@@ -445,18 +465,19 @@ void OrderHelper_IsPendingOrder_OP_SELLLIMIT_Test()
     int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, 0, 0, clrNONE);
     if (ticket > 0)
     {
-        UnitTest.addTest(__FUNCTION__);
+        UT.addTest(__FUNCTION__);
 
-        const bool actual = OrderHelper::IsPendingOrder(ticket);
+        bool actual = false;
+        OrderHelper::IsPendingOrder(ticket, actual);
         const bool expected = true;
 
-        UnitTest.assertEquals(__FUNCTION__, "Sell Limit is Pending Order", expected, actual);
+        UT.assertEquals(__FUNCTION__, "Sell Limit is Pending Order", expected, actual);
     }
 }
 
-void OrderHelper_OtherEAOrders_None_Test()
+void OtherEAOrders_None()
 {
-    UnitTest.addTest(__FUNCTION__);
+    UT.addTest(__FUNCTION__);
 
     int magicNumberOne = 001;
     int magicNumberTwo = 002;
@@ -470,13 +491,13 @@ void OrderHelper_OtherEAOrders_None_Test()
     magicNumberArray[2] = magicNumberThree;
 
     const int expected = 0;
-    const int actual;
+    int actual;
     OrderHelper::OtherEAOrders(magicNumberArray, actual);
 
-    UnitTest.assertEquals(__FUNCTION__, "Zero Orders From Multiple EAs", expected, actual);
+    UT.assertEquals(__FUNCTION__, "Zero Orders From Multiple EAs", expected, actual);
 }
 
-void OrderHelper_OtherEAOrders_MultipleOrdersFromOneEA_Test()
+void OtherEAOrders_MultipleOrdersFromOneEA()
 {
     int magicNumberOne = 001;
     int magicNumberTwo = 002;
@@ -494,22 +515,22 @@ void OrderHelper_OtherEAOrders_MultipleOrdersFromOneEA_Test()
 
     int ticketOne = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, magicNumberOne, 0, clrNONE);
     int ticketTwo = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, magicNumberOne, 0, clrNONE);
-    if (ticket > 0)
+    if (ticketOne > 0 && ticketTwo > 0)
     {
-        UnitTest.addTest(__FUNCTION__);
+        UT.addTest(__FUNCTION__);
 
-        const bool expected = 2;
-        const int actual;
+        const int expected = 2;
+        int actual;
         OrderHelper::OtherEAOrders(magicNumberArray, actual);
 
-        UnitTest.assertEquals(__FUNCTION__, "Multiple Orders From One EA", expected, actual);
+        UT.assertEquals(__FUNCTION__, "Multiple Orders From One EA", expected, actual);
 
-        OrderDelete(ticketOne, clrNone);
-        OrderDelete(ticketTwo, clrNone);
+        OrderDelete(ticketOne, clrNONE);
+        OrderDelete(ticketTwo, clrNONE);
     }
 }
 
-void OrderHelper_OtherEAOrders_MultipleOrdersFromMultipleEAs_Test()
+void OtherEAOrders_MultipleOrdersFromMultipleEAs()
 {
     int magicNumberOne = 001;
     int magicNumberTwo = 002;
@@ -527,26 +548,26 @@ void OrderHelper_OtherEAOrders_MultipleOrdersFromMultipleEAs_Test()
 
     int ticketOne = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, magicNumberOne, 0, clrNONE);
     int ticketTwo = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, magicNumberTwo, 0, clrNONE);
-    if (ticket > 0)
+    if (ticketOne > 0 && ticketTwo > 0)
     {
-        UnitTest.addTest(__FUNCTION__);
+        UT.addTest(__FUNCTION__);
 
-        const bool expected = 2;
-        const int actual;
+        const int expected = 2;
+        int actual;
         OrderHelper::OtherEAOrders(magicNumberArray, actual);
 
-        UnitTest.assertEquals(__FUNCTION__, "Multiple Orders From Multiple EAs", expected, actual);
+        UT.assertEquals(__FUNCTION__, "Multiple Orders From Multiple EAs", expected, actual);
 
-        OrderDelete(ticketOne, clrNone);
-        OrderDelete(ticketTwo, clrNone);
+        OrderDelete(ticketOne, clrNONE);
+        OrderDelete(ticketTwo, clrNONE);
     }
 }
 
-void OrderHelper_PlaceStopOrder_NoError_Test()
+void PlaceStopOrder_NoError()
 {
-    UnitTest.addTest(__FUNCTION__);
+    UT.addTest(__FUNCTION__);
 
-    const int ticket = -1;
+    int ticket = -1;
     const int type = OP_BUYSTOP;
     const double lots = 0.1;
     const double entryPrice = Ask + OrderHelper::PipsToRange(50);
@@ -557,19 +578,19 @@ void OrderHelper_PlaceStopOrder_NoError_Test()
     int expected = ERR_NO_ERROR;
     int actual = OrderHelper::PlaceStopOrder(type, lots, entryPrice, stopLoss, takeProfit, magicNumber, ticket);
 
-    UnitTest.assertEquals(__FUNCTION__, "No Errors When Placing Stop Order", expected, actual);
+    UT.assertEquals(__FUNCTION__, "No Errors When Placing Stop Order", expected, actual);
 
     if (actual == ERR_NO_ERROR)
     {
-        OrderDelete(ticket, clrNone);
+        OrderDelete(ticket, clrNONE);
     }
 }
 
-void OrderHelper_PlaceStopOrder_WrongOrderType_Test()
+void PlaceStopOrder_WrongOrderType()
 {
-    UnitTest.addTest(__FUNCTION__);
+    UT.addTest(__FUNCTION__);
 
-    const int ticket = -1;
+    int ticket = -1;
     const int type = OP_BUY;
     const double lots = 0.1;
     const double entryPrice = Ask + OrderHelper::PipsToRange(50);
@@ -580,14 +601,14 @@ void OrderHelper_PlaceStopOrder_WrongOrderType_Test()
     int expected = Errors::ERR_WRONG_ORDER_TYPE;
     int actual = OrderHelper::PlaceStopOrder(type, lots, entryPrice, stopLoss, takeProfit, magicNumber, ticket);
 
-    UnitTest.assertEquals(__FUNCTION__, "No Errors When Placing Stop Order", expected, actual);
+    UT.assertEquals(__FUNCTION__, "No Errors When Placing Stop Order", expected, actual);
 }
 
-void OrderHelper_PlaceStopOrder_StopLossAboveBuyStopEntry_Test()
+void PlaceStopOrder_StopLossAboveBuyStopEntry()
 {
-    UnitTest.addTest(__FUNCTION__);
+    UT.addTest(__FUNCTION__);
 
-    const int ticket = -1;
+    int ticket = -1;
     const int type = OP_BUYSTOP;
     const double lots = 0.1;
     const double entryPrice = Ask + OrderHelper::PipsToRange(50);
@@ -598,14 +619,14 @@ void OrderHelper_PlaceStopOrder_StopLossAboveBuyStopEntry_Test()
     int expected = Errors::ERR_STOPLOSS_ABOVE_ENTRY;
     int actual = OrderHelper::PlaceStopOrder(type, lots, entryPrice, stopLoss, takeProfit, magicNumber, ticket);
 
-    UnitTest.assertEquals(__FUNCTION__, "Stop Loss Above Buy Stop Entry", expected, actual);
+    UT.assertEquals(__FUNCTION__, "Stop Loss Above Buy Stop Entry", expected, actual);
 }
 
-void OrderHelper_PlaceStopOrder_StopLossBelowSellStopEntry_Test()
+void PlaceStopOrder_StopLossBelowSellStopEntry()
 {
-    UnitTest.addTest(__FUNCTION__);
+    UT.addTest(__FUNCTION__);
 
-    const int ticket = -1;
+    int ticket = -1;
     const int type = OP_SELLSTOP;
     const double lots = 0.1;
     const double entryPrice = Bid - OrderHelper::PipsToRange(50);
@@ -616,10 +637,10 @@ void OrderHelper_PlaceStopOrder_StopLossBelowSellStopEntry_Test()
     int expected = Errors::ERR_STOPLOSS_ABOVE_ENTRY;
     int actual = OrderHelper::PlaceStopOrder(type, lots, entryPrice, stopLoss, takeProfit, magicNumber, ticket);
 
-    UnitTest.assertEquals(__FUNCTION__, "Stop Loss Below Sell Stop Entry", expected, actual);
+    UT.assertEquals(__FUNCTION__, "Stop Loss Below Sell Stop Entry", expected, actual);
 }
 
-void OrderHelper_PlaceStopOrderOnMostRecentPendingMB_BullishMBNoError_Test()
+void PlaceStopOrderOnMostRecentPendingMB_BullishMBNoError()
 {
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
@@ -638,9 +659,9 @@ void OrderHelper_PlaceStopOrderOnMostRecentPendingMB_BullishMBNoError_Test()
         return;
     }
 
-    UnitTest.addTest(__FUNCTION__);
+    UT.addTest(__FUNCTION__);
 
-    const int ticket = -1;
+    int ticket = -1;
     const int paddingPips = 0.0;
     const int spreadPips = 0.0;
     const double riskPercent = 0.25;
@@ -650,12 +671,12 @@ void OrderHelper_PlaceStopOrderOnMostRecentPendingMB_BullishMBNoError_Test()
     int expected = ERR_NO_ERROR;
     int actual = OrderHelper::PlaceStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, riskPercent, magicNumber, setupMBNumber, MBT, ticket);
 
-    UnitTest.assertEquals(__FUNCTION__, "Place Stop Order On Most Recent Bullish MB No Error", expected, actual);
+    UT.assertEquals(__FUNCTION__, "Place Stop Order On Most Recent Bullish MB No Error", expected, actual);
 
-    OrderDelete(ticket, clrNone);
+    OrderDelete(ticket, clrNONE);
 }
 
-void OrderHelper_PlaceStopOrderOnMostRecentPendingMB_BearishMBNoError_Test()
+void PlaceStopOrderOnMostRecentPendingMB_BearishMBNoError()
 {
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
@@ -668,15 +689,15 @@ void OrderHelper_PlaceStopOrderOnMostRecentPendingMB_BearishMBNoError_Test()
         return;
     }
 
-    int retracementIndex = MBT.CurrentBearishRetracmentIndex();
+    int retracementIndex = MBT.CurrentBearishRetracementIndex();
     if (retracementIndex == EMPTY)
     {
         return;
     }
 
-    UnitTest.addTest(__FUNCTION__);
+    UT.addTest(__FUNCTION__);
 
-    const int ticket = -1;
+    int ticket = -1;
     const int paddingPips = 0.0;
     const int spreadPips = 0.0;
     const double riskPercent = 0.25;
@@ -686,12 +707,12 @@ void OrderHelper_PlaceStopOrderOnMostRecentPendingMB_BearishMBNoError_Test()
     int expected = ERR_NO_ERROR;
     int actual = OrderHelper::PlaceStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, riskPercent, magicNumber, setupMBNumber, MBT, ticket);
 
-    UnitTest.assertEquals(__FUNCTION__, "Place Stop Order On Most Recent Bearish MB No Error", expected, actual);
+    UT.assertEquals(__FUNCTION__, "Place Stop Order On Most Recent Bearish MB No Error", expected, actual);
 
-    OrderDelete(ticket, clrNone);
+    OrderDelete(ticket, clrNONE);
 }
 
-void OrderHelper_PlaceStopOrderOnMostRecentPendingMB_NotMostRecentMB_Test()
+void PlaceStopOrderOnMostRecentPendingMB_NotMostRecentMB()
 {
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(2, tempMBState))
@@ -699,9 +720,9 @@ void OrderHelper_PlaceStopOrderOnMostRecentPendingMB_NotMostRecentMB_Test()
         return;
     }
 
-    UnitTest.addTest(__FUNCTION__);
+    UT.addTest(__FUNCTION__);
 
-    const int ticket = -1;
+    int ticket = -1;
     const int paddingPips = 0.0;
     const int spreadPips = 0.0;
     const double riskPercent = 0.25;
@@ -711,10 +732,10 @@ void OrderHelper_PlaceStopOrderOnMostRecentPendingMB_NotMostRecentMB_Test()
     int expected = Errors::ERR_MB_IS_NOT_MOST_RECENT;
     int actual = OrderHelper::PlaceStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, riskPercent, magicNumber, setupMBNumber, MBT, ticket);
 
-    UnitTest.assertEquals(__FUNCTION__, "Place Stop Order On Not Most Recent MB", expected, actual);
+    UT.assertEquals(__FUNCTION__, "Place Stop Order On Not Most Recent MB", expected, actual);
 }
 
-void OrderHelper_CheckEditStopLossForMostRecentMBStopOrder_SameTicket_Test()
+void CheckEditStopLossForMostRecentMBStopOrder_SameTicket()
 {
     static int ticket = -1;
     static double stopLoss = 0.0;
@@ -762,7 +783,7 @@ void OrderHelper_CheckEditStopLossForMostRecentMBStopOrder_SameTicket_Test()
         mbNumber = tempMBState.Number();
 
         int error = OrderHelper::PlaceStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, riskPercent, magicNumber, mbNumber, MBT, ticket);
-        if (error != ERR_NO_ERR)
+        if (error != ERR_NO_ERROR)
         {
             return;
         }
@@ -780,16 +801,16 @@ void OrderHelper_CheckEditStopLossForMostRecentMBStopOrder_SameTicket_Test()
             return;
         }
 
-        UnitTest.addTest(__FUNCTION__);
+        UT.addTest(__FUNCTION__);
 
         bool expected = true;
         bool actual = oldTicket == ticket;
 
-        UnitTest.assertEquals(__FUNCTION__, "Check Edit Stop Loss For Most Recent MB Same Ticket", expected, actual);
+        UT.assertEquals(__FUNCTION__, "Check Edit Stop Loss For Most Recent MB Same Ticket", expected, actual);
     }
 }
 
-void OrderHelper_CheckEditStopLossForMostRecentMBStopOrder_DifferentStopLoss_Test()
+void CheckEditStopLossForMostRecentMBStopOrder_DifferentStopLoss()
 {
     static int ticket = -1;
     static double stopLoss = 0.0;
@@ -837,7 +858,7 @@ void OrderHelper_CheckEditStopLossForMostRecentMBStopOrder_DifferentStopLoss_Tes
         mbNumber = tempMBState.Number();
 
         int error = OrderHelper::PlaceStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, riskPercent, magicNumber, mbNumber, MBT, ticket);
-        if (error != ERR_NO_ERR)
+        if (error != ERR_NO_ERROR)
         {
             return;
         }
@@ -861,19 +882,89 @@ void OrderHelper_CheckEditStopLossForMostRecentMBStopOrder_DifferentStopLoss_Tes
             return;
         }
 
-        UnitTest.addTest(__FUNCTION__);
+        UT.addTest(__FUNCTION__);
 
         bool expected = true;
         bool actual = stopLoss == OrderStopLoss();
 
-        UnitTest.assertEquals(__FUNCTION__, "Check Edit Stop Loss For Most Recent MB Different Stop Loss", expected, actual);
+        UT.assertEquals(__FUNCTION__, "Check Edit Stop Loss For Most Recent MB Different Stop Loss", expected, actual);
     }
 }
 
-void OrderHelper_CheckTrailStopLossWithMBUpToBreakEvenr_TrailByBullishMBNoErrors()
+void CancelPendingOrderByTicket_NoErrorsEmptyTicket()
+{
+    int type = OP_BUYSTOP;
+    int entryPrice = Ask + OrderHelper::PipsToRange(10);
+
+    int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, 0, 0, clrNONE);
+    if (ticket > 0)
+    {
+        UT.addTest(__FUNCTION__);
+
+        int errors = OrderHelper::CancelPendingOrderByTicket(ticket);
+        if (errors != ERR_NO_ERROR)
+        {
+            return;
+        }
+
+        bool expected = true;
+        bool actual = ticket == EMPTY;
+
+        UT.assertEquals(__FUNCTION__, "Cancel Pending Order By Ticket No Errors Empty Ticket", expected, actual);
+    }
+}
+
+void CancelPendingOrderByTicket_ErrorsNotEmptyTicket()
+{
+    int type = OP_BUYSTOP;
+    int entryPrice = Ask + OrderHelper::PipsToRange(10);
+
+    int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, 0, 0, clrNONE);
+    if (ticket > 0)
+    {
+        UT.addTest(__FUNCTION__);
+
+        OrderDelete(ticket, clrNONE);
+
+        int errors = OrderHelper::CancelPendingOrderByTicket(ticket);
+        if (errors == ERR_NO_ERROR)
+        {
+            return;
+        }
+
+        bool expected = true;
+        bool actual = ticket != EMPTY;
+
+        UT.assertEquals(__FUNCTION__, "Cancel Pending Order By Ticket Errors Not Empty Ticket", expected, actual);
+    }
+}
+
+void CheckTrailStopLossWithMB_TrailNoErrorsDifferntStopLoss()
 {
     static int ticket = -1;
-    static int MBNumber = -1;
+    static int mbNumber = -1;
+    static int setupType = -1;
+    static double stopLoss = 0.0;
+
+    const int paddingPips = 0.0;
+    const int spreadPips = 0.0;
+    const double riskPercent = 0.25;
+    const int magicNumber = 0;
+
+    // reset state if we broke the mb
+    if (mbNumber != -1)
+    {
+        bool isTrue = false;
+        int error = SetupHelper::BrokeMBRangeStart(mbNumber, MBT, isTrue);
+
+        if (error != ERR_NO_ERROR || isTrue)
+        {
+            mbNumber = -1;
+            setupType = -1;
+            stopLoss = 0.0;
+            ticket = -1;
+        }
+    }
 
     if (ticket == -1)
     {
@@ -894,71 +985,133 @@ void OrderHelper_CheckTrailStopLossWithMBUpToBreakEvenr_TrailByBullishMBNoErrors
             return;
         }
 
-        const int paddingPips = 0.0;
-        const int spreadPips = 0.0;
-        const double riskPercent = 0.25;
-        const int magicNumber = 0;
-        MBNumber = tempMBState.Number();
+        mbNumber = tempMBState.Number();
+        setupType = tempMBState.Type();
+        int error = OrderHelper::PlaceStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, riskPercent, magicNumber, mbNumber, MBT, ticket);
 
-        int error = OrderHelper::PlaceStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, riskPercent, magicNumber, MBNumber, MBT, ticket);
+        int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
+        if (selectError != ERR_NO_ERROR)
+        {
+            return;
+        }
+
+        stopLoss = OrderStopLoss();
     }
     else
     {
-        bool brokeStartRange;
-        if (SetupHelper::BrokeMBRangeStart(MBNumber, MBT, brokeStartRange) != ERR_NO_ERROR)
+        bool succeeded = false;
+        int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, paddingPips, spreadPips, mbNumber, setupType, MBT, succeeded);
+        if (!succeeded)
         {
+            return;
+        }
+
+        int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
+        if (selectError != ERR_NO_ERROR)
+        {
+            return;
+        }
+
+        UT.addTest(__FUNCTION__);
+
+        const bool expected = true;
+        const bool actual = OrderStopLoss() != stopLoss;
+
+        UT.assertEquals(__FUNCTION__, "Check Trail Stop Loss With MB Up To Break Even No Errors Differnt Stop Loss", expected, actual);
+
+        OrderClose(ticket, OrderLots(), Ask, 0, clrNONE);
+    }
+}
+
+void CheckTrailStopLossWithMB_TrailNotPastOpen()
+{
+    static int ticket = -1;
+    static int mbNumber = -1;
+    static int setupType = -1;
+    static double stopLoss = 0.0;
+    static double entryPrice = 0.0;
+
+    const int paddingPips = 0.0;
+    const int spreadPips = 0.0;
+    const double riskPercent = 0.25;
+    const int magicNumber = 0;
+
+    // reset state if we broke the mb
+    if (mbNumber != -1)
+    {
+        bool isTrue = false;
+        int error = SetupHelper::BrokeMBRangeStart(mbNumber, MBT, isTrue);
+
+        if (error != ERR_NO_ERROR || isTrue)
+        {
+            mbNumber = -1;
+            setupType = -1;
+            stopLoss = 0.0;
             ticket = -1;
-            MBNumber = -1;
-
-            return;
         }
     }
-}
 
-void OrderHelper_CancelPendingOrderByTicket_NoErrorsEmptyTicket_Test()
-{
-    int type = OP_BUYSTOP;
-    int entryPrice = Ask + OrderHelper::PipsToRange(10);
-
-    int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, 0, 0, clrNONE);
-    if (ticket > 0)
+    if (ticket == -1)
     {
-        UnitTest.addTest(__FUNCTION__);
-
-        int errors = OrderHelper::CancelPendingOrderByTicket(ticket);
-        if (errors != ERR_NO_ERROR)
+        MBState *tempMBState;
+        if (!MBT.GetNthMostRecentMB(0, tempMBState))
         {
             return;
         }
 
-        bool expected = true;
-        bool actual = ticket == EMPTY;
-
-        UnitTest.assertEquals(__FUNCTION__, "Cancel Pending Order By Ticket No Errors Empty Ticket", expected, actual);
-    }
-}
-
-void OrderHelper_CancelPendingOrderByTicket_ErrorsNotEmptyTicket_Test()
-{
-    int type = OP_BUYSTOP;
-    int entryPrice = Ask + OrderHelper::PipsToRange(10);
-
-    int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, 0, 0, clrNONE);
-    if (ticket > 0)
-    {
-        UnitTest.addTest(__FUNCTION__);
-
-        OrderDelete(ticket, clrNone);
-
-        int errors = OrderHelper::CancelPendingOrderByTicket(ticket);
-        if (errors == ERR_NO_ERROR)
+        if (tempMBState.Type() != OP_BUY)
         {
             return;
         }
 
-        bool expected = true;
-        bool actual = ticket != EMPTY;
+        int retracementIndex = MBT.CurrentBullishRetracementIndex();
+        if (retracementIndex == EMPTY)
+        {
+            return;
+        }
 
-        UnitTest.assertEquals(__FUNCTION__, "Cancel Pending Order By Ticket Errors Not Empty Ticket", expected, actual);
+        mbNumber = tempMBState.Number();
+        setupType = tempMBState.Type();
+        int error = OrderHelper::PlaceStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, riskPercent, magicNumber, mbNumber, MBT, ticket);
+
+        int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
+        if (selectError != ERR_NO_ERROR)
+        {
+            return;
+        }
+
+        stopLoss = OrderStopLoss();
+        entryPrice = OrderOpenPrice();
+    }
+    else
+    {
+        bool succeeded = false;
+        int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, paddingPips, spreadPips, mbNumber, setupType, MBT, succeeded);
+        if (!succeeded)
+        {
+            return;
+        }
+
+        int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
+        if (selectError != ERR_NO_ERROR)
+        {
+            return;
+        }
+
+        UT.addTest(__FUNCTION__);
+
+        const bool expected = true;
+        bool actual = false;
+
+        if (setupType == OP_BUY)
+        {
+            actual = OrderStopLoss() <= entryPrice;
+        }
+        else if (setupType == OP_SELL)
+        {
+            actual = OrderStopLoss() >= entryPrice;
+        }
+
+        UT.assertEquals(__FUNCTION__, "Check Trail Stop Loss With MB Up To Break Even Not Past Open", expected, actual);
     }
 }
