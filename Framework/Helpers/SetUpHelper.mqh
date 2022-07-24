@@ -65,25 +65,35 @@ static int SetupHelper::BrokeMBRangeStart(int mbNumber, MBTracker *&mbt, out boo
    return ERR_NO_ERROR;
 }
 
+/**
+ * @brief Checks if price broke the second MB, held the first, and then continued past the second
+ *
+ * @param secondMBInSetup
+ * @param setupType
+ * @param mbt
+ * @param isTrue
+ * @return int
+ */
 static int SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(int secondMBInSetup, int setupType, MBTracker *&mbt, out bool &isTrue)
 {
    isTrue = false;
 
-   MBState *tempMBState;
+   MBState *thirdTempMBState;
 
    // Return false if we can't find the subsequent MB for whatever reason
-   if (!mbt.GetMB(secondMBInSetup + 1, tempMBState))
+   if (!mbt.GetMB(secondMBInSetup + 1, thirdTempMBState))
    {
       return Errors::ERR_MB_DOES_NOT_EXIST;
    }
 
    // Types can't be equal if we are looking for a liquidation of the second MB
-   if (tempMBState.Type() == setupType)
+   if (thirdTempMBState.Type() == setupType)
    {
       return Errors::ERR_EQUAL_MB_TYPES;
    }
 
-   isTrue = tempMBState.IsBroken(tempMBState.EndIndex());
+   // The end of our setup is the same as the start of the MB that liquidated the second MB
+   isTrue = thirdTempMBState.IsBroken(thirdTempMBState.StartIndex());
    return ERR_NO_ERROR;
 }
 /*
@@ -186,6 +196,7 @@ static int SetupHelper::BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker 
       return Errors::ERR_MB_DOES_NOT_EXIST;
    }
 
+   // TODO: This should be moved over to MBTracker for easier testing
    bool bothAbove = iLow(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[1].LowIndex()) > mrfts.OpenPrice() && iLow(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[0].LowIndex()) > mrfts.OpenPrice();
    bool bothBelow = iHigh(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[1].HighIndex()) < mrfts.OpenPrice() && iHigh(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[0].HighIndex()) < mrfts.OpenPrice();
 
