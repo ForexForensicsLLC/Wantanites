@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/Framework/EAs/IEA.mqh>
+#include <SummitCapital\Framework\EAs\Base\IEA.mqh>
 
 class EA : IEA
 {
@@ -17,7 +17,18 @@ protected:
     bool mHasSetup;
     bool mWasReset;
 
+    int mMaxTradesPerStrategy;
+    int mStopLossPaddingPips;
+    int mMaxSpreadPips;
+    double mRiskPercent;
+
+    int mStrategyMagicNumbers[];
+
 public:
+    EA(int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, double riskPercent);
+    ~EA();
+
+    virtual void FillStrategyMagicNumber();
     virtual void Manage();
     virtual void CheckInvalidateSetup();
     virtual bool AllowedToTrade();
@@ -27,3 +38,15 @@ public:
     virtual void Reset();
     virtual void Run();
 };
+
+EA::EA(int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, double riskPercent)
+{
+    mStopTrading = false;
+    mHasSetup = false;
+    mWasReset = false;
+
+    mMaxTradesPerStrategy = maxTradesPerStrategy;
+    mStopLossPaddingPips = stopLossPaddingPips;
+    mMaxSpreadPips = maxSpreadPips;
+    mRiskPercent = riskPercent;
+}
