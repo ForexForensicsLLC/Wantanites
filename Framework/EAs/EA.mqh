@@ -8,9 +8,13 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\EAs\Base\IEA.mqh>
+#include <SummitCapital\Framework\Constants\Errors.mqh>
 
-class EA : IEA
+#include <SummitCapital\Framework\EAs\IEA.mqh>
+#include <SummitCapital\Framework\CSVWriting\CSVRecordWriter.mqh>
+
+template <typename TRecord>
+class EA : public CSVRecordWriter<TRecord>
 {
 protected:
     bool mStopTrading;
@@ -29,6 +33,11 @@ public:
     ~EA();
 
     virtual void FillStrategyMagicNumber();
+
+    virtual void RecordPreOrderOpenData();
+    virtual void RecordPostOrderOpenData();
+    virtual void CheckRecordOrderCloseData();
+
     virtual void Manage();
     virtual void CheckInvalidateSetup();
     virtual bool AllowedToTrade();
@@ -39,6 +48,7 @@ public:
     virtual void Run();
 };
 
+template <typename TRecord>
 EA::EA(int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, double riskPercent)
 {
     mStopTrading = false;
