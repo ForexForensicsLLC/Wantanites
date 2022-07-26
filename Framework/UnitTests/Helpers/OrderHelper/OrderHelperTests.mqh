@@ -51,9 +51,6 @@ void OnTick()
 {
     if (FirstTick)
     {
-        SelectOpenOrderByTicket_NoError();
-        SelectOpenOrderByTicket_Error();
-
         IsPendingOrder_OP_BUYSTOP();
         IsPendingOrder_OP_SELLSTOP();
         IsPendingOrder_OP_BUYLIMIT();
@@ -70,8 +67,6 @@ void OnTick()
 
         CancelPendingOrderByTicket_NoErrorsEmptyTicket();
         CancelPendingOrderByTicket_ErrorsNotEmptyTicket();
-
-        FirstTick = false;
     }
     else
     {
@@ -85,60 +80,6 @@ void OnTick()
         CheckTrailStopLossWithMB_TrailNoErrorsDifferntStopLoss();
         CheckTrailStopLossWithMB_TrailNotPastOpen();
     }
-}
-
-void SelectOpenOrderByTicket_NoError()
-{
-    UT.addTest(__FUNCTION__);
-
-    int ticket = -1;
-    const double entryPrice = Ask + OrderHelper::PipsToRange(10);
-    const double lots = 0.1;
-    const int slippage = 0;
-    const double stopLoss = 0.0;
-    const double takeProfit = 0.0;
-    const string comment = NULL;
-    const int magicNumber = 0;
-    const datetime expiration = 0;
-    const color col = clrNONE;
-
-    ticket = OrderSend(Symbol(), OP_BUYSTOP, lots, entryPrice, slippage, stopLoss, takeProfit, comment, magicNumber, expiration, col);
-
-    int expected = ERR_NO_ERROR;
-    int actual = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing selecing order");
-
-    UT.assertEquals(__FUNCTION__, "Select Order By Ticket No Errors", expected, actual);
-
-    OrderDelete(ticket, clrNONE);
-}
-
-void SelectOpenOrderByTicket_Error()
-{
-    UT.addTest(__FUNCTION__);
-
-    int ticket = -1;
-    const double entryPrice = Ask + OrderHelper::PipsToRange(10);
-    const double lots = 0.1;
-    const int slippage = 0;
-    const double stopLoss = 0.0;
-    const double takeProfit = 0.0;
-    const string comment = NULL;
-    const int magicNumber = 0;
-    const datetime expiration = 0;
-    const color col = clrNONE;
-
-    ticket = OrderSend(Symbol(), OP_BUYSTOP, lots, entryPrice, slippage, stopLoss, takeProfit, comment, magicNumber, expiration, col);
-    OrderDelete(ticket, clrNONE);
-
-    int expected = ERR_NO_ERROR;
-    int actual = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing selecing order");
-
-    if (actual > 1)
-    {
-        expected = actual;
-    }
-
-    UT.assertEquals(__FUNCTION__, "Select Order By Ticket When No Current Orders Errors", expected, actual);
 }
 
 void IsPendingOrder_OP_BUYSTOP()
