@@ -10,4 +10,5 @@
 interface ICSVRecord
 {
     void Write(int fileHandle);
+    void Reset();
 };

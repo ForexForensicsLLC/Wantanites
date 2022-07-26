@@ -59,6 +59,9 @@ public:
     // !Tested
     static int SelectOpenOrderByTicket(int ticket, string action);
 
+    // !Tested
+    static int SelectClosedOrderByTicket(int ticket, string action);
+
     // ==========================================================================
     // Checking Orders
     // ==========================================================================
@@ -293,7 +296,7 @@ static int OrderHelper::SelectOpenOrderByPosition(int position, string action)
     if (!OrderSelect(position, SELECT_BY_POS, MODE_TRADES))
     {
         error = GetLastError();
-        SendMail("Failed To Select Order By Position When " + action,
+        SendMail("Failed To Select Open Order By Position When " + action,
                  "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
                      "Current Order Index: " + IntegerToString(position) + "\n" +
                      IntegerToString(error));
@@ -309,7 +312,7 @@ static int OrderHelper::SelectOpenOrderByTicket(int ticket, string action)
     if (!OrderSelect(ticket, SELECT_BY_TICKET, MODE_TRADES))
     {
         error = GetLastError();
-        SendMail("Failed To Select Order By Ticket When " + action,
+        SendMail("Failed To Select Open Order By Ticket When " + action,
                  "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
                      "Current Ticket: " + IntegerToString(ticket) + "\n" +
                      IntegerToString(error));
@@ -317,6 +320,23 @@ static int OrderHelper::SelectOpenOrderByTicket(int ticket, string action)
 
     return error;
 }
+
+static int OrderHelper::SelectClosedOrderByTicket(int ticket, string action)
+{
+    int error = ERR_NO_ERROR;
+
+    if (!OrderSelect(ticket, SELECT_BY_TICKET, MODE_HISTORY))
+    {
+        error = GetLastError();
+        SendMail("Failed To Select Closed Order By Ticket When " + action,
+                 "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
+                     "Current Ticket: " + IntegerToString(ticket) + "\n" +
+                     IntegerToString(error));
+    }
+
+    return error;
+}
+
 /*
 
     ____ _               _    _                ___          _

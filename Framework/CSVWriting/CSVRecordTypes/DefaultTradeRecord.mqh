@@ -52,10 +52,36 @@ public:
     double PotentialRR() { return NormalizeDouble((mEntryPrice - mExitPrice) / (mEntryPrice - mEntryStopLoss), 2); }
 
     void Write(int fileHandle);
+    void Reset();
 };
+
+DefaultTradeRecord::DefaultTradeRecord()
+{
+    Reset();
+}
+
+DefaultTradeRecord::~DefaultTradeRecord() {}
 
 void DefaultTradeRecord::Write(int fileHandle)
 {
     FileWrite(fileHandle, mSymbol, mTimeFrame, mOrderType, mAccountBalanceBefore, mAccountBalanceAfter, mEntryTime, mEntryImage, mExitTime, mExitImage, mEntryPrice,
               mEntryStopLoss, mLots, mExitPrice, mExitStopLoss, TotalMovePips(), PotentialRR());
+}
+
+void DefaultTradeRecord::Reset()
+{
+    mSymbol = "";
+    mTimeFrame = 0;
+    mOrderType = "";
+    mAccountBalanceBefore = 0;
+    mAccountBalanceAfter = 0;
+    mEntryTime = 0;
+    mEntryImage = "";
+    mExitTime = 0;
+    mExitImage = "";
+    mEntryPrice = 0.0;
+    mEntryStopLoss = 0.0;
+    mLots = 0.0;
+    mExitPrice = 0.0;
+    mExitStopLoss = 0.0;
 }

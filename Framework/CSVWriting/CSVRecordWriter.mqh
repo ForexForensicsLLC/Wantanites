@@ -12,7 +12,8 @@ template <typename TRecord>
 class CSVRecordWriter
 {
 protected:
-    TRecord mPendingRecord;
+    string mDirectory;
+    string mCSVFileName;
 
     bool mFileIsOpen;
     int mFileHandle;
@@ -20,11 +21,13 @@ protected:
     void SeekToEnd();
 
 public:
+    TRecord PendingRecord;
+
     CSVRecordWriter();
     ~CSVRecordWriter();
 
-    virtual string Directory();
-    virtual string CSVFilePath();
+    string Directory() { return mDirectory; }
+    string CSVFileName() { return mCSVFileName; }
 
     void Open();
     void Write();
@@ -56,7 +59,7 @@ CSVRecordWriter::~CSVRecordWriter()
 template <typename TRecord>
 void CSVRecordWriter::Open()
 {
-    mFileHandle = FileOpen(Directory() + CSVFilePath(), FILE_CSV | FILE_READ | FILE_WRITE, ",");
+    mFileHandle = FileOpen(mDirectory + mCSVFileName, FILE_CSV | FILE_READ | FILE_WRITE, ",");
     if (mFileHandle == INVALID_HANDLE)
     {
         return;
@@ -79,6 +82,6 @@ void CSVRecordWriter::Write()
         return;
     }
 
-    mPendingRecord.Write(mFileHandle);
-    mPendingRecord = TRecord();
+    PendingRecord.Write(mFileHandle);
+    PendingRecord.Reset();
 }

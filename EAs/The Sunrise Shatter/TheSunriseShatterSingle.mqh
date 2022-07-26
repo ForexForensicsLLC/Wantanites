@@ -37,9 +37,6 @@ public:
 
     static int MagicNumber;
 
-    virtual string Directory() { return "/TheSunriseShatter/TSSS/"; }
-    virtual string CSVFileName() { return "TSSS.csv"; };
-
     virtual void FillStrategyMagicNumbers();
 
     virtual void RecordPreOrderOpenData();
@@ -61,6 +58,9 @@ static int TheSunriseShatterSingle::MagicNumber = 10003;
 TheSunriseShatterSingle::TheSunriseShatterSingle(int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, double riskPercent, MinROCFromTimeStamp *&mrfts, MBTracker *&mbt)
     : EA(maxTradesPerStrategy, stopLossPaddingPips, maxSpreadPips, riskPercent)
 {
+    mDirectory = "/TheSunriseShatter/TSSS/";
+    mCSVFileName = "TSSS.csv";
+
     mMRFTS = mrfts;
     mMBT = mbt;
 
@@ -176,7 +176,7 @@ void TheSunriseShatterSingle::PlaceOrders()
     int orderPlaceError = OrderHelper::PlaceStopOrderOnMostRecentPendingMB(mStopLossPaddingPips, mMaxSpreadPips, mRiskPercent, MagicNumber, mFirstMBInSetupNumber, mMBT, mMBStopOrderTicket);
     if (mMBStopOrderTicket == EMPTY)
     {
-        mPendingRecord = DefaultTradeRecord();
+        PendingRecord.Reset();
         mHasSetup = false;
         mStopTrading = true;
 
@@ -188,7 +188,7 @@ void TheSunriseShatterSingle::PlaceOrders()
 
 void TheSunriseShatterSingle::RecordPreOrderOpenData()
 {
-    mPendingRecord.AccountBalanceBefore(AccountBalance());
+    PendingRecord.AccountBalanceBefore(AccountBalance());
 }
 
 void TheSunriseShatterSingle::RecordPostOrderOpenData()
@@ -201,14 +201,14 @@ void TheSunriseShatterSingle::RecordPostOrderOpenData()
         return;
     }
 
-    mPendingRecord.Symbol(mMBT.Symbol());
-    mPendingRecord.TimeFrame(mMBT.TimeFrame());
-    mPendingRecord.OrderType(OrderType() == 0 ? "Buy" : "Sell");
-    mPendingRecord.EntryTime(OrderOpenTime());
-    mPendingRecord.EntryImage(imageFilePath);
-    mPendingRecord.EntryPrice(OrderOpenPrice());
-    mPendingRecord.EntryStopLoss(OrderStopLoss());
-    mPendingRecord.Lots(OrderLots());
+    PendingRecord.Symbol(mMBT.Symbol());
+    PendingRecord.TimeFrame(mMBT.TimeFrame());
+    PendingRecord.OrderType(OrderType() == 0 ? "Buy" : "Sell");
+    PendingRecord.EntryTime(OrderOpenTime());
+    PendingRecord.EntryImage(imageFilePath);
+    PendingRecord.EntryPrice(OrderOpenPrice());
+    PendingRecord.EntryStopLoss(OrderStopLoss());
+    PendingRecord.Lots(OrderLots());
 }
 
 void TheSunriseShatterSingle::CheckRecordOrderCloseData()
@@ -221,11 +221,11 @@ void TheSunriseShatterSingle::CheckRecordOrderCloseData()
         return;
     }
 
-    mPendingRecord.AccountBalanceAfter(AccountBalance());
-    mPendingRecord.ExitTime(OrderCloseTime());
-    mPendingRecord.ExitImage(imageFilePath);
-    mPendingRecord.ExitPrice(OrderClosePrice());
-    mPendingRecord.ExitStopLoss(OrderStopLoss());
+    PendingRecord.AccountBalanceAfter(AccountBalance());
+    PendingRecord.ExitTime(OrderCloseTime());
+    PendingRecord.ExitImage(imageFilePath);
+    PendingRecord.ExitPrice(OrderClosePrice());
+    PendingRecord.ExitStopLoss(OrderStopLoss());
 
     CSVRecordWriter<DefaultTradeRecord>::Write();
 }
