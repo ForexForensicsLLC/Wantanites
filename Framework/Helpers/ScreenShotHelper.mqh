@@ -21,7 +21,7 @@ public:
 
 static int ScreenShotHelper::TryTakeUnitTestScreenShot(string directory, out string &imageFilePath)
 {
-    imageFilePath = directory + "/Images/" + TimeToString(TimeCurrent(), TIME_DATE | TIME_SECONDS);
+    imageFilePath = directory + "Images/" + TimeToString(TimeCurrent(), TIME_DATE | TIME_SECONDS);
     if (!ChartScreenShot(ChartID(), imageFilePath, 2000, 800, ALIGN_RIGHT))
     {
         imageFilePath = "";

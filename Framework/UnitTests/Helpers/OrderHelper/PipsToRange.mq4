@@ -22,44 +22,44 @@ int OnInit()
 
 void OnDeinit(const int reason)
 {
-    delete nasUnitTest;
-    delete eurusdUnitTest;
+    delete nasCorrectRangeUnitTest;
+    delete eurusdCorrectRangeUnitTest;
 }
 
 void OnTick()
 {
-    PipsToRange_EURUSD();
-    PipsToRange_NASDAQ();
+    NASDAQ_CorrectRange();
+    EURUSD_CorrectRange();
 }
 
-UnitTest<DefaultUnitTestRecord> *nasUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, "Nas100.csv", 1);
-void PipsToRange_NASDAQ()
+UnitTest<DefaultUnitTestRecord> *nasCorrectRangeUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, 1);
+void NASDAQ_CorrectRange()
 {
     if (Symbol() == "US100.cash")
     {
-        nasUnitTest.addTest(__FUNCTION__);
+        nasCorrectRangeUnitTest.addTest(__FUNCTION__);
 
         const double pips = 1;
 
         const double actual = OrderHelper::PipsToRange(pips);
         const double expected = 0.1;
 
-        nasUnitTest.assertEquals("Nas 100 Correct Pips To Range", expected, actual);
+        nasCorrectRangeUnitTest.assertEquals("Nas 100 Correct Pips To Range", expected, actual);
     }
 }
 
-UnitTest<DefaultUnitTestRecord> *eurusdUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, "EURUSD.csv", 1);
-void PipsToRange_EURUSD()
+UnitTest<DefaultUnitTestRecord> *eurusdCorrectRangeUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, 1);
+void EURUSD_CorrectRange()
 {
     if (Symbol() == "EURUSD")
     {
-        eurusdUnitTest.addTest(__FUNCTION__);
+        eurusdCorrectRangeUnitTest.addTest(__FUNCTION__);
 
         const double pips = 1;
 
         const double actual = OrderHelper::PipsToRange(pips);
         const double expected = 0.00001;
 
-        eurusdUnitTest.assertEquals("EURUSD Correct Pips To Range", expected, actual);
+        eurusdCorrectRangeUnitTest.assertEquals("EURUSD Correct Pips To Range", expected, actual);
     }
 }

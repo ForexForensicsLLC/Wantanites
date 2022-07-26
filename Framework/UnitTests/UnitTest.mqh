@@ -18,7 +18,7 @@ template <typename TRecord>
 class UnitTest : public CSVRecordWriter<TRecord>
 {
 public:
-    UnitTest(string directory, string csvFileName, int maxAsserts);
+    UnitTest(string directory, int maxAsserts);
     ~UnitTest();
 
     void addTest(string name);
@@ -62,11 +62,9 @@ private:
 };
 
 template <typename TRecord>
-UnitTest::UnitTest(string directory, string csvFileName, int maxAsserts)
+UnitTest::UnitTest(string directory, int maxAsserts)
 {
     mDirectory = directory;
-    mCSVFileName = csvFileName;
-
     PendingRecord.MaxAsserts(maxAsserts);
 }
 
@@ -84,6 +82,9 @@ void UnitTest::addTest(string name)
     }
 
     PendingRecord.Name(name);
+
+    mDirectory = mDirectory + name + "/";
+    mCSVFileName = name + ".csv";
 }
 
 template <typename TRecord>
