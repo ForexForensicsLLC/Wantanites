@@ -50,9 +50,6 @@ void OnTick()
 {
     if (FirstTick)
     {
-        BrokeMBRangeStart_BullishMBFalse();
-        BrokeMBRangeStart_BearishMBFalse();
-
         BreakAfterMinROC_DifferentSymbolsError();
         BreakAfterMinROC_DifferentTimeFramesError();
         BreakAfterMinROC_NoMinROCIsTrueEqualsFalse();
@@ -61,6 +58,8 @@ void OnTick()
     }
     else
     {
+        BrokeMBRangeStart_BullishMBFalse();
+        BrokeMBRangeStart_BearishMBFalse();
         BrokeMBRangeStart_BullishMBTrue();
         BrokeMBRangeStart_BearishMBTrue();
 
@@ -212,6 +211,14 @@ void BrokeMBRangeStart_BearishMBTrue()
 
 void BrokeMBRangeStart_BullishMBFalse()
 {
+    int tests = 0;
+    int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
@@ -231,12 +238,25 @@ void BrokeMBRangeStart_BullishMBFalse()
         return;
     }
 
-    UT.addTest(__FUNCTION__);
+    if (tests == 0)
+    {
+        UT.addTest(__FUNCTION__);
+    }
+
     UT.assertEquals(__FUNCTION__, "Did Not Brake MB Start Range on Bullish MB", expected, actual);
+    tests += 1;
 }
 
 void BrokeMBRangeStart_BearishMBFalse()
 {
+    int tests = 0;
+    int maxTests = 10;
+
+    if (tests >= maxTests)
+    {
+        return;
+    }
+
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
@@ -256,8 +276,13 @@ void BrokeMBRangeStart_BearishMBFalse()
         return;
     }
 
-    UT.addTest(__FUNCTION__);
+    if (tests == 0)
+    {
+        UT.addTest(__FUNCTION__);
+    }
+
     UT.assertEquals(__FUNCTION__, "Did Not Brake MB Start Range on Bullish MB", expected, actual);
+    tests += 1;
 }
 
 void BrokeDoubleMBPlusLiquidationEnd_BullishSetupTrue()

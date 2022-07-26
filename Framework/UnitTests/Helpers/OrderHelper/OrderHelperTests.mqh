@@ -44,6 +44,7 @@ int OnInit()
 void OnDeinit(const int reason)
 {
     delete MBT;
+    delete UT;
 }
 
 void OnTick()
@@ -101,16 +102,22 @@ void OnTick()
 
 void RangeToPips_NASDAQ()
 {
+    static UnitTest<DefaultUnitTestRecord> *unitTest;
+    if (unitTest == NULL)
+    {
+        unitTest = new UnitTest();
+    }
+
     if (Symbol() == "US100.cash")
     {
-        UT.addTest(__FUNCTION__);
+        unitTest.addTest(__FUNCTION__);
 
         const double range = 0.1;
 
         const double actual = OrderHelper::RangeToPips(range);
         const double expected = 1.0;
 
-        UT.assertEquals(__FUNCTION__, "Range to Pips", expected, actual);
+        unitTest.assertEquals(__FUNCTION__, "Range to Pips", expected, actual);
     }
 }
 

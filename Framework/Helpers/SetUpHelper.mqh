@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                  SetUpHelper.mqh |
+//|                                                  SetupHelper.mqh |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -17,29 +17,29 @@ class SetupHelper
 {
 private:
 public:
-   // ==========================================================================
-   // Range Broke Methods
-   // ==========================================================================
-   // !Tested
-   static int BrokeMBRangeStart(int mbNumber, MBTracker *&mbt, out bool &isTrue);
+    // ==========================================================================
+    // Range Broke Methods
+    // ==========================================================================
+    // !Tested
+    static int BrokeMBRangeStart(int mbNumber, MBTracker *&mbt, out bool &isTrue);
 
-   // !Tested
-   static int BrokeDoubleMBPlusLiquidationSetupRangeEnd(int secondMBInSetup, int setupType, MBTracker *&mbt, out bool &isTrue);
+    // !Tested
+    static int BrokeDoubleMBPlusLiquidationSetupRangeEnd(int secondMBInSetup, int setupType, MBTracker *&mbt, out bool &isTrue);
 
-   // ==========================================================================
-   // MB Setup Methods
-   // ==========================================================================
-   // !Tested
-   static int MostRecentMBPlusHoldingZone(int mostRecentMBNumber, MBTracker *&mbt, out bool &isTrue);
+    // ==========================================================================
+    // MB Setup Methods
+    // ==========================================================================
+    // !Tested
+    static int MostRecentMBPlusHoldingZone(int mostRecentMBNumber, MBTracker *&mbt, out bool &isTrue);
 
-   // !Tested
-   static int FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOneNumber, int mbTwoNumber, MBTracker *&mbt, out bool &isTrue);
+    // !Tested
+    static int FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOneNumber, int mbTwoNumber, MBTracker *&mbt, out bool &isTrue);
 
-   // ==========================================================================
-   // Min ROC. From Time Stamp Setup Methods
-   // ==========================================================================
-   // !Tested
-   static int BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker *&mbt, out bool &isTrue);
+    // ==========================================================================
+    // Min ROC. From Time Stamp Setup Methods
+    // ==========================================================================
+    // !Tested
+    static int BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker *&mbt, out bool &isTrue);
 };
 /*
 
@@ -53,16 +53,16 @@ public:
 */
 static int SetupHelper::BrokeMBRangeStart(int mbNumber, MBTracker *&mbt, out bool &isTrue)
 {
-   isTrue = false;
+    isTrue = false;
 
-   MBState *tempMBState;
-   if (!mbt.GetMB(mbNumber, tempMBState))
-   {
-      return Errors::ERR_MB_DOES_NOT_EXIST;
-   }
+    MBState *tempMBState;
+    if (!mbt.GetMB(mbNumber, tempMBState))
+    {
+        return Errors::ERR_MB_DOES_NOT_EXIST;
+    }
 
-   isTrue = tempMBState.IsBroken(tempMBState.EndIndex());
-   return ERR_NO_ERROR;
+    isTrue = tempMBState.IsBroken(tempMBState.EndIndex());
+    return ERR_NO_ERROR;
 }
 
 /**
@@ -76,25 +76,25 @@ static int SetupHelper::BrokeMBRangeStart(int mbNumber, MBTracker *&mbt, out boo
  */
 static int SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(int secondMBInSetup, int setupType, MBTracker *&mbt, out bool &isTrue)
 {
-   isTrue = false;
+    isTrue = false;
 
-   MBState *thirdTempMBState;
+    MBState *thirdTempMBState;
 
-   // Return false if we can't find the subsequent MB for whatever reason
-   if (!mbt.GetMB(secondMBInSetup + 1, thirdTempMBState))
-   {
-      return Errors::ERR_MB_DOES_NOT_EXIST;
-   }
+    // Return false if we can't find the subsequent MB for whatever reason
+    if (!mbt.GetMB(secondMBInSetup + 1, thirdTempMBState))
+    {
+        return Errors::ERR_MB_DOES_NOT_EXIST;
+    }
 
-   // Types can't be equal if we are looking for a liquidation of the second MB
-   if (thirdTempMBState.Type() == setupType)
-   {
-      return Errors::ERR_EQUAL_MB_TYPES;
-   }
+    // Types can't be equal if we are looking for a liquidation of the second MB
+    if (thirdTempMBState.Type() == setupType)
+    {
+        return Errors::ERR_EQUAL_MB_TYPES;
+    }
 
-   // The end of our setup is the same as the start of the MB that liquidated the second MB
-   isTrue = thirdTempMBState.IsBroken(thirdTempMBState.StartIndex());
-   return ERR_NO_ERROR;
+    // The end of our setup is the same as the start of the MB that liquidated the second MB
+    isTrue = thirdTempMBState.IsBroken(thirdTempMBState.StartIndex());
+    return ERR_NO_ERROR;
 }
 /*
 
@@ -108,55 +108,55 @@ static int SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(int secondMBIn
 */
 static int SetupHelper::MostRecentMBPlusHoldingZone(int mostRecentMBNumber, MBTracker *&mbt, out bool &isTrue)
 {
-   isTrue = false;
+    isTrue = false;
 
-   if (!mbt.MBIsMostRecent(mostRecentMBNumber))
-   {
-      return Errors::ERR_MB_IS_NOT_MOST_RECENT;
-   }
+    if (!mbt.MBIsMostRecent(mostRecentMBNumber))
+    {
+        return Errors::ERR_MB_IS_NOT_MOST_RECENT;
+    }
 
-   isTrue = mbt.MBsClosestValidZoneIsHolding(mostRecentMBNumber);
-   return ERR_NO_ERROR;
+    isTrue = mbt.MBsClosestValidZoneIsHolding(mostRecentMBNumber);
+    return ERR_NO_ERROR;
 }
 
 static int SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOneNumber, int mbTwoNumber, MBTracker *&mbt, out bool &isTrue)
 {
-   isTrue = false;
+    isTrue = false;
 
-   MBState *secondMBTempMBState;
-   MBState *thirdMBTempState;
+    MBState *secondMBTempMBState;
+    MBState *thirdMBTempState;
 
-   if (!mbt.GetMB(mbTwoNumber, secondMBTempMBState))
-   {
-      return Errors::ERR_MB_DOES_NOT_EXIST;
-   }
+    if (!mbt.GetMB(mbTwoNumber, secondMBTempMBState))
+    {
+        return Errors::ERR_MB_DOES_NOT_EXIST;
+    }
 
-   if (secondMBTempMBState.Type() == OP_BUY)
-   {
-      if (iLow(secondMBTempMBState.Symbol(), secondMBTempMBState.TimeFrame(), 0) < iLow(secondMBTempMBState.Symbol(), secondMBTempMBState.TimeFrame(), secondMBTempMBState.LowIndex()))
-      {
-         if (!mbt.GetMB(mbTwoNumber + 1, thirdMBTempState))
-         {
-            return Errors::ERR_SUBSEQUENT_MB_DOES_NOT_EXIST;
-         }
+    if (secondMBTempMBState.Type() == OP_BUY)
+    {
+        if (iLow(secondMBTempMBState.Symbol(), secondMBTempMBState.TimeFrame(), 0) < iLow(secondMBTempMBState.Symbol(), secondMBTempMBState.TimeFrame(), secondMBTempMBState.LowIndex()))
+        {
+            if (!mbt.GetMB(mbTwoNumber + 1, thirdMBTempState))
+            {
+                return Errors::ERR_SUBSEQUENT_MB_DOES_NOT_EXIST;
+            }
 
-         isTrue = mbt.MBsClosestValidZoneIsHolding(mbOneNumber, thirdMBTempState.EndIndex());
-      }
-   }
-   else if (secondMBTempMBState.Type() == OP_SELL)
-   {
-      if (iHigh(secondMBTempMBState.Symbol(), secondMBTempMBState.TimeFrame(), 0) > iHigh(secondMBTempMBState.Symbol(), secondMBTempMBState.TimeFrame(), secondMBTempMBState.HighIndex()))
-      {
-         if (!mbt.GetMB(mbTwoNumber + 1, thirdMBTempState))
-         {
-            return Errors::ERR_SUBSEQUENT_MB_DOES_NOT_EXIST;
-         }
+            isTrue = mbt.MBsClosestValidZoneIsHolding(mbOneNumber, thirdMBTempState.EndIndex());
+        }
+    }
+    else if (secondMBTempMBState.Type() == OP_SELL)
+    {
+        if (iHigh(secondMBTempMBState.Symbol(), secondMBTempMBState.TimeFrame(), 0) > iHigh(secondMBTempMBState.Symbol(), secondMBTempMBState.TimeFrame(), secondMBTempMBState.HighIndex()))
+        {
+            if (!mbt.GetMB(mbTwoNumber + 1, thirdMBTempState))
+            {
+                return Errors::ERR_SUBSEQUENT_MB_DOES_NOT_EXIST;
+            }
 
-         isTrue = mbt.MBsClosestValidZoneIsHolding(mbOneNumber, thirdMBTempState.EndIndex());
-      }
-   }
+            isTrue = mbt.MBsClosestValidZoneIsHolding(mbOneNumber, thirdMBTempState.EndIndex());
+        }
+    }
 
-   return ERR_NO_ERROR;
+    return ERR_NO_ERROR;
 }
 /*
 
@@ -173,36 +173,36 @@ static int SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOne
 // The First Time this is true ensures that the msot recent mb is the first opposite one
 static int SetupHelper::BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker *&mbt, out bool &isTrue)
 {
-   isTrue = false;
+    isTrue = false;
 
-   if (mrfts.Symbol() != mbt.Symbol())
-   {
-      return Errors::ERR_NOT_EQUAL_SYMBOLS;
-   }
+    if (mrfts.Symbol() != mbt.Symbol())
+    {
+        return Errors::ERR_NOT_EQUAL_SYMBOLS;
+    }
 
-   if (mrfts.TimeFrame() != mbt.TimeFrame())
-   {
-      return Errors::ERR_NOT_EQUAL_TIMEFRAMES;
-   }
+    if (mrfts.TimeFrame() != mbt.TimeFrame())
+    {
+        return Errors::ERR_NOT_EQUAL_TIMEFRAMES;
+    }
 
-   if (!mrfts.HadMinROC() || !mbt.NthMostRecentMBIsOpposite(0))
-   {
-      return ERR_NO_ERROR;
-   }
+    if (!mrfts.HadMinROC() || !mbt.NthMostRecentMBIsOpposite(0))
+    {
+        return ERR_NO_ERROR;
+    }
 
-   MBState *tempMBStates[];
-   if (!mbt.GetNMostRecentMBs(2, tempMBStates))
-   {
-      return Errors::ERR_MB_DOES_NOT_EXIST;
-   }
+    MBState *tempMBStates[];
+    if (!mbt.GetNMostRecentMBs(2, tempMBStates))
+    {
+        return Errors::ERR_MB_DOES_NOT_EXIST;
+    }
 
-   // TODO: This should be moved over to MBTracker for easier testing
-   bool bothAbove = iLow(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[1].LowIndex()) > mrfts.OpenPrice() && iLow(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[0].LowIndex()) > mrfts.OpenPrice();
-   bool bothBelow = iHigh(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[1].HighIndex()) < mrfts.OpenPrice() && iHigh(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[0].HighIndex()) < mrfts.OpenPrice();
+    // TODO: This should be moved over to MBTracker for easier testing
+    bool bothAbove = iLow(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[1].LowIndex()) > mrfts.OpenPrice() && iLow(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[0].LowIndex()) > mrfts.OpenPrice();
+    bool bothBelow = iHigh(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[1].HighIndex()) < mrfts.OpenPrice() && iHigh(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[0].HighIndex()) < mrfts.OpenPrice();
 
-   bool breakingUp = bothBelow && tempMBStates[0].Type() == OP_BUY;
-   bool breakingDown = bothAbove && tempMBStates[0].Type() == OP_SELL;
+    bool breakingUp = bothBelow && tempMBStates[0].Type() == OP_BUY;
+    bool breakingDown = bothAbove && tempMBStates[0].Type() == OP_SELL;
 
-   isTrue = breakingUp || breakingDown;
-   return ERR_NO_ERROR;
+    isTrue = breakingUp || breakingDown;
+    return ERR_NO_ERROR;
 }
