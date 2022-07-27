@@ -89,7 +89,7 @@ void TheSunriseShatterSingle::Manage()
 
     if (isPendingOrder)
     {
-        int editStopLossError = OrderHelper::CheckEditStopLossForMostRecentMBStopOrder(
+        int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(
             mStopLossPaddingPips, mMaxSpreadPips, mRiskPercent, mFirstMBInSetupNumber, mMBT, mMBStopOrderTicket);
     }
     else
@@ -156,7 +156,7 @@ void TheSunriseShatterSingle::PlaceOrders()
     }
 
     int orders = 0;
-    int ordersError = OrderHelper::OtherEAOrders(mStrategyMagicNumbers, orders);
+    int ordersError = OrderHelper::CountOtherEAOrders(mStrategyMagicNumbers, orders);
     if (ordersError != ERR_NO_ERROR)
     {
         mHasSetup = false;
@@ -188,7 +188,7 @@ void TheSunriseShatterSingle::PlaceOrders()
 
 void TheSunriseShatterSingle::RecordPreOrderOpenData()
 {
-    PendingRecord.AccountBalanceBefore(AccountBalance());
+    PendingRecord.AccountBalanceBefore = AccountBalance();
 }
 
 void TheSunriseShatterSingle::RecordPostOrderOpenData()
@@ -201,14 +201,15 @@ void TheSunriseShatterSingle::RecordPostOrderOpenData()
         return;
     }
 
-    PendingRecord.Symbol(mMBT.Symbol());
-    PendingRecord.TimeFrame(mMBT.TimeFrame());
-    PendingRecord.OrderType(OrderType() == 0 ? "Buy" : "Sell");
-    PendingRecord.EntryTime(OrderOpenTime());
-    PendingRecord.EntryImage(imageFilePath);
-    PendingRecord.EntryPrice(OrderOpenPrice());
-    PendingRecord.EntryStopLoss(OrderStopLoss());
-    PendingRecord.Lots(OrderLots());
+    // TODO: I think this is flawed. This could just be a pending order and not an actual order
+    PendingRecord.Symbol = mMBT.Symbol();
+    PendingRecord.TimeFrame = mMBT.TimeFrame();
+    PendingRecord.OrderType = OrderType() == 0 ? "Buy" : "Sell";
+    PendingRecord.EntryTime = OrderOpenTime();
+    PendingRecord.EntryImage = imageFilePath;
+    PendingRecord.EntryPrice = OrderOpenPrice();
+    PendingRecord.EntryStopLoss = OrderStopLoss();
+    PendingRecord.Lots = OrderLots();
 }
 
 void TheSunriseShatterSingle::CheckRecordOrderCloseData()
@@ -221,11 +222,11 @@ void TheSunriseShatterSingle::CheckRecordOrderCloseData()
         return;
     }
 
-    PendingRecord.AccountBalanceAfter(AccountBalance());
-    PendingRecord.ExitTime(OrderCloseTime());
-    PendingRecord.ExitImage(imageFilePath);
-    PendingRecord.ExitPrice(OrderClosePrice());
-    PendingRecord.ExitStopLoss(OrderStopLoss());
+    PendingRecord.AccountBalanceAfter = AccountBalance();
+    PendingRecord.ExitTime = OrderCloseTime();
+    PendingRecord.ExitImage = imageFilePath;
+    PendingRecord.ExitPrice = OrderClosePrice();
+    PendingRecord.ExitStopLoss = OrderStopLoss();
 
     CSVRecordWriter<DefaultTradeRecord>::Write();
 }

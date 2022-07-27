@@ -14,6 +14,8 @@
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/OrderHelper/PipsToRange/";
+const int NumberOfAsserts = 10;
+const int AssertCooldown = 1;
 
 int OnInit()
 {
@@ -32,7 +34,7 @@ void OnTick()
     EURUSD_CorrectRange();
 }
 
-UnitTest<DefaultUnitTestRecord> *nasCorrectRangeUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, 1);
+UnitTest<DefaultUnitTestRecord> *nasCorrectRangeUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
 void NASDAQ_CorrectRange()
 {
     if (Symbol() == "US100.cash")
@@ -48,7 +50,7 @@ void NASDAQ_CorrectRange()
     }
 }
 
-UnitTest<DefaultUnitTestRecord> *eurusdCorrectRangeUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, 1);
+UnitTest<DefaultUnitTestRecord> *eurusdCorrectRangeUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
 void EURUSD_CorrectRange()
 {
     if (Symbol() == "EURUSD")

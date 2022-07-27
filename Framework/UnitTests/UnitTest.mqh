@@ -18,7 +18,7 @@ template <typename TRecord>
 class UnitTest : public CSVRecordWriter<TRecord>
 {
 public:
-    UnitTest(string directory, int maxAsserts);
+    UnitTest(string directory, int maxAsserts, int assertCooldownMinutes);
     ~UnitTest();
 
     void addTest(string name);
@@ -57,15 +57,22 @@ public:
     void assertEquals(string message, const string &expected[], const string &actual[]);
 
 private:
+    int mAssertCooldownMinutes;
+    datetime mLastAssertTime;
+
     bool assertArraySize(string message, const int expectedSize, const int actualSize);
     void TrySetImage();
+    bool CheckAssertCooldown();
 };
 
 template <typename TRecord>
-UnitTest::UnitTest(string directory, int maxAsserts)
+UnitTest::UnitTest(string directory, int maxAsserts, int assertCooldownMinutes)
 {
     mDirectory = directory;
-    PendingRecord.MaxAsserts(maxAsserts);
+    mAssertCooldownMinutes = assertCooldownMinutes;
+    mLastAssertTime = 0;
+
+    PendingRecord.MaxAsserts = maxAsserts;
 }
 
 template <typename TRecord>
@@ -76,12 +83,12 @@ UnitTest::~UnitTest(void)
 template <typename TRecord>
 void UnitTest::addTest(string name)
 {
-    if (PendingRecord.Name() != "")
+    if (PendingRecord.Name != "")
     {
         return;
     }
 
-    PendingRecord.Name(name);
+    PendingRecord.Name = name;
 
     mDirectory = mDirectory + name + "/";
     mCSVFileName = name + ".csv";
@@ -90,13 +97,14 @@ void UnitTest::addTest(string name)
 template <typename TRecord>
 void UnitTest::setSuccess()
 {
-    if (PendingRecord.Asserts() >= PendingRecord.MaxAsserts())
+    if (PendingRecord.Asserts >= PendingRecord.MaxAsserts)
     {
         return;
     }
 
-    PendingRecord.Result("Passed");
-    PendingRecord.IncrementAsserts();
+    PendingRecord.AssertTime = TimeCurrent();
+    PendingRecord.Result = "Passed";
+    PendingRecord.Asserts += 1;
     TrySetImage();
 
     CSVRecordWriter<TRecord>::Write();
@@ -105,9 +113,15 @@ void UnitTest::setSuccess()
 template <typename TRecord>
 void UnitTest::setFailure(string message)
 {
-    PendingRecord.Result("Failed");
-    PendingRecord.ErrorMessage(message);
-    PendingRecord.IncrementAsserts();
+    if (PendingRecord.Asserts >= PendingRecord.MaxAsserts)
+    {
+        return;
+    }
+
+    PendingRecord.AssertTime = TimeCurrent();
+    PendingRecord.Result = "Failed";
+    PendingRecord.Asserts += 1;
+    PendingRecord.ErrorMessage = message;
     TrySetImage();
 
     CSVRecordWriter<TRecord>::Write();
@@ -123,12 +137,39 @@ void UnitTest::TrySetImage()
         return;
     }
 
-    PendingRecord.Image(filePath);
+    PendingRecord.Image = filePath;
+}
+
+template <typename TRecord>
+bool UnitTest::CheckAssertCooldown()
+{
+    if (mLastAssertTime == 0)
+    {
+        return true;
+    }
+
+    if (Hour() == TimeHour(mLastAssertTime) && (Minute() - TimeMinute(mLastAssertTime) > mAssertCooldownMinutes))
+    {
+        return true;
+    }
+
+    if (Hour() > TimeHour(mLastAssertTime))
+    {
+        int minutes = (59 - TimeMinute(mLastAssertTime)) + Minute();
+        return minutes > mAssertCooldownMinutes;
+    }
+
+    return false;
 }
 
 template <typename TRecord>
 void UnitTest::assertEquals(string message, bool expected, bool actual)
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     if (expected == actual)
     {
         setSuccess();
@@ -144,6 +185,11 @@ void UnitTest::assertEquals(string message, bool expected, bool actual)
 template <typename TRecord>
 void UnitTest::assertEquals(string message, char expected, char actual)
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     if (expected == actual)
     {
         setSuccess();
@@ -159,6 +205,12 @@ void UnitTest::assertEquals(string message, char expected, char actual)
 template <typename TRecord>
 void UnitTest::assertEquals(string message, uchar expected, uchar actual)
 {
+    if (!CheckAssertCooldown())
+    {
+        PendingRecord.Reset();
+        return;
+    }
+
     if (expected == actual)
     {
         setSuccess();
@@ -174,6 +226,11 @@ void UnitTest::assertEquals(string message, uchar expected, uchar actual)
 template <typename TRecord>
 void UnitTest::assertEquals(string message, short expected, short actual)
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     if (expected == actual)
     {
         setSuccess();
@@ -189,6 +246,11 @@ void UnitTest::assertEquals(string message, short expected, short actual)
 template <typename TRecord>
 void UnitTest::assertEquals(string message, ushort expected, ushort actual)
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     if (expected == actual)
     {
         setSuccess();
@@ -204,6 +266,11 @@ void UnitTest::assertEquals(string message, ushort expected, ushort actual)
 template <typename TRecord>
 void UnitTest::assertEquals(string message, int expected, int actual)
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     if (expected == actual)
     {
         setSuccess();
@@ -219,6 +286,11 @@ void UnitTest::assertEquals(string message, int expected, int actual)
 template <typename TRecord>
 void UnitTest::assertEquals(string message, uint expected, uint actual)
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     if (expected == actual)
     {
         setSuccess();
@@ -234,6 +306,11 @@ void UnitTest::assertEquals(string message, uint expected, uint actual)
 template <typename TRecord>
 void UnitTest::assertEquals(string message, long expected, long actual)
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     if (expected == actual)
     {
         setSuccess();
@@ -249,6 +326,11 @@ void UnitTest::assertEquals(string message, long expected, long actual)
 template <typename TRecord>
 void UnitTest::assertEquals(string message, ulong expected, ulong actual)
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     if (expected == actual)
     {
         setSuccess();
@@ -264,6 +346,11 @@ void UnitTest::assertEquals(string message, ulong expected, ulong actual)
 template <typename TRecord>
 void UnitTest::assertEquals(string message, datetime expected, datetime actual)
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     if (expected == actual)
     {
         setSuccess();
@@ -279,6 +366,11 @@ void UnitTest::assertEquals(string message, datetime expected, datetime actual)
 template <typename TRecord>
 void UnitTest::assertEquals(string message, color expected, color actual)
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     if (expected == actual)
     {
         setSuccess();
@@ -294,6 +386,11 @@ void UnitTest::assertEquals(string message, color expected, color actual)
 template <typename TRecord>
 void UnitTest::assertEquals(string message, float expected, float actual)
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     if (expected == actual)
     {
         setSuccess();
@@ -309,6 +406,11 @@ void UnitTest::assertEquals(string message, float expected, float actual)
 template <typename TRecord>
 void UnitTest::assertEquals(string message, double expected, double actual)
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     if (expected == actual)
     {
         setSuccess();
@@ -324,6 +426,11 @@ void UnitTest::assertEquals(string message, double expected, double actual)
 template <typename TRecord>
 void UnitTest::assertEquals(string message, string expected, string actual)
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     if (expected == actual)
     {
         setSuccess();
@@ -355,6 +462,11 @@ bool UnitTest::assertArraySize(string message, const int expectedSize, const int
 template <typename TRecord>
 void UnitTest::assertEquals(string message, const bool &expected[], const bool &actual[])
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     const int expectedSize = ArraySize(expected);
     const int actualSize = ArraySize(actual);
 
@@ -381,6 +493,11 @@ void UnitTest::assertEquals(string message, const bool &expected[], const bool &
 template <typename TRecord>
 void UnitTest::assertEquals(string message, const char &expected[], const char &actual[])
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     const int expectedSize = ArraySize(expected);
     const int actualSize = ArraySize(actual);
 
@@ -407,6 +524,11 @@ void UnitTest::assertEquals(string message, const char &expected[], const char &
 template <typename TRecord>
 void UnitTest::assertEquals(string message, const uchar &expected[], const uchar &actual[])
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     const int expectedSize = ArraySize(expected);
     const int actualSize = ArraySize(actual);
 
@@ -433,6 +555,11 @@ void UnitTest::assertEquals(string message, const uchar &expected[], const uchar
 template <typename TRecord>
 void UnitTest::assertEquals(string message, const short &expected[], const short &actual[])
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     const int expectedSize = ArraySize(expected);
     const int actualSize = ArraySize(actual);
 
@@ -459,6 +586,11 @@ void UnitTest::assertEquals(string message, const short &expected[], const short
 template <typename TRecord>
 void UnitTest::assertEquals(string message, const ushort &expected[], const ushort &actual[])
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     const int expectedSize = ArraySize(expected);
     const int actualSize = ArraySize(actual);
 
@@ -485,6 +617,11 @@ void UnitTest::assertEquals(string message, const ushort &expected[], const usho
 template <typename TRecord>
 void UnitTest::assertEquals(string message, const int &expected[], const int &actual[])
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     const int expectedSize = ArraySize(expected);
     const int actualSize = ArraySize(actual);
 
@@ -511,6 +648,11 @@ void UnitTest::assertEquals(string message, const int &expected[], const int &ac
 template <typename TRecord>
 void UnitTest::assertEquals(string message, const uint &expected[], const uint &actual[])
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     const int expectedSize = ArraySize(expected);
     const int actualSize = ArraySize(actual);
 
@@ -537,6 +679,11 @@ void UnitTest::assertEquals(string message, const uint &expected[], const uint &
 template <typename TRecord>
 void UnitTest::assertEquals(string message, const long &expected[], const long &actual[])
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     const int expectedSize = ArraySize(expected);
     const int actualSize = ArraySize(actual);
 
@@ -563,6 +710,11 @@ void UnitTest::assertEquals(string message, const long &expected[], const long &
 template <typename TRecord>
 void UnitTest::assertEquals(string message, const ulong &expected[], const ulong &actual[])
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     const int expectedSize = ArraySize(expected);
     const int actualSize = ArraySize(actual);
 
@@ -589,6 +741,11 @@ void UnitTest::assertEquals(string message, const ulong &expected[], const ulong
 template <typename TRecord>
 void UnitTest::assertEquals(string message, const datetime &expected[], const datetime &actual[])
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     const int expectedSize = ArraySize(expected);
     const int actualSize = ArraySize(actual);
 
@@ -615,6 +772,11 @@ void UnitTest::assertEquals(string message, const datetime &expected[], const da
 template <typename TRecord>
 void UnitTest::assertEquals(string message, const color &expected[], const color &actual[])
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     const int expectedSize = ArraySize(expected);
     const int actualSize = ArraySize(actual);
 
@@ -641,6 +803,11 @@ void UnitTest::assertEquals(string message, const color &expected[], const color
 template <typename TRecord>
 void UnitTest::assertEquals(string message, const float &expected[], const float &actual[])
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     const int expectedSize = ArraySize(expected);
     const int actualSize = ArraySize(actual);
 
@@ -667,6 +834,11 @@ void UnitTest::assertEquals(string message, const float &expected[], const float
 template <typename TRecord>
 void UnitTest::assertEquals(string message, const double &expected[], const double &actual[])
 {
+    if (!CheckAssertCooldown())
+    {
+        return;
+    }
+
     const int expectedSize = ArraySize(expected);
     const int actualSize = ArraySize(actual);
 

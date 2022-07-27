@@ -14,6 +14,8 @@
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/OrderHelper/SelectOpenOrderByTicket/";
+const int NumberOfAsserts = 10;
+const int AssertCooldown = 1;
 
 int OnInit()
 {
@@ -47,7 +49,7 @@ int SendOrder()
     return OrderSend(Symbol(), OP_BUYSTOP, lots, entryPrice, slippage, stopLoss, takeProfit, comment, magicNumber, expiration, col);
 }
 
-UnitTest<DefaultUnitTestRecord> *noErrorUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, 10);
+UnitTest<DefaultUnitTestRecord> *noErrorUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
 void NoError()
 {
     int ticket = SendOrder();
@@ -66,7 +68,7 @@ void NoError()
     OrderDelete(ticket, clrNONE);
 }
 
-UnitTest<DefaultUnitTestRecord> *hasErrorUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, 10);
+UnitTest<DefaultUnitTestRecord> *hasErrorUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
 void HasError()
 {
     int ticket = SendOrder();

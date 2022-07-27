@@ -13,43 +13,27 @@
 
 class DefaultTradeRecord : ICSVRecord
 {
-protected:
-    string mSymbol;
-    int mTimeFrame;
-    string mOrderType;
-    double mAccountBalanceBefore;
-    double mAccountBalanceAfter;
-    datetime mEntryTime;
-    string mEntryImage;
-    datetime mExitTime;
-    string mExitImage;
-    double mEntryPrice;
-    double mEntryStopLoss;
-    double mLots;
-    double mExitPrice;
-    double mExitStopLoss;
-
 public:
-    void Symbol(string symbol) { mSymbol = symbol; }
-    void TimeFrame(int timeFrame) { mTimeFrame = timeFrame; }
-    void OrderType(string orderType) { mOrderType = orderType; }
-    void AccountBalanceBefore(double accountBalanceBefore) { mAccountBalanceBefore = accountBalanceBefore; }
-    void AccountBalanceAfter(double accountBalanceAfter) { mAccountBalanceAfter = accountBalanceAfter; }
-    void EntryTime(datetime entryTime) { mEntryTime = entryTime; }
-    void EntryImage(string entryImage) { mEntryImage = entryImage; }
-    void ExitTime(datetime exitTime) { mExitTime = exitTime; }
-    void ExitImage(string exitImage) { mExitImage = exitImage; }
-    void EntryPrice(double entryPrice) { mEntryPrice = entryPrice; }
-    void EntryStopLoss(double entryStopLoss) { mEntryStopLoss = entryStopLoss; }
-    void Lots(double lots) { mLots = lots; }
-    void ExitPrice(double exitPrice) { mExitPrice = exitPrice; }
-    void ExitStopLoss(double exitStopLoss) { mExitStopLoss = exitStopLoss; }
+    string Symbol;
+    int TimeFrame;
+    string OrderType;
+    double AccountBalanceBefore;
+    double AccountBalanceAfter;
+    datetime EntryTime;
+    string EntryImage;
+    datetime ExitTime;
+    string ExitImage;
+    double EntryPrice;
+    double EntryStopLoss;
+    double Lots;
+    double ExitPrice;
+    double ExitStopLoss;
 
     DefaultTradeRecord();
     ~DefaultTradeRecord();
 
-    double TotalMovePips() { return NormalizeDouble(OrderHelper::RangeToPips((mEntryPrice - mExitPrice)), 2); }
-    double PotentialRR() { return NormalizeDouble((mEntryPrice - mExitPrice) / (mEntryPrice - mEntryStopLoss), 2); }
+    double TotalMovePips() { return NormalizeDouble(OrderHelper::RangeToPips((EntryPrice - ExitPrice)), 2); }
+    double PotentialRR() { return NormalizeDouble((EntryPrice - ExitPrice) / (EntryPrice - EntryStopLoss), 2); }
 
     void Write(int fileHandle);
     void Reset();
@@ -64,24 +48,24 @@ DefaultTradeRecord::~DefaultTradeRecord() {}
 
 void DefaultTradeRecord::Write(int fileHandle)
 {
-    FileWrite(fileHandle, mSymbol, mTimeFrame, mOrderType, mAccountBalanceBefore, mAccountBalanceAfter, mEntryTime, mEntryImage, mExitTime, mExitImage, mEntryPrice,
-              mEntryStopLoss, mLots, mExitPrice, mExitStopLoss, TotalMovePips(), PotentialRR());
+    FileWrite(fileHandle, Symbol, TimeFrame, OrderType, AccountBalanceBefore, AccountBalanceAfter, EntryTime, EntryImage, ExitTime, ExitImage, EntryPrice,
+              EntryStopLoss, Lots, ExitPrice, ExitStopLoss, TotalMovePips(), PotentialRR());
 }
 
 void DefaultTradeRecord::Reset()
 {
-    mSymbol = "";
-    mTimeFrame = 0;
-    mOrderType = "";
-    mAccountBalanceBefore = 0;
-    mAccountBalanceAfter = 0;
-    mEntryTime = 0;
-    mEntryImage = "";
-    mExitTime = 0;
-    mExitImage = "";
-    mEntryPrice = 0.0;
-    mEntryStopLoss = 0.0;
-    mLots = 0.0;
-    mExitPrice = 0.0;
-    mExitStopLoss = 0.0;
+    Symbol = "";
+    TimeFrame = 0;
+    OrderType = "";
+    AccountBalanceBefore = 0;
+    AccountBalanceAfter = 0;
+    EntryTime = 0;
+    EntryImage = "";
+    ExitTime = 0;
+    ExitImage = "";
+    EntryPrice = 0.0;
+    EntryStopLoss = 0.0;
+    Lots = 0.0;
+    ExitPrice = 0.0;
+    ExitStopLoss = 0.0;
 }

@@ -12,29 +12,14 @@
 
 class DefaultUnitTestRecord : ICSVRecord
 {
-protected:
-    string mName;
-    string mResult;
-    string mErrorMessage;
-    int mAsserts;
-    int mMaxAsserts;
-    string mImage;
-
 public:
-    string Name() { return mName; }
-    void Name(string name) { mName = name; }
-
-    void Result(string result) { mResult = result; }
-
-    void ErrorMessage(string errorMessage) { mErrorMessage = errorMessage; }
-
-    int Asserts() { return mAsserts; }
-    void IncrementAsserts() { mAsserts += 1; }
-
-    int MaxAsserts() { return mMaxAsserts; }
-    void MaxAsserts(int maxAsserts) { mMaxAsserts = maxAsserts; }
-
-    void Image(string image) { mImage = image; }
+    string Name;
+    datetime AssertTime;
+    string Result;
+    string ErrorMessage;
+    int Asserts;
+    int MaxAsserts;
+    string Image;
 
     DefaultUnitTestRecord();
     ~DefaultUnitTestRecord();
@@ -45,25 +30,28 @@ public:
 
 DefaultUnitTestRecord::DefaultUnitTestRecord()
 {
-    mName = "";
-    mResult = "";
-    mErrorMessage = "";
-    mAsserts = 0;
-    mMaxAsserts = 0;
-    mImage = "";
+    Name = "";
+    AssertTime = 0;
+    Result = "";
+    ErrorMessage = "";
+    Asserts = 0;
+    MaxAsserts = 0;
+    Image = "";
 }
+
 DefaultUnitTestRecord::~DefaultUnitTestRecord() {}
 
 void DefaultUnitTestRecord::Write(int fileHandle)
 {
-    FileWrite(fileHandle, mName, mResult, mErrorMessage, mAsserts, mMaxAsserts, mImage);
+    FileWrite(fileHandle, Name, AssertTime, Result, ErrorMessage, Asserts, MaxAsserts, Image);
 }
 
 void DefaultUnitTestRecord::Reset()
 {
-    mResult = "";
-    mErrorMessage = "";
-    mAsserts = 0;
-    mMaxAsserts = 0;
-    mImage = "";
+    AssertTime = 0;
+    Result = "";
+    ErrorMessage = "";
+    Asserts = 0;
+    MaxAsserts = 0;
+    Image = "";
 }

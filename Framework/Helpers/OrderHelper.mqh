@@ -71,7 +71,7 @@ public:
 
     // !Tested
     // ResetsOutParam
-    static int OtherEAOrders(int &magicNumbers[], out int &orders);
+    static int CountOtherEAOrders(int &magicNumbers[], out int &orders);
 
     // ==========================================================================
     // Placing Limit Orders
@@ -107,7 +107,7 @@ public:
     // Editing Orders For MB Stop Orders
     // ==========================================================================
     // !Tested
-    static int CheckEditStopLossForMostRecentMBStopOrder(double paddingPips, double spreadPips, double riskPercent, int setupMBNumber, MBTracker *&mbt, out int &ticket);
+    static int CheckEditStopLossForStopOrderOnPendingMB(double paddingPips, double spreadPips, double riskPercent, int setupMBNumber, MBTracker *&mbt, out int &ticket);
 
     // ==========================================================================
     // Canceling Pending Orders
@@ -361,7 +361,7 @@ static int OrderHelper::IsPendingOrder(int ticket, out bool &isTrue)
     return ERR_NO_ERROR;
 }
 
-static int OrderHelper::OtherEAOrders(int &magicNumbers[], out int &orders)
+static int OrderHelper::CountOtherEAOrders(int &magicNumbers[], out int &orders)
 {
     orders = 0;
     for (int i = 0; i < OrdersTotal() - 1; i++)
@@ -590,7 +590,7 @@ static bool OrderHelper::EditStopLoss(double newStopLoss, double newLots, int ma
                             |___/                                                                                 |_|
 
 */
-static int OrderHelper::CheckEditStopLossForMostRecentMBStopOrder(double paddingPips, double spreadPips, double riskPercent, int setupMBNumber, MBTracker *&mbt, out int &ticket)
+static int OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(double paddingPips, double spreadPips, double riskPercent, int setupMBNumber, MBTracker *&mbt, out int &ticket)
 {
     MBState *tempMBState;
     if (!mbt.GetMB(setupMBNumber, tempMBState))

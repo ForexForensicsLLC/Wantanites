@@ -14,6 +14,8 @@
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/OrderHelper/GetEntryForStopOrder/";
+const int NumberOfAsserts = 25;
+const int AssertCooldown = 1;
 
 input int MBsToTrack = 3;
 input int MaxZonesInMB = 5;
@@ -91,7 +93,7 @@ bool GetEntryPriceForStopOrderSetup(int type, bool shouldHaveRetracment)
     return true;
 }
 
-UnitTest<DefaultUnitTestRecord> *bullishMBNoErrorsUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, 10);
+UnitTest<DefaultUnitTestRecord> *bullishMBNoErrorsUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
 void BullishMBNoErrors()
 {
     int setupType = OP_BUY;
@@ -111,7 +113,7 @@ void BullishMBNoErrors()
     bullishMBNoErrorsUnitTest.assertEquals("Get Entry Price For Stop Order On Most Recent Pending Bullish MB No Error", expected, actual);
 }
 
-UnitTest<DefaultUnitTestRecord> *bearishMBNoErrorsUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, 10);
+UnitTest<DefaultUnitTestRecord> *bearishMBNoErrorsUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
 void BearishMBNoErrors()
 {
     int setupType = OP_SELL;
@@ -131,7 +133,7 @@ void BearishMBNoErrors()
     bearishMBNoErrorsUnitTest.assertEquals("Get Entry Price For Stop Order On Most Recent Pending Bearish MB No Error", expected, actual);
 }
 
-UnitTest<DefaultUnitTestRecord> *bullishMBEmptyRetracementUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, 10);
+UnitTest<DefaultUnitTestRecord> *bullishMBEmptyRetracementUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
 void BullishMBEmptyRetracement()
 {
     int setupType = OP_BUY;
@@ -151,7 +153,7 @@ void BullishMBEmptyRetracement()
     bullishMBEmptyRetracementUnitTest.assertEquals("Get Entry Price For Stop Order On Most Recent Pending Bullish MB Invalid Retracement", expected, actual);
 }
 
-UnitTest<DefaultUnitTestRecord> *bearishMBEmptyRetracementUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, 10);
+UnitTest<DefaultUnitTestRecord> *bearishMBEmptyRetracementUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
 void BearishMBEmptyRetracement()
 {
     int setupType = OP_SELL;
@@ -171,7 +173,7 @@ void BearishMBEmptyRetracement()
     bearishMBEmptyRetracementUnitTest.assertEquals("Get Entry Price For Stop Order On Most Recent Pending Bullish MB Invalid Retracement", expected, actual);
 }
 
-UnitTest<DefaultUnitTestRecord> *bullishMBCorrectEntryPriceUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, 10);
+UnitTest<DefaultUnitTestRecord> *bullishMBCorrectEntryPriceUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
 void BullishMBCorrectEntryPrice()
 {
     int setupType = OP_BUY;
@@ -193,7 +195,7 @@ void BullishMBCorrectEntryPrice()
     bullishMBCorrectEntryPriceUnitTest.assertEquals("Get Entry Price For Buy Stop Order On Most Recent Bullish Pending MB Correct Entry", expected, actual);
 }
 
-UnitTest<DefaultUnitTestRecord> *bearishMBCorrectEntryPriceUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, 10);
+UnitTest<DefaultUnitTestRecord> *bearishMBCorrectEntryPriceUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
 void BearishMBCorrectEntryPrice()
 {
     int setupType = OP_SELL;
