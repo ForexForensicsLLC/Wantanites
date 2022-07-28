@@ -20,7 +20,7 @@ private:
     TBoolFunc mActual;
 
 public:
-    BoolUnitTest(string directory, string testName, string testMessage, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+    BoolUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
                  bool expected, TBoolFunc actual);
 
     ~BoolUnitTest();
@@ -29,9 +29,9 @@ public:
 };
 
 template <typename TRecord>
-BoolUnitTest::BoolUnitTest(string directory, string testName, string testMessage, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+BoolUnitTest::BoolUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
                            bool expected, TBoolFunc actual)
-    : UnitTest(directory, testName, testMessage, maxAsserts, assertCooldownMinutes, recordScreenShot, recordErrors)
+    : UnitTest(directory, testName, description, maxAsserts, assertCooldownMinutes, recordScreenShot, recordErrors)
 {
     mExpected = expected;
     mActual = actual;
@@ -53,7 +53,7 @@ void BoolUnitTest::Assert(bool equals = true)
     bool actual;
     int testStatus = mActual(actual);
 
-    if ((testStatus != UnitTestConstants::UNIT_TEST_RAN || testStatus != UnitTestConstants::UNIT_TEST_DID_NOT_RUN) && mRecordErrors)
+    if ((testStatus != UnitTestConstants::UNIT_TEST_RAN && testStatus != UnitTestConstants::UNIT_TEST_DID_NOT_RUN) && mRecordErrors)
     {
         UnitTest<bool, TRecord>::RecordError(testStatus);
         return;

@@ -22,10 +22,10 @@ private:
     TActualIntFunc mActual;
 
 public:
-    IntUnitTest(string directory, string testName, string testMessage, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+    IntUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
                 int expected, TActualIntFunc actual);
 
-    IntUnitTest(string directory, string testName, string testMessage, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+    IntUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
                 TExpectedIntFunc expected, TActualIntFunc actual);
 
     ~IntUnitTest();
@@ -34,9 +34,9 @@ public:
 };
 
 template <typename TRecord>
-IntUnitTest::IntUnitTest(string directory, string testName, string testMessage, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+IntUnitTest::IntUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
                          int expected, TActualIntFunc actual)
-    : UnitTest(directory, testName, testMessage, maxAsserts, assertCooldownMinutes, recordScreenShot, recordErrors)
+    : UnitTest(directory, testName, description, maxAsserts, assertCooldownMinutes, recordScreenShot, recordErrors)
 {
     mExpectedValue = expected;
     mActual = actual;
@@ -71,7 +71,7 @@ void IntUnitTest::Assert(bool equals = true)
     int actual;
     int testStatus = mActual(actual);
 
-    if ((testStatus != UnitTestConstants::UNIT_TEST_RAN || testStatus != UnitTestConstants::UNIT_TEST_DID_NOT_RUN) && mRecordErrors)
+    if ((testStatus != UnitTestConstants::UNIT_TEST_RAN && testStatus != UnitTestConstants::UNIT_TEST_DID_NOT_RUN) && mRecordErrors)
     {
         UnitTest<int, TRecord>::RecordError(testStatus);
         return;

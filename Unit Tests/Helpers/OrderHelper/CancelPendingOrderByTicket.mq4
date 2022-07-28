@@ -12,7 +12,6 @@
 
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
 #include <SummitCapital\Framework\UnitTests\IntUnitTest.mqh>
-#include <SummitCapital\Framework\UnitTests\BoolUnitTest.mqh>
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
@@ -23,7 +22,7 @@ const bool RecordScreenShot = false;
 const bool RecordErrors = true;
 
 IntUnitTest<DefaultUnitTestRecord> *NoErrorsUnitTest;
-BoolUnitTest<DefaultUnitTestRecord> *ErrorsWhenCancelingDeletedOrderUnitTest;
+IntUnitTest<DefaultUnitTestRecord> *ErrorsWhenCancelingDeletedOrderUnitTest;
 
 int OnInit()
 {
@@ -32,10 +31,10 @@ int OnInit()
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
         ERR_NO_ERROR, NoErrors);
 
-    ErrorsWhenCancelingDeletedOrderUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+    ErrorsWhenCancelingDeletedOrderUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "Errors When Canceling Delete Order", "Returns Error When Trying To Cancel A Deleted Order",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        true, ErrorsWhenCancelingDeletedOrder);
+        ERR_NO_ERROR, ErrorsWhenCancelingDeletedOrder);
 
     return (INIT_SUCCEEDED);
 }
@@ -49,7 +48,7 @@ void OnDeinit(const int reason)
 void OnTick()
 {
     NoErrorsUnitTest.Assert();
-    ErrorsWhenCancelingDeletedOrderUnitTest.Assert();
+    ErrorsWhenCancelingDeletedOrderUnitTest.Assert(false);
 }
 
 int NoErrors(out int &actual)
@@ -67,7 +66,7 @@ int NoErrors(out int &actual)
     return GetLastError();
 }
 
-int ErrorsWhenCancelingDeletedOrder(out bool &actual)
+int ErrorsWhenCancelingDeletedOrder(int &actual)
 {
     int type = OP_BUYSTOP;
     double entryPrice = Ask + OrderHelper::PipsToRange(10);
@@ -77,13 +76,7 @@ int ErrorsWhenCancelingDeletedOrder(out bool &actual)
     {
         OrderDelete(ticket, clrNONE);
 
-        int errors = OrderHelper::CancelPendingOrderByTicket(ticket);
-        if (errors == ERR_NO_ERROR)
-        {
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
-        }
-
-        actual = ticket != EMPTY;
+        actual = OrderHelper::CancelPendingOrderByTicket(ticket);
         return UnitTestConstants::UNIT_TEST_RAN;
     }
 

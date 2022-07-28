@@ -72,13 +72,12 @@ void UnitTest::SetAssertResult(string result, string message)
     PendingRecord.Result = result;
     PendingRecord.Asserts += 1;
     PendingRecord.Message = message;
+    mLastAssertTime = TimeCurrent();
 
     if (mRecordScreenShot)
     {
         TrySetImage();
     }
-
-    mLastAssertTime = TimeCurrent();
 
     CSVRecordWriter<TRecord>::Write();
 
