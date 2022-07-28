@@ -25,10 +25,10 @@ public:
     // ==========================================================================
     // Calculating Orders
     // ==========================================================================
-    // !Tested
+    // Tested
     static double RangeToPips(double range);
 
-    // !Tested
+    // Tested
     static double PipsToRange(double pips);
 
     // !Tested
@@ -65,11 +65,11 @@ public:
     // ==========================================================================
     // Checking Orders
     // ==========================================================================
-    // !Tested
+    // Tested
     // ResetsOutParam
     static int IsPendingOrder(int ticket, out bool &isTrue);
 
-    // !Tested
+    // Tested
     // ResetsOutParam
     static int CountOtherEAOrders(int &magicNumbers[], out int &orders);
 

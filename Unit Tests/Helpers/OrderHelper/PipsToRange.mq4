@@ -19,7 +19,10 @@ const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
 const bool RecordErrors = true;
 
+// https://drive.google.com/file/d/1Sb-9rruOheVcTM2ET9fHNCFUnhG0NShY/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *NasCorrectRangeUnitTest;
+
+// https://drive.google.com/file/d/1JPo4Y-8iK306Jc6Y_8quq_Gvl7cU1GF9/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *EurusdCorrectRangeUnitTest;
 
 int OnInit()
@@ -64,7 +67,7 @@ int EURUSDPipsToRange(int &actual)
 {
     if (Symbol() == "EURUSD")
     {
-        actual = OrderHelper::PipsToRange(100000);
+        actual = OrderHelper::PipsToRange(10000);
         return UnitTestConstants::UNIT_TEST_RAN;
     }
 

@@ -19,7 +19,10 @@ const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
 const bool RecordErrors = true;
 
+// https://drive.google.com/file/d/1vFJH51mP2bmmXCPE_HsPecp_-JbHgFJj/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *NasCorrectRangeToPipsUnitTest;
+
+// https://drive.google.com/file/d/1vYB5Bru3SDTjSqm1W0yyvXmrJeNGYGHm/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *EurusdCorrectRangeToPipsUnitTest;
 
 int OnInit()
@@ -32,7 +35,7 @@ int OnInit()
     EurusdCorrectRangeToPipsUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "EURUSD Range To Pips", "Correctly Converts Range To Pips On EURUSD",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        100000, EURUSDCorrectRangeToPips);
+        10000, EURUSDCorrectRangeToPips);
 
     return (INIT_SUCCEEDED);
 }

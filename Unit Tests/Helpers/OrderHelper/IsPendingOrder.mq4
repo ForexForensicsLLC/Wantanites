@@ -19,13 +19,22 @@ const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
 const bool RecordErrors = true;
 
+// https://drive.google.com/file/d/1mTmG4IHHAKdLqvyMo4t3OS91eKuNJ5AU/view?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *OpBuyIsNotPendingUnitTest;
+
+// https://drive.google.com/file/d/1Pn2yMu7uXuwGPvzx3kP9l-gBBImuxIBs/view?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *OpSellIsNotPendingUnitTest;
 
+// https://drive.google.com/file/d/1cYOKMq53YcJ7O_ciELMTtmAPYr2khWW6/view?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *OpBuyStopIsPendingUnitTest;
+
+// https://drive.google.com/file/d/1NNUuLYTgqaPPIWLYuhAV0mtijaIDrxpC/view?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *OpSellStopIsPendingUnitTest;
 
+// https://drive.google.com/file/d/13PQL6B8Xoz8W7ij9TMIMdCCWJ_TwMfCn/view?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *OpBuyLimitIsPendingUnitTest;
+
+// https://drive.google.com/file/d/1m1rqIOe9lFV7DZSvvZFuZqWZksYjhV57/view?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *OpSellLimitIsPendingUnitTest;
 
 int OnInit()
@@ -101,7 +110,7 @@ int OpBuyIsNotPending(bool &actual)
             return pendingOrderError;
         }
 
-        if (!OrderDelete(ticket, clrNONE))
+        if (!OrderClose(ticket, 0.1, Bid, 0, clrNONE))
         {
             return GetLastError();
         }
@@ -126,7 +135,7 @@ int OpSellIsNotPending(bool &actual)
             return pendingOrderError;
         }
 
-        if (!OrderDelete(ticket, clrNONE))
+        if (!OrderClose(ticket, 0.1, Ask, 0, clrNONE))
         {
             return GetLastError();
         }

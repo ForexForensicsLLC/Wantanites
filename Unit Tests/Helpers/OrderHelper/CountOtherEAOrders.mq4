@@ -34,8 +34,13 @@ const int SetThreeMagicNumberTwo = 302;
 const int SetThreeMagicNumberThree = 303;
 int SetThreeMagicNumberArray[];
 
+// https://drive.google.com/file/d/1NCUJsWNCxpCiGMCuF_6IAOk_iETIrAit/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *ZeroOtherEAOrdersUnitTest;
+
+// https://drive.google.com/file/d/1beM2NFiqMC16ZpDY0i3TJnF2G_4ufOC1/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *MultipleOrderesFromOneEAUnitTest;
+
+// https://drive.google.com/file/d/15rjIQWd1GJLgAHJF-xP8tUDjJEFS5nPl/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *MultipleOrderesFromMultipleEAsUnitTest;
 
 int OnInit()
@@ -89,9 +94,27 @@ void OnTick()
 
 int ZeroOtherEAOrders(int &actual)
 {
-    actual = 1;
+    int type = OP_BUYSTOP;
+    double entryPrice = Ask + OrderHelper::PipsToRange(100);
+    double stopLoss = Bid - OrderHelper::PipsToRange(100);
 
+    int ticketOne = OrderSend(Symbol(), type, 0.1, entryPrice, 0, stopLoss, 0, "T1 - " + 999, 999, 0, clrNONE);
+    if (ticketOne < 0)
+    {
+        int error = GetLastError();
+        Print("Error: ", error);
+
+        return GetLastError();
+    }
+
+    actual = 1;
     int otherEAOrdersErrors = OrderHelper::CountOtherEAOrders(SetOneMagicNumberArray, actual);
+
+    if (!OrderDelete(ticketOne, clrNONE))
+    {
+        return GetLastError();
+    }
+
     if (otherEAOrdersErrors != ERR_NO_ERROR)
     {
         return otherEAOrdersErrors;
@@ -109,25 +132,22 @@ int MultipleOrdersFromOneEA(int &actual)
     int ticketOne = OrderSend(Symbol(), type, 0.1, entryPrice, 0, stopLoss, 0, "T1 - " + SetTwoMagicNumberOne, SetTwoMagicNumberOne, 0, clrNONE);
     if (ticketOne < 0)
     {
-        int error = GetLastError();
-        Print("Error: ", error);
-
         return GetLastError();
     }
 
     int ticketTwo = OrderSend(Symbol(), type, 0.1, entryPrice, 0, stopLoss, 0, "T2 - " + SetTwoMagicNumberOne, SetTwoMagicNumberOne, 0, clrNONE);
     if (ticketTwo < 0)
     {
-        int errorOne = GetLastError();
+        OrderDelete(ticketOne, clrNONE);
+        return GetLastError();
+    }
 
-        if (!OrderDelete(ticketOne, clrNONE))
-        {
-            int errorTwo = GetLastError();
-            Print("Error One: ", errorOne, ", Error Two: ", errorTwo);
-            return errorTwo;
-        }
+    int ticketThree = OrderSend(Symbol(), type, 0.1, entryPrice, 0, stopLoss, 0, "T2 - " + 999, 999, 0, clrNONE);
+    if (ticketThree < 0)
+    {
+        OrderDelete(ticketOne, clrNONE);
+        OrderDelete(ticketTwo, clrNONE);
 
-        Print("Error One: ", errorOne);
         return GetLastError();
     }
 
@@ -141,6 +161,11 @@ int MultipleOrdersFromOneEA(int &actual)
     }
 
     if (!OrderDelete(ticketTwo, clrNONE))
+    {
+        return GetLastError();
+    }
+
+    if (!OrderDelete(ticketThree, clrNONE))
     {
         return GetLastError();
     }
@@ -172,6 +197,15 @@ int MultipleOrdersFromMultipleEAs(int &actual)
         return GetLastError();
     }
 
+    int ticketThree = OrderSend(Symbol(), type, 0.1, entryPrice, 0, stopLoss, 0, "T2 - " + 999, 999, 0, clrNONE);
+    if (ticketThree < 0)
+    {
+        OrderDelete(ticketOne, clrNONE);
+        OrderDelete(ticketTwo, clrNONE);
+
+        return GetLastError();
+    }
+
     actual = 0;
     int otherEAOrdersErrors = OrderHelper::CountOtherEAOrders(SetThreeMagicNumberArray, actual);
 
@@ -181,6 +215,11 @@ int MultipleOrdersFromMultipleEAs(int &actual)
     }
 
     if (!OrderDelete(ticketTwo, clrNONE))
+    {
+        return GetLastError();
+    }
+
+    if (!OrderDelete(ticketThree, clrNONE))
     {
         return GetLastError();
     }
