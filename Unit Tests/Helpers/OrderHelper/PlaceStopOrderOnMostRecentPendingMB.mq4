@@ -59,6 +59,8 @@ int OnInit()
 
 void OnDeinit(const int reason)
 {
+    delete MBT;
+
     delete BullishMBNoErrorUnitTest;
     delete BearishMBNoErrorUnitTest;
     delete NotMostRecentMBErrorUnitTest;

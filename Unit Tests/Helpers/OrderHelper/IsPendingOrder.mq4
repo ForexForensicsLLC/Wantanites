@@ -101,6 +101,11 @@ int OpBuyIsNotPending(bool &actual)
             return pendingOrderError;
         }
 
+        if (!OrderDelete(ticket, clrNONE))
+        {
+            return GetLastError();
+        }
+
         return UnitTestConstants::UNIT_TEST_RAN;
     }
 
@@ -121,6 +126,11 @@ int OpSellIsNotPending(bool &actual)
             return pendingOrderError;
         }
 
+        if (!OrderDelete(ticket, clrNONE))
+        {
+            return GetLastError();
+        }
+
         return UnitTestConstants::UNIT_TEST_RAN;
     }
 
@@ -130,9 +140,10 @@ int OpSellIsNotPending(bool &actual)
 int OpBuyStopIsPending(bool &actual)
 {
     int type = OP_BUYSTOP;
-    double entryPrice = Ask + OrderHelper::PipsToRange(10);
+    double entryPrice = Ask + OrderHelper::PipsToRange(100);
+    double stopLoss = Bid - OrderHelper::PipsToRange(100);
 
-    int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, 0, 0, clrNONE);
+    int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, stopLoss, 0, NULL, 0, 0, clrNONE);
     if (ticket > 0)
     {
         actual = false;
@@ -141,6 +152,11 @@ int OpBuyStopIsPending(bool &actual)
         if (pendingOrderError != ERR_NO_ERROR)
         {
             return pendingOrderError;
+        }
+
+        if (!OrderDelete(ticket, clrNONE))
+        {
+            return GetLastError();
         }
 
         return UnitTestConstants::UNIT_TEST_RAN;
@@ -152,9 +168,10 @@ int OpBuyStopIsPending(bool &actual)
 int OpSellStopIsPending(bool &actual)
 {
     int type = OP_SELLSTOP;
-    double entryPrice = Bid - OrderHelper::PipsToRange(10);
+    double entryPrice = Bid - OrderHelper::PipsToRange(100);
+    double stopLoss = Ask + OrderHelper::PipsToRange(100);
 
-    int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, 0, 0, clrNONE);
+    int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, stopLoss, 0, NULL, 0, 0, clrNONE);
     if (ticket > 0)
     {
         actual = false;
@@ -163,6 +180,11 @@ int OpSellStopIsPending(bool &actual)
         if (pendingOrderError != ERR_NO_ERROR)
         {
             return pendingOrderError;
+        }
+
+        if (!OrderDelete(ticket, clrNONE))
+        {
+            return GetLastError();
         }
 
         return UnitTestConstants::UNIT_TEST_RAN;
@@ -174,9 +196,10 @@ int OpSellStopIsPending(bool &actual)
 int OpBuyLimitIsPending(bool &actual)
 {
     int type = OP_BUYLIMIT;
-    double entryPrice = Bid - OrderHelper::PipsToRange(10);
+    double entryPrice = Bid - OrderHelper::PipsToRange(100);
+    double stopLoss = Bid - OrderHelper::PipsToRange(200);
 
-    int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, 0, 0, clrNONE);
+    int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, stopLoss, 0, NULL, 0, 0, clrNONE);
     if (ticket > 0)
     {
         actual = false;
@@ -185,6 +208,11 @@ int OpBuyLimitIsPending(bool &actual)
         if (pendingOrderError != ERR_NO_ERROR)
         {
             return pendingOrderError;
+        }
+
+        if (!OrderDelete(ticket, clrNONE))
+        {
+            return GetLastError();
         }
 
         return UnitTestConstants::UNIT_TEST_RAN;
@@ -196,9 +224,10 @@ int OpBuyLimitIsPending(bool &actual)
 int OpSellLimitIsPending(bool &actual)
 {
     int type = OP_SELLLIMIT;
-    double entryPrice = Ask + OrderHelper::PipsToRange(10);
+    double entryPrice = Ask + OrderHelper::PipsToRange(100);
+    double stopLoss = Ask + OrderHelper::PipsToRange(200);
 
-    int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, 0, 0, clrNONE);
+    int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, stopLoss, 0, NULL, 0, 0, clrNONE);
     if (ticket > 0)
     {
         actual = false;
@@ -207,6 +236,11 @@ int OpSellLimitIsPending(bool &actual)
         if (pendingOrderError != ERR_NO_ERROR)
         {
             return pendingOrderError;
+        }
+
+        if (!OrderDelete(ticket, clrNONE))
+        {
+            return GetLastError();
         }
 
         return UnitTestConstants::UNIT_TEST_RAN;

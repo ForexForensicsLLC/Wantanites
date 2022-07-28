@@ -54,6 +54,8 @@ int OnInit()
 
 void OnDeinit(const int reason)
 {
+    delete MBT;
+
     delete NoErrorsDifferentStopLossUnitTest;
     delete DoesNotTrailPastOpenUnitTest;
 }

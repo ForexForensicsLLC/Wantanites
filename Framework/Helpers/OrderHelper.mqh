@@ -34,7 +34,7 @@ public:
     // !Tested
     static double GetLotSize(double stopLossPips, double riskPercent);
 
-    // !Tested
+    // Tested
     // ResetsOutParam
     static int GetEntryPriceForStopOrderOnMostRecentPendingMB(double spreadPips, int setupType, MBTracker *&mbt, out double &entryPrice);
 
@@ -115,7 +115,7 @@ public:
     // !Tested
     // static bool CancelAllPendingOrdersByMagicNumber(int magicNumber);
 
-    // !Tested
+    // Tested
     static int CancelPendingOrderByTicket(out int &ticket);
 
     // ==========================================================================
@@ -364,7 +364,7 @@ static int OrderHelper::IsPendingOrder(int ticket, out bool &isTrue)
 static int OrderHelper::CountOtherEAOrders(int &magicNumbers[], out int &orders)
 {
     orders = 0;
-    for (int i = 0; i < OrdersTotal() - 1; i++)
+    for (int i = 0; i < OrdersTotal(); i++)
     {
         int selectError = SelectOpenOrderByPosition(i, "Checking if other EAs placed orders");
         if (selectError != ERR_NO_ERROR)

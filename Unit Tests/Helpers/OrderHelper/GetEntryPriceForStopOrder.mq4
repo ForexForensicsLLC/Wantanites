@@ -13,10 +13,10 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/OrderHelper/GetEntryForStopOrder/";
+const string Directory = "/UnitTests/OrderHelper/GetEntryPriceForStopOrder/";
 const int NumberOfAsserts = 25;
 const int AssertCooldown = 1;
-const bool RecordScreenShot = true;
+const bool RecordScreenShot = false;
 const bool RecordErrors = true;
 
 input int MBsToTrack = 3;
@@ -28,13 +28,22 @@ input bool CalculateOnTick = true;
 
 MBTracker *MBT;
 
+// https://drive.google.com/file/d/1f4tCRZjZJOmeSJ9bPFIiPlaVtVu2JCFt/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *BullishMBNoErrorsUnitTest;
+
+// https://drive.google.com/file/d/1f4tCRZjZJOmeSJ9bPFIiPlaVtVu2JCFt/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *BearishMBNoErrorsUnitTest;
 
+// https://drive.google.com/file/d/1f4tCRZjZJOmeSJ9bPFIiPlaVtVu2JCFt/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *BullishMBEmptyRetracementUnitTest;
+
+// https://drive.google.com/file/d/1f4tCRZjZJOmeSJ9bPFIiPlaVtVu2JCFt/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *BearishMBEmptyRetracementUnitTest;
 
+// https://drive.google.com/file/d/1f4tCRZjZJOmeSJ9bPFIiPlaVtVu2JCFt/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *BullishMBCorrectEntryPriceUnitTest;
+
+// https://drive.google.com/file/d/1f4tCRZjZJOmeSJ9bPFIiPlaVtVu2JCFt/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *BearishMBCorrectEntryPriceUnitTest;
 
 int OnInit()
@@ -76,6 +85,8 @@ int OnInit()
 
 void OnDeinit(const int reason)
 {
+    delete MBT;
+
     delete BullishMBNoErrorsUnitTest;
     delete BearishMBNoErrorsUnitTest;
 

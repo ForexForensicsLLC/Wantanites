@@ -21,7 +21,10 @@ const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
 const bool RecordErrors = true;
 
+// https://drive.google.com/file/d/1sZqvQX9NmSYbs9fwOQtKx8du2mJbfied/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *NoErrorsUnitTest;
+
+// https://drive.google.com/file/d/1CQd6HniMS8WAg8-amUh-R4BlKf1DaX-B/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *ErrorsWhenCancelingDeletedOrderUnitTest;
 
 int OnInit()
@@ -54,9 +57,10 @@ void OnTick()
 int NoErrors(out int &actual)
 {
     int type = OP_BUYSTOP;
-    double entryPrice = Ask + OrderHelper::PipsToRange(10);
+    double entryPrice = Ask + OrderHelper::PipsToRange(100);
+    double stopLoss = Bid - OrderHelper::PipsToRange(100);
 
-    int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, 0, 0, clrNONE);
+    int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, stopLoss, 0, NULL, 0, 0, clrNONE);
     if (ticket > 0)
     {
         actual = OrderHelper::CancelPendingOrderByTicket(ticket);
@@ -69,9 +73,10 @@ int NoErrors(out int &actual)
 int ErrorsWhenCancelingDeletedOrder(int &actual)
 {
     int type = OP_BUYSTOP;
-    double entryPrice = Ask + OrderHelper::PipsToRange(10);
+    double entryPrice = Ask + OrderHelper::PipsToRange(100);
+    double stopLoss = Bid - OrderHelper::PipsToRange(100);
 
-    int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, 0, 0, clrNONE);
+    int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, stopLoss, 0, NULL, 0, 0, clrNONE);
     if (ticket > 0)
     {
         OrderDelete(ticket, clrNONE);

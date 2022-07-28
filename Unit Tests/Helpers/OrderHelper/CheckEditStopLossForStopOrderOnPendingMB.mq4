@@ -67,6 +67,8 @@ int OnInit()
 
 void OnDeinit(const int reason)
 {
+    delete MBT;
+
     delete DidNotEditBullishMBStopLossUnitTest;
     delete DidNotEditBearishMBStopLossUnitTest;
 

@@ -9,6 +9,7 @@
 #property strict
 
 #define out
+#define GetErrorName(error) ((#error))
 
 class Errors
 {
@@ -31,6 +32,7 @@ public:
     static int ERR_NEW_STOPLOSS_EQUALS_OLD;
     static int ERR_UNABLE_TO_DELETE_PENDING_ORDER;
 };
+
 // 300s are for Indicator Errors
 static int Errors::ERR_MB_DOES_NOT_EXIST = 300;
 static int Errors::ERR_SUBSEQUENT_MB_DOES_NOT_EXIST = 301;
