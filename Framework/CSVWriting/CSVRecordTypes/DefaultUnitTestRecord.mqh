@@ -14,9 +14,10 @@ class DefaultUnitTestRecord : ICSVRecord
 {
 public:
     string Name;
+    string Description;
     datetime AssertTime;
     string Result;
-    string ErrorMessage;
+    string Message;
     int Asserts;
     int MaxAsserts;
     string Image;
@@ -24,16 +25,18 @@ public:
     DefaultUnitTestRecord();
     ~DefaultUnitTestRecord();
 
-    void Write(int fileHandle);
+    void WriteHeaders(int fileHandle);
+    void WriteRecord(int fileHandle);
     void Reset();
 };
 
 DefaultUnitTestRecord::DefaultUnitTestRecord()
 {
     Name = "";
+    Description = "";
     AssertTime = 0;
     Result = "";
-    ErrorMessage = "";
+    Message = "";
     Asserts = 0;
     MaxAsserts = 0;
     Image = "";
@@ -41,17 +44,20 @@ DefaultUnitTestRecord::DefaultUnitTestRecord()
 
 DefaultUnitTestRecord::~DefaultUnitTestRecord() {}
 
-void DefaultUnitTestRecord::Write(int fileHandle)
+void DefaultUnitTestRecord::WriteHeaders(int fileHandle)
 {
-    FileWrite(fileHandle, Name, AssertTime, Result, ErrorMessage, Asserts, MaxAsserts, Image);
+    FileWrite(fileHandle, "Name", "Description", "Assert Time", "Result", "Message", "Assert Number", "Max Asserts", "Image");
+}
+
+void DefaultUnitTestRecord::WriteRecord(int fileHandle)
+{
+    FileWrite(fileHandle, Name, Description, AssertTime, Result, Message, Asserts, MaxAsserts, Image);
 }
 
 void DefaultUnitTestRecord::Reset()
 {
     AssertTime = 0;
     Result = "";
-    ErrorMessage = "";
-    Asserts = 0;
-    MaxAsserts = 0;
+    Message = "";
     Image = "";
 }

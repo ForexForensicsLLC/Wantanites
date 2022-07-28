@@ -9,59 +9,64 @@
 #property strict
 
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
-#include <SummitCapital\Framework\UnitTests\UnitTest.mqh>
+#include <SummitCapital\Framework\UnitTests\IntUnitTest.mqh>
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/OrderHelper/RangeToPips/";
 const int NumberOfAsserts = 10;
 const int AssertCooldown = 1;
+const bool RecordScreenShot = false;
+const bool RecordErrors = true;
+
+IntUnitTest<DefaultUnitTestRecord> *NasCorrectRangeToPipsUnitTest;
+IntUnitTest<DefaultUnitTestRecord> *EurusdCorrectRangeToPipsUnitTest;
 
 int OnInit()
 {
+    NasCorrectRangeToPipsUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "NAS Range To Pips", "Correctly Converts Range To Pips On NAS",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        10, NASCorrectRangeToPips);
+
+    EurusdCorrectRangeToPipsUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "EURUSD Range To Pips", "Correctly Converts Range To Pips On EURUSD",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        100000, EURUSDCorrectRangeToPips);
+
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete nasCorrectRangeToPipsUnitTest;
-    delete eurusdCorrectRangeToPipsUnitTest;
+    delete NasCorrectRangeToPipsUnitTest;
+    delete EurusdCorrectRangeToPipsUnitTest;
 }
 
 void OnTick()
 {
-    NASDAQ_CorrectRangeToPips();
-    EURUSD_CorrectRangeToPips();
+    NasCorrectRangeToPipsUnitTest.Assert();
+    EurusdCorrectRangeToPipsUnitTest.Assert();
 }
 
-UnitTest<DefaultUnitTestRecord> *nasCorrectRangeToPipsUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void NASDAQ_CorrectRangeToPips()
+int NASCorrectRangeToPips(int &actual)
 {
-    if (Symbol() == "US100.cash")
+    if (Symbol() != "US100.cash")
     {
-        nasCorrectRangeToPipsUnitTest.addTest(__FUNCTION__);
-
-        const double range = 0.1;
-
-        const double actual = OrderHelper::RangeToPips(range);
-        const double expected = 1.0;
-
-        nasCorrectRangeToPipsUnitTest.assertEquals("Nas100 Range to Pips", expected, actual);
+        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
     }
+
+    actual = OrderHelper::RangeToPips(1.0);
+    return UnitTestConstants::UNIT_TEST_RAN;
 }
 
-UnitTest<DefaultUnitTestRecord> *eurusdCorrectRangeToPipsUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void EURUSD_CorrectRangeToPips()
+int EURUSDCorrectRangeToPips(int &actual)
 {
-    if (Symbol() == "EURUSD")
+    if (Symbol() != "EURUSD")
     {
-        eurusdCorrectRangeToPipsUnitTest.addTest(__FUNCTION__);
-
-        const double range = 0.00001;
-
-        const double actual = OrderHelper::RangeToPips(range);
-        const double expected = 1;
-
-        eurusdCorrectRangeToPipsUnitTest.assertEquals("EURUSD Correct Range To Pips", expected, actual);
+        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
     }
+
+    actual = OrderHelper::RangeToPips(1.0);
+    return UnitTestConstants::UNIT_TEST_RAN;
 }

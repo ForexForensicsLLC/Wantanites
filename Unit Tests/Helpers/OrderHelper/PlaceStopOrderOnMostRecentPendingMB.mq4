@@ -12,13 +12,15 @@
 
 #include <SummitCapital\Framework\Trackers\MBTracker.mqh>
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
-#include <SummitCapital\Framework\UnitTests\UnitTest.mqh>
+#include <SummitCapital\Framework\UnitTests\IntUnitTest.mqh>
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/OrderHelper/PlaceStopOrderOnMostRecentPendingMB/";
 const int NumberOfAsserts = 50;
 const int AssertCooldown = 1;
+const bool RecordScreenShot = true;
+const bool RecordErrors = true;
 
 input int MBsToTrack = 3;
 input int MaxZonesInMB = 5;
@@ -29,17 +31,37 @@ input bool CalculateOnTick = true;
 
 MBTracker *MBT;
 
+IntUnitTest<DefaultUnitTestRecord> *BullishMBNoErrorUnitTest;
+IntUnitTest<DefaultUnitTestRecord> *BearishMBNoErrorUnitTest;
+IntUnitTest<DefaultUnitTestRecord> *NotMostRecentMBErrorUnitTest;
+
 int OnInit()
 {
     MBT = new MBTracker(MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, PrintErrors, CalculateOnTick);
+
+    BullishMBNoErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Bullish MB No Errors", "Places Stop Order On Most Recent Bullish MB Without Errors",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        ERR_NO_ERROR, BullishMBNoError);
+
+    BearishMBNoErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Bearish MB No Errors", "Places Stop Order On Most Recent Bearish MB Without Errors",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        ERR_NO_ERROR, BearishMBNoError);
+
+    NotMostRecentMBErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Not Most Recent MB Error", "Returns An Error When Trying To Place A Stop Order Not On The Most Recent MB",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        Errors::ERR_MB_IS_NOT_MOST_RECENT, NotMostRecentMBError);
+
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete bullishMBNoErrorUnitTest;
-    delete bearishMBNoErrorUnitTest;
-    delete notMostRecentMBError;
+    delete BullishMBNoErrorUnitTest;
+    delete BearishMBNoErrorUnitTest;
+    delete NotMostRecentMBErrorUnitTest;
 }
 
 void OnTick()
@@ -47,10 +69,10 @@ void OnTick()
     MBT.DrawNMostRecentMBs(1);
     MBT.DrawZonesForNMostRecentMBs(1);
 
-    BullishMBNoError();
-    BearishMBNoError();
+    BullishMBNoErrorUnitTest.Assert();
+    BearishMBNoErrorUnitTest.Assert();
 
-    NotMostRecentMBError();
+    NotMostRecentMBErrorUnitTest.Assert();
 }
 
 int CheckMostRecentPendingMB(int type)
@@ -106,56 +128,62 @@ int PlaceStoporderOnMostRecentPendingMB(int type, out int &ticket)
     return PlaceStopOrder(mbNumber, ticket);
 }
 
-UnitTest<DefaultUnitTestRecord> *bullishMBNoErrorUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void BullishMBNoError()
+int BullishMBNoError(int &actual)
 {
     int ticket = -1;
     int type = OP_BUY;
 
-    int expected = ERR_NO_ERROR;
-    int actual = PlaceStoporderOnMostRecentPendingMB(type, ticket);
-
-    bullishMBNoErrorUnitTest.addTest(__FUNCTION__);
-    bullishMBNoErrorUnitTest.assertEquals("Place Stop Order On Most Recent Bullish MB No Error", expected, actual);
+    int error = PlaceStoporderOnMostRecentPendingMB(type, ticket);
+    if (error == Errors::ERR_MB_IS_NOT_MOST_RECENT)
+    {
+        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+    }
 
     if (ticket > 0)
     {
         OrderDelete(ticket, clrNONE);
     }
+
+    actual = error;
+    return UnitTestConstants::UNIT_TEST_RAN;
 }
 
-UnitTest<DefaultUnitTestRecord> *bearishMBNoErrorUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void BearishMBNoError()
+int BearishMBNoError(int &actual)
 {
     int ticket = -1;
     int type = OP_SELL;
 
-    int expected = ERR_NO_ERROR;
-    int actual = PlaceStoporderOnMostRecentPendingMB(type, ticket);
-
-    bearishMBNoErrorUnitTest.addTest(__FUNCTION__);
-    bearishMBNoErrorUnitTest.assertEquals("Place Stop Order On Most Recent Bullish MB No Error", expected, actual);
+    int error = PlaceStoporderOnMostRecentPendingMB(type, ticket);
+    if (error == Errors::ERR_MB_IS_NOT_MOST_RECENT)
+    {
+        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+    }
 
     if (ticket > 0)
     {
         OrderDelete(ticket, clrNONE);
     }
+
+    actual = error;
+    return UnitTestConstants::UNIT_TEST_RAN;
 }
 
-UnitTest<DefaultUnitTestRecord> *notMostRecentMBError = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void NotMostRecentMBError()
+int NotMostRecentMBError(int &actual)
 {
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(2, tempMBState))
     {
-        return;
+        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
     }
 
     int ticket = -1;
 
-    int expected = Errors::ERR_MB_IS_NOT_MOST_RECENT;
-    int actual = PlaceStopOrder(tempMBState.Number(), ticket);
+    actual = PlaceStopOrder(tempMBState.Number(), ticket);
 
-    notMostRecentMBError.addTest(__FUNCTION__);
-    notMostRecentMBError.assertEquals("Not Most Recent MB Error", expected, actual);
+    if (ticket > 0)
+    {
+        OrderDelete(ticket, clrNONE);
+    }
+
+    return UnitTestConstants::UNIT_TEST_RAN;
 }

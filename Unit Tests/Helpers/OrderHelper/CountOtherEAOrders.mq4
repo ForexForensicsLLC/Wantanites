@@ -9,19 +9,25 @@
 #property strict
 
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
-#include <SummitCapital\Framework\UnitTests\UnitTest.mqh>
+#include <SummitCapital\Framework\UnitTests\IntUnitTest.mqh>
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/OrderHelper/CountOtherEAOrders/";
 const int NumberOfAsserts = 10;
 const int AssertCooldown = 1;
+const bool RecordScreenShot = false;
+const bool RecordErrors = true;
 
 const int MagicNumberOne = 001;
 const int MagicNumberTwo = 002;
 const int MagicNumberThree = 003;
 
 int MagicNumberArray[];
+
+IntUnitTest<DefaultUnitTestRecord> *ZeroOtherEAOrdersUnitTest;
+IntUnitTest<DefaultUnitTestRecord> *MultipleOrderesFromOneEAUnitTest;
+IntUnitTest<DefaultUnitTestRecord> *MultipleOrderesFromMultipleEAsUnitTest;
 
 int OnInit()
 {
@@ -31,90 +37,99 @@ int OnInit()
     MagicNumberArray[1] = MagicNumberTwo;
     MagicNumberArray[2] = MagicNumberThree;
 
+    ZeroOtherEAOrdersUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Zero Othe EA Orders", "0 Should Be Returned After No Orders Are Placed",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        0, ZeroOtherEAOrders);
+
+    MultipleOrderesFromOneEAUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Multiple Orders From One EA", "Should Return Multiple Orders",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        2, MultipleOrdersFromOneEA);
+
+    MultipleOrderesFromMultipleEAsUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Multiple Orders From Multiple EAs", "Should Return Orders From Multiple Differnt EAs",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        2, MultipleOrdersFromMultipleEAs);
+
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete zeroOtherEAOrdersUnitTest;
-    delete multipleOrderesFromOneEAUnitTest;
-    delete multipleOrderesFromMultipleEAsUnitTest;
+    delete ZeroOtherEAOrdersUnitTest;
+    delete MultipleOrderesFromOneEAUnitTest;
+    delete MultipleOrderesFromMultipleEAsUnitTest;
 }
 
 void OnTick()
 {
-    ZeroOtherEAOrders();
-    MultipleOrdersFromOneEA();
-    MultipleOrdersFromMultipleEAs();
+    ZeroOtherEAOrdersUnitTest.Assert();
+    MultipleOrderesFromOneEAUnitTest.Assert();
+    MultipleOrderesFromMultipleEAsUnitTest.Assert();
 }
 
-UnitTest<DefaultUnitTestRecord> *zeroOtherEAOrdersUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void ZeroOtherEAOrders()
+int ZeroOtherEAOrders(int &actual)
 {
-    const int expected = 0;
-    int actual = 1;
+    actual = 1;
 
     int otherEAOrdersErrors = OrderHelper::CountOtherEAOrders(MagicNumberArray, actual);
     if (otherEAOrdersErrors != ERR_NO_ERROR)
     {
-        return;
+        return otherEAOrdersErrors;
     }
 
-    zeroOtherEAOrdersUnitTest.addTest(__FUNCTION__);
-    zeroOtherEAOrdersUnitTest.assertEquals("Zero Orders From Other EAs", expected, actual);
+    return UnitTestConstants::UNIT_TEST_RAN;
 }
 
-UnitTest<DefaultUnitTestRecord> *multipleOrderesFromOneEAUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void MultipleOrdersFromOneEA()
+int MultipleOrdersFromOneEA(int &actual)
 {
     int type = OP_BUYSTOP;
-    int entryPrice = Ask + OrderHelper::PipsToRange(10);
+    double entryPrice = Ask + OrderHelper::PipsToRange(10);
 
     int ticketOne = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, MagicNumberOne, 0, clrNONE);
     int ticketTwo = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, MagicNumberOne, 0, clrNONE);
     if (ticketOne > 0 && ticketTwo > 0)
     {
-        const int expected = 2;
-        int actual;
+        actual = 0;
 
         int otherEAOrdersErrors = OrderHelper::CountOtherEAOrders(MagicNumberArray, actual);
         if (otherEAOrdersErrors != ERR_NO_ERROR)
         {
-            return;
+            return otherEAOrdersErrors;
         }
-
-        multipleOrderesFromOneEAUnitTest.addTest(__FUNCTION__);
-        multipleOrderesFromOneEAUnitTest.assertEquals("Multiple Orders From One EA", expected, actual);
 
         OrderDelete(ticketOne, clrNONE);
         OrderDelete(ticketTwo, clrNONE);
+
+        return UnitTestConstants::UNIT_TEST_RAN;
     }
+
+    return GetLastError();
 }
 
-UnitTest<DefaultUnitTestRecord> *multipleOrderesFromMultipleEAsUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void MultipleOrdersFromMultipleEAs()
+int MultipleOrdersFromMultipleEAs(int &actual)
 {
     int type = OP_BUYSTOP;
-    int entryPrice = Ask + OrderHelper::PipsToRange(10);
+    double entryPrice = Ask + OrderHelper::PipsToRange(10);
 
     int ticketOne = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, MagicNumberOne, 0, clrNONE);
     int ticketTwo = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, MagicNumberTwo, 0, clrNONE);
     if (ticketOne > 0 && ticketTwo > 0)
     {
-
-        const int expected = 2;
-        int actual;
+        actual = 0;
 
         int otherEAOrdersErrors = OrderHelper::CountOtherEAOrders(MagicNumberArray, actual);
         if (otherEAOrdersErrors != ERR_NO_ERROR)
         {
-            return;
+            return otherEAOrdersErrors;
         }
-
-        multipleOrderesFromMultipleEAsUnitTest.addTest(__FUNCTION__);
-        multipleOrderesFromMultipleEAsUnitTest.assertEquals("Multiple Orders From Multiple EAs", expected, actual);
 
         OrderDelete(ticketOne, clrNONE);
         OrderDelete(ticketTwo, clrNONE);
+
+        return UnitTestConstants::UNIT_TEST_RAN;
     }
+
+    return GetLastError();
 }

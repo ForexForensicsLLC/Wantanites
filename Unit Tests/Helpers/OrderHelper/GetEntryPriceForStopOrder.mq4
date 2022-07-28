@@ -9,13 +9,15 @@
 #property strict
 
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
-#include <SummitCapital\Framework\UnitTests\UnitTest.mqh>
+#include <SummitCapital\Framework\UnitTests\IntUnitTest.mqh>
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/OrderHelper/GetEntryForStopOrder/";
 const int NumberOfAsserts = 25;
 const int AssertCooldown = 1;
+const bool RecordScreenShot = true;
+const bool RecordErrors = true;
 
 input int MBsToTrack = 3;
 input int MaxZonesInMB = 5;
@@ -26,23 +28,62 @@ input bool CalculateOnTick = true;
 
 MBTracker *MBT;
 
+IntUnitTest<DefaultUnitTestRecord> *BullishMBNoErrorsUnitTest;
+IntUnitTest<DefaultUnitTestRecord> *BearishMBNoErrorsUnitTest;
+
+IntUnitTest<DefaultUnitTestRecord> *BullishMBEmptyRetracementUnitTest;
+IntUnitTest<DefaultUnitTestRecord> *BearishMBEmptyRetracementUnitTest;
+
+IntUnitTest<DefaultUnitTestRecord> *BullishMBCorrectEntryPriceUnitTest;
+IntUnitTest<DefaultUnitTestRecord> *BearishMBCorrectEntryPriceUnitTest;
+
 int OnInit()
 {
     MBT = new MBTracker(MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, PrintErrors, CalculateOnTick);
+
+    BullishMBNoErrorsUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Bullish MB No Errors", "No Errors Are Returned When Getting The Entry Price For A Bullish MB",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        ERR_NO_ERROR, BullishMBNoErrors);
+
+    BearishMBNoErrorsUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Bearish MB No Errors", "No Errors Are Returned When Getting The Entry Price For A Bearish MB",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        ERR_NO_ERROR, BearishMBNoErrors);
+
+    BullishMBEmptyRetracementUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Bullish MB Empty Reracement", "Should Return Empty Retracement Error",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        Errors::ERR_EMPTY_BULLISH_RETRACEMENT, BullishMBEmptyRetracement);
+
+    BearishMBEmptyRetracementUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Bearish MB Empty Retracment", "Should Return Empty Retracement Error",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        Errors::ERR_EMPTY_BEARISH_RETRACEMENT, BearishMBEmptyRetracement);
+
+    BullishMBCorrectEntryPriceUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Bullish MB Correct Entry Price", "Entry Price For Bullish MB Is Correc",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        BullishMBCorrectEntryPriceExpected, BullishMBCorrectEntryPrice);
+
+    BearishMBCorrectEntryPriceUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Bearish MB Correct Entry Price", "Entry Price For Bearish MB Is Correct",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        BearishMBCorrectEntryPriceExpected, BearishMBCorrectEntryPrice);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete bullishMBNoErrorsUnitTest;
-    delete bearishMBNoErrorsUnitTest;
+    delete BullishMBNoErrorsUnitTest;
+    delete BearishMBNoErrorsUnitTest;
 
-    delete bullishMBEmptyRetracementUnitTest;
-    delete bearishMBEmptyRetracementUnitTest;
+    delete BullishMBEmptyRetracementUnitTest;
+    delete BearishMBEmptyRetracementUnitTest;
 
-    delete bullishMBCorrectEntryPriceUnitTest;
-    delete bearishMBCorrectEntryPriceUnitTest;
+    delete BullishMBCorrectEntryPriceUnitTest;
+    delete BearishMBCorrectEntryPriceUnitTest;
 }
 
 void OnTick()
@@ -50,14 +91,14 @@ void OnTick()
     MBT.DrawNMostRecentMBs(1);
     MBT.DrawZonesForNMostRecentMBs(1);
 
-    BullishMBNoErrors();
-    BearishMBNoErrors();
+    BullishMBNoErrorsUnitTest.Assert();
+    BearishMBNoErrorsUnitTest.Assert();
 
-    BullishMBEmptyRetracement();
-    BearishMBEmptyRetracement();
+    BullishMBEmptyRetracementUnitTest.Assert();
+    BearishMBEmptyRetracementUnitTest.Assert();
 
-    BullishMBCorrectEntryPrice();
-    BearishMBCorrectEntryPrice();
+    BullishMBCorrectEntryPriceUnitTest.Assert();
+    BearishMBCorrectEntryPriceUnitTest.Assert();
 }
 
 bool GetEntryPriceForStopOrderSetup(int type, bool shouldHaveRetracment)
@@ -93,126 +134,114 @@ bool GetEntryPriceForStopOrderSetup(int type, bool shouldHaveRetracment)
     return true;
 }
 
-UnitTest<DefaultUnitTestRecord> *bullishMBNoErrorsUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void BullishMBNoErrors()
+int BullishMBNoErrors(int &actual)
 {
     int setupType = OP_BUY;
     if (!GetEntryPriceForStopOrderSetup(setupType, true))
     {
-        return;
+        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
     }
-
-    bullishMBNoErrorsUnitTest.addTest(__FUNCTION__);
 
     double entryPrice = 0.0;
     double spreadPips = 0.0;
 
-    int expected = ERR_NO_ERROR;
-    int actual = OrderHelper::GetEntryPriceForStopOrderOnMostRecentPendingMB(spreadPips, setupType, MBT, entryPrice);
-
-    bullishMBNoErrorsUnitTest.assertEquals("Get Entry Price For Stop Order On Most Recent Pending Bullish MB No Error", expected, actual);
+    actual = OrderHelper::GetEntryPriceForStopOrderOnMostRecentPendingMB(spreadPips, setupType, MBT, entryPrice);
+    return UnitTestConstants::UNIT_TEST_RAN;
 }
 
-UnitTest<DefaultUnitTestRecord> *bearishMBNoErrorsUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void BearishMBNoErrors()
+int BearishMBNoErrors(int &actual)
 {
     int setupType = OP_SELL;
     if (!GetEntryPriceForStopOrderSetup(setupType, true))
     {
-        return;
+        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
     }
-
-    bearishMBNoErrorsUnitTest.addTest(__FUNCTION__);
 
     double entryPrice = 0.0;
     double spreadPips = 0.0;
 
-    int expected = ERR_NO_ERROR;
-    int actual = OrderHelper::GetEntryPriceForStopOrderOnMostRecentPendingMB(spreadPips, setupType, MBT, entryPrice);
-
-    bearishMBNoErrorsUnitTest.assertEquals("Get Entry Price For Stop Order On Most Recent Pending Bearish MB No Error", expected, actual);
+    actual = OrderHelper::GetEntryPriceForStopOrderOnMostRecentPendingMB(spreadPips, setupType, MBT, entryPrice);
+    return UnitTestConstants::UNIT_TEST_RAN;
 }
 
-UnitTest<DefaultUnitTestRecord> *bullishMBEmptyRetracementUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void BullishMBEmptyRetracement()
+int BullishMBEmptyRetracement(int &actual)
 {
     int setupType = OP_BUY;
     if (!GetEntryPriceForStopOrderSetup(setupType, false))
     {
-        return;
+        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
     }
-
-    bullishMBEmptyRetracementUnitTest.addTest(__FUNCTION__);
 
     double entryPrice = 0.0;
     double spreadPips = 0.0;
 
-    int expected = Errors::ERR_EMPTY_BULLISH_RETRACEMENT;
-    int actual = OrderHelper::GetEntryPriceForStopOrderOnMostRecentPendingMB(spreadPips, setupType, MBT, entryPrice);
-
-    bullishMBEmptyRetracementUnitTest.assertEquals("Get Entry Price For Stop Order On Most Recent Pending Bullish MB Invalid Retracement", expected, actual);
+    actual = OrderHelper::GetEntryPriceForStopOrderOnMostRecentPendingMB(spreadPips, setupType, MBT, entryPrice);
+    return UnitTestConstants::UNIT_TEST_RAN;
 }
 
-UnitTest<DefaultUnitTestRecord> *bearishMBEmptyRetracementUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void BearishMBEmptyRetracement()
+int BearishMBEmptyRetracement(int &actual)
 {
     int setupType = OP_SELL;
     if (!GetEntryPriceForStopOrderSetup(setupType, false))
     {
-        return;
+        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
     }
-
-    bearishMBEmptyRetracementUnitTest.addTest(__FUNCTION__);
 
     double entryPrice = 0.0;
     double spreadPips = 0.0;
 
-    int expected = Errors::ERR_EMPTY_BEARISH_RETRACEMENT;
-    int actual = OrderHelper::GetEntryPriceForStopOrderOnMostRecentPendingMB(spreadPips, setupType, MBT, entryPrice);
-
-    bearishMBEmptyRetracementUnitTest.assertEquals("Get Entry Price For Stop Order On Most Recent Pending Bullish MB Invalid Retracement", expected, actual);
+    actual = OrderHelper::GetEntryPriceForStopOrderOnMostRecentPendingMB(spreadPips, setupType, MBT, entryPrice);
+    return UnitTestConstants::UNIT_TEST_RAN;
 }
 
-UnitTest<DefaultUnitTestRecord> *bullishMBCorrectEntryPriceUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void BullishMBCorrectEntryPrice()
+int BullishMBCorrectEntryPriceExpected()
+{
+    return MathFloor((iHigh(Symbol(), Period(), MBT.CurrentBullishRetracementIndex()) * MathPow(10, _Digits)));
+}
+
+int BullishMBCorrectEntryPrice(int &actual)
 {
     int setupType = OP_BUY;
     if (!GetEntryPriceForStopOrderSetup(setupType, true))
     {
-        return;
+        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
     }
-
-    bullishMBCorrectEntryPriceUnitTest.addTest(__FUNCTION__);
 
     double entryPrice = 0.0;
     double spreadPips = 0.0;
 
-    OrderHelper::GetEntryPriceForStopOrderOnMostRecentPendingMB(spreadPips, setupType, MBT, entryPrice);
+    int entryPriceError = OrderHelper::GetEntryPriceForStopOrderOnMostRecentPendingMB(spreadPips, setupType, MBT, entryPrice);
+    if (entryPriceError != ERR_NO_ERROR)
+    {
+        return entryPriceError;
+    }
 
-    int expected = MathFloor((iHigh(Symbol(), Period(), MBT.CurrentBullishRetracementIndex()) * MathPow(10, _Digits)));
-    int actual = MathFloor((entryPrice * MathPow(10, _Digits)));
-
-    bullishMBCorrectEntryPriceUnitTest.assertEquals("Get Entry Price For Buy Stop Order On Most Recent Bullish Pending MB Correct Entry", expected, actual);
+    actual = MathFloor((entryPrice * MathPow(10, _Digits)));
+    return UnitTestConstants::UNIT_TEST_RAN;
 }
 
-UnitTest<DefaultUnitTestRecord> *bearishMBCorrectEntryPriceUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void BearishMBCorrectEntryPrice()
+int BearishMBCorrectEntryPriceExpected()
+{
+    return MathFloor((iLow(Symbol(), Period(), MBT.CurrentBearishRetracementIndex()) * MathPow(10, _Digits)));
+}
+
+int BearishMBCorrectEntryPrice(int &actual)
 {
     int setupType = OP_SELL;
     if (!GetEntryPriceForStopOrderSetup(setupType, true))
     {
-        return;
+        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
     }
-
-    bearishMBCorrectEntryPriceUnitTest.addTest(__FUNCTION__);
 
     double entryPrice = 0.0;
     double spreadPips = 0.0;
 
-    OrderHelper::GetEntryPriceForStopOrderOnMostRecentPendingMB(spreadPips, setupType, MBT, entryPrice);
+    int entryPriceError = OrderHelper::GetEntryPriceForStopOrderOnMostRecentPendingMB(spreadPips, setupType, MBT, entryPrice);
+    if (entryPriceError != ERR_NO_ERROR)
+    {
+        return entryPriceError;
+    }
 
-    int expected = MathFloor((iLow(Symbol(), Period(), MBT.CurrentBearishRetracementIndex()) * MathPow(10, _Digits)));
-    int actual = MathFloor((entryPrice * MathPow(10, _Digits)));
-
-    bearishMBCorrectEntryPriceUnitTest.assertEquals("Get Entry Price For Sell Stop Order On Most Recent Bearish Pending MB Correct Entry", expected, actual);
+    actual = MathFloor((entryPrice * MathPow(10, _Digits)));
+    return UnitTestConstants::UNIT_TEST_RAN;
 }

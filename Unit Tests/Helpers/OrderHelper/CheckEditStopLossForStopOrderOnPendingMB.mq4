@@ -13,13 +13,15 @@
 #include <SummitCapital\Framework\Trackers\MBTracker.mqh>
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
 #include <SummitCapital\Framework\Helpers\SetupHelper.mqh>
-#include <SummitCapital\Framework\UnitTests\UnitTest.mqh>
+#include <SummitCapital\Framework\UnitTests\BoolUnitTest.mqh>
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/OrderHelper/CheckEditStopLossForStopOrderOnPendingMB/";
 const int NumberOfAsserts = 100;
 const int AssertCooldown = 0;
+const bool RecordScreenShot = true;
+const bool RecordErrors = true;
 
 input int MBsToTrack = 3;
 input int MaxZonesInMB = 5;
@@ -30,16 +32,46 @@ input bool CalculateOnTick = true;
 
 MBTracker *MBT;
 
+BoolUnitTest<DefaultUnitTestRecord> *DidNotEditBullishMBStopLossUnitTest;
+BoolUnitTest<DefaultUnitTestRecord> *DidNotEditBearishMBStopLossUnitTest;
+
+BoolUnitTest<DefaultUnitTestRecord> *DidEditBullishMBStopLossUnitTest;
+BoolUnitTest<DefaultUnitTestRecord> *DidEditBearishMBStopLossUnitTest;
+
 int OnInit()
 {
     MBT = new MBTracker(MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, PrintErrors, CalculateOnTick);
+
+    DidNotEditBullishMBStopLossUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "Did Not Edit Bullish MB Stop Loss", "Stop Loss Was Not Edited When The Old And New Ticker Are The Same",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        true, DidNotEditBullishMBStopLoss);
+
+    DidNotEditBearishMBStopLossUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "Did Not Edit Bearish MB Stop Loss", "Stop Loss Was Not Edited When The Old And New Ticker Are The Same",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        true, DidNotEditBearishMBStopLoss);
+
+    DidEditBullishMBStopLossUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "Did Edit Bullish MB Stop Loss", "Stop Loss Was Edited When Retracement went Further",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        true, DidEditBullishMBStopLoss);
+
+    DidEditBearishMBStopLossUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "Did Edit Bearish MB Stop Loss", "Stop Loss Was Edited When Retracement went Further",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        true, DidEditBearishMBStopLoss);
+
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete didNotEditStopLossUnitTest;
-    delete didEditStopLossUnitTest;
+    delete DidNotEditBullishMBStopLossUnitTest;
+    delete DidNotEditBearishMBStopLossUnitTest;
+
+    delete DidEditBullishMBStopLossUnitTest;
+    delete DidEditBearishMBStopLossUnitTest;
 }
 
 void OnTick()
@@ -47,12 +79,14 @@ void OnTick()
     MBT.DrawNMostRecentMBs(1);
     MBT.DrawZonesForNMostRecentMBs(1);
 
-    DidNotEditStopLoss();
-    DidEditStopLoss();
+    DidNotEditBullishMBStopLossUnitTest.Assert();
+    DidNotEditBearishMBStopLossUnitTest.Assert();
+
+    DidEditBullishMBStopLossUnitTest.Assert();
+    DidEditBearishMBStopLossUnitTest.Assert();
 }
 
-UnitTest<DefaultUnitTestRecord> *didNotEditStopLossUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void DidNotEditStopLoss()
+int DidNotEditBullishMBStopLoss(bool &actual)
 {
     static int ticket = -1;
     static double stopLoss = 0.0;
@@ -83,18 +117,18 @@ void DidNotEditStopLoss()
         MBState *tempMBState;
         if (!MBT.GetNthMostRecentMB(0, tempMBState))
         {
-            return;
+            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
         }
 
         if (tempMBState.Type() != OP_BUY)
         {
-            return;
+            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
         }
 
         int retracementIndex = MBT.CurrentBullishRetracementIndex();
         if (retracementIndex == EMPTY)
         {
-            return;
+            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
         }
 
         mbNumber = tempMBState.Number();
@@ -102,7 +136,7 @@ void DidNotEditStopLoss()
         int error = OrderHelper::PlaceStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, riskPercent, magicNumber, mbNumber, MBT, ticket);
         if (error != ERR_NO_ERROR)
         {
-            return;
+            return error;
         }
 
         OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Editing Stop Loss");
@@ -115,19 +149,17 @@ void DidNotEditStopLoss()
 
         if (editStopLossError != Errors::ERR_NEW_STOPLOSS_EQUALS_OLD)
         {
-            return;
+            return editStopLossError;
         }
 
-        bool expected = true;
-        bool actual = oldTicket == ticket;
-
-        didNotEditStopLossUnitTest.addTest(__FUNCTION__);
-        didNotEditStopLossUnitTest.assertEquals("Did Not Edit Stop Loss", expected, actual);
+        actual = oldTicket == ticket;
+        return UnitTestConstants::UNIT_TEST_RAN;
     }
+
+    return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
 }
 
-UnitTest<DefaultUnitTestRecord> *didEditStopLossUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void DidEditStopLoss()
+int DidNotEditBearishMBStopLoss(bool &actual)
 {
     static int ticket = -1;
     static double stopLoss = 0.0;
@@ -158,18 +190,18 @@ void DidEditStopLoss()
         MBState *tempMBState;
         if (!MBT.GetNthMostRecentMB(0, tempMBState))
         {
-            return;
+            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
         }
 
-        if (tempMBState.Type() != OP_BUY)
+        if (tempMBState.Type() != OP_SELL)
         {
-            return;
+            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
         }
 
-        int retracementIndex = MBT.CurrentBullishRetracementIndex();
+        int retracementIndex = MBT.CurrentBearishRetracementIndex();
         if (retracementIndex == EMPTY)
         {
-            return;
+            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
         }
 
         mbNumber = tempMBState.Number();
@@ -177,7 +209,7 @@ void DidEditStopLoss()
         int error = OrderHelper::PlaceStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, riskPercent, magicNumber, mbNumber, MBT, ticket);
         if (error != ERR_NO_ERROR)
         {
-            return;
+            return error;
         }
 
         OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Editing Stop Loss");
@@ -188,21 +220,188 @@ void DidEditStopLoss()
         int oldTicket = ticket;
         int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(paddingPips, spreadPips, riskPercent, mbNumber, MBT, ticket);
 
+        if (editStopLossError != Errors::ERR_NEW_STOPLOSS_EQUALS_OLD)
+        {
+            return editStopLossError;
+        }
+
+        actual = oldTicket == ticket;
+        return UnitTestConstants::UNIT_TEST_RAN;
+    }
+
+    return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+}
+
+int DidEditBullishMBStopLoss(bool &actual)
+{
+    static int ticket = -1;
+    static double stopLoss = 0.0;
+    static int mbNumber = -1;
+
+    const int type = OP_BUY;
+    const int paddingPips = 0.0;
+    const int spreadPips = 0.0;
+    const double riskPercent = 0.25;
+    const int magicNumber = 0;
+
+    // reset state if we broke the mb
+    if (mbNumber != -1)
+    {
+        bool isTrue = false;
+        int error = SetupHelper::BrokeMBRangeStart(mbNumber, MBT, isTrue);
+
+        if (error != ERR_NO_ERROR || isTrue)
+        {
+            mbNumber = -1;
+            stopLoss = 0.0;
+            ticket = -1;
+        }
+    }
+
+    // make sure we have a setup
+    if (stopLoss == 0.0)
+    {
+        MBState *tempMBState;
+        if (!MBT.GetNthMostRecentMB(0, tempMBState))
+        {
+            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        }
+
+        if (tempMBState.Type() != type)
+        {
+            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        }
+
+        int retracementIndex = MBT.CurrentBullishRetracementIndex();
+        if (retracementIndex == EMPTY)
+        {
+            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        }
+
+        mbNumber = tempMBState.Number();
+
+        int error = OrderHelper::PlaceStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, riskPercent, magicNumber, mbNumber, MBT, ticket);
+        if (error != ERR_NO_ERROR)
+        {
+            return error;
+        }
+
+        OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Editing Stop Loss");
+        stopLoss = OrderStopLoss();
+    }
+    else
+    {
+        double newStopLoss;
+        int newStopLossError = OrderHelper::GetStopLossForStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, type, MBT, newStopLoss);
+        if (newStopLossError != ERR_NO_ERROR)
+        {
+            return newStopLossError;
+        }
+
+        int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(paddingPips, spreadPips, riskPercent, mbNumber, MBT, ticket);
         if (editStopLossError != ERR_NO_ERROR)
         {
-            return;
+            return editStopLossError;
         }
 
         int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Editing Stop Loss");
         if (selectError != ERR_NO_ERROR)
         {
-            return;
+            return selectError;
         }
 
-        bool expected = true;
-        bool actual = stopLoss == OrderStopLoss();
-
-        didEditStopLossUnitTest.addTest(__FUNCTION__);
-        didEditStopLossUnitTest.assertEquals("Did Edit Stop Loss", expected, actual);
+        actual = stopLoss != OrderStopLoss();
+        return UnitTestConstants::UNIT_TEST_RAN;
     }
+
+    return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+}
+
+int DidEditBearishMBStopLoss(bool &actual)
+{
+    static int ticket = -1;
+    static double stopLoss = 0.0;
+    static int mbNumber = -1;
+
+    const int type = OP_SELL;
+    const int paddingPips = 0.0;
+    const int spreadPips = 0.0;
+    const double riskPercent = 0.25;
+    const int magicNumber = 0;
+
+    if (mbNumber != -1)
+    {
+        bool isTrue = false;
+        int error = SetupHelper::BrokeMBRangeStart(mbNumber, MBT, isTrue);
+
+        if (error != ERR_NO_ERROR || isTrue)
+        {
+            mbNumber = -1;
+            stopLoss = 0.0;
+            ticket = -1;
+        }
+    }
+
+    // make sure we have a setup
+    if (stopLoss == 0.0)
+    {
+        MBState *tempMBState;
+        if (!MBT.GetNthMostRecentMB(0, tempMBState))
+        {
+            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        }
+
+        if (tempMBState.Type() != type)
+        {
+            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        }
+
+        int retracementIndex = MBT.CurrentBullishRetracementIndex();
+        if (retracementIndex == EMPTY)
+        {
+            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        }
+
+        mbNumber = tempMBState.Number();
+
+        int error = OrderHelper::PlaceStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, riskPercent, magicNumber, mbNumber, MBT, ticket);
+        if (error != ERR_NO_ERROR)
+        {
+            return error;
+        }
+
+        OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Editing Stop Loss");
+        stopLoss = OrderStopLoss();
+    }
+    else
+    {
+        double newStopLoss;
+        int newStopLossError = OrderHelper::GetStopLossForStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, type, MBT, newStopLoss);
+        if (newStopLossError != ERR_NO_ERROR)
+        {
+            return newStopLossError;
+        }
+
+        if (newStopLoss == stopLoss)
+        {
+            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        }
+
+        int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(paddingPips, spreadPips, riskPercent, mbNumber, MBT, ticket);
+        if (editStopLossError != ERR_NO_ERROR)
+        {
+            return editStopLossError;
+        }
+
+        int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Editing Stop Loss");
+        if (selectError != ERR_NO_ERROR)
+        {
+            return selectError;
+        }
+
+        actual = stopLoss != OrderStopLoss();
+        return UnitTestConstants::UNIT_TEST_RAN;
+    }
+
+    return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
 }

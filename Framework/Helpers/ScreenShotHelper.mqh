@@ -13,27 +13,42 @@
 
 class ScreenShotHelper
 {
+private:
+    static string DateTimeToFilePathString(datetime dt);
+
 public:
-    static int TryTakeUnitTestScreenShot(string directory, out string &imageFilePath);
-    static int TryTakeOrderOpenScreenShot(int ticket, string directory, out string &imageFilePath);
-    static int TryTakeOrderCloseScreenShot(int ticket, string directory, out string &imageFilePath);
+    static int TryTakeUnitTestScreenShot(string directory, out string &imageName);
+    static int TryTakeOrderOpenScreenShot(int ticket, string directory, out string &imageName);
+    static int TryTakeOrderCloseScreenShot(int ticket, string directory, out string &imageName);
 };
 
-static int ScreenShotHelper::TryTakeUnitTestScreenShot(string directory, out string &imageFilePath)
+static string ScreenShotHelper::DateTimeToFilePathString(datetime dt)
 {
-    imageFilePath = directory + "Images/" + TimeToString(TimeCurrent(), TIME_DATE | TIME_SECONDS);
-    if (!ChartScreenShot(ChartID(), imageFilePath, 2000, 800, ALIGN_RIGHT))
+    return IntegerToString(TimeYear(dt)) + "-" +
+           IntegerToString(TimeMonth(dt)) + "-" +
+           IntegerToString(TimeDay(dt)) + "_" +
+           IntegerToString(TimeHour(dt)) + "-" +
+           IntegerToString(TimeMinute(dt)) + "-" +
+           IntegerToString(TimeSeconds(dt));
+}
+
+static int ScreenShotHelper::TryTakeUnitTestScreenShot(string directory, out string &imageName)
+{
+    imageName = DateTimeToFilePathString(TimeCurrent()) + ".png";
+    string filePath = directory + "Images/" + imageName;
+
+    if (!ChartScreenShot(ChartID(), filePath, 2000, 800, ALIGN_RIGHT))
     {
-        imageFilePath = "";
+        imageName = "";
         return GetLastError();
     }
 
     return ERR_NO_ERROR;
 }
 
-static int ScreenShotHelper::TryTakeOrderOpenScreenShot(int ticket, string directory, out string &imageFilePath)
+static int ScreenShotHelper::TryTakeOrderOpenScreenShot(int ticket, string directory, out string &imageName)
 {
-    imageFilePath = "";
+    imageName = "";
     if (ticket == EMPTY)
     {
         return Errors::ERR_EMPTY_TICKET;
@@ -45,19 +60,21 @@ static int ScreenShotHelper::TryTakeOrderOpenScreenShot(int ticket, string direc
         return orderSelectError;
     }
 
-    imageFilePath = directory + "/Images/" + TimeToString(OrderOpenTime(), TIME_DATE | TIME_SECONDS);
-    if (!ChartScreenShot(ChartID(), imageFilePath, 2000, 800, ALIGN_RIGHT))
+    imageName = DateTimeToFilePathString(OrderOpenTime()) + ".png";
+    string filePath = directory + "Images/" + imageName;
+
+    if (!ChartScreenShot(ChartID(), filePath, 2000, 800, ALIGN_RIGHT))
     {
-        imageFilePath = "";
+        imageName = "";
         return GetLastError();
     }
 
     return ERR_NO_ERROR;
 }
 
-static int ScreenShotHelper::TryTakeOrderCloseScreenShot(int ticket, string directory, out string &imageFilePath)
+static int ScreenShotHelper::TryTakeOrderCloseScreenShot(int ticket, string directory, out string &imageName)
 {
-    imageFilePath = "";
+    imageName = "";
     if (ticket == EMPTY)
     {
         return Errors::ERR_EMPTY_TICKET;
@@ -69,10 +86,12 @@ static int ScreenShotHelper::TryTakeOrderCloseScreenShot(int ticket, string dire
         return orderSelectError;
     }
 
-    imageFilePath = directory + "/Images/" + TimeToString(OrderCloseTime(), TIME_DATE | TIME_SECONDS);
-    if (!ChartScreenShot(ChartID(), imageFilePath, 2000, 800, ALIGN_RIGHT))
+    imageName = DateTimeToFilePathString(OrderCloseTime()) + ".png";
+    string filePath = directory + "Images/" + imageName;
+
+    if (!ChartScreenShot(ChartID(), filePath, 2000, 800, ALIGN_RIGHT))
     {
-        imageFilePath = "";
+        imageName = "";
         return GetLastError();
     }
 

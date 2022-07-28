@@ -35,7 +35,8 @@ public:
     double TotalMovePips() { return NormalizeDouble(OrderHelper::RangeToPips((EntryPrice - ExitPrice)), 2); }
     double PotentialRR() { return NormalizeDouble((EntryPrice - ExitPrice) / (EntryPrice - EntryStopLoss), 2); }
 
-    void Write(int fileHandle);
+    void WriteHeaders(int fileHandle);
+    void WriteRecord(int fileHandle);
     void Reset();
 };
 
@@ -46,7 +47,13 @@ DefaultTradeRecord::DefaultTradeRecord()
 
 DefaultTradeRecord::~DefaultTradeRecord() {}
 
-void DefaultTradeRecord::Write(int fileHandle)
+void DefaultTradeRecord::WriteHeaders(int fileHandle)
+{
+    FileWrite(fileHandle, "Symbol", "Time Frame", "Order Type", "Account Balance Before", "Account Balance After", "Entry Time", "Entry Image", "Exit Time", "Exit Image", 
+        "Entry Price", "Entry Stop Loss", "Lots", "Exit Price", "Exit Stop Loss", "Total Move Pips", "Potential RR");
+}
+
+void DefaultTradeRecord::WriteRecord(int fileHandle)
 {
     FileWrite(fileHandle, Symbol, TimeFrame, OrderType, AccountBalanceBefore, AccountBalanceAfter, EntryTime, EntryImage, ExitTime, ExitImage, EntryPrice,
               EntryStopLoss, Lots, ExitPrice, ExitStopLoss, TotalMovePips(), PotentialRR());

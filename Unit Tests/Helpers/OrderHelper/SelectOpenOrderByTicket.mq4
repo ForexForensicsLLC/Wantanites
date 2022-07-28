@@ -9,29 +9,45 @@
 #property strict
 
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
-#include <SummitCapital\Framework\UnitTests\UnitTest.mqh>
+#include <SummitCapital\Framework\UnitTests\IntUnitTest.mqh>
+#include <SummitCapital\Framework\UnitTests\BoolUnitTest.mqh>
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/OrderHelper/SelectOpenOrderByTicket/";
 const int NumberOfAsserts = 10;
 const int AssertCooldown = 1;
+const bool RecordScreenShot = false;
+const bool RecordErrors = true;
+
+IntUnitTest<DefaultUnitTestRecord> *NoErrorUnitTest;
+IntUnitTest<DefaultUnitTestRecord> *HasErrorUnitTest;
 
 int OnInit()
 {
+    NoErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "No Error Unit Test", "Should Return No Errors When Selecting An Open Order",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        ERR_NO_ERROR, NoError);
+
+    HasErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Has Error Unit Test", "Should Return An Error When Selecting A Closed Order",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        ERR_NO_ERROR, HasError);
+
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete noErrorUnitTest;
-    delete hasErrorUnitTest;
+    delete NoErrorUnitTest;
+    delete HasErrorUnitTest;
 }
 
 void OnTick()
 {
-    NoError();
-    HasError();
+    NoErrorUnitTest.Assert();
+    HasErrorUnitTest.Assert(false);
 }
 
 int SendOrder()
@@ -49,43 +65,29 @@ int SendOrder()
     return OrderSend(Symbol(), OP_BUYSTOP, lots, entryPrice, slippage, stopLoss, takeProfit, comment, magicNumber, expiration, col);
 }
 
-UnitTest<DefaultUnitTestRecord> *noErrorUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void NoError()
+int NoError(int &actual)
 {
     int ticket = SendOrder();
     if (ticket < 0)
     {
-        return;
+        return GetLastError();
     }
 
-    noErrorUnitTest.addTest(__FUNCTION__);
-
-    int expected = ERR_NO_ERROR;
-    int actual = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing selecing order");
-
-    noErrorUnitTest.assertEquals("Select Order By Ticket No Errors", expected, actual);
+    actual = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing selecing order");
 
     OrderDelete(ticket, clrNONE);
+
+    return UnitTestConstants::UNIT_TEST_RAN;
 }
 
-UnitTest<DefaultUnitTestRecord> *hasErrorUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void HasError()
+int HasError(int &actual)
 {
     int ticket = SendOrder();
     if (ticket < 0 || !OrderDelete(ticket, clrNONE))
     {
-        return;
+        return GetLastError();
     }
 
-    hasErrorUnitTest.addTest(__FUNCTION__);
-
-    int expected = ERR_NO_ERROR;
-    int actual = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing selecing order");
-
-    if (actual > 1)
-    {
-        expected = actual;
-    }
-
-    hasErrorUnitTest.assertEquals("Select Order By Ticket When No Current Orders Errors", expected, actual);
+    actual = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing selecing order");
+    return UnitTestConstants::UNIT_TEST_RAN;
 }

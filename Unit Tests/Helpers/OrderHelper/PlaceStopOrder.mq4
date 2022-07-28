@@ -11,45 +11,98 @@
 #include <SummitCapital\Framework\Constants\Errors.mqh>
 
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
-#include <SummitCapital\Framework\UnitTests\UnitTest.mqh>
+#include <SummitCapital\Framework\UnitTests\IntUnitTest.mqh>
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/OrderHelper/PlaceStopOrder/";
 const int NumberOfAsserts = 50;
 const int AssertCooldown = 1;
+const bool RecordScreenShot = false;
+const bool RecordErrors = true;
+
+IntUnitTest<DefaultUnitTestRecord> *BuyStopNoErrorUnitTest;
+IntUnitTest<DefaultUnitTestRecord> *SellStopNoErrorUnitTest;
+
+IntUnitTest<DefaultUnitTestRecord> *OpBuyWrongOrderTypeUnitTest;
+IntUnitTest<DefaultUnitTestRecord> *OpSellWrongOrderTypeUnitTest;
+IntUnitTest<DefaultUnitTestRecord> *OpBuyLimitWrongOrderTypeUnitTest;
+IntUnitTest<DefaultUnitTestRecord> *OpSellLimitWrongOrderTypeUnitTest;
+
+IntUnitTest<DefaultUnitTestRecord> *StopLossAboveBuyStopEntryErrorUnitTest;
+IntUnitTest<DefaultUnitTestRecord> *StopLossBelowSellStopEntryErrorUnitTest;
 
 int OnInit()
 {
+    BuyStopNoErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Buy Stop No Errrors", "No Errors When Placing Buy Stop Orders",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        ERR_NO_ERROR, BuyStopNoError);
+
+    SellStopNoErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Sell Stop No Errors", "No Errors When Placing Sell Stop ORders",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        ERR_NO_ERROR, SellStopNoError);
+
+    OpBuyWrongOrderTypeUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "OP Buy Wrong Order Type", "Returns Error When Placing OP Buy",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        Errors::ERR_WRONG_ORDER_TYPE, OpBuyWrongOrderType);
+
+    OpSellWrongOrderTypeUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "OP Sell Wrong Order Type", "Returns Error When Placing OP Sell",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        Errors::ERR_WRONG_ORDER_TYPE, OpSellWrongOrderType);
+
+    OpBuyLimitWrongOrderTypeUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "OP Buy Limit Wrong Order Type", "Returns Error When Placing OP Buy Limit",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        Errors::ERR_WRONG_ORDER_TYPE, OpBuyLimitWrongOrderType);
+
+    OpSellLimitWrongOrderTypeUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "OP Sell Limit Wrong Order Type", "Returns Error When Placing OP Sell Limit",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        Errors::ERR_WRONG_ORDER_TYPE, OpSellLimitWrongOrderType);
+
+    StopLossAboveBuyStopEntryErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Stop Loss Above Buy Stop Entry Error", "Returns Error When Stop Loss is Above Buy Stop Entry",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        Errors::ERR_STOPLOSS_ABOVE_ENTRY, StopLossAboveBuyStopEntryError);
+
+    StopLossBelowSellStopEntryErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Stop Loss Below Sell Stop Entry Error", "Returns Error When Stop Loss Is Below Sell Stop Entry",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        Errors::ERR_STOPLOSS_ABOVE_ENTRY, StopLossBelowSellStopEntryError);
+
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete buyStopNoErrorUnitTest;
-    delete sellStopNoErrorUnitTest;
+    delete BuyStopNoErrorUnitTest;
+    delete SellStopNoErrorUnitTest;
 
-    delete opBuyWrongOrderTypeUnitTest;
-    delete opSellWrongOrderTypeUnitTest;
-    delete opBuyLimitWrongOrderTypeUnitTest;
-    delete opSellLimitWrongOrderTypeUnitTest;
+    delete OpBuyWrongOrderTypeUnitTest;
+    delete OpSellWrongOrderTypeUnitTest;
+    delete OpBuyLimitWrongOrderTypeUnitTest;
+    delete OpSellLimitWrongOrderTypeUnitTest;
 
-    delete stopLossAboveBuyStopEntryErrorUnitTest;
-    delete stopLossAboveSellStopEntryErrorUnitTest;
+    delete StopLossAboveBuyStopEntryErrorUnitTest;
+    delete StopLossBelowSellStopEntryErrorUnitTest;
 }
 
 void OnTick()
 {
-    BuyStopNoError();
-    SellStopNoError();
+    BuyStopNoErrorUnitTest.Assert();
+    SellStopNoErrorUnitTest.Assert();
 
-    OpBuyWrongOrderType();
-    OpSellWrongOrderType();
-    OpBuyLimitWrongOrderType();
-    OpSellLimitWrongOrderType();
+    OpBuyWrongOrderTypeUnitTest.Assert();
+    OpSellWrongOrderTypeUnitTest.Assert();
+    OpBuyLimitWrongOrderTypeUnitTest.Assert();
+    OpSellLimitWrongOrderTypeUnitTest.Assert();
 
-    StopLossAboveBuyStopEntryError();
-    StopLossBelowSellStopEntryError();
+    StopLossAboveBuyStopEntryErrorUnitTest.Assert();
+    StopLossBelowSellStopEntryErrorUnitTest.Assert();
 }
 
 int PlaceStopOrder(int type, double entryPrice, double stopLoss, out int &ticket)
@@ -67,157 +120,124 @@ int PlaceStopOrder(int type, double entryPrice, out int &ticket)
     return PlaceStopOrder(ticket, entryPrice, 0.0, ticket);
 }
 
-UnitTest<DefaultUnitTestRecord> *buyStopNoErrorUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void BuyStopNoError()
+int BuyStopNoError(int &actual)
 {
     int ticket = -1;
     const int type = OP_BUYSTOP;
     const double entryPrice = Ask + OrderHelper::PipsToRange(50);
 
-    int expected = ERR_NO_ERROR;
-    int actual = PlaceStopOrder(type, entryPrice, ticket);
-
-    buyStopNoErrorUnitTest.addTest(__FUNCTION__);
-    buyStopNoErrorUnitTest.assertEquals("No Errors When Placing Buy Stop Order", expected, actual);
-
+    actual = PlaceStopOrder(type, entryPrice, ticket);
     if (actual == ERR_NO_ERROR)
     {
         OrderDelete(ticket, clrNONE);
     }
+
+    return actual;
 }
 
-UnitTest<DefaultUnitTestRecord> *sellStopNoErrorUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void SellStopNoError()
+int SellStopNoError(int &actual)
 {
-
     int ticket = -1;
     const int type = OP_SELLSTOP;
     const double entryPrice = Bid - OrderHelper::PipsToRange(50);
 
-    int expected = ERR_NO_ERROR;
-    int actual = PlaceStopOrder(type, entryPrice, ticket);
-
-    sellStopNoErrorUnitTest.addTest(__FUNCTION__);
-    sellStopNoErrorUnitTest.assertEquals("No Errors When Placing Sell Stop Order", expected, actual);
-
+    actual = PlaceStopOrder(type, entryPrice, ticket);
     if (actual == ERR_NO_ERROR)
     {
         OrderDelete(ticket, clrNONE);
     }
+
+    return actual;
 }
 
-UnitTest<DefaultUnitTestRecord> *opBuyWrongOrderTypeUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void OpBuyWrongOrderType()
+int OpBuyWrongOrderType(int &actual)
 {
     int ticket = -1;
     const int type = OP_BUY;
     const double entryPrice = Ask;
 
-    int expected = Errors::ERR_WRONG_ORDER_TYPE;
-    int actual = PlaceStopOrder(type, entryPrice, ticket);
-
-    opBuyWrongOrderTypeUnitTest.addTest(__FUNCTION__);
-    opBuyWrongOrderTypeUnitTest.assertEquals("OP Buy Is Wrong Order Type", expected, actual);
-
+    actual = PlaceStopOrder(type, entryPrice, ticket);
     if (ticket > 0)
     {
         OrderDelete(ticket, clrNONE);
     }
+
+    return actual;
 }
 
-UnitTest<DefaultUnitTestRecord> *opSellWrongOrderTypeUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void OpSellWrongOrderType()
+int OpSellWrongOrderType(int &actual)
 {
     int ticket = -1;
     const int type = OP_SELL;
     const double entryPrice = Bid;
 
-    int expected = Errors::ERR_WRONG_ORDER_TYPE;
-    int actual = PlaceStopOrder(type, entryPrice, ticket);
-
-    opSellWrongOrderTypeUnitTest.addTest(__FUNCTION__);
-    opSellWrongOrderTypeUnitTest.assertEquals("OP Sell Is Wrong Order Type", expected, actual);
-
+    actual = PlaceStopOrder(type, entryPrice, ticket);
     if (ticket > 0)
     {
         OrderDelete(ticket, clrNONE);
     }
+
+    return actual;
 }
 
-UnitTest<DefaultUnitTestRecord> *opBuyLimitWrongOrderTypeUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void OpBuyLimitWrongOrderType()
+int OpBuyLimitWrongOrderType(int &actual)
 {
     int ticket = -1;
     const int type = OP_BUYLIMIT;
     const double entryPrice = Ask - OrderHelper::PipsToRange(50);
 
-    int expected = Errors::ERR_WRONG_ORDER_TYPE;
-    int actual = PlaceStopOrder(type, entryPrice, ticket);
-
-    opBuyLimitWrongOrderTypeUnitTest.addTest(__FUNCTION__);
-    opBuyLimitWrongOrderTypeUnitTest.assertEquals("OP Buy Limit Is Wrong Order Type", expected, actual);
-
+    actual = PlaceStopOrder(type, entryPrice, ticket);
     if (ticket > 0)
     {
         OrderDelete(ticket, clrNONE);
     }
+
+    return actual;
 }
 
-UnitTest<DefaultUnitTestRecord> *opSellLimitWrongOrderTypeUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void OpSellLimitWrongOrderType()
+int OpSellLimitWrongOrderType(int &actual)
 {
     int ticket = -1;
     const int type = OP_SELLLIMIT;
     const double entryPrice = Ask + OrderHelper::PipsToRange(50);
 
-    int expected = Errors::ERR_WRONG_ORDER_TYPE;
-    int actual = PlaceStopOrder(type, entryPrice, ticket);
-
-    opSellLimitWrongOrderTypeUnitTest.addTest(__FUNCTION__);
-    opSellLimitWrongOrderTypeUnitTest.assertEquals("OP Buy Is Wrong Order Type", expected, actual);
-
+    actual = PlaceStopOrder(type, entryPrice, ticket);
     if (ticket > 0)
     {
         OrderDelete(ticket, clrNONE);
     }
+
+    return actual;
 }
 
-UnitTest<DefaultUnitTestRecord> *stopLossAboveBuyStopEntryErrorUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void StopLossAboveBuyStopEntryError()
+int StopLossAboveBuyStopEntryError(int &actual)
 {
     int ticket = -1;
     const int type = OP_BUYSTOP;
     const double entryPrice = Ask + OrderHelper::PipsToRange(50);
     const double stopLoss = entryPrice + OrderHelper::PipsToRange(50);
 
-    int expected = Errors::ERR_STOPLOSS_ABOVE_ENTRY;
-    int actual = PlaceStopOrder(type, entryPrice, stopLoss, ticket);
-
-    stopLossAboveBuyStopEntryErrorUnitTest.addTest(__FUNCTION__);
-    stopLossAboveBuyStopEntryErrorUnitTest.assertEquals("Stop Loss Above Buy Stop Entry Error", expected, actual);
-
+    actual = PlaceStopOrder(type, entryPrice, stopLoss, ticket);
     if (ticket > 0)
     {
         OrderDelete(ticket, clrNONE);
     }
+
+    return actual;
 }
 
-UnitTest<DefaultUnitTestRecord> *stopLossAboveSellStopEntryErrorUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void StopLossBelowSellStopEntryError()
+int StopLossBelowSellStopEntryError(int &actual)
 {
     int ticket = -1;
     const int type = OP_SELLSTOP;
     const double entryPrice = Bid - OrderHelper::PipsToRange(50);
     const double stopLoss = entryPrice - OrderHelper::PipsToRange(50);
 
-    int expected = Errors::ERR_STOPLOSS_ABOVE_ENTRY;
-    int actual = PlaceStopOrder(type, entryPrice, stopLoss, ticket);
-
-    stopLossAboveSellStopEntryErrorUnitTest.addTest(__FUNCTION__);
-    stopLossAboveSellStopEntryErrorUnitTest.assertEquals("Stop Loss Below Sell Stop Entry", expected, actual);
-
+    actual = PlaceStopOrder(type, entryPrice, stopLoss, ticket);
     if (ticket > 0)
     {
         OrderDelete(ticket, clrNONE);
     }
+
+    return actual;
 }

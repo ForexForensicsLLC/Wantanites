@@ -9,171 +9,208 @@
 #property strict
 
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
-#include <SummitCapital\Framework\UnitTests\UnitTest.mqh>
+#include <SummitCapital\Framework\UnitTests\BoolUnitTest.mqh>
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/OrderHelper/IsPendingOrder/";
 const int NumberOfAsserts = 10;
 const int AssertCooldown = 1;
+const bool RecordScreenShot = false;
+const bool RecordErrors = true;
+
+BoolUnitTest<DefaultUnitTestRecord> *OpBuyIsNotPendingUnitTest;
+BoolUnitTest<DefaultUnitTestRecord> *OpSellIsNotPendingUnitTest;
+
+BoolUnitTest<DefaultUnitTestRecord> *OpBuyStopIsPendingUnitTest;
+BoolUnitTest<DefaultUnitTestRecord> *OpSellStopIsPendingUnitTest;
+
+BoolUnitTest<DefaultUnitTestRecord> *OpBuyLimitIsPendingUnitTest;
+BoolUnitTest<DefaultUnitTestRecord> *OpSellLimitIsPendingUnitTest;
 
 int OnInit()
 {
+    OpBuyIsNotPendingUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "OP Buy Is Not Pending", "Checks If OP_BUY Is A Pending Order",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        false, OpBuyIsNotPending);
+
+    OpSellIsNotPendingUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "OP Sell Is Not Pending", "Checks If OP_SELL Is A Pending Order",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        false, OpSellIsNotPending);
+
+    OpBuyStopIsPendingUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "OP Buy Stop Is Pending Order", "Checks If OP_BUYSTOP Is A Pending Order",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        true, OpBuyStopIsPending);
+
+    OpSellStopIsPendingUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "OP Sell Stop Is Pending Order", "Checks If OP_SELLSTOP Is A Pending Order",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        true, OpSellStopIsPending);
+
+    OpBuyLimitIsPendingUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "OP Buy Limit Is Pending Order", "Checks If OP_BUYLIMIT Is A Pending Order",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        true, OpBuyLimitIsPending);
+
+    OpSellLimitIsPendingUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "OP Sell Limit Is Pending Order", "Checks If OP_SELLLIMIT Is A Pending Order",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        true, OpSellLimitIsPending);
+
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete opBuyIsNotPendingUnitTest;
-    delete opSellIsNotPendingUnitTest;
-    delete opBuyStopIsPendingUnitTest;
-    delete opSellStopIsPendingUnitTest;
-    delete opBuyLimitIsPendingUnitTest;
-    delete opSellLimitIsPendingUnitTest;
+    delete OpBuyIsNotPendingUnitTest;
+    delete OpSellIsNotPendingUnitTest;
+
+    delete OpBuyStopIsPendingUnitTest;
+    delete OpSellStopIsPendingUnitTest;
+
+    delete OpBuyLimitIsPendingUnitTest;
+    delete OpSellLimitIsPendingUnitTest;
 }
 
 void OnTick()
 {
-    OP_BUYIsNotPending();
-    OP_SELLIsNotPending();
+    OpBuyIsNotPendingUnitTest.Assert();
+    OpSellIsNotPendingUnitTest.Assert();
 
-    OP_BUYSTOPIsPending();
-    OP_SELLSTOPIsPending();
+    OpBuyStopIsPendingUnitTest.Assert();
+    OpSellStopIsPendingUnitTest.Assert();
 
-    OP_BUYLIMITIsPending();
-    OP_SELLLIMITIsPending();
+    OpBuyLimitIsPendingUnitTest.Assert();
+    OpSellLimitIsPendingUnitTest.Assert();
 }
 
-UnitTest<DefaultUnitTestRecord> *opBuyIsNotPendingUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void OP_BUYIsNotPending()
+int OpBuyIsNotPending(bool &actual)
 {
     int type = OP_BUY;
     int ticket = OrderSend(Symbol(), type, 0.1, Ask, 0, 0, 0, NULL, 0, 0, clrNONE);
     if (ticket > 0)
     {
-        const bool expected = false;
-        bool actual = true;
+        actual = true;
 
         int pendingOrderError = OrderHelper::IsPendingOrder(ticket, actual);
         if (pendingOrderError != ERR_NO_ERROR)
         {
-            return;
+            return pendingOrderError;
         }
 
-        opBuyIsNotPendingUnitTest.addTest(__FUNCTION__);
-        opBuyIsNotPendingUnitTest.assertEquals("Buy is not Pending Order", expected, actual);
+        return UnitTestConstants::UNIT_TEST_RAN;
     }
+
+    return GetLastError();
 }
 
-UnitTest<DefaultUnitTestRecord> *opSellIsNotPendingUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void OP_SELLIsNotPending()
+int OpSellIsNotPending(bool &actual)
 {
     int type = OP_SELL;
     int ticket = OrderSend(Symbol(), type, 0.1, Bid, 0, 0, 0, NULL, 0, 0, clrNONE);
     if (ticket > 0)
     {
-        const bool expected = false;
-        bool actual = true;
+        actual = true;
 
         int pendingOrderError = OrderHelper::IsPendingOrder(ticket, actual);
         if (pendingOrderError != ERR_NO_ERROR)
         {
-            return;
+            return pendingOrderError;
         }
 
-        opBuyIsNotPendingUnitTest.addTest(__FUNCTION__);
-        opBuyIsNotPendingUnitTest.assertEquals("Sell is not Pending Order", expected, actual);
+        return UnitTestConstants::UNIT_TEST_RAN;
     }
+
+    return GetLastError();
 }
 
-UnitTest<DefaultUnitTestRecord> *opBuyStopIsPendingUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void OP_BUYSTOPIsPending()
+int OpBuyStopIsPending(bool &actual)
 {
     int type = OP_BUYSTOP;
-    int entryPrice = Ask + OrderHelper::PipsToRange(10);
+    double entryPrice = Ask + OrderHelper::PipsToRange(10);
 
     int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, 0, 0, clrNONE);
     if (ticket > 0)
     {
-        const bool expected = true;
-        bool actual = false;
+        actual = false;
 
         int pendingOrderError = OrderHelper::IsPendingOrder(ticket, actual);
         if (pendingOrderError != ERR_NO_ERROR)
         {
-            return;
+            return pendingOrderError;
         }
 
-        opBuyStopIsPendingUnitTest.addTest(__FUNCTION__);
-        opBuyStopIsPendingUnitTest.assertEquals("Buy Stop is Pending Order", expected, actual);
+        return UnitTestConstants::UNIT_TEST_RAN;
     }
+
+    return GetLastError();
 }
 
-UnitTest<DefaultUnitTestRecord> *opSellStopIsPendingUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void OP_SELLSTOPIsPending()
+int OpSellStopIsPending(bool &actual)
 {
     int type = OP_SELLSTOP;
-    int entryPrice = Bid - OrderHelper::PipsToRange(10);
+    double entryPrice = Bid - OrderHelper::PipsToRange(10);
 
     int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, 0, 0, clrNONE);
     if (ticket > 0)
     {
-        const bool expected = true;
-        bool actual = false;
+        actual = false;
 
         int pendingOrderError = OrderHelper::IsPendingOrder(ticket, actual);
         if (pendingOrderError != ERR_NO_ERROR)
         {
-            return;
+            return pendingOrderError;
         }
 
-        opSellStopIsPendingUnitTest.addTest(__FUNCTION__);
-        opSellStopIsPendingUnitTest.assertEquals("Sell Stop is Pending Order", expected, actual);
+        return UnitTestConstants::UNIT_TEST_RAN;
     }
+
+    return GetLastError();
 }
 
-UnitTest<DefaultUnitTestRecord> *opBuyLimitIsPendingUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void OP_BUYLIMITIsPending()
+int OpBuyLimitIsPending(bool &actual)
 {
     int type = OP_BUYLIMIT;
-    int entryPrice = Bid - OrderHelper::PipsToRange(10);
+    double entryPrice = Bid - OrderHelper::PipsToRange(10);
 
     int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, 0, 0, clrNONE);
     if (ticket > 0)
     {
-        const bool expected = true;
-        bool actual = false;
+        actual = false;
 
         int pendingOrderError = OrderHelper::IsPendingOrder(ticket, actual);
         if (pendingOrderError != ERR_NO_ERROR)
         {
-            return;
+            return pendingOrderError;
         }
 
-        opBuyLimitIsPendingUnitTest.addTest(__FUNCTION__);
-        opBuyLimitIsPendingUnitTest.assertEquals("Buy Limit is Pending Order", expected, actual);
+        return UnitTestConstants::UNIT_TEST_RAN;
     }
+
+    return GetLastError();
 }
 
-UnitTest<DefaultUnitTestRecord> *opSellLimitIsPendingUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void OP_SELLLIMITIsPending()
+int OpSellLimitIsPending(bool &actual)
 {
     int type = OP_SELLLIMIT;
-    int entryPrice = Ask + OrderHelper::PipsToRange(10);
+    double entryPrice = Ask + OrderHelper::PipsToRange(10);
 
     int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, 0, 0, clrNONE);
     if (ticket > 0)
     {
-        const bool expected = true;
-        bool actual = false;
+        actual = false;
 
         int pendingOrderError = OrderHelper::IsPendingOrder(ticket, actual);
         if (pendingOrderError != ERR_NO_ERROR)
         {
-            return;
+            return pendingOrderError;
         }
 
-        opSellLimitIsPendingUnitTest.addTest(__FUNCTION__);
-        opSellLimitIsPendingUnitTest.assertEquals("Sell Limit is Pending Order", expected, actual);
+        return UnitTestConstants::UNIT_TEST_RAN;
     }
+
+    return GetLastError();
 }

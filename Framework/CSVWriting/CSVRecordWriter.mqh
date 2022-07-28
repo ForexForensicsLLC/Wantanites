@@ -19,6 +19,7 @@ protected:
     int mFileHandle;
 
     void SeekToEnd();
+    void CheckWriteHeaders();
 
 public:
     TRecord PendingRecord;
@@ -40,6 +41,15 @@ void CSVRecordWriter::SeekToEnd()
     {
         FileClose(mFileHandle);
         mFileIsOpen = false;
+    }
+}
+
+template <typename TRecord>
+void CSVRecordWriter::CheckWriteHeaders()
+{
+    if (FileTell(mFileHandle) == 0)
+    {
+        PendingRecord.WriteHeaders(mFileHandle);
     }
 }
 
@@ -66,6 +76,8 @@ void CSVRecordWriter::Open()
     }
 
     SeekToEnd();
+    CheckWriteHeaders();
+
     mFileIsOpen = true;
 }
 
@@ -82,6 +94,6 @@ void CSVRecordWriter::Write()
         return;
     }
 
-    PendingRecord.Write(mFileHandle);
+    PendingRecord.WriteRecord(mFileHandle);
     PendingRecord.Reset();
 }

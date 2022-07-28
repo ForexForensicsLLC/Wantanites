@@ -11,53 +11,66 @@
 #include <SummitCapital\Framework\Constants\Errors.mqh>
 
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
-#include <SummitCapital\Framework\UnitTests\UnitTest.mqh>
+#include <SummitCapital\Framework\UnitTests\IntUnitTest.mqh>
+#include <SummitCapital\Framework\UnitTests\BoolUnitTest.mqh>
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/OrderHelper/CancelPendingOrderByTicket/";
 const int NumberOfAsserts = 25;
 const int AssertCooldown = 1;
+const bool RecordScreenShot = false;
+const bool RecordErrors = true;
+
+IntUnitTest<DefaultUnitTestRecord> *NoErrorsUnitTest;
+BoolUnitTest<DefaultUnitTestRecord> *ErrorsWhenCancelingDeletedOrderUnitTest;
 
 int OnInit()
 {
+    NoErrorsUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "No Errors", "Doesn't Return an Error When Cancelign Pending Order",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        ERR_NO_ERROR, NoErrors);
+
+    ErrorsWhenCancelingDeletedOrderUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "Errors When Canceling Delete Order", "Returns Error When Trying To Cancel A Deleted Order",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        true, ErrorsWhenCancelingDeletedOrder);
+
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete noErrorsUnitTest;
-    delete errorsWhenCancelingDeletedOrder;
+    delete NoErrorsUnitTest;
+    delete ErrorsWhenCancelingDeletedOrderUnitTest;
 }
 
 void OnTick()
 {
-    NoErrors();
-    ErrorsWhenCancelingDeletedOrder();
+    NoErrorsUnitTest.Assert();
+    ErrorsWhenCancelingDeletedOrderUnitTest.Assert();
 }
 
-UnitTest<DefaultUnitTestRecord> *noErrorsUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void NoErrors()
+int NoErrors(out int &actual)
 {
     int type = OP_BUYSTOP;
-    int entryPrice = Ask + OrderHelper::PipsToRange(10);
+    double entryPrice = Ask + OrderHelper::PipsToRange(10);
 
     int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, 0, 0, clrNONE);
     if (ticket > 0)
     {
-        int expected = ERR_NO_ERROR;
-        int actual = OrderHelper::CancelPendingOrderByTicket(ticket);
-
-        noErrorsUnitTest.addTest(__FUNCTION__);
-        noErrorsUnitTest.assertEquals("Cancel Pending Order By Ticket No Errors", expected, actual);
+        actual = OrderHelper::CancelPendingOrderByTicket(ticket);
+        return UnitTestConstants::UNIT_TEST_RAN;
     }
+
+    return GetLastError();
 }
 
-UnitTest<DefaultUnitTestRecord> *errorsWhenCancelingDeletedOrder = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void ErrorsWhenCancelingDeletedOrder()
+int ErrorsWhenCancelingDeletedOrder(out bool &actual)
 {
     int type = OP_BUYSTOP;
-    int entryPrice = Ask + OrderHelper::PipsToRange(10);
+    double entryPrice = Ask + OrderHelper::PipsToRange(10);
 
     int ticket = OrderSend(Symbol(), type, 0.1, entryPrice, 0, 0, 0, NULL, 0, 0, clrNONE);
     if (ticket > 0)
@@ -67,13 +80,12 @@ void ErrorsWhenCancelingDeletedOrder()
         int errors = OrderHelper::CancelPendingOrderByTicket(ticket);
         if (errors == ERR_NO_ERROR)
         {
-            return;
+            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
         }
 
-        bool expected = true;
-        bool actual = ticket != EMPTY;
-
-        errorsWhenCancelingDeletedOrder.addTest(__FUNCTION__);
-        errorsWhenCancelingDeletedOrder.assertEquals("Cancel Pending Order When Already Deleted Errors", expected, actual);
+        actual = ticket != EMPTY;
+        return UnitTestConstants::UNIT_TEST_RAN;
     }
+
+    return GetLastError();
 }

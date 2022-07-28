@@ -13,13 +13,15 @@
 #include <SummitCapital\Framework\Trackers\MBTracker.mqh>
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
 #include <SummitCapital\Framework\Helpers\SetupHelper.mqh>
-#include <SummitCapital\Framework\UnitTests\UnitTest.mqh>
+#include <SummitCapital\Framework\UnitTests\BoolUnitTest.mqh>
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/OrderHelper/CheckTrailStopLossWithMBUpToBreakEven/";
 const int NumberOfAsserts = 100;
 const int AssertCooldown = 0;
+const bool RecordScreenShot = true;
+const bool RecordErrors = true;
 
 input int MBsToTrack = 3;
 input int MaxZonesInMB = 5;
@@ -30,16 +32,30 @@ input bool CalculateOnTick = true;
 
 MBTracker *MBT;
 
+BoolUnitTest<DefaultUnitTestRecord> *NoErrorsDifferentStopLossUnitTest;
+BoolUnitTest<DefaultUnitTestRecord> *DoesNotTrailPastOpenUnitTest;
+
 int OnInit()
 {
     MBT = new MBTracker(MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, PrintErrors, CalculateOnTick);
+
+    NoErrorsDifferentStopLossUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "No Errors Different Stop Loss", "The Stop Loss Was Changed When No Errors Were Retruned",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        true, NoErrorsDifferentStopLoss);
+
+    DoesNotTrailPastOpenUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "Does Not Trail Past Open", "The Stop Loss Is Not Moved Above / Below The Entry",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        true, DoesNotTrailPastOpen);
+
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete noErrorsDifferentStopLossUnitTest;
-    delete doesNotTrailPastOpenUnitTest;
+    delete NoErrorsDifferentStopLossUnitTest;
+    delete DoesNotTrailPastOpenUnitTest;
 }
 
 void OnTick()
@@ -47,12 +63,11 @@ void OnTick()
     MBT.DrawNMostRecentMBs(1);
     MBT.DrawZonesForNMostRecentMBs(1);
 
-    NoErrorsDifferentStopLoss();
-    DoesNotTrailPastOpen();
+    NoErrorsDifferentStopLossUnitTest.Assert();
+    DoesNotTrailPastOpenUnitTest.Assert();
 }
 
-UnitTest<DefaultUnitTestRecord> *noErrorsDifferentStopLossUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void NoErrorsDifferentStopLoss()
+int NoErrorsDifferentStopLoss(bool &actual)
 {
     static int ticket = -1;
     static int mbNumber = -1;
@@ -78,9 +93,9 @@ void NoErrorsDifferentStopLoss()
 
             if (ticket > 0)
             {
-                bool isTrue = false;
-                int pendingOrderError = OrderHelper::IsPendingOrder(ticket, isTrue);
-                if (isTrue)
+                bool isPending = false;
+                int pendingOrderError = OrderHelper::IsPendingOrder(ticket, isPending);
+                if (isPending)
                 {
                     OrderHelper::CancelPendingOrderByTicket(ticket);
                 }
@@ -89,7 +104,7 @@ void NoErrorsDifferentStopLoss()
                     int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Trailing Stop Loss");
                     if (selectError != ERR_NO_ERROR)
                     {
-                        return;
+                        return selectError;
                     }
 
                     OrderClose(ticket, OrderLots(), Ask, 0, clrNONE);
@@ -105,18 +120,18 @@ void NoErrorsDifferentStopLoss()
         MBState *tempMBState;
         if (!MBT.GetNthMostRecentMB(0, tempMBState))
         {
-            return;
+            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
         }
 
         if (tempMBState.Type() != OP_BUY)
         {
-            return;
+            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
         }
 
         int retracementIndex = MBT.CurrentBullishRetracementIndex();
         if (retracementIndex == EMPTY)
         {
-            return;
+            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
         }
 
         mbNumber = tempMBState.Number();
@@ -126,7 +141,7 @@ void NoErrorsDifferentStopLoss()
         int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
         if (selectError != ERR_NO_ERROR)
         {
-            return;
+            return selectError;
         }
 
         stopLoss = OrderStopLoss();
@@ -137,30 +152,29 @@ void NoErrorsDifferentStopLoss()
         int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, paddingPips, spreadPips, mbNumber, setupType, MBT, succeeded);
         if (!succeeded)
         {
-            return;
+            return trailError;
         }
 
         int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
         if (selectError != ERR_NO_ERROR)
         {
-            return;
+            return selectError;
         }
 
-        const bool expected = true;
-        const bool actual = OrderStopLoss() != stopLoss;
-
-        noErrorsDifferentStopLossUnitTest.addTest(__FUNCTION__);
-        noErrorsDifferentStopLossUnitTest.assertEquals("No Errors, Different Stop Loss", expected, actual);
+        actual = OrderStopLoss() != stopLoss;
 
         if (ticket > 0)
         {
             OrderClose(ticket, OrderLots(), Ask, 0, clrNONE);
         }
+
+        return UnitTestConstants::UNIT_TEST_RAN;
     }
+
+    return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
 }
 
-UnitTest<DefaultUnitTestRecord> *doesNotTrailPastOpenUnitTest = new UnitTest<DefaultUnitTestRecord>(Directory, NumberOfAsserts, AssertCooldown);
-void DoesNotTrailPastOpen()
+int DoesNotTrailPastOpen(bool &actual)
 {
     static int ticket = -1;
     static int mbNumber = -1;
@@ -187,9 +201,9 @@ void DoesNotTrailPastOpen()
 
             if (ticket > 0)
             {
-                bool isTrue = false;
-                int pendingOrderError = OrderHelper::IsPendingOrder(ticket, isTrue);
-                if (isTrue)
+                bool isPending = false;
+                int pendingOrderError = OrderHelper::IsPendingOrder(ticket, isPending);
+                if (isPending)
                 {
                     OrderHelper::CancelPendingOrderByTicket(ticket);
                 }
@@ -198,7 +212,7 @@ void DoesNotTrailPastOpen()
                     int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Trailing Stop Loss");
                     if (selectError != ERR_NO_ERROR)
                     {
-                        return;
+                        return selectError;
                     }
 
                     OrderClose(ticket, OrderLots(), Ask, 0, clrNONE);
@@ -214,18 +228,18 @@ void DoesNotTrailPastOpen()
         MBState *tempMBState;
         if (!MBT.GetNthMostRecentMB(0, tempMBState))
         {
-            return;
+            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
         }
 
         if (tempMBState.Type() != OP_BUY)
         {
-            return;
+            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
         }
 
         int retracementIndex = MBT.CurrentBullishRetracementIndex();
         if (retracementIndex == EMPTY)
         {
-            return;
+            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
         }
 
         mbNumber = tempMBState.Number();
@@ -235,7 +249,7 @@ void DoesNotTrailPastOpen()
         int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
         if (selectError != ERR_NO_ERROR)
         {
-            return;
+            return selectError;
         }
 
         stopLoss = OrderStopLoss();
@@ -247,17 +261,16 @@ void DoesNotTrailPastOpen()
         int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, paddingPips, spreadPips, mbNumber, setupType, MBT, succeeded);
         if (!succeeded)
         {
-            return;
+            return trailError;
         }
 
         int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
         if (selectError != ERR_NO_ERROR)
         {
-            return;
+            return selectError;
         }
 
-        const bool expected = true;
-        bool actual = false;
+        actual = false;
 
         if (setupType == OP_BUY)
         {
@@ -268,7 +281,8 @@ void DoesNotTrailPastOpen()
             actual = OrderStopLoss() >= entryPrice;
         }
 
-        doesNotTrailPastOpenUnitTest.addTest(__FUNCTION__);
-        doesNotTrailPastOpenUnitTest.assertEquals("Does Not Trail Past Open", expected, actual);
+        return UnitTestConstants::UNIT_TEST_RAN;
     }
+
+    return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
 }
