@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                        GetEntryPriceForStopOrderForBreakOfMB.mq4 |
+//|                      CorrectStopLossForStopOrderForBreakOfMB.mq4 |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -13,7 +13,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/OrderHelper/GetEntryPriceForStopOrderForBreakOfMB/";
+const string Directory = "/UnitTests/OrderHelper/GetStopLossForStopOrderForBreakOfMB/";
 const int NumberOfAsserts = 25;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
@@ -31,32 +31,32 @@ MBTracker *MBT;
 IntUnitTest<DefaultUnitTestRecord> *InvalidMBNumberErrorUnitTest;
 IntUnitTest<DefaultUnitTestRecord> *NoErrorsUnitTest;
 
-IntUnitTest<DefaultUnitTestRecord> *CorrectEntryPriceForBullishMBUnitTest;
-IntUnitTest<DefaultUnitTestRecord> *CorrectEntryPriceForBearishMBUnitTest;
+IntUnitTest<DefaultUnitTestRecord> *CorrectStopLossForBullishMBUnitTest;
+IntUnitTest<DefaultUnitTestRecord> *CorrectStopLossForBearishMBUnitTest;
 
 int OnInit()
 {
     MBT = new MBTracker(MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, PrintErrors, CalculateOnTick);
 
     InvalidMBNumberErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
-        Directory, "Invalid MB Number", "Returns Error When Passing In An Invalid MB Number When Retrieving Entry Price",
+        Directory, "Invalid MB Number", "Returns Error When Passing In An Invalid MB Number When Retrieving Stop Loss",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
         Errors::ERR_MB_DOES_NOT_EXIST, InvalidMBNumberError);
 
     NoErrorsUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
-        Directory, "No Errors", "Returns No Errors When Retrieving Entry Price",
+        Directory, "No Errors", "Returns No Errors When Retrieving Stop Loss",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
         ERR_NO_ERROR, NoErrors);
 
-    CorrectEntryPriceForBullishMBUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
-        Directory, "Correct Entry Price For Bullish MB", "Returns The Correct Entry Price For A Stop Order On The Break Of A Bullish MB",
+    CorrectStopLossForBullishMBUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Correct Stop Loss For Bullish MB", "Returns The Correct Stop Loss For A Stop Order On The Break Of A Bullish MB",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        CorrectEntryPriceForBullishMBExpected, CorrectEntryPriceForBullishMB);
+        CorrectStopLossForBullishMBExpected, CorrectStopLossForBullishMB);
 
-    CorrectEntryPriceForBearishMBUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
-        Directory, "Correct Entry Price For Bearish MB", "Returns The Correct Entry Price For A Stop Order On The Break Of A Bearish MB",
+    CorrectStopLossForBearishMBUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Correct Stop Loss For Bearish MB", "Returns The Correct Stop Loss For A Stop Order On The Break Of A Bearish MB",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        CorrectEntryPriceForBearishMBExpected, CorrectEntryPriceForBearishMB);
+        CorrectStopLossForBearishMBExpected, CorrectStopLossForBearishMB);
 
     return (INIT_SUCCEEDED);
 }
@@ -67,8 +67,8 @@ void OnDeinit(const int reason)
 
     delete InvalidMBNumberErrorUnitTest;
     delete NoErrorsUnitTest;
-    delete CorrectEntryPriceForBullishMBUnitTest;
-    delete CorrectEntryPriceForBearishMBUnitTest;
+    delete CorrectStopLossForBullishMBUnitTest;
+    delete CorrectStopLossForBearishMBUnitTest;
 }
 
 void OnTick()
@@ -76,17 +76,18 @@ void OnTick()
     InvalidMBNumberErrorUnitTest.Assert();
     NoErrorsUnitTest.Assert();
 
-    CorrectEntryPriceForBullishMBUnitTest.Assert();
-    CorrectEntryPriceForBearishMBUnitTest.Assert();
+    CorrectStopLossForBullishMBUnitTest.Assert();
+    CorrectStopLossForBearishMBUnitTest.Assert();
 }
 
 int InvalidMBNumberError(int &actual)
 {
     int mbNumber = -1;
+    double paddingPips = 0.0;
     double spreadPips = 0.0;
-    double entryPrice = 0.0;
+    double stopLoss = 0.0;
 
-    actual = OrderHelper::GetEntryPriceForStopOrderForBreakOfMB(spreadPips, mbNumber, MBT, entryPrice);
+    actual = OrderHelper::GetStopLossForStopOrderForBreakOfMB(paddingPips, spreadPips, mbNumber, MBT, stopLoss);
     return UnitTestConstants::UNIT_TEST_RAN;
 }
 
@@ -98,14 +99,15 @@ int NoErrors(int &actual)
         return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
     }
 
+    double paddingPips = 0.0;
     double spreadPips = 0.0;
-    double entryPrice = 0.0;
+    double stopLoss = 0.0;
 
-    actual = OrderHelper::GetEntryPriceForStopOrderForBreakOfMB(spreadPips, tempMBState.Number(), MBT, entryPrice);
+    actual = OrderHelper::GetStopLossForStopOrderForBreakOfMB(paddingPips, spreadPips, tempMBState.Number(), MBT, stopLoss);
     return UnitTestConstants::UNIT_TEST_RAN;
 }
 
-int CorrectEntryPriceForBullishMBExpected()
+int CorrectStopLossForBullishMBExpected()
 {
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
@@ -113,10 +115,10 @@ int CorrectEntryPriceForBullishMBExpected()
         return EMPTY;
     }
 
-    return MathFloor((iLow(MBT.Symbol(), MBT.TimeFrame(), tempMBState.LowIndex()) * MathPow(10, _Digits)));
+    return MathFloor((iHigh(MBT.Symbol(), MBT.TimeFrame(), iHighest(MBT.Symbol(), MBT.TimeFrame(), MODE_HIGH, tempMBState.EndIndex(), 0)) * MathPow(10, _Digits)));
 }
 
-int CorrectEntryPriceForBullishMB(int &actual)
+int CorrectStopLossForBullishMB(int &actual)
 {
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
@@ -129,20 +131,21 @@ int CorrectEntryPriceForBullishMB(int &actual)
         return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
     }
 
+    double paddingPips = 0.0;
     double spreadPips = 0.0;
-    double entryPrice = 0.0;
+    double stopLoss = 0.0;
 
-    int error = OrderHelper::GetEntryPriceForStopOrderForBreakOfMB(spreadPips, tempMBState.Number(), MBT, entryPrice);
+    int error = OrderHelper::GetStopLossForStopOrderForBreakOfMB(paddingPips, spreadPips, tempMBState.Number(), MBT, stopLoss);
     if (error != ERR_NO_ERROR)
     {
         return error;
     }
 
-    actual = MathFloor(entryPrice * MathPow(10, _Digits));
+    actual = MathFloor(stopLoss * MathPow(10, _Digits));
     return UnitTestConstants::UNIT_TEST_RAN;
 }
 
-int CorrectEntryPriceForBearishMBExpected()
+int CorrectStopLossForBearishMBExpected()
 {
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
@@ -150,10 +153,10 @@ int CorrectEntryPriceForBearishMBExpected()
         return EMPTY;
     }
 
-    return MathFloor((iHigh(MBT.Symbol(), MBT.TimeFrame(), tempMBState.HighIndex()) * MathPow(10, _Digits)));
+    return MathFloor((iLow(MBT.Symbol(), MBT.TimeFrame(), iLowest(MBT.Symbol(), MBT.TimeFrame(), MODE_LOW, tempMBState.EndIndex(), 0)) * MathPow(10, _Digits)));
 }
 
-int CorrectEntryPriceForBearishMB(int &actual)
+int CorrectStopLossForBearishMB(int &actual)
 {
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
@@ -166,15 +169,16 @@ int CorrectEntryPriceForBearishMB(int &actual)
         return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
     }
 
+    double paddingPips = 0.0;
     double spreadPips = 0.0;
-    double entryPrice = 0.0;
+    double stopLoss = 0.0;
 
-    int error = OrderHelper::GetEntryPriceForStopOrderForBreakOfMB(spreadPips, tempMBState.Number(), MBT, entryPrice);
+    int error = OrderHelper::GetStopLossForStopOrderForBreakOfMB(paddingPips, spreadPips, tempMBState.Number(), MBT, stopLoss);
     if (error != ERR_NO_ERROR)
     {
         return error;
     }
 
-    actual = MathFloor(entryPrice * MathPow(10, _Digits));
+    actual = MathFloor(stopLoss * MathPow(10, _Digits));
     return UnitTestConstants::UNIT_TEST_RAN;
 }
