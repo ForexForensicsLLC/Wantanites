@@ -51,7 +51,7 @@ static int ScreenShotHelper::TryTakeOrderOpenScreenShot(int ticket, string direc
     imageName = "";
     if (ticket == EMPTY)
     {
-        return Errors::ERR_EMPTY_TICKET;
+        return Errors::ERR_TICKET_IS_EMPTY;
     }
 
     int orderSelectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Taking Entry Screen Shot");
@@ -77,7 +77,7 @@ static int ScreenShotHelper::TryTakeOrderCloseScreenShot(int ticket, string dire
     imageName = "";
     if (ticket == EMPTY)
     {
-        return Errors::ERR_EMPTY_TICKET;
+        return Errors::ERR_TICKET_IS_EMPTY;
     }
 
     int orderSelectError = OrderHelper::SelectClosedOrderByTicket(ticket, "Taking Closed Screen Shot");

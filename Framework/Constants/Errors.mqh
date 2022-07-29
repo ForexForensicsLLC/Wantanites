@@ -26,11 +26,14 @@ public:
     static int ERR_EMPTY_BEARISH_RETRACEMENT;
 
     // 400s are for order errors
-    static int ERR_EMPTY_TICKET;
+    static int ERR_TICKET_IS_EMPTY;
     static int ERR_WRONG_ORDER_TYPE;
     static int ERR_STOPLOSS_ABOVE_ENTRY;
     static int ERR_NEW_STOPLOSS_EQUALS_OLD;
     static int ERR_UNABLE_TO_DELETE_PENDING_ORDER;
+    static int ERR_ORDER_IS_CLOSED;
+    static int ERR_ORDER_IS_OPEN;
+    static int ERR_ORDER_NOT_FOUND;
 };
 
 // 300s are for Indicator Errors
@@ -45,8 +48,11 @@ static int Errors::ERR_EMPTY_BULLISH_RETRACEMENT = 307;
 static int Errors::ERR_EMPTY_BEARISH_RETRACEMENT = 308;
 
 // 400s are for order errors
-static int Errors::ERR_EMPTY_TICKET = 401;
+static int Errors::ERR_TICKET_IS_EMPTY = 401;
 static int Errors::ERR_WRONG_ORDER_TYPE = 402;
 static int Errors::ERR_STOPLOSS_ABOVE_ENTRY = 403;
 static int Errors::ERR_NEW_STOPLOSS_EQUALS_OLD = 404;
 static int Errors::ERR_UNABLE_TO_DELETE_PENDING_ORDER = 405;
+static int Errors::ERR_ORDER_IS_CLOSED = 406;
+static int Errors::ERR_ORDER_IS_OPEN = 407;
+static int Errors::ERR_ORDER_NOT_FOUND = 408;

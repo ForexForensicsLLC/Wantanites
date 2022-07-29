@@ -15,79 +15,158 @@
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/OrderHelper/SelectOpenOrderByTicket/";
-const int NumberOfAsserts = 10;
+const int NumberOfAsserts = 25;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
 const bool RecordErrors = true;
 
-IntUnitTest<DefaultUnitTestRecord> *NoErrorUnitTest;
-IntUnitTest<DefaultUnitTestRecord> *HasErrorUnitTest;
+// https://drive.google.com/file/d/118bTQ-v7Abb6mjjmTjCNj99p4Ip86q04/view?usp=sharing
+IntUnitTest<DefaultUnitTestRecord> *SelectOpBuyOpenOrderNoErrorUnitTest;
+
+// https://drive.google.com/file/d/1fVyp3lk4RacsLyPVdOHdyVfGXC3AkKiY/view?usp=sharing
+IntUnitTest<DefaultUnitTestRecord> *SelectOpBuyStopOpenOrderNoErrorUnitTest;
+
+// https://drive.google.com/file/d/1TZwl4gi1ktnRvUW40bPOTgH3IP__rFa7/view?usp=sharing
+BoolUnitTest<DefaultUnitTestRecord> *SelectOpBuyClosedOrderHasErrorUnitTest;
+
+// https://drive.google.com/file/d/1jQhbcIMgW0fe0AydC2OlxsvAu-StvMUX/view?usp=sharing
+BoolUnitTest<DefaultUnitTestRecord> *SelectOpBuyStopClosedOrderHasErrorUnitTest;
 
 int OnInit()
 {
-    NoErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
-        Directory, "No Error Unit Test", "Should Return No Errors When Selecting An Open Order",
+    SelectOpBuyOpenOrderNoErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Op Buy No Error", "Should Return No Errors When Selecting An OP Buy Open Order",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        ERR_NO_ERROR, NoError);
+        ERR_NO_ERROR, SelectOpBuyOpenOrderNoError);
 
-    HasErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
-        Directory, "Has Error Unit Test", "Should Return An Error When Selecting A Closed Order",
+    SelectOpBuyStopOpenOrderNoErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Op Buy Stop No Error", "Should Return No Errors When Selecting An OP Buy Stop Open Order",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        ERR_NO_ERROR, HasError);
+        ERR_NO_ERROR, SelectOpBuyStopOpenOrderNoError);
+
+    SelectOpBuyClosedOrderHasErrorUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "OP Buy Has Error", "Should Return Order Is Closed Error When Selecting An OP Buy Closed Order",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        Errors::ERR_ORDER_IS_CLOSED, SelectOpBuyClosedOrderHasError);
+
+    SelectOpBuyStopClosedOrderHasErrorUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "OP Buy Stop Has Error", "Should Return Order Is Closed Error When Selecting An OP Buy Stop Closed Order",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        Errors::ERR_ORDER_IS_CLOSED, SelectOpBuyStopClosedOrderHasError);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete NoErrorUnitTest;
-    delete HasErrorUnitTest;
+    delete SelectOpBuyOpenOrderNoErrorUnitTest;
+    delete SelectOpBuyStopOpenOrderNoErrorUnitTest;
+
+    delete SelectOpBuyClosedOrderHasErrorUnitTest;
+    delete SelectOpBuyStopClosedOrderHasErrorUnitTest;
 }
 
 void OnTick()
 {
-    NoErrorUnitTest.Assert();
-    HasErrorUnitTest.Assert(false);
+    SelectOpBuyOpenOrderNoErrorUnitTest.Assert();
+    SelectOpBuyStopOpenOrderNoErrorUnitTest.Assert();
+
+    SelectOpBuyClosedOrderHasErrorUnitTest.Assert();
+    SelectOpBuyStopClosedOrderHasErrorUnitTest.Assert();
 }
 
-int SendOrder()
+int SendOrder(int type, double entryPrice, double stopLoss, string comment)
 {
-    const double entryPrice = Ask + OrderHelper::PipsToRange(10);
     const double lots = 0.1;
     const int slippage = 0;
-    const double stopLoss = 0.0;
     const double takeProfit = 0.0;
-    const string comment = NULL;
     const int magicNumber = 0;
     const datetime expiration = 0;
     const color col = clrNONE;
 
-    return OrderSend(Symbol(), OP_BUYSTOP, lots, entryPrice, slippage, stopLoss, takeProfit, comment, magicNumber, expiration, col);
+    return OrderSend(Symbol(), type, lots, entryPrice, slippage, stopLoss, takeProfit, comment, magicNumber, expiration, col);
 }
 
-int NoError(int &actual)
+int SelectOpBuyOpenOrderNoError(int &actual)
 {
-    int ticket = SendOrder();
+    int type = OP_BUY;
+    double entryPrice = Ask;
+    double stopLoss = Bid - OrderHelper::PipsToRange(200);
+
+    int ticket = SendOrder(type, entryPrice, stopLoss, "Open OP Buy");
     if (ticket < 0)
     {
         return GetLastError();
     }
 
-    actual = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing selecing order");
+    actual = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Selecting OP Buy Open Order No Errors");
+
+    OrderClose(ticket, 0.1, Bid, 0, clrNONE);
+
+    return UnitTestConstants::UNIT_TEST_RAN;
+}
+
+int SelectOpBuyStopOpenOrderNoError(int &actual)
+{
+    int type = OP_BUYSTOP;
+    double entryPrice = Ask + OrderHelper::PipsToRange(200);
+    double stopLoss = Bid - OrderHelper::PipsToRange(200);
+
+    int ticket = SendOrder(type, entryPrice, stopLoss, "Open OP Buy Stop");
+    if (ticket < 0)
+    {
+        return GetLastError();
+    }
+
+    actual = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Selecting OP Buy Stop Open Order No Errors");
 
     OrderDelete(ticket, clrNONE);
 
     return UnitTestConstants::UNIT_TEST_RAN;
 }
 
-int HasError(int &actual)
+int SelectOpBuyClosedOrderHasError(bool &actual)
 {
-    int ticket = SendOrder();
-    if (ticket < 0 || !OrderDelete(ticket, clrNONE))
+    int type = OP_BUY;
+    double entryPrice = Ask;
+    double stopLoss = Bid - OrderHelper::PipsToRange(200);
+
+    int ticket = SendOrder(type, entryPrice, stopLoss, "Closed OP Buy");
+    if (ticket < 0)
     {
         return GetLastError();
     }
 
-    actual = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing selecing order");
+    if (!OrderClose(ticket, 0.1, Bid, 0, clrNONE))
+    {
+        return GetLastError();
+    }
+
+    int error = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Selecting OP Buy Closed Order Has Error");
+    actual = (error == Errors::ERR_ORDER_IS_CLOSED) || (error == Errors::ERR_ORDER_NOT_FOUND);
+
+    return UnitTestConstants::UNIT_TEST_RAN;
+}
+
+int SelectOpBuyStopClosedOrderHasError(bool &actual)
+{
+    int type = OP_BUYSTOP;
+    double entryPrice = Ask + OrderHelper::PipsToRange(200);
+    double stopLoss = Bid - OrderHelper::PipsToRange(200);
+
+    int ticket = SendOrder(type, entryPrice, stopLoss, "Closed OP Buy Stop");
+    if (ticket < 0)
+    {
+        return GetLastError();
+    }
+
+    if (!OrderDelete(ticket, clrNONE))
+    {
+        return GetLastError();
+    }
+
+    int error = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Selecting OP Buy Stop Closed Order Has Error");
+    actual = (error == Errors::ERR_ORDER_IS_CLOSED) || (error == Errors::ERR_ORDER_NOT_FOUND);
+
     return UnitTestConstants::UNIT_TEST_RAN;
 }

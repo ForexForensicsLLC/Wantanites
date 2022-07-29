@@ -36,19 +36,19 @@ public:
 
     // Tested
     // ResetsOutParam
-    static int GetEntryPriceForStopOrderOnMostRecentPendingMB(double spreadPips, int setupType, MBTracker *&mbt, out double &entryPrice);
+    static int GetEntryPriceForStopOrderForPendingMBValidation(double spreadPips, int setupType, MBTracker *&mbt, out double &entryPrice);
 
     // !Tested
     // ResetsOutParam
-    static int GetStopLossForStopOrderOnMostRecentPendingMB(double paddingPips, double spreadPips, int setupType, MBTracker *&mbt, out double &stopLoss);
+    static int GetStopLossForStopOrderForPendingMBValidation(double paddingPips, double spreadPips, int setupType, MBTracker *&mbt, out double &stopLoss);
 
     // !TestedS
     // ResetsOutParam
-    static int GetEntryPriceForStopOrderOnBreakOfMB(double spreadPips, int mbNumber, MBTracker *&mbt, out double &entryPrice);
+    static int GetEntryPriceForStopOrderForBreakOfMB(double spreadPips, int mbNumber, MBTracker *&mbt, out double &entryPrice);
 
     // !Tested
     // ResetsOutParam
-    static int GetStopLossForStopOrderOnBreakOfMB(double paddingPips, double spreadPips, int mbNumber, MBTracker *&mbt, out double &stopLoss);
+    static int GetStopLossForStopOrderForBreakOfMB(double paddingPips, double spreadPips, int mbNumber, MBTracker *&mbt, out double &stopLoss);
 
     // ==========================================================================
     // Selecting Orders
@@ -56,10 +56,10 @@ public:
     // !Tested
     static int SelectOpenOrderByPosition(int position, string action);
 
-    // !Tested
+    // Tested
     static int SelectOpenOrderByTicket(int ticket, string action);
 
-    // !Tested
+    // Tested
     static int SelectClosedOrderByTicket(int ticket, string action);
 
     // ==========================================================================
@@ -183,7 +183,16 @@ static double OrderHelper::GetLotSize(double stopLossPips, double riskPercent)
     double LotSize = (AccountBalance() * riskPercent / 100) / stopLossPips / MarketInfo(Symbol(), MODE_LOTSIZE);
     return MathMax(LotSize, MarketInfo(Symbol(), MODE_MINLOT));
 }
-static int OrderHelper::GetEntryPriceForStopOrderOnMostRecentPendingMB(double spreadPips, int setupType, MBTracker *&mbt, out double &entryPrice)
+/**
+ * @brief Gets the entry price for a stop order that will trigger on the CONTINUTATION of the pending MB / Validation of MB
+ *
+ * @param spreadPips
+ * @param setupType
+ * @param mbt
+ * @param entryPrice
+ * @return int
+ */
+static int OrderHelper::GetEntryPriceForStopOrderForPendingMBValidation(double spreadPips, int setupType, MBTracker *&mbt, out double &entryPrice)
 {
     entryPrice = 0.0;
 
@@ -210,7 +219,17 @@ static int OrderHelper::GetEntryPriceForStopOrderOnMostRecentPendingMB(double sp
 
     return ERR_NO_ERROR;
 }
-static int OrderHelper::GetStopLossForStopOrderOnMostRecentPendingMB(double paddingPips, double spreadPips, int setupType, MBTracker *&mbt, out double &stopLoss)
+/**
+ * @brief Gets the stop loss for a stop order that will trigger on the CONTINUATION of the current pending MB / validation of MB
+ *
+ * @param paddingPips
+ * @param spreadPips
+ * @param setupType
+ * @param mbt
+ * @param stopLoss
+ * @return int
+ */
+static int OrderHelper::GetStopLossForStopOrderForPendingMBValidation(double paddingPips, double spreadPips, int setupType, MBTracker *&mbt, out double &stopLoss)
 {
     stopLoss = 0.0;
 
@@ -237,7 +256,16 @@ static int OrderHelper::GetStopLossForStopOrderOnMostRecentPendingMB(double padd
 
     return ERR_NO_ERROR;
 }
-static int OrderHelper::GetEntryPriceForStopOrderOnBreakOfMB(double spreadPips, int mbNumber, MBTracker *&mbt, out double &entryPrice)
+/**
+ * @brief Gets the entry price for a stop order that will trigger on the BREAK of the current pending MB / not holding of the previous MB
+ *
+ * @param spreadPips
+ * @param mbNumber
+ * @param mbt
+ * @param entryPrice
+ * @return int
+ */
+static int OrderHelper::GetEntryPriceForStopOrderForBreakOfMB(double spreadPips, int mbNumber, MBTracker *&mbt, out double &entryPrice)
 {
     entryPrice = 0.0;
 
@@ -259,7 +287,17 @@ static int OrderHelper::GetEntryPriceForStopOrderOnBreakOfMB(double spreadPips, 
 
     return ERR_NO_ERROR;
 }
-static int OrderHelper::GetStopLossForStopOrderOnBreakOfMB(double paddingPips, double spreadPips, int mbNumber, MBTracker *&mbt, out double &stopLoss)
+/**
+ * @brief Gets the Stop Loss for a stop order that will trigger on the BREAK of the current pending MB / not holding of the previous MB
+ *
+ * @param paddingPips
+ * @param spreadPips
+ * @param mbNumber
+ * @param mbt
+ * @param stopLoss
+ * @return int
+ */
+static int OrderHelper::GetStopLossForStopOrderForBreakOfMB(double paddingPips, double spreadPips, int mbNumber, MBTracker *&mbt, out double &stopLoss)
 {
     stopLoss = 0.0;
     MBState *tempMBState;
@@ -307,34 +345,92 @@ static int OrderHelper::SelectOpenOrderByPosition(int position, string action)
 
 static int OrderHelper::SelectOpenOrderByTicket(int ticket, string action)
 {
-    int error = ERR_NO_ERROR;
-
-    if (!OrderSelect(ticket, SELECT_BY_TICKET, MODE_TRADES))
+    if (ticket == EMPTY)
     {
-        error = GetLastError();
-        SendMail("Failed To Select Open Order By Ticket When " + action,
-                 "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
-                     "Current Ticket: " + IntegerToString(ticket) + "\n" +
-                     IntegerToString(error));
+        return Errors::ERR_TICKET_IS_EMPTY;
     }
 
-    return error;
+    if (!OrderSelect(ticket, SELECT_BY_TICKET))
+    {
+        bool found = false;
+        for (int i = 0; i < OrdersTotal(); i++)
+        {
+            if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+            {
+                int error = GetLastError();
+                SendMail("Failed To Select Order By Ticket When " + action,
+                         "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
+                             "Current Index: " + IntegerToString(i) + "\n" +
+                             "Current Ticket: " + IntegerToString(ticket) + "\n" +
+                             IntegerToString(error));
+
+                return error;
+            }
+
+            if (OrderTicket() == ticket)
+            {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            return Errors::ERR_ORDER_NOT_FOUND;
+        }
+    }
+
+    if (OrderCloseTime() > 0)
+    {
+        return Errors::ERR_ORDER_IS_CLOSED;
+    }
+
+    return ERR_NO_ERROR;
 }
 
 static int OrderHelper::SelectClosedOrderByTicket(int ticket, string action)
 {
-    int error = ERR_NO_ERROR;
-
-    if (!OrderSelect(ticket, SELECT_BY_TICKET, MODE_HISTORY))
+    if (ticket == EMPTY)
     {
-        error = GetLastError();
-        SendMail("Failed To Select Closed Order By Ticket When " + action,
-                 "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
-                     "Current Ticket: " + IntegerToString(ticket) + "\n" +
-                     IntegerToString(error));
+        return Errors::ERR_TICKET_IS_EMPTY;
     }
 
-    return error;
+    if (!OrderSelect(ticket, SELECT_BY_TICKET))
+    {
+        bool found = false;
+        for (int i = 0; i < OrdersHistoryTotal(); i++)
+        {
+            if (!OrderSelect(i, SELECT_BY_POS, MODE_HISTORY))
+            {
+                int error = GetLastError();
+                SendMail("Failed To Select Order By Ticket When " + action,
+                         "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
+                             "Current Index: " + IntegerToString(i) + "\n" +
+                             "Current Ticket: " + IntegerToString(ticket) + "\n" +
+                             IntegerToString(error));
+
+                return error;
+            }
+
+            if (OrderTicket() == ticket)
+            {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            return Errors::ERR_ORDER_NOT_FOUND;
+        }
+    }
+
+    if (OrderCloseTime() == 0)
+    {
+        return Errors::ERR_ORDER_IS_OPEN;
+    }
+
+    return ERR_NO_ERROR;
 }
 
 /*
@@ -478,14 +574,14 @@ int OrderHelper::PlaceStopOrderOnMostRecentPendingMB(int paddingPips, int spread
 
     int type = tempMBState.Type() + 4;
     double entryPrice = 0.0;
-    int entryPriceError = GetEntryPriceForStopOrderOnMostRecentPendingMB(spreadPips, tempMBState.Type(), mbt, entryPrice);
+    int entryPriceError = GetEntryPriceForStopOrderForPendingMBValidation(spreadPips, tempMBState.Type(), mbt, entryPrice);
     if (entryPriceError != ERR_NO_ERROR)
     {
         return entryPriceError;
     }
 
     double stopLoss = 0.0;
-    int stopLossError = GetStopLossForStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, tempMBState.Type(), mbt, stopLoss);
+    int stopLossError = GetStopLossForStopOrderForPendingMBValidation(paddingPips, spreadPips, tempMBState.Type(), mbt, stopLoss);
     if (stopLossError != ERR_NO_ERROR)
     {
         return stopLossError;
@@ -517,14 +613,14 @@ int OrderHelper::PlaceStopOrderOnBreakOfMB(int paddingPips, int spreadPips, doub
     }
 
     double entryPrice = 0.0;
-    int entryPriceError = GetEntryPriceForStopOrderOnBreakOfMB(spreadPips, mbNumber, mbt, entryPrice);
+    int entryPriceError = GetEntryPriceForStopOrderForBreakOfMB(spreadPips, mbNumber, mbt, entryPrice);
     if (entryPriceError != ERR_NO_ERROR)
     {
         return entryPriceError;
     }
 
     double stopLoss = 0.0;
-    int stopLossError = GetStopLossForStopOrderOnBreakOfMB(paddingPips, spreadPips, mbNumber, mbt, stopLoss);
+    int stopLossError = GetStopLossForStopOrderForBreakOfMB(paddingPips, spreadPips, mbNumber, mbt, stopLoss);
     if (stopLossError != ERR_NO_ERROR)
     {
         return stopLossError;
@@ -599,7 +695,7 @@ static int OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(double paddingP
     }
 
     double newStopLoss = 0.0;
-    int stopLossError = GetStopLossForStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, tempMBState.Type(), mbt, newStopLoss);
+    int stopLossError = GetStopLossForStopOrderForPendingMBValidation(paddingPips, spreadPips, tempMBState.Type(), mbt, newStopLoss);
     if (stopLossError != ERR_NO_ERROR)
     {
         return stopLossError;

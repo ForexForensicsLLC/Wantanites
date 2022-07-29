@@ -13,7 +13,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/OrderHelper/GetEntryPriceForStopOrder/";
+const string Directory = "/UnitTests/OrderHelper/GetEntryPriceForStopOrderForPendingMBValidation/";
 const int NumberOfAsserts = 25;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
