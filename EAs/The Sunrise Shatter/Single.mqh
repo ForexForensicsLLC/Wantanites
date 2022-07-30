@@ -173,7 +173,8 @@ void TheSunriseShatterSingle::PlaceOrders()
 
     RecordPreOrderOpenData();
 
-    int orderPlaceError = OrderHelper::PlaceStopOrderOnMostRecentPendingMB(mStopLossPaddingPips, mMaxSpreadPips, mRiskPercent, MagicNumber, mFirstMBInSetupNumber, mMBT, mMBStopOrderTicket);
+    int orderPlaceError = OrderHelper::PlaceStopOrderForPendingMBValidation(mStopLossPaddingPips, mMaxSpreadPips, mRiskPercent, MagicNumber, mFirstMBInSetupNumber,
+                                                                            mMBT, mMBStopOrderTicket);
     if (mMBStopOrderTicket == EMPTY)
     {
         PendingRecord.Reset();
