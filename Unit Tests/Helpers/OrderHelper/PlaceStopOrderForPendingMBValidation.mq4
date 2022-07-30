@@ -16,7 +16,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/OrderHelper/PlaceStopOrderOnMostRecentPendingMB/";
+const string Directory = "/UnitTests/OrderHelper/PlaceStopOrderForPendingMBValidation/";
 const int NumberOfAsserts = 50;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = true;
@@ -116,7 +116,7 @@ int PlaceStopOrder(int setupMBNumber, out int &ticket)
     const double riskPercent = 0.25;
     const int magicNumber = 0;
 
-    return OrderHelper::PlaceStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, riskPercent, magicNumber, setupMBNumber, MBT, ticket);
+    return OrderHelper::PlaceStopOrderForPendingMBValidation(paddingPips, spreadPips, riskPercent, magicNumber, setupMBNumber, MBT, ticket);
 }
 
 int PlaceStoporderOnMostRecentPendingMB(int type, out int &ticket)

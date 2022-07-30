@@ -42,7 +42,7 @@ public:
     // ResetsOutParam
     static int GetStopLossForStopOrderForPendingMBValidation(double paddingPips, double spreadPips, int setupType, MBTracker *&mbt, out double &stopLoss);
 
-    // !TestedS
+    // !Tested
     // ResetsOutParam
     static int GetEntryPriceForStopOrderForBreakOfMB(double spreadPips, int mbNumber, MBTracker *&mbt, out double &entryPrice);
 
@@ -91,11 +91,11 @@ public:
     // ==========================================================================
     // !Tested
     // ResetsOutParam
-    static int PlaceStopOrderOnMostRecentPendingMB(int paddingPips, int spreadPips, double riskPercent, int magicNumber, int setupMBNumber, MBTracker *&mbt, out int &ticket);
+    static int PlaceStopOrderForPendingMBValidation(int paddingPips, int spreadPips, double riskPercent, int magicNumber, int setupMBNumber, MBTracker *&mbt, out int &ticket);
 
     // !Tested
     // ResetsOutParam
-    static int PlaceStopOrderOnBreakOfMB(int paddingPips, int spreadPips, double riskPercent, int magicNumber, int mbNumber, MBTracker *&mbt, out int &ticket);
+    static int PlaceStopOrderForBreakOfMB(int paddingPips, int spreadPips, double riskPercent, int magicNumber, int mbNumber, MBTracker *&mbt, out int &ticket);
 
     // ==========================================================================
     // Editing Orders
@@ -562,7 +562,7 @@ static int OrderHelper::PlaceStopOrder(int orderType, double lots, double entryP
                               |___/                 |_|
 
 */
-int OrderHelper::PlaceStopOrderOnMostRecentPendingMB(int paddingPips, int spreadPips, double riskPercent, int magicNumber, int setupMBNumber, MBTracker *&mbt, out int &ticket)
+int OrderHelper::PlaceStopOrderForPendingMBValidation(int paddingPips, int spreadPips, double riskPercent, int magicNumber, int setupMBNumber, MBTracker *&mbt, out int &ticket)
 {
     ticket = EMPTY;
 
@@ -592,14 +592,14 @@ int OrderHelper::PlaceStopOrderOnMostRecentPendingMB(int paddingPips, int spread
     return PlaceStopOrder(type, lots, entryPrice, stopLoss, 0, magicNumber, ticket);
 }
 
-int OrderHelper::PlaceStopOrderOnBreakOfMB(int paddingPips, int spreadPips, double riskPercent, int magicNumber, int mbNumber, MBTracker *&mbt, out int &ticket)
+int OrderHelper::PlaceStopOrderForBreakOfMB(int paddingPips, int spreadPips, double riskPercent, int magicNumber, int mbNumber, MBTracker *&mbt, out int &ticket)
 {
     ticket = EMPTY;
 
     MBState *tempMBState;
     if (!mbt.GetMB(mbNumber, tempMBState))
     {
-        return Errors::ERR_MB_IS_NOT_MOST_RECENT;
+        return Errors::ERR_MB_DOES_NOT_EXIST;
     }
 
     int type = -1;
