@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Constants\Errors.mqh>
+#include <SummitCapital\Framework\Constants\Index.mqh>
 
 #include <SummitCapital\Framework\Trackers\MBTracker.mqh>
 
@@ -18,7 +18,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/SetupHelper/FirstMBAfterLiquidationOfSecondPlusHoldingZone/";
+const string Directory = "/UnitTests/Helpers/SetupHelper/FirstMBAfterLiquidationOfSecondPlusHoldingZone/";
 const int NumberOfAsserts = 25;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = true;
@@ -83,7 +83,7 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
     if (MBT.HasNMostRecentConsecutiveMBs(3))
     {
         reset = true;
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     if (secondMBNumber != EMPTY)
@@ -93,7 +93,7 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
         if (setupError != ERR_NO_ERROR || isTrue)
         {
             reset = true;
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
     }
 
@@ -104,7 +104,7 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
         {
             if (secondTempMBState.Type() != type)
             {
-                return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+                return Results::UNIT_TEST_DID_NOT_RUN;
             }
 
             secondMBNumber = secondTempMBState.Number();
@@ -117,13 +117,13 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
         if (!MBT.GetMB(secondMBNumber + 1, thirdTempMBState))
         {
             reset = true;
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         if (thirdTempMBState.Type() == type)
         {
             reset = true;
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         thirdMBNumber = thirdTempMBState.Number();
@@ -147,38 +147,38 @@ int HasBullishSetup(bool &actual)
 
     if (thirdMBNumber == EMPTY)
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     MBState *thirdTempMBState;
     if (!MBT.GetMB(thirdMBNumber, thirdTempMBState))
     {
         reset = true;
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     MBState *firstTempMBState;
     if (!MBT.GetMB(secondMBNumber - 1, firstTempMBState))
     {
         reset = true;
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     MBState *secondTempMBState;
     if (!MBT.GetMB(secondMBNumber, secondTempMBState))
     {
         reset = true;
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     if (!iLow(secondTempMBState.Symbol(), secondTempMBState.TimeFrame(), 0) < iLow(secondTempMBState.Symbol(), secondTempMBState.TimeFrame(), secondTempMBState.LowIndex()))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     if (!firstTempMBState.ClosestValidZoneIsHolding(thirdTempMBState.EndIndex()))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     int setupError = SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(secondMBNumber - 1, secondMBNumber, MBT, actual);
@@ -188,7 +188,7 @@ int HasBullishSetup(bool &actual)
         return setupError;
     }
 
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int HasBearishSetup(bool &actual)
@@ -206,38 +206,38 @@ int HasBearishSetup(bool &actual)
 
     if (thirdMBNumber == EMPTY)
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     MBState *thirdTempMBState;
     if (!MBT.GetMB(thirdMBNumber, thirdTempMBState))
     {
         reset = true;
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     MBState *firstTempMBState;
     if (!MBT.GetMB(secondMBNumber - 1, firstTempMBState))
     {
         reset = true;
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     MBState *secondTempMBState;
     if (!MBT.GetMB(secondMBNumber, secondTempMBState))
     {
         reset = true;
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     if (!iHigh(secondTempMBState.Symbol(), secondTempMBState.TimeFrame(), 0) > iHigh(secondTempMBState.Symbol(), secondTempMBState.TimeFrame(), secondTempMBState.HighIndex()))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     if (!firstTempMBState.ClosestValidZoneIsHolding(thirdTempMBState.EndIndex()))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     int setupError = SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(secondMBNumber - 1, secondMBNumber, MBT, actual);
@@ -247,5 +247,5 @@ int HasBearishSetup(bool &actual)
         return setupError;
     }
 
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }

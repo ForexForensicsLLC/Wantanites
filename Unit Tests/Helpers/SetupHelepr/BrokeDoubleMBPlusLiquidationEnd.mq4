@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Constants\Errors.mqh>
+#include <SummitCapital\Framework\Constants\Index.mqh>
 
 #include <SummitCapital\Framework\Trackers\MBTracker.mqh>
 
@@ -18,7 +18,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/SetupHelper/BrokeDoubleMBPlusLiquidationEnd/";
+const string Directory = "/UnitTests/Helpers/SetupHelper/BrokeDoubleMBPlusLiquidationEnd/";
 const int NumberOfAsserts = 25;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = true;
@@ -69,12 +69,12 @@ int OnInit()
     ThreeConsecutiveBullishMBErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "Three Consecutive Bullish MBs Error", "Should Return Equal MB Types Error",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        Errors::ERR_EQUAL_MB_TYPES, ThreeConsecutiveBullishMBError);
+        ExecutionErrors::EQUAL_MB_TYPES, ThreeConsecutiveBullishMBError);
 
     ThreeConsecutiveBearishMBErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "Three Consecutive Bearish MBs Error", "Should Return Equal MB Types Error",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        Errors::ERR_EQUAL_MB_TYPES, ThreeConsecutiveBearishMBError);
+        ExecutionErrors::EQUAL_MB_TYPES, ThreeConsecutiveBearishMBError);
 
     return (INIT_SUCCEEDED);
 }
@@ -121,7 +121,7 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
     if (MBT.HasNMostRecentConsecutiveMBs(3))
     {
         reset = true;
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     if (secondMBNumber != EMPTY)
@@ -132,7 +132,7 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
         if (setupError != ERR_NO_ERROR || isTrue)
         {
             reset = true;
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
     }
 
@@ -143,7 +143,7 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
         {
             if (secondTempMBState.Type() != type)
             {
-                return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+                return Results::UNIT_TEST_DID_NOT_RUN;
             }
 
             secondMBNumber = secondTempMBState.Number();
@@ -155,13 +155,13 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
         MBState *thirdTempMBState;
         if (!MBT.GetMB(secondMBNumber + 1, thirdTempMBState))
         {
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         if (thirdTempMBState.Type() == type)
         {
             reset = true;
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         thirdMBNumber = thirdTempMBState.Number();
@@ -185,14 +185,14 @@ int HasBullishSetup(bool &actual)
 
     if (thirdMBNumber == EMPTY)
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     MBState *thirdTempMBState;
     if (!MBT.GetMB(thirdMBNumber, thirdTempMBState))
     {
         reset = true;
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     double price = iHigh(Symbol(), Period(), 0);
@@ -200,7 +200,7 @@ int HasBullishSetup(bool &actual)
 
     if (price <= end)
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     actual = false;
@@ -211,7 +211,7 @@ int HasBullishSetup(bool &actual)
     }
 
     reset = true;
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int HasBearishSetup(bool &actual)
@@ -229,14 +229,14 @@ int HasBearishSetup(bool &actual)
 
     if (thirdMBNumber == EMPTY)
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     MBState *thirdTempMBState;
     if (!MBT.GetMB(thirdMBNumber, thirdTempMBState))
     {
         reset = true;
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     double price = iHigh(Symbol(), Period(), 0);
@@ -244,7 +244,7 @@ int HasBearishSetup(bool &actual)
 
     if (price >= end)
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     actual = false;
@@ -255,7 +255,7 @@ int HasBearishSetup(bool &actual)
     }
 
     reset = true;
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int DidNotBreakLiquidationMBInBullishSetup(bool &actual)
@@ -273,14 +273,14 @@ int DidNotBreakLiquidationMBInBullishSetup(bool &actual)
 
     if (thirdMBNumber == EMPTY)
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     MBState *thirdTempMBState;
     if (!MBT.GetMB(thirdMBNumber, thirdTempMBState))
     {
         reset = true;
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     double price = iHigh(Symbol(), Period(), 0);
@@ -289,7 +289,7 @@ int DidNotBreakLiquidationMBInBullishSetup(bool &actual)
     if (price > end)
     {
         reset = true;
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     actual = true;
@@ -300,7 +300,7 @@ int DidNotBreakLiquidationMBInBullishSetup(bool &actual)
     }
 
     reset = true;
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int DidNotBreakLiquidationMBInBearishSetup(bool &actual)
@@ -318,14 +318,14 @@ int DidNotBreakLiquidationMBInBearishSetup(bool &actual)
 
     if (thirdMBNumber == EMPTY)
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     MBState *thirdTempMBState;
     if (!MBT.GetMB(thirdMBNumber, thirdTempMBState))
     {
         reset = true;
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     double price = iHigh(Symbol(), Period(), 0);
@@ -334,7 +334,7 @@ int DidNotBreakLiquidationMBInBearishSetup(bool &actual)
     if (price < end)
     {
         reset = true;
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     actual = false;
@@ -345,53 +345,53 @@ int DidNotBreakLiquidationMBInBearishSetup(bool &actual)
     }
 
     reset = true;
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int ThreeConsecutiveBullishMBError(int &actual)
 {
     if (!MBT.HasNMostRecentConsecutiveMBs(3))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     MBState *secondTempMBState;
     if (!MBT.GetNthMostRecentMB(1, secondTempMBState))
     {
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     if (secondTempMBState.Type() != OP_BUY)
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     bool isTrue = false;
     actual = SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(secondTempMBState.Number(), secondTempMBState.Type(), MBT, isTrue);
 
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int ThreeConsecutiveBearishMBError(int &actual)
 {
     if (!MBT.HasNMostRecentConsecutiveMBs(3))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     MBState *secondTempMBState;
     if (!MBT.GetNthMostRecentMB(1, secondTempMBState))
     {
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     if (secondTempMBState.Type() != OP_SELL)
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     bool isTrue = false;
     actual = SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(secondTempMBState.Number(), secondTempMBState.Type(), MBT, isTrue);
 
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }

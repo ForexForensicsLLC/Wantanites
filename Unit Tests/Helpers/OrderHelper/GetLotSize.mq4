@@ -13,7 +13,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/OrderHelper/GetLotSize/";
+const string Directory = "/UnitTests/Helpers/OrderHelper/GetLotSize/";
 const int NumberOfAsserts = 25;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
@@ -52,5 +52,5 @@ int CorrectMinLotSize(int &actual)
     double riskPercent = 0.1;
 
     actual = 100 * OrderHelper::GetLotSize(stopLossPips, riskPercent);
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }

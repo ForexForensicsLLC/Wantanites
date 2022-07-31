@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Constants\Errors.mqh>
+#include <SummitCapital\Framework\Constants\Index.mqh>
 
 #include <SummitCapital\Framework\Trackers\MBTracker.mqh>
 
@@ -18,7 +18,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/SetupHelper/MostRecentMBPlusHoldingZone/";
+const string Directory = "/UnitTests/Helpers/SetupHelper/MostRecentMBPlusHoldingZone/";
 const int NumberOfAsserts = 25;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = true;
@@ -45,7 +45,7 @@ int OnInit()
     MBIsNotMostRecentErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "MB Is Not Most Recent Error", "Returns MB Is Not Most Recent Error",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        Errors::ERR_MB_IS_NOT_MOST_RECENT, MBIsNotMostRecentError);
+        ExecutionErrors::MB_IS_NOT_MOST_RECENT, MBIsNotMostRecentError);
 
     HasSetupUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
         Directory, "Has Setup", "Should Return True Indicating There Is A Setup",
@@ -86,13 +86,13 @@ int MBIsNotMostRecentError(int &actual)
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(1, tempMBState))
     {
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     bool isTrue = false;
     actual = SetupHelper::MostRecentMBPlusHoldingZone(tempMBState.Number(), MBT, isTrue);
 
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int HasSetup(bool &actual)
@@ -100,16 +100,16 @@ int HasSetup(bool &actual)
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     if (!tempMBState.ClosestValidZoneIsHolding(EMPTY))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     SetupHelper::MostRecentMBPlusHoldingZone(tempMBState.Number(), MBT, actual);
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int DoesNotHaveSetup(bool &actual)
@@ -117,14 +117,14 @@ int DoesNotHaveSetup(bool &actual)
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     if (tempMBState.ClosestValidZoneIsHolding(EMPTY))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     SetupHelper::MostRecentMBPlusHoldingZone(tempMBState.Number(), MBT, actual);
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }

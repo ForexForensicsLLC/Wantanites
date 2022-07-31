@@ -9,7 +9,7 @@
 #property strict
 
 #include <SummitCapital\Framework\Trackers\MBTracker.mqh>
-#include <SummitCapital\Framework\Constants\Errors.mqh>
+#include <SummitCapital\Framework\Constants\Index.mqh>
 
 // HasUntestedMethods
 class OrderHelper
@@ -201,7 +201,7 @@ static int OrderHelper::GetEntryPriceForStopOrderForPendingMBValidation(double s
         int retracementIndex = mbt.CurrentBullishRetracementIndex();
         if (retracementIndex == EMPTY)
         {
-            return Errors::ERR_EMPTY_BULLISH_RETRACEMENT;
+            return ExecutionErrors::EMPTY_BULLISH_RETRACEMENT;
         }
 
         entryPrice = iHigh(mbt.Symbol(), mbt.TimeFrame(), retracementIndex) + OrderHelper::PipsToRange(spreadPips);
@@ -211,7 +211,7 @@ static int OrderHelper::GetEntryPriceForStopOrderForPendingMBValidation(double s
         int retracementIndex = mbt.CurrentBearishRetracementIndex();
         if (retracementIndex == EMPTY)
         {
-            return Errors::ERR_EMPTY_BEARISH_RETRACEMENT;
+            return ExecutionErrors::EMPTY_BEARISH_RETRACEMENT;
         }
 
         entryPrice = iLow(mbt.Symbol(), mbt.TimeFrame(), retracementIndex);
@@ -238,7 +238,7 @@ static int OrderHelper::GetStopLossForStopOrderForPendingMBValidation(double pad
         int retracementIndex = mbt.CurrentBullishRetracementIndex();
         if (retracementIndex == EMPTY)
         {
-            return Errors::ERR_EMPTY_BULLISH_RETRACEMENT;
+            return ExecutionErrors::EMPTY_BULLISH_RETRACEMENT;
         }
 
         stopLoss = iLow(mbt.Symbol(), mbt.TimeFrame(), iLowest(mbt.Symbol(), mbt.TimeFrame(), MODE_LOW, retracementIndex, 0)) + PipsToRange(paddingPips);
@@ -248,7 +248,7 @@ static int OrderHelper::GetStopLossForStopOrderForPendingMBValidation(double pad
         int retracementIndex = mbt.CurrentBearishRetracementIndex();
         if (retracementIndex == EMPTY)
         {
-            return Errors::ERR_EMPTY_BEARISH_RETRACEMENT;
+            return ExecutionErrors::EMPTY_BEARISH_RETRACEMENT;
         }
 
         stopLoss = iHigh(mbt.Symbol(), mbt.TimeFrame(), iHighest(mbt.Symbol(), mbt.TimeFrame(), MODE_HIGH, retracementIndex, 0)) + PipsToRange(paddingPips) + PipsToRange(spreadPips);
@@ -273,7 +273,7 @@ static int OrderHelper::GetEntryPriceForStopOrderForBreakOfMB(double spreadPips,
 
     if (!mbt.GetMB(mbNumber, tempMBState))
     {
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     if (tempMBState.Type() == OP_BUY)
@@ -304,7 +304,7 @@ static int OrderHelper::GetStopLossForStopOrderForBreakOfMB(double paddingPips, 
 
     if (!mbt.GetMB(mbNumber, tempMBState))
     {
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     if (tempMBState.Type() == OP_BUY)
@@ -347,7 +347,7 @@ static int OrderHelper::SelectOpenOrderByTicket(int ticket, string action)
 {
     if (ticket == EMPTY)
     {
-        return Errors::ERR_TICKET_IS_EMPTY;
+        return TerminalErrors::TICKET_IS_EMPTY;
     }
 
     if (!OrderSelect(ticket, SELECT_BY_TICKET))
@@ -376,13 +376,13 @@ static int OrderHelper::SelectOpenOrderByTicket(int ticket, string action)
 
         if (!found)
         {
-            return Errors::ERR_ORDER_NOT_FOUND;
+            return TerminalErrors::ORDER_NOT_FOUND;
         }
     }
 
     if (OrderCloseTime() > 0)
     {
-        return Errors::ERR_ORDER_IS_CLOSED;
+        return TerminalErrors::ORDER_IS_CLOSED;
     }
 
     return ERR_NO_ERROR;
@@ -392,7 +392,7 @@ static int OrderHelper::SelectClosedOrderByTicket(int ticket, string action)
 {
     if (ticket == EMPTY)
     {
-        return Errors::ERR_TICKET_IS_EMPTY;
+        return TerminalErrors::TICKET_IS_EMPTY;
     }
 
     if (!OrderSelect(ticket, SELECT_BY_TICKET))
@@ -421,13 +421,13 @@ static int OrderHelper::SelectClosedOrderByTicket(int ticket, string action)
 
         if (!found)
         {
-            return Errors::ERR_ORDER_NOT_FOUND;
+            return TerminalErrors::ORDER_NOT_FOUND;
         }
     }
 
     if (OrderCloseTime() == 0)
     {
-        return Errors::ERR_ORDER_IS_OPEN;
+        return TerminalErrors::ORDER_IS_OPEN;
     }
 
     return ERR_NO_ERROR;
@@ -533,12 +533,12 @@ static int OrderHelper::PlaceStopOrder(int orderType, double lots, double entryP
 
     if (orderType != OP_BUYSTOP && orderType != OP_SELLSTOP)
     {
-        return Errors::ERR_WRONG_ORDER_TYPE;
+        return TerminalErrors::WRONG_ORDER_TYPE;
     }
 
     if ((orderType == OP_BUYSTOP && stopLoss >= entryPrice) || (orderType == OP_SELLSTOP && stopLoss <= entryPrice))
     {
-        return Errors::ERR_STOPLOSS_ABOVE_ENTRY;
+        return TerminalErrors::STOPLOSS_ABOVE_ENTRY;
     }
 
     int error = ERR_NO_ERROR;
@@ -569,7 +569,7 @@ int OrderHelper::PlaceStopOrderForPendingMBValidation(int paddingPips, int sprea
     MBState *tempMBState;
     if (!mbt.MBIsMostRecent(setupMBNumber, tempMBState))
     {
-        return Errors::ERR_MB_IS_NOT_MOST_RECENT;
+        return ExecutionErrors::MB_IS_NOT_MOST_RECENT;
     }
 
     int type = tempMBState.Type() + 4;
@@ -599,7 +599,7 @@ int OrderHelper::PlaceStopOrderForBreakOfMB(int paddingPips, int spreadPips, dou
     MBState *tempMBState;
     if (!mbt.GetMB(mbNumber, tempMBState))
     {
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     int type = -1;
@@ -691,7 +691,7 @@ static int OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(double paddingP
     MBState *tempMBState;
     if (!mbt.GetMB(setupMBNumber, tempMBState))
     {
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     double newStopLoss = 0.0;
@@ -710,7 +710,7 @@ static int OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(double paddingP
 
     if (OrderStopLoss() == newStopLoss)
     {
-        return Errors::ERR_NEW_STOPLOSS_EQUALS_OLD;
+        return ExecutionErrors::NEW_STOPLOSS_EQUALS_OLD;
     }
 
     int type = OrderType();
@@ -782,11 +782,9 @@ static bool OrderHelper::CancelAllPendingOrdersByMagicNumber(int magicNumber)
 */
 static int OrderHelper::CancelPendingOrderByTicket(out int &ticket)
 {
-    int error = ERR_NO_ERROR;
-
     if (!OrderDelete(ticket))
     {
-        error = GetLastError();
+        int error = GetLastError();
         SendMail("Failed To Delete Order",
                  "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
                      "Ticket: " + IntegerToString(ticket) + "\n" +
@@ -919,23 +917,23 @@ static int OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(int ticket, double
 
     if (OrderType() > 2)
     {
-        return Errors::ERR_WRONG_ORDER_TYPE;
+        return TerminalErrors::WRONG_ORDER_TYPE;
     }
 
     MBState *tempMBState;
     if (!mbt.GetNthMostRecentMB(0, tempMBState))
     {
-        return Errors::ERR_MB_IS_NOT_MOST_RECENT;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     if (tempMBState.Number() <= setUpMB)
     {
-        return Errors::ERR_SUBSEQUENT_MB_DOES_NOT_EXIST;
+        return ExecutionErrors::SUBSEQUENT_MB_DOES_NOT_EXIST;
     }
 
     if (tempMBState.Type() != setUpType)
     {
-        return Errors::ERR_NOT_EQUAL_MB_TYPES;
+        return ExecutionErrors::NOT_EQUAL_MB_TYPES;
     }
 
     double currentStopLoss = OrderStopLoss();
@@ -956,7 +954,7 @@ static int OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(int ticket, double
 
     if (newStopLoss == currentStopLoss)
     {
-        return Errors::ERR_NEW_STOPLOSS_EQUALS_OLD;
+        return ExecutionErrors::NEW_STOPLOSS_EQUALS_OLD;
     }
 
     int error = ERR_NO_ERROR;

@@ -14,7 +14,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/OrderHelper/SelectOpenOrderByPosition/";
+const string Directory = "/UnitTests/Helpers/OrderHelper/SelectOpenOrderByPosition/";
 const int NumberOfAsserts = 25;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
@@ -73,7 +73,7 @@ int SelectOpenOrdersByPosition(bool &actual)
     }
 
     actual = ticket == OrderTicket();
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int NoOpenOrdersInvalidPositionHasError(int &actual)

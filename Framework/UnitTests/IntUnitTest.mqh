@@ -71,13 +71,13 @@ void IntUnitTest::Assert(bool equals = true)
     int actual;
     int testStatus = mActual(actual);
 
-    if ((testStatus != UnitTestConstants::UNIT_TEST_RAN && testStatus != UnitTestConstants::UNIT_TEST_DID_NOT_RUN) && mRecordErrors)
+    if ((testStatus != Results::UNIT_TEST_RAN && testStatus != Results::UNIT_TEST_DID_NOT_RUN) && mRecordErrors)
     {
         UnitTest<int, TRecord>::RecordError(testStatus);
         return;
     }
 
-    if (testStatus == UnitTestConstants::UNIT_TEST_DID_NOT_RUN)
+    if (testStatus == Results::UNIT_TEST_DID_NOT_RUN)
     {
         return;
     }

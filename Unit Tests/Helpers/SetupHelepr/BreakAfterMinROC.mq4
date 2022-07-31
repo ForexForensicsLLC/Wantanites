@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Constants\Errors.mqh>
+#include <SummitCapital\Framework\Constants\Index.mqh>
 
 #include <SummitCapital\Framework\Trackers\MBTracker.mqh>
 #include <SummitCapital\Framework\Objects\MinROCFromTimeStamp.mqh>
@@ -19,7 +19,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/SetupHelper/BreakAfterMinROC/";
+const string Directory = "/UnitTests/Helpers/SetupHelper/BreakAfterMinROC/";
 const int NumberOfAsserts = 25;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
@@ -50,12 +50,12 @@ int OnInit()
     DifferentSymbolsErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "Different Symbols Errors", "Should Return A Different Symbols Error",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        Errors::ERR_NOT_EQUAL_SYMBOLS, DifferentSymbolsError);
+        TerminalErrors::NOT_EQUAL_SYMBOLS, DifferentSymbolsError);
 
     DifferentTimeFramesErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "Different Time Frames Errors", "Should Return A Different Time Frames Error",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        Errors::ERR_NOT_EQUAL_TIMEFRAMES, DifferentTimeFramesError);
+        TerminalErrors::NOT_EQUAL_TIMEFRAMES, DifferentTimeFramesError);
 
     NoMinROCIsTrueEqualsFalseUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
         Directory, "No Min ROC, IsTrue Equals False", "When There Is Not A Min ROC, The Out Parameter IsTrue Should Be Equal To False",
@@ -116,7 +116,7 @@ int DifferentSymbolsError(int &actual)
     bool isTrue = false;
     actual = SetupHelper::BreakAfterMinROC(tempMRFTS, MBT, isTrue);
 
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int DifferentTimeFramesError(int &actual)
@@ -129,7 +129,7 @@ int DifferentTimeFramesError(int &actual)
     bool isTrue = false;
     actual = SetupHelper::BreakAfterMinROC(tempMRFTS, MBT, isTrue);
 
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int NoMinROCIsTrueEqualsFalse(bool &actual)
@@ -139,7 +139,7 @@ int NoMinROCIsTrueEqualsFalse(bool &actual)
 
     if (tempMRFTS.HadMinROC())
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     int error = SetupHelper::BreakAfterMinROC(tempMRFTS, MBT, actual);
@@ -148,14 +148,14 @@ int NoMinROCIsTrueEqualsFalse(bool &actual)
         return error;
     }
 
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int NotOppositeMBIsTrueEqualsFalse(bool &actual)
 {
     if (MBT.NthMostRecentMBIsOpposite(0))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     MinROCFromTimeStamp *tempMRFTS;
@@ -167,7 +167,7 @@ int NotOppositeMBIsTrueEqualsFalse(bool &actual)
         return error;
     }
 
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int BullishSetupTrue(bool &actual)
@@ -183,18 +183,18 @@ int BullishSetupTrue(bool &actual)
 
     if (!tempMRFTS.HadMinROC())
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     if (!MBT.NthMostRecentMBIsOpposite(0))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     MBState *tempMBStates[];
     if (!MBT.GetNMostRecentMBs(2, tempMBStates))
     {
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     bool bothBelow = iHigh(Symbol(), Period(), tempMBStates[1].HighIndex()) < tempMRFTS.OpenPrice() && iHigh(Symbol(), Period(), tempMBStates[0].HighIndex()) < tempMRFTS.OpenPrice();
@@ -202,7 +202,7 @@ int BullishSetupTrue(bool &actual)
 
     if (!breakingUp)
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     int error = SetupHelper::BreakAfterMinROC(tempMRFTS, MBT, actual);
@@ -212,7 +212,7 @@ int BullishSetupTrue(bool &actual)
     }
 
     reset = true;
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int BearishSetupTrue(bool &actual)
@@ -228,19 +228,19 @@ int BearishSetupTrue(bool &actual)
 
     if (!tempMRFTS.HadMinROC())
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     if (!MBT.NthMostRecentMBIsOpposite(0))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     MBState *tempMBStates[];
 
     if (!MBT.GetNMostRecentMBs(2, tempMBStates))
     {
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     bool bothAbove = iLow(Symbol(), Period(), tempMBStates[1].LowIndex()) > tempMRFTS.OpenPrice() && iLow(Symbol(), Period(), tempMBStates[0].LowIndex()) > tempMRFTS.OpenPrice();
@@ -248,7 +248,7 @@ int BearishSetupTrue(bool &actual)
 
     if (!breakingDown)
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     int error = SetupHelper::BreakAfterMinROC(tempMRFTS, MBT, actual);
@@ -258,5 +258,5 @@ int BearishSetupTrue(bool &actual)
     }
 
     reset = true;
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }

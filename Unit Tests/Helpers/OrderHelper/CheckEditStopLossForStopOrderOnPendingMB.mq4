@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Constants\Errors.mqh>
+#include <SummitCapital\Framework\Constants\Index.mqh>
 
 #include <SummitCapital\Framework\Trackers\MBTracker.mqh>
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
@@ -17,7 +17,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/OrderHelper/CheckEditStopLossForStopOrderOnPendingMB/";
+const string Directory = "/UnitTests/Helpers/OrderHelper/CheckEditStopLossForStopOrderOnPendingMB/";
 const int NumberOfAsserts = 100;
 const int AssertCooldown = 0;
 const bool RecordScreenShot = true;
@@ -119,18 +119,18 @@ int DidNotEditBullishMBStopLoss(bool &actual)
         MBState *tempMBState;
         if (!MBT.GetNthMostRecentMB(0, tempMBState))
         {
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         if (tempMBState.Type() != OP_BUY)
         {
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         int retracementIndex = MBT.CurrentBullishRetracementIndex();
         if (retracementIndex == EMPTY)
         {
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         mbNumber = tempMBState.Number();
@@ -149,16 +149,16 @@ int DidNotEditBullishMBStopLoss(bool &actual)
         int oldTicket = ticket;
         int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(paddingPips, spreadPips, riskPercent, mbNumber, MBT, ticket);
 
-        if (editStopLossError != Errors::ERR_NEW_STOPLOSS_EQUALS_OLD)
+        if (editStopLossError != ExecutionErrors::NEW_STOPLOSS_EQUALS_OLD)
         {
             return editStopLossError;
         }
 
         actual = oldTicket == ticket;
-        return UnitTestConstants::UNIT_TEST_RAN;
+        return Results::UNIT_TEST_RAN;
     }
 
-    return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+    return Results::UNIT_TEST_DID_NOT_RUN;
 }
 
 int DidNotEditBearishMBStopLoss(bool &actual)
@@ -192,18 +192,18 @@ int DidNotEditBearishMBStopLoss(bool &actual)
         MBState *tempMBState;
         if (!MBT.GetNthMostRecentMB(0, tempMBState))
         {
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         if (tempMBState.Type() != OP_SELL)
         {
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         int retracementIndex = MBT.CurrentBearishRetracementIndex();
         if (retracementIndex == EMPTY)
         {
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         mbNumber = tempMBState.Number();
@@ -222,16 +222,16 @@ int DidNotEditBearishMBStopLoss(bool &actual)
         int oldTicket = ticket;
         int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(paddingPips, spreadPips, riskPercent, mbNumber, MBT, ticket);
 
-        if (editStopLossError != Errors::ERR_NEW_STOPLOSS_EQUALS_OLD)
+        if (editStopLossError != ExecutionErrors::NEW_STOPLOSS_EQUALS_OLD)
         {
             return editStopLossError;
         }
 
         actual = oldTicket == ticket;
-        return UnitTestConstants::UNIT_TEST_RAN;
+        return Results::UNIT_TEST_RAN;
     }
 
-    return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+    return Results::UNIT_TEST_DID_NOT_RUN;
 }
 
 int DidEditBullishMBStopLoss(bool &actual)
@@ -266,18 +266,18 @@ int DidEditBullishMBStopLoss(bool &actual)
         MBState *tempMBState;
         if (!MBT.GetNthMostRecentMB(0, tempMBState))
         {
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         if (tempMBState.Type() != type)
         {
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         int retracementIndex = MBT.CurrentBullishRetracementIndex();
         if (retracementIndex == EMPTY)
         {
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         mbNumber = tempMBState.Number();
@@ -313,10 +313,10 @@ int DidEditBullishMBStopLoss(bool &actual)
         }
 
         actual = stopLoss != OrderStopLoss();
-        return UnitTestConstants::UNIT_TEST_RAN;
+        return Results::UNIT_TEST_RAN;
     }
 
-    return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+    return Results::UNIT_TEST_DID_NOT_RUN;
 }
 
 int DidEditBearishMBStopLoss(bool &actual)
@@ -350,18 +350,18 @@ int DidEditBearishMBStopLoss(bool &actual)
         MBState *tempMBState;
         if (!MBT.GetNthMostRecentMB(0, tempMBState))
         {
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         if (tempMBState.Type() != type)
         {
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         int retracementIndex = MBT.CurrentBullishRetracementIndex();
         if (retracementIndex == EMPTY)
         {
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         mbNumber = tempMBState.Number();
@@ -386,7 +386,7 @@ int DidEditBearishMBStopLoss(bool &actual)
 
         if (newStopLoss == stopLoss)
         {
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(paddingPips, spreadPips, riskPercent, mbNumber, MBT, ticket);
@@ -402,8 +402,8 @@ int DidEditBearishMBStopLoss(bool &actual)
         }
 
         actual = stopLoss != OrderStopLoss();
-        return UnitTestConstants::UNIT_TEST_RAN;
+        return Results::UNIT_TEST_RAN;
     }
 
-    return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+    return Results::UNIT_TEST_DID_NOT_RUN;
 }

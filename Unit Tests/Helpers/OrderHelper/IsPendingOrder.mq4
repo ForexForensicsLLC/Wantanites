@@ -13,7 +13,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/OrderHelper/IsPendingOrder/";
+const string Directory = "/UnitTests/Helpers/OrderHelper/IsPendingOrder/";
 const int NumberOfAsserts = 10;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
@@ -115,7 +115,7 @@ int OpBuyIsNotPending(bool &actual)
             return GetLastError();
         }
 
-        return UnitTestConstants::UNIT_TEST_RAN;
+        return Results::UNIT_TEST_RAN;
     }
 
     return GetLastError();
@@ -140,7 +140,7 @@ int OpSellIsNotPending(bool &actual)
             return GetLastError();
         }
 
-        return UnitTestConstants::UNIT_TEST_RAN;
+        return Results::UNIT_TEST_RAN;
     }
 
     return GetLastError();
@@ -168,7 +168,7 @@ int OpBuyStopIsPending(bool &actual)
             return GetLastError();
         }
 
-        return UnitTestConstants::UNIT_TEST_RAN;
+        return Results::UNIT_TEST_RAN;
     }
 
     return GetLastError();
@@ -196,7 +196,7 @@ int OpSellStopIsPending(bool &actual)
             return GetLastError();
         }
 
-        return UnitTestConstants::UNIT_TEST_RAN;
+        return Results::UNIT_TEST_RAN;
     }
 
     return GetLastError();
@@ -224,7 +224,7 @@ int OpBuyLimitIsPending(bool &actual)
             return GetLastError();
         }
 
-        return UnitTestConstants::UNIT_TEST_RAN;
+        return Results::UNIT_TEST_RAN;
     }
 
     return GetLastError();
@@ -252,7 +252,7 @@ int OpSellLimitIsPending(bool &actual)
             return GetLastError();
         }
 
-        return UnitTestConstants::UNIT_TEST_RAN;
+        return Results::UNIT_TEST_RAN;
     }
 
     return GetLastError();

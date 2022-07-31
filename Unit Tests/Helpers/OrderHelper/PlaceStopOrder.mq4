@@ -8,14 +8,14 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Constants\Errors.mqh>
+#include <SummitCapital\Framework\Constants\Index.mqh>
 
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
 #include <SummitCapital\Framework\UnitTests\IntUnitTest.mqh>
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/OrderHelper/PlaceStopOrder/";
+const string Directory = "/UnitTests/Helpers/OrderHelper/PlaceStopOrder/";
 const int NumberOfAsserts = 50;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
@@ -47,32 +47,32 @@ int OnInit()
     OpBuyWrongOrderTypeUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "OP Buy Wrong Order Type", "Returns Error When Placing OP Buy",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        Errors::ERR_WRONG_ORDER_TYPE, OpBuyWrongOrderType);
+        TerminalErrors::WRONG_ORDER_TYPE, OpBuyWrongOrderType);
 
     OpSellWrongOrderTypeUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "OP Sell Wrong Order Type", "Returns Error When Placing OP Sell",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        Errors::ERR_WRONG_ORDER_TYPE, OpSellWrongOrderType);
+        TerminalErrors::WRONG_ORDER_TYPE, OpSellWrongOrderType);
 
     OpBuyLimitWrongOrderTypeUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "OP Buy Limit Wrong Order Type", "Returns Error When Placing OP Buy Limit",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        Errors::ERR_WRONG_ORDER_TYPE, OpBuyLimitWrongOrderType);
+        TerminalErrors::WRONG_ORDER_TYPE, OpBuyLimitWrongOrderType);
 
     OpSellLimitWrongOrderTypeUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "OP Sell Limit Wrong Order Type", "Returns Error When Placing OP Sell Limit",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        Errors::ERR_WRONG_ORDER_TYPE, OpSellLimitWrongOrderType);
+        TerminalErrors::WRONG_ORDER_TYPE, OpSellLimitWrongOrderType);
 
     StopLossAboveBuyStopEntryErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "Stop Loss Above Buy Stop Entry Error", "Returns Error When Stop Loss is Above Buy Stop Entry",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        Errors::ERR_STOPLOSS_ABOVE_ENTRY, StopLossAboveBuyStopEntryError);
+        TerminalErrors::STOPLOSS_ABOVE_ENTRY, StopLossAboveBuyStopEntryError);
 
     StopLossBelowSellStopEntryErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "Stop Loss Below Sell Stop Entry Error", "Returns Error When Stop Loss Is Below Sell Stop Entry",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        Errors::ERR_STOPLOSS_ABOVE_ENTRY, StopLossBelowSellStopEntryError);
+        TerminalErrors::STOPLOSS_ABOVE_ENTRY, StopLossBelowSellStopEntryError);
 
     return (INIT_SUCCEEDED);
 }

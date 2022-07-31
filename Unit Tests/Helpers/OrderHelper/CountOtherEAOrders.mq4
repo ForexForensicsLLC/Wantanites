@@ -13,7 +13,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/OrderHelper/CountOtherEAOrders/";
+const string Directory = "/UnitTests/Helpers/OrderHelper/CountOtherEAOrders/";
 const int NumberOfAsserts = 10;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
@@ -120,7 +120,7 @@ int ZeroOtherEAOrders(int &actual)
         return otherEAOrdersErrors;
     }
 
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int MultipleOrdersFromOneEA(int &actual)
@@ -175,7 +175,7 @@ int MultipleOrdersFromOneEA(int &actual)
         return otherEAOrdersErrors;
     }
 
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int MultipleOrdersFromMultipleEAs(int &actual)
@@ -229,5 +229,5 @@ int MultipleOrdersFromMultipleEAs(int &actual)
         return otherEAOrdersErrors;
     }
 
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }

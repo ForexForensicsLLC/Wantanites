@@ -28,6 +28,9 @@ public:
     double Lots;
     double ExitPrice;
     double ExitStopLoss;
+    int LastState;
+    int Error;
+    string ErrorImage;
 
     DefaultTradeRecord();
     ~DefaultTradeRecord();
@@ -49,14 +52,14 @@ DefaultTradeRecord::~DefaultTradeRecord() {}
 
 void DefaultTradeRecord::WriteHeaders(int fileHandle)
 {
-    FileWrite(fileHandle, "Symbol", "Time Frame", "Order Type", "Account Balance Before", "Account Balance After", "Entry Time", "Entry Image", "Exit Time", "Exit Image", 
-        "Entry Price", "Entry Stop Loss", "Lots", "Exit Price", "Exit Stop Loss", "Total Move Pips", "Potential RR");
+    FileWrite(fileHandle, "Symbol", "Time Frame", "Order Type", "Account Balance Before", "Account Balance After", "Entry Time", "Entry Image", "Exit Time", "Exit Image",
+              "Entry Price", "Entry Stop Loss", "Lots", "Exit Price", "Exit Stop Loss", "Total Move Pips", "Potential RR", "Last State", "Error", "Error Image");
 }
 
 void DefaultTradeRecord::WriteRecord(int fileHandle)
 {
     FileWrite(fileHandle, Symbol, TimeFrame, OrderType, AccountBalanceBefore, AccountBalanceAfter, EntryTime, EntryImage, ExitTime, ExitImage, EntryPrice,
-              EntryStopLoss, Lots, ExitPrice, ExitStopLoss, TotalMovePips(), PotentialRR());
+              EntryStopLoss, Lots, ExitPrice, ExitStopLoss, TotalMovePips(), PotentialRR(), LastState, Error, ErrorImage);
 }
 
 void DefaultTradeRecord::Reset()
@@ -75,4 +78,7 @@ void DefaultTradeRecord::Reset()
     Lots = 0.0;
     ExitPrice = 0.0;
     ExitStopLoss = 0.0;
+    LastState = 0;
+    Error = 0;
+    ErrorImage = "";
 }

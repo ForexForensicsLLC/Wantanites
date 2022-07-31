@@ -9,7 +9,7 @@
 #property strict
 
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
-#include <SummitCapital\Framework\Constants\Errors.mqh>
+#include <SummitCapital\Framework\Constants\Index.mqh>
 
 class ScreenShotHelper
 {
@@ -17,9 +17,7 @@ private:
     static string DateTimeToFilePathString(datetime dt);
 
 public:
-    static int TryTakeUnitTestScreenShot(string directory, out string &imageName);
-    static int TryTakeOrderOpenScreenShot(int ticket, string directory, out string &imageName);
-    static int TryTakeOrderCloseScreenShot(int ticket, string directory, out string &imageName);
+    static void TryTakeScreenShot(string directory, out string &imageName);
 };
 
 static string ScreenShotHelper::DateTimeToFilePathString(datetime dt)
@@ -32,68 +30,14 @@ static string ScreenShotHelper::DateTimeToFilePathString(datetime dt)
            IntegerToString(TimeSeconds(dt));
 }
 
-static int ScreenShotHelper::TryTakeUnitTestScreenShot(string directory, out string &imageName)
+static void ScreenShotHelper::TryTakeScreenShot(string directory, out string &imageName)
 {
     imageName = DateTimeToFilePathString(TimeCurrent()) + ".png";
     string filePath = directory + "Images/" + imageName;
 
     if (!ChartScreenShot(ChartID(), filePath, 2000, 800, ALIGN_RIGHT))
     {
-        imageName = "";
-        return GetLastError();
+        int error = GetLastError();
+        imageName = "Error: " + IntegerToString(error);
     }
-
-    return ERR_NO_ERROR;
-}
-
-static int ScreenShotHelper::TryTakeOrderOpenScreenShot(int ticket, string directory, out string &imageName)
-{
-    imageName = "";
-    if (ticket == EMPTY)
-    {
-        return Errors::ERR_TICKET_IS_EMPTY;
-    }
-
-    int orderSelectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Taking Entry Screen Shot");
-    if (orderSelectError != ERR_NO_ERROR)
-    {
-        return orderSelectError;
-    }
-
-    imageName = DateTimeToFilePathString(OrderOpenTime()) + ".png";
-    string filePath = directory + "Images/" + imageName;
-
-    if (!ChartScreenShot(ChartID(), filePath, 2000, 800, ALIGN_RIGHT))
-    {
-        imageName = "";
-        return GetLastError();
-    }
-
-    return ERR_NO_ERROR;
-}
-
-static int ScreenShotHelper::TryTakeOrderCloseScreenShot(int ticket, string directory, out string &imageName)
-{
-    imageName = "";
-    if (ticket == EMPTY)
-    {
-        return Errors::ERR_TICKET_IS_EMPTY;
-    }
-
-    int orderSelectError = OrderHelper::SelectClosedOrderByTicket(ticket, "Taking Closed Screen Shot");
-    if (orderSelectError != ERR_NO_ERROR)
-    {
-        return orderSelectError;
-    }
-
-    imageName = DateTimeToFilePathString(OrderCloseTime()) + ".png";
-    string filePath = directory + "Images/" + imageName;
-
-    if (!ChartScreenShot(ChartID(), filePath, 2000, 800, ALIGN_RIGHT))
-    {
-        imageName = "";
-        return GetLastError();
-    }
-
-    return ERR_NO_ERROR;
 }

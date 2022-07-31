@@ -13,7 +13,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/OrderHelper/GetStopLossForStopOrderForPendingMBValidation/";
+const string Directory = "/UnitTests/Helpers/OrderHelper/GetStopLossForStopOrderForPendingMBValidation/";
 const int NumberOfAsserts = 25;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
@@ -54,12 +54,12 @@ int OnInit()
     BullishMBEmptyRetracementUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "Bullish MB Empty Reracement", "Should Return Empty Retracement Error",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        Errors::ERR_EMPTY_BULLISH_RETRACEMENT, BullishMBEmptyRetracement);
+        ExecutionErrors::EMPTY_BULLISH_RETRACEMENT, BullishMBEmptyRetracement);
 
     BearishMBEmptyRetracementUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "Bearish MB Empty Retracment", "Should Return Empty Retracement Error",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        Errors::ERR_EMPTY_BEARISH_RETRACEMENT, BearishMBEmptyRetracement);
+        ExecutionErrors::EMPTY_BEARISH_RETRACEMENT, BearishMBEmptyRetracement);
 
     BullishMBCorrectStopLossUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "Bullish MB Correct Stop Loss", "Stop Loss For Bullish MB Is Correct",
@@ -138,7 +138,7 @@ int BullishMBNoErrors(int &actual)
     int setupType = OP_BUY;
     if (!GetStopLossForStopOrderSetup(setupType, true))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     double stopLoss = 0.0;
@@ -146,7 +146,7 @@ int BullishMBNoErrors(int &actual)
     double paddingPips = 0.0;
 
     actual = OrderHelper::GetStopLossForStopOrderForPendingMBValidation(paddingPips, spreadPips, setupType, MBT, stopLoss);
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int BearishMBNoErrors(int &actual)
@@ -154,7 +154,7 @@ int BearishMBNoErrors(int &actual)
     int setupType = OP_SELL;
     if (!GetStopLossForStopOrderSetup(setupType, true))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     double stopLoss = 0.0;
@@ -162,7 +162,7 @@ int BearishMBNoErrors(int &actual)
     double paddingPips = 0.0;
 
     actual = OrderHelper::GetStopLossForStopOrderForPendingMBValidation(paddingPips, spreadPips, setupType, MBT, stopLoss);
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int BullishMBEmptyRetracement(int &actual)
@@ -170,7 +170,7 @@ int BullishMBEmptyRetracement(int &actual)
     int setupType = OP_BUY;
     if (!GetStopLossForStopOrderSetup(setupType, false))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     double stopLoss = 0.0;
@@ -178,7 +178,7 @@ int BullishMBEmptyRetracement(int &actual)
     double paddingPips = 0.0;
 
     actual = OrderHelper::GetStopLossForStopOrderForPendingMBValidation(paddingPips, spreadPips, setupType, MBT, stopLoss);
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int BearishMBEmptyRetracement(int &actual)
@@ -186,7 +186,7 @@ int BearishMBEmptyRetracement(int &actual)
     int setupType = OP_SELL;
     if (!GetStopLossForStopOrderSetup(setupType, false))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     double stopLoss = 0.0;
@@ -194,7 +194,7 @@ int BearishMBEmptyRetracement(int &actual)
     double paddingPips = 0.0;
 
     actual = OrderHelper::GetStopLossForStopOrderForPendingMBValidation(paddingPips, spreadPips, setupType, MBT, stopLoss);
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int BullishMBCorrectStopLossExpected()
@@ -207,7 +207,7 @@ int BullishMBCorrectStopLoss(int &actual)
     int setupType = OP_BUY;
     if (!GetStopLossForStopOrderSetup(setupType, true))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     double stopLoss = 0.0;
@@ -221,7 +221,7 @@ int BullishMBCorrectStopLoss(int &actual)
     }
 
     actual = MathFloor((stopLoss * MathPow(10, _Digits)));
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int BearishMBCorrectStopLossExpected()
@@ -234,7 +234,7 @@ int BearishMBCorrectStopLoss(int &actual)
     int setupType = OP_SELL;
     if (!GetStopLossForStopOrderSetup(setupType, true))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     double stopLoss = 0.0;
@@ -248,5 +248,5 @@ int BearishMBCorrectStopLoss(int &actual)
     }
 
     actual = MathFloor((stopLoss * MathPow(10, _Digits)));
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }

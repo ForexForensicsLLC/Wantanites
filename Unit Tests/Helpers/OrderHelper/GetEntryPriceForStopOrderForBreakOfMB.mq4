@@ -13,7 +13,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/OrderHelper/GetEntryPriceForStopOrderForBreakOfMB/";
+const string Directory = "/UnitTests/Helpers/OrderHelper/GetEntryPriceForStopOrderForBreakOfMB/";
 const int NumberOfAsserts = 25;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
@@ -41,7 +41,7 @@ int OnInit()
     InvalidMBNumberErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "Invalid MB Number", "Returns Error When Passing In An Invalid MB Number When Retrieving Entry Price",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        Errors::ERR_MB_DOES_NOT_EXIST, InvalidMBNumberError);
+        TerminalErrors::MB_DOES_NOT_EXIST, InvalidMBNumberError);
 
     NoErrorsUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "No Errors", "Returns No Errors When Retrieving Entry Price",
@@ -87,7 +87,7 @@ int InvalidMBNumberError(int &actual)
     double entryPrice = 0.0;
 
     actual = OrderHelper::GetEntryPriceForStopOrderForBreakOfMB(spreadPips, mbNumber, MBT, entryPrice);
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int NoErrors(int &actual)
@@ -95,14 +95,14 @@ int NoErrors(int &actual)
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     double spreadPips = 0.0;
     double entryPrice = 0.0;
 
     actual = OrderHelper::GetEntryPriceForStopOrderForBreakOfMB(spreadPips, tempMBState.Number(), MBT, entryPrice);
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int CorrectEntryPriceForBullishMBExpected()
@@ -121,12 +121,12 @@ int CorrectEntryPriceForBullishMB(int &actual)
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     if (tempMBState.Type() != OP_BUY)
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     double spreadPips = 0.0;
@@ -139,7 +139,7 @@ int CorrectEntryPriceForBullishMB(int &actual)
     }
 
     actual = MathFloor(entryPrice * MathPow(10, _Digits));
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int CorrectEntryPriceForBearishMBExpected()
@@ -158,12 +158,12 @@ int CorrectEntryPriceForBearishMB(int &actual)
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     if (tempMBState.Type() != OP_SELL)
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     double spreadPips = 0.0;
@@ -176,5 +176,5 @@ int CorrectEntryPriceForBearishMB(int &actual)
     }
 
     actual = MathFloor(entryPrice * MathPow(10, _Digits));
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }

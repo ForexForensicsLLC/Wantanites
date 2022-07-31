@@ -13,7 +13,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/OrderHelper/PipsToRange/";
+const string Directory = "/UnitTests/Helpers/OrderHelper/PipsToRange/";
 const int NumberOfAsserts = 10;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
@@ -57,10 +57,10 @@ int NASDAQPipsToRange(int &actual)
     if (Symbol() == "US100.cash")
     {
         actual = OrderHelper::PipsToRange(10);
-        return UnitTestConstants::UNIT_TEST_RAN;
+        return Results::UNIT_TEST_RAN;
     }
 
-    return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+    return Results::UNIT_TEST_DID_NOT_RUN;
 }
 
 int EURUSDPipsToRange(int &actual)
@@ -68,8 +68,8 @@ int EURUSDPipsToRange(int &actual)
     if (Symbol() == "EURUSD")
     {
         actual = OrderHelper::PipsToRange(10000);
-        return UnitTestConstants::UNIT_TEST_RAN;
+        return Results::UNIT_TEST_RAN;
     }
 
-    return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+    return Results::UNIT_TEST_DID_NOT_RUN;
 }

@@ -8,14 +8,14 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Constants\Errors.mqh>
+#include <SummitCapital\Framework\Constants\Index.mqh>
 
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
 #include <SummitCapital\Framework\UnitTests\IntUnitTest.mqh>
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/OrderHelper/CancelPendingOrderByTicket/";
+const string Directory = "/UnitTests/Helpers/OrderHelper/CancelPendingOrderByTicket/";
 const int NumberOfAsserts = 25;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
@@ -64,7 +64,7 @@ int NoErrors(out int &actual)
     if (ticket > 0)
     {
         actual = OrderHelper::CancelPendingOrderByTicket(ticket);
-        return UnitTestConstants::UNIT_TEST_RAN;
+        return Results::UNIT_TEST_RAN;
     }
 
     return GetLastError();
@@ -82,7 +82,7 @@ int ErrorsWhenCancelingDeletedOrder(int &actual)
         OrderDelete(ticket, clrNONE);
 
         actual = OrderHelper::CancelPendingOrderByTicket(ticket);
-        return UnitTestConstants::UNIT_TEST_RAN;
+        return Results::UNIT_TEST_RAN;
     }
 
     return GetLastError();

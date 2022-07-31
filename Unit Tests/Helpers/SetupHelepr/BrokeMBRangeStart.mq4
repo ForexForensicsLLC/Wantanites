@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Constants\Errors.mqh>
+#include <SummitCapital\Framework\Constants\Index.mqh>
 
 #include <SummitCapital\Framework\Trackers\MBTracker.mqh>
 #include <SummitCapital\Framework\Objects\MinROCFromTimeStamp.mqh>
@@ -19,7 +19,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/SetupHelper/BreakAfterMinROC/";
+const string Directory = "/UnitTests/Helpesr/SetupHelper/BreakAfterMinROC/";
 const int NumberOfAsserts = 25;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
@@ -99,12 +99,12 @@ int BrokeBullishMB(bool &actual)
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     if (tempMBState.Type() != OP_BUY)
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     if (mbNumber == -1)
@@ -114,19 +114,19 @@ int BrokeBullishMB(bool &actual)
 
     if (MBT.MBIsMostRecent(mbNumber))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     MBState *tempMBStateTwo;
     if (!MBT.GetMB(mbNumber + 1, tempMBStateTwo))
     {
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     if (tempMBState.Type() == OP_BUY)
     {
         reset = true;
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     int brokeRangeError = SetupHelper::BrokeMBRangeStart(mbNumber, MBT, actual);
@@ -137,7 +137,7 @@ int BrokeBullishMB(bool &actual)
     }
 
     reset = true;
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int BrokeBearishMB(bool &actual)
@@ -154,12 +154,12 @@ int BrokeBearishMB(bool &actual)
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     if (tempMBState.Type() != OP_SELL)
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     if (mbNumber == -1)
@@ -169,19 +169,19 @@ int BrokeBearishMB(bool &actual)
 
     if (MBT.MBIsMostRecent(mbNumber))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     MBState *tempMBStateTwo;
     if (!MBT.GetMB(mbNumber + 1, tempMBStateTwo))
     {
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     if (tempMBState.Type() == OP_SELL)
     {
         reset = true;
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     int brokeRangeError = SetupHelper::BrokeMBRangeStart(mbNumber, MBT, actual);
@@ -192,7 +192,7 @@ int BrokeBearishMB(bool &actual)
     }
 
     reset = true;
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int DidNotBreakBullishMB(bool &actual)
@@ -200,12 +200,12 @@ int DidNotBreakBullishMB(bool &actual)
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     if (tempMBState.Type() != OP_BUY)
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     int brokeRangeError = SetupHelper::BrokeMBRangeStart(tempMBState.Number(), MBT, actual);
@@ -214,7 +214,7 @@ int DidNotBreakBullishMB(bool &actual)
         return brokeRangeError;
     }
 
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int DidNotBreakBearishMB(bool &actual)
@@ -222,12 +222,12 @@ int DidNotBreakBearishMB(bool &actual)
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     if (tempMBState.Type() != OP_SELL)
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     int brokeRangeError = SetupHelper::BrokeMBRangeStart(tempMBState.Number(), MBT, actual);
@@ -236,5 +236,5 @@ int DidNotBreakBearishMB(bool &actual)
         return brokeRangeError;
     }
 
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }

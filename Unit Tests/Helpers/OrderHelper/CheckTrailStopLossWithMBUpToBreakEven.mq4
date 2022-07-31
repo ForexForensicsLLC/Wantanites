@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Constants\Errors.mqh>
+#include <SummitCapital\Framework\Constants\Index.mqh>
 
 #include <SummitCapital\Framework\Trackers\MBTracker.mqh>
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
@@ -17,7 +17,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/OrderHelper/CheckTrailStopLossWithMBUpToBreakEven/";
+const string Directory = "/UnitTests/Helpers/OrderHelper/CheckTrailStopLossWithMBUpToBreakEven/";
 const int NumberOfAsserts = 100;
 const int AssertCooldown = 0;
 const bool RecordScreenShot = true;
@@ -122,18 +122,18 @@ int NoErrorsDifferentStopLoss(bool &actual)
         MBState *tempMBState;
         if (!MBT.GetNthMostRecentMB(0, tempMBState))
         {
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         if (tempMBState.Type() != OP_BUY)
         {
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         int retracementIndex = MBT.CurrentBullishRetracementIndex();
         if (retracementIndex == EMPTY)
         {
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         mbNumber = tempMBState.Number();
@@ -170,10 +170,10 @@ int NoErrorsDifferentStopLoss(bool &actual)
             OrderClose(ticket, OrderLots(), Ask, 0, clrNONE);
         }
 
-        return UnitTestConstants::UNIT_TEST_RAN;
+        return Results::UNIT_TEST_RAN;
     }
 
-    return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+    return Results::UNIT_TEST_DID_NOT_RUN;
 }
 
 int DoesNotTrailPastOpen(bool &actual)
@@ -230,18 +230,18 @@ int DoesNotTrailPastOpen(bool &actual)
         MBState *tempMBState;
         if (!MBT.GetNthMostRecentMB(0, tempMBState))
         {
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         if (tempMBState.Type() != OP_BUY)
         {
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         int retracementIndex = MBT.CurrentBullishRetracementIndex();
         if (retracementIndex == EMPTY)
         {
-            return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
         mbNumber = tempMBState.Number();
@@ -283,8 +283,8 @@ int DoesNotTrailPastOpen(bool &actual)
             actual = OrderStopLoss() >= entryPrice;
         }
 
-        return UnitTestConstants::UNIT_TEST_RAN;
+        return Results::UNIT_TEST_RAN;
     }
 
-    return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+    return Results::UNIT_TEST_DID_NOT_RUN;
 }

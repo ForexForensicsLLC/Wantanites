@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Constants\Errors.mqh>
+#include <SummitCapital\Framework\Constants\Index.mqh>
 
 #include <SummitCapital\Framework\Trackers\MBTracker.mqh>
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
@@ -16,7 +16,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/OrderHelper/PlaceStopOrderForBreakOfMB/";
+const string Directory = "/UnitTests/Helpers/OrderHelper/PlaceStopOrderForBreakOfMB/";
 const int NumberOfAsserts = 50;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = true;
@@ -74,12 +74,12 @@ int BullishMBNoError(int &actual)
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     if (tempMBState.Type() != OP_BUY)
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     int ticket = EMPTY;
@@ -90,7 +90,7 @@ int BullishMBNoError(int &actual)
         OrderDelete(ticket, clrNONE);
     }
 
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int BearishMBNoError(int &actual)
@@ -98,12 +98,12 @@ int BearishMBNoError(int &actual)
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
     {
-        return Errors::ERR_MB_DOES_NOT_EXIST;
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     if (tempMBState.Type() != OP_SELL)
     {
-        return UnitTestConstants::UNIT_TEST_DID_NOT_RUN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     int ticket = EMPTY;
@@ -114,7 +114,7 @@ int BearishMBNoError(int &actual)
         OrderDelete(ticket, clrNONE);
     }
 
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int MBDoesNotExistError(int &actual)
@@ -127,5 +127,5 @@ int MBDoesNotExistError(int &actual)
         OrderDelete(ticket, clrNONE);
     }
 
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }

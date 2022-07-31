@@ -8,8 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Constants\Errors.mqh>
-#include <SummitCapital\Framework\Constants\UnitTestConstants.mqh>
+#include <SummitCapital\Framework\Constants\Index.mqh>
 
 #include <SummitCapital\Framework\Helpers\ScreenShotHelper.mqh>
 #include <SummitCapital\Framework\CSVWriting\CSVRecordWriter.mqh>
@@ -92,12 +91,8 @@ template <typename TUnitTest, typename TRecord>
 void UnitTest::TrySetImage()
 {
     string imageName = "";
-    int screenShotError = ScreenShotHelper::TryTakeUnitTestScreenShot(mDirectory, imageName);
-    if (screenShotError != ERR_NO_ERROR)
-    {
-        return;
-    }
 
+    ScreenShotHelper::TryTakeScreenShot(mDirectory, imageName);
     PendingRecord.Image = imageName;
 }
 

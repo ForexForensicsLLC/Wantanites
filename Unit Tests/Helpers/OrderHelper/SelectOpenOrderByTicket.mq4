@@ -14,7 +14,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/OrderHelper/SelectOpenOrderByTicket/";
+const string Directory = "/UnitTests/Helpers/OrderHelper/SelectOpenOrderByTicket/";
 const int NumberOfAsserts = 25;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
@@ -47,12 +47,12 @@ int OnInit()
     SelectOpBuyClosedOrderHasErrorUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
         Directory, "OP Buy Has Error", "Should Return Order Is Closed Error When Selecting An OP Buy Closed Order",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        Errors::ERR_ORDER_IS_CLOSED, SelectOpBuyClosedOrderHasError);
+        TerminalErrors::ORDER_IS_CLOSED, SelectOpBuyClosedOrderHasError);
 
     SelectOpBuyStopClosedOrderHasErrorUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
         Directory, "OP Buy Stop Has Error", "Should Return Order Is Closed Error When Selecting An OP Buy Stop Closed Order",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        Errors::ERR_ORDER_IS_CLOSED, SelectOpBuyStopClosedOrderHasError);
+        TerminalErrors::ORDER_IS_CLOSED, SelectOpBuyStopClosedOrderHasError);
 
     return (INIT_SUCCEEDED);
 }
@@ -103,7 +103,7 @@ int SelectOpBuyOpenOrderNoError(int &actual)
 
     OrderClose(ticket, 0.1, Bid, 0, clrNONE);
 
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int SelectOpBuyStopOpenOrderNoError(int &actual)
@@ -122,7 +122,7 @@ int SelectOpBuyStopOpenOrderNoError(int &actual)
 
     OrderDelete(ticket, clrNONE);
 
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int SelectOpBuyClosedOrderHasError(bool &actual)
@@ -143,9 +143,9 @@ int SelectOpBuyClosedOrderHasError(bool &actual)
     }
 
     int error = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Selecting OP Buy Closed Order Has Error");
-    actual = (error == Errors::ERR_ORDER_IS_CLOSED) || (error == Errors::ERR_ORDER_NOT_FOUND);
+    actual = (error == TerminalErrors::ORDER_IS_CLOSED) || (error == TerminalErrors::ORDER_NOT_FOUND);
 
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
 
 int SelectOpBuyStopClosedOrderHasError(bool &actual)
@@ -166,7 +166,7 @@ int SelectOpBuyStopClosedOrderHasError(bool &actual)
     }
 
     int error = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Selecting OP Buy Stop Closed Order Has Error");
-    actual = (error == Errors::ERR_ORDER_IS_CLOSED) || (error == Errors::ERR_ORDER_NOT_FOUND);
+    actual = (error == TerminalErrors::ORDER_IS_CLOSED) || (error == TerminalErrors::ORDER_NOT_FOUND);
 
-    return UnitTestConstants::UNIT_TEST_RAN;
+    return Results::UNIT_TEST_RAN;
 }
