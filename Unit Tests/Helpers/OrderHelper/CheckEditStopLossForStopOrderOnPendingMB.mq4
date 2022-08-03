@@ -38,6 +38,12 @@ BoolUnitTest<DefaultUnitTestRecord> *DidNotEditBearishMBStopLossUnitTest;
 BoolUnitTest<DefaultUnitTestRecord> *DidEditBullishMBStopLossUnitTest;
 BoolUnitTest<DefaultUnitTestRecord> *DidEditBearishMBStopLossUnitTest;
 
+const int PaddingPips = 0.0;
+const int SpreadPips = 0.0;
+const double RiskPercent = 0.25;
+const int MagicNumber = 0;
+const int MinCooldDown = 1;
+
 int OnInit()
 {
     MBT = new MBTracker(MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, PrintErrors, CalculateOnTick);
@@ -88,32 +94,80 @@ void OnTick()
     DidEditBearishMBStopLossUnitTest.Assert();
 }
 
-int DidNotEditBullishMBStopLoss(bool &actual)
+int CloseTicket(int &ticket)
 {
-    static int ticket = -1;
-    static double stopLoss = 0.0;
-    static int mbNumber = -1;
+    bool isPending = false;
+    int pendingOrderError = OrderHelper::IsPendingOrder(ticket, isPending);
+    if (pendingOrderError != ERR_NO_ERROR)
+    {
+        return pendingOrderError;
+    }
 
-    const int paddingPips = 0.0;
-    const int spreadPips = 0.0;
-    const double riskPercent = 0.25;
-    const int magicNumber = 0;
+    if (isPending)
+    {
+        if (!OrderDelete(ticket, clrNONE))
+        {
+            return GetLastError();
+        }
+    }
+    else
+    {
+        int orderSelectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Check Edit Stop Loss");
+        if (orderSelectError != ERR_NO_ERROR)
+        {
+            return orderSelectError;
+        }
 
-    // reset state if we broke the mb
+        if (!OrderClose(ticket, OrderLots(), Ask, 0, clrNONE))
+        {
+            return GetLastError();
+        }
+    }
+
+    return ERR_NO_ERROR;
+}
+
+int SetSetupVariables(int type, int &ticket, double &stopLoss, int &mbNumber, bool &reset, datetime &cooldown)
+{
+    if (reset)
+    {
+        stopLoss = 0.0;
+        mbNumber = EMPTY;
+        cooldown = TimeCurrent();
+
+        if (ticket != EMPTY)
+        {
+            int closeTicketError = CloseTicket(ticket);
+            ticket = EMPTY;
+
+            if (closeTicketError != ERR_NO_ERROR)
+            {
+                reset = false;
+                return closeTicketError;
+            }
+        }
+
+        reset = false;
+    }
+
     if (mbNumber != -1)
     {
         bool isTrue = false;
         int error = SetupHelper::BrokeMBRangeStart(mbNumber, MBT, isTrue);
 
-        if (error != ERR_NO_ERROR || isTrue)
+        if (error != ERR_NO_ERROR)
         {
-            mbNumber = -1;
-            stopLoss = 0.0;
-            ticket = -1;
+            reset = true;
+            return error;
+        }
+
+        if (isTrue)
+        {
+            reset = true;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
     }
 
-    // make sure we have a setup
     if (stopLoss == 0.0)
     {
         MBState *tempMBState;
@@ -122,20 +176,30 @@ int DidNotEditBullishMBStopLoss(bool &actual)
             return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
-        if (tempMBState.Type() != OP_BUY)
+        if (tempMBState.Type() != type)
         {
             return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
-        int retracementIndex = MBT.CurrentBullishRetracementIndex();
-        if (retracementIndex == EMPTY)
+        int retracementIndex = EMPTY;
+        if (type == OP_BUY)
         {
-            return Results::UNIT_TEST_DID_NOT_RUN;
+            if (!MBT.CurrentBullishRetracementIndexIsValid(retracementIndex))
+            {
+                return Results::UNIT_TEST_DID_NOT_RUN;
+            }
+        }
+        else if (type == OP_SELL)
+        {
+            if (!MBT.CurrentBearishRetracementIndexIsValid(retracementIndex))
+            {
+                return Results::UNIT_TEST_DID_NOT_RUN;
+            }
         }
 
         mbNumber = tempMBState.Number();
 
-        int error = OrderHelper::PlaceStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, riskPercent, magicNumber, mbNumber, MBT, ticket);
+        int error = OrderHelper::PlaceStopOrderForPendingMBValidation(PaddingPips, SpreadPips, RiskPercent, MagicNumber, mbNumber, MBT, ticket);
         if (error != ERR_NO_ERROR)
         {
             return error;
@@ -144,21 +208,65 @@ int DidNotEditBullishMBStopLoss(bool &actual)
         OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Editing Stop Loss");
         stopLoss = OrderStopLoss();
     }
-    else
+
+    return ERR_NO_ERROR;
+}
+
+bool PastCooldown(datetime cooldown)
+{
+    if (cooldown == 0)
     {
-        int oldTicket = ticket;
-        int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(paddingPips, spreadPips, riskPercent, mbNumber, MBT, ticket);
-
-        if (editStopLossError != ExecutionErrors::NEW_STOPLOSS_EQUALS_OLD)
-        {
-            return editStopLossError;
-        }
-
-        actual = oldTicket == ticket;
-        return Results::UNIT_TEST_RAN;
+        return true;
     }
 
-    return Results::UNIT_TEST_DID_NOT_RUN;
+    if (Hour() == TimeHour(cooldown) && (Minute() - TimeMinute(cooldown) >= MinCooldDown))
+    {
+        return true;
+    }
+
+    if (Hour() > TimeHour(cooldown))
+    {
+        int minutes = (59 - TimeMinute(cooldown)) + Minute();
+        return minutes >= MinCooldDown;
+    }
+
+    return false;
+}
+
+int DidNotEditBullishMBStopLoss(bool &actual)
+{
+    static int ticket = EMPTY;
+    static double stopLoss = 0.0;
+    static int mbNumber = EMPTY;
+    static bool reset = false;
+    static datetime cooldown = 0;
+
+    int setupError = SetSetupVariables(OP_BUY, ticket, stopLoss, mbNumber, reset, cooldown);
+    if (setupError != ERR_NO_ERROR)
+    {
+        return setupError;
+    }
+
+    if (!PastCooldown(cooldown))
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    int oldTicket = ticket;
+
+    DidNotEditBullishMBStopLossUnitTest.TryTakeScreenShot();
+
+    int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(PaddingPips, SpreadPips, RiskPercent, mbNumber, MBT, ticket);
+
+    if (editStopLossError != ExecutionErrors::NEW_STOPLOSS_EQUALS_OLD)
+    {
+        return editStopLossError;
+    }
+
+    actual = oldTicket == ticket;
+    reset = true;
+
+    return Results::UNIT_TEST_RAN;
 }
 
 int DidNotEditBearishMBStopLoss(bool &actual)
@@ -166,72 +274,35 @@ int DidNotEditBearishMBStopLoss(bool &actual)
     static int ticket = -1;
     static double stopLoss = 0.0;
     static int mbNumber = -1;
+    static bool reset = false;
+    static datetime cooldown = 0;
 
-    const int paddingPips = 0.0;
-    const int spreadPips = 0.0;
-    const double riskPercent = 0.25;
-    const int magicNumber = 0;
-
-    // reset state if we broke the mb
-    if (mbNumber != -1)
+    int setupError = SetSetupVariables(OP_SELL, ticket, stopLoss, mbNumber, reset, cooldown);
+    if (setupError != ERR_NO_ERROR)
     {
-        bool isTrue = false;
-        int error = SetupHelper::BrokeMBRangeStart(mbNumber, MBT, isTrue);
-
-        if (error != ERR_NO_ERROR || isTrue)
-        {
-            mbNumber = -1;
-            stopLoss = 0.0;
-            ticket = -1;
-        }
+        return setupError;
     }
 
-    // make sure we have a setup
-    if (stopLoss == 0.0)
+    if (!PastCooldown(cooldown))
     {
-        MBState *tempMBState;
-        if (!MBT.GetNthMostRecentMB(0, tempMBState))
-        {
-            return Results::UNIT_TEST_DID_NOT_RUN;
-        }
-
-        if (tempMBState.Type() != OP_SELL)
-        {
-            return Results::UNIT_TEST_DID_NOT_RUN;
-        }
-
-        int retracementIndex = MBT.CurrentBearishRetracementIndex();
-        if (retracementIndex == EMPTY)
-        {
-            return Results::UNIT_TEST_DID_NOT_RUN;
-        }
-
-        mbNumber = tempMBState.Number();
-
-        int error = OrderHelper::PlaceStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, riskPercent, magicNumber, mbNumber, MBT, ticket);
-        if (error != ERR_NO_ERROR)
-        {
-            return error;
-        }
-
-        OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Editing Stop Loss");
-        stopLoss = OrderStopLoss();
-    }
-    else
-    {
-        int oldTicket = ticket;
-        int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(paddingPips, spreadPips, riskPercent, mbNumber, MBT, ticket);
-
-        if (editStopLossError != ExecutionErrors::NEW_STOPLOSS_EQUALS_OLD)
-        {
-            return editStopLossError;
-        }
-
-        actual = oldTicket == ticket;
-        return Results::UNIT_TEST_RAN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    return Results::UNIT_TEST_DID_NOT_RUN;
+    int oldTicket = ticket;
+
+    DidNotEditBearishMBStopLossUnitTest.TryTakeScreenShot();
+
+    int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(PaddingPips, SpreadPips, RiskPercent, mbNumber, MBT, ticket);
+
+    if (editStopLossError != ExecutionErrors::NEW_STOPLOSS_EQUALS_OLD)
+    {
+        return editStopLossError;
+    }
+
+    actual = oldTicket == ticket;
+    reset = true;
+
+    return Results::UNIT_TEST_RAN;
 }
 
 int DidEditBullishMBStopLoss(bool &actual)
@@ -239,84 +310,51 @@ int DidEditBullishMBStopLoss(bool &actual)
     static int ticket = -1;
     static double stopLoss = 0.0;
     static int mbNumber = -1;
+    static bool reset = false;
+    static datetime cooldown = 0;
 
-    const int type = OP_BUY;
-    const int paddingPips = 0.0;
-    const int spreadPips = 0.0;
-    const double riskPercent = 0.25;
-    const int magicNumber = 0;
-
-    // reset state if we broke the mb
-    if (mbNumber != -1)
+    int setupVariablesError = SetSetupVariables(OP_BUY, ticket, stopLoss, mbNumber, reset, cooldown);
+    if (setupVariablesError != ERR_NO_ERROR)
     {
-        bool isTrue = false;
-        int error = SetupHelper::BrokeMBRangeStart(mbNumber, MBT, isTrue);
-
-        if (error != ERR_NO_ERROR || isTrue)
-        {
-            mbNumber = -1;
-            stopLoss = 0.0;
-            ticket = -1;
-        }
+        return setupVariablesError;
     }
 
-    // make sure we have a setup
-    if (stopLoss == 0.0)
+    if (!PastCooldown(cooldown))
     {
-        MBState *tempMBState;
-        if (!MBT.GetNthMostRecentMB(0, tempMBState))
-        {
-            return Results::UNIT_TEST_DID_NOT_RUN;
-        }
-
-        if (tempMBState.Type() != type)
-        {
-            return Results::UNIT_TEST_DID_NOT_RUN;
-        }
-
-        int retracementIndex = MBT.CurrentBullishRetracementIndex();
-        if (retracementIndex == EMPTY)
-        {
-            return Results::UNIT_TEST_DID_NOT_RUN;
-        }
-
-        mbNumber = tempMBState.Number();
-
-        int error = OrderHelper::PlaceStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, riskPercent, magicNumber, mbNumber, MBT, ticket);
-        if (error != ERR_NO_ERROR)
-        {
-            return error;
-        }
-
-        OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Editing Stop Loss");
-        stopLoss = OrderStopLoss();
-    }
-    else
-    {
-        double newStopLoss;
-        int newStopLossError = OrderHelper::GetStopLossForStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, type, MBT, newStopLoss);
-        if (newStopLossError != ERR_NO_ERROR)
-        {
-            return newStopLossError;
-        }
-
-        int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(paddingPips, spreadPips, riskPercent, mbNumber, MBT, ticket);
-        if (editStopLossError != ERR_NO_ERROR)
-        {
-            return editStopLossError;
-        }
-
-        int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Editing Stop Loss");
-        if (selectError != ERR_NO_ERROR)
-        {
-            return selectError;
-        }
-
-        actual = stopLoss != OrderStopLoss();
-        return Results::UNIT_TEST_RAN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    return Results::UNIT_TEST_DID_NOT_RUN;
+    double newStopLoss;
+    int newStopLossError = OrderHelper::GetStopLossForStopOrderForPendingMBValidation(PaddingPips, SpreadPips, OP_BUY, MBT, newStopLoss);
+    if (newStopLossError != ERR_NO_ERROR)
+    {
+        return newStopLossError;
+    }
+
+    if (newStopLoss == stopLoss)
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    DidEditBullishMBStopLossUnitTest.TryTakeScreenShot();
+
+    int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(PaddingPips, SpreadPips, RiskPercent, mbNumber, MBT, ticket);
+    if (editStopLossError != ERR_NO_ERROR)
+    {
+        reset = true;
+        return editStopLossError;
+    }
+
+    int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Editing Stop Loss");
+    if (selectError != ERR_NO_ERROR)
+    {
+        reset = true;
+        return selectError;
+    }
+
+    actual = stopLoss != OrderStopLoss();
+    reset = true;
+    return Results::UNIT_TEST_RAN;
 }
 
 int DidEditBearishMBStopLoss(bool &actual)
@@ -324,86 +362,49 @@ int DidEditBearishMBStopLoss(bool &actual)
     static int ticket = -1;
     static double stopLoss = 0.0;
     static int mbNumber = -1;
+    static bool reset = false;
+    static datetime cooldown = 0;
 
-    const int type = OP_SELL;
-    const int paddingPips = 0.0;
-    const int spreadPips = 0.0;
-    const double riskPercent = 0.25;
-    const int magicNumber = 0;
-
-    if (mbNumber != -1)
+    int setupVariablesError = SetSetupVariables(OP_SELL, ticket, stopLoss, mbNumber, reset, cooldown);
+    if (setupVariablesError != ERR_NO_ERROR)
     {
-        bool isTrue = false;
-        int error = SetupHelper::BrokeMBRangeStart(mbNumber, MBT, isTrue);
-
-        if (error != ERR_NO_ERROR || isTrue)
-        {
-            mbNumber = -1;
-            stopLoss = 0.0;
-            ticket = -1;
-        }
+        return setupVariablesError;
     }
 
-    // make sure we have a setup
-    if (stopLoss == 0.0)
+    if (!PastCooldown(cooldown))
     {
-        MBState *tempMBState;
-        if (!MBT.GetNthMostRecentMB(0, tempMBState))
-        {
-            return Results::UNIT_TEST_DID_NOT_RUN;
-        }
-
-        if (tempMBState.Type() != type)
-        {
-            return Results::UNIT_TEST_DID_NOT_RUN;
-        }
-
-        int retracementIndex = MBT.CurrentBullishRetracementIndex();
-        if (retracementIndex == EMPTY)
-        {
-            return Results::UNIT_TEST_DID_NOT_RUN;
-        }
-
-        mbNumber = tempMBState.Number();
-
-        int error = OrderHelper::PlaceStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, riskPercent, magicNumber, mbNumber, MBT, ticket);
-        if (error != ERR_NO_ERROR)
-        {
-            return error;
-        }
-
-        OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Editing Stop Loss");
-        stopLoss = OrderStopLoss();
-    }
-    else
-    {
-        double newStopLoss;
-        int newStopLossError = OrderHelper::GetStopLossForStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, type, MBT, newStopLoss);
-        if (newStopLossError != ERR_NO_ERROR)
-        {
-            return newStopLossError;
-        }
-
-        if (newStopLoss == stopLoss)
-        {
-            return Results::UNIT_TEST_DID_NOT_RUN;
-        }
-
-        int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(paddingPips, spreadPips, riskPercent, mbNumber, MBT, ticket);
-        if (editStopLossError != ERR_NO_ERROR)
-        {
-            return editStopLossError;
-        }
-
-        int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Editing Stop Loss");
-        if (selectError != ERR_NO_ERROR)
-        {
-            return selectError;
-        }
-
-        actual = stopLoss != OrderStopLoss();
-        return Results::UNIT_TEST_RAN;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    return Results::UNIT_TEST_DID_NOT_RUN;
+    double newStopLoss;
+    int newStopLossError = OrderHelper::GetStopLossForStopOrderForPendingMBValidation(PaddingPips, SpreadPips, OP_SELL, MBT, newStopLoss);
+    if (newStopLossError != ERR_NO_ERROR)
+    {
+        return newStopLossError;
+    }
+
+    if (newStopLoss == stopLoss)
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    DidEditBearishMBStopLossUnitTest.TryTakeScreenShot();
+
+    int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(PaddingPips, SpreadPips, RiskPercent, mbNumber, MBT, ticket);
+    if (editStopLossError != ERR_NO_ERROR)
+    {
+        reset = true;
+        return editStopLossError;
+    }
+
+    int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Editing Stop Loss");
+    if (selectError != ERR_NO_ERROR)
+    {
+        reset = true;
+        return selectError;
+    }
+
+    actual = stopLoss != OrderStopLoss();
+    reset = true;
+    return Results::UNIT_TEST_RAN;
 }

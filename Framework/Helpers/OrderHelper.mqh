@@ -21,6 +21,9 @@ protected:
     // !Tested
     static void SendFailedOrderEMail(int orderNumber, int orderType, double entryPrice, double stopLoss, double lots, int magicNumber, int error);
 
+    // !Tested
+    static void SendMBFailedOrderEmail(int error, MBTracker *&mbt);
+
 public:
     // ==========================================================================
     // Calculating Orders
@@ -31,29 +34,29 @@ public:
     // Tested
     static double PipsToRange(double pips);
 
-    // !Tested
+    // Tested
     static double GetLotSize(double stopLossPips, double riskPercent);
 
     // Tested
     // ResetsOutParam
     static int GetEntryPriceForStopOrderForPendingMBValidation(double spreadPips, int setupType, MBTracker *&mbt, out double &entryPrice);
 
-    // !Tested
+    // Tested
     // ResetsOutParam
     static int GetStopLossForStopOrderForPendingMBValidation(double paddingPips, double spreadPips, int setupType, MBTracker *&mbt, out double &stopLoss);
 
-    // !Tested
+    // Tested
     // ResetsOutParam
     static int GetEntryPriceForStopOrderForBreakOfMB(double spreadPips, int mbNumber, MBTracker *&mbt, out double &entryPrice);
 
-    // !Tested
+    // Tested
     // ResetsOutParam
     static int GetStopLossForStopOrderForBreakOfMB(double paddingPips, double spreadPips, int mbNumber, MBTracker *&mbt, out double &stopLoss);
 
     // ==========================================================================
     // Selecting Orders
     // ==========================================================================
-    // !Tested
+    // Tested
     static int SelectOpenOrderByPosition(int position, string action);
 
     // Tested
@@ -82,7 +85,7 @@ public:
     // ==========================================================================
     // Placing Stop Orders
     // ==========================================================================
-    // !Tested
+    // Tested
     // ResetsOutParam
     static int PlaceStopOrder(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber, out int &ticket);
 
@@ -158,6 +161,14 @@ static void OrderHelper::SendFailedOrderEMail(int orderNumber, int orderType, do
                  "Lots: " + DoubleToString(lots) + "\n" +
                  "Error: " + IntegerToString(error));
 }
+
+static void OrderHelper::SendMBFailedOrderEmail(int error, MBTracker *&mbt)
+{
+    SendMail("Failed to place MB order",
+             "Time: " + IntegerToString(Hour()) + ":" + IntegerToString(Minute()) + ":" + IntegerToString(Seconds()) + "\n" +
+                 "Error: " + IntegerToString(error) + "\n" +
+                 mbt.ToString());
+}
 /*
 
     ____      _            _       _   _                ___          _
@@ -195,23 +206,23 @@ static double OrderHelper::GetLotSize(double stopLossPips, double riskPercent)
 static int OrderHelper::GetEntryPriceForStopOrderForPendingMBValidation(double spreadPips, int setupType, MBTracker *&mbt, out double &entryPrice)
 {
     entryPrice = 0.0;
+    int retracementIndex = EMPTY;
+    double minMarketStopOrderDifference = MarketInfo(mbt.Symbol(), MODE_STOPLEVEL);
 
     if (setupType == OP_BUY)
     {
-        int retracementIndex = mbt.CurrentBullishRetracementIndex();
-        if (retracementIndex == EMPTY)
+        if (!mbt.CurrentBullishRetracementIndexIsValid(retracementIndex))
         {
-            return ExecutionErrors::EMPTY_BULLISH_RETRACEMENT;
+            return ExecutionErrors::BULLISH_RETRACEMENT_IS_NOT_VALID;
         }
 
         entryPrice = iHigh(mbt.Symbol(), mbt.TimeFrame(), retracementIndex) + OrderHelper::PipsToRange(spreadPips);
     }
     else if (setupType == OP_SELL)
     {
-        int retracementIndex = mbt.CurrentBearishRetracementIndex();
-        if (retracementIndex == EMPTY)
+        if (!mbt.CurrentBearishRetracementIndexIsValid(retracementIndex))
         {
-            return ExecutionErrors::EMPTY_BEARISH_RETRACEMENT;
+            return ExecutionErrors::BEARISH_RETRACEMENT_IS_NOT_VALID;
         }
 
         entryPrice = iLow(mbt.Symbol(), mbt.TimeFrame(), retracementIndex);
@@ -232,26 +243,37 @@ static int OrderHelper::GetEntryPriceForStopOrderForPendingMBValidation(double s
 static int OrderHelper::GetStopLossForStopOrderForPendingMBValidation(double paddingPips, double spreadPips, int setupType, MBTracker *&mbt, out double &stopLoss)
 {
     stopLoss = 0.0;
+    int retracementIndex = EMPTY;
 
     if (setupType == OP_BUY)
     {
-        int retracementIndex = mbt.CurrentBullishRetracementIndex();
-        if (retracementIndex == EMPTY)
+        if (!mbt.CurrentBullishRetracementIndexIsValid(retracementIndex))
         {
-            return ExecutionErrors::EMPTY_BULLISH_RETRACEMENT;
+            return ExecutionErrors::BULLISH_RETRACEMENT_IS_NOT_VALID;
         }
 
-        stopLoss = iLow(mbt.Symbol(), mbt.TimeFrame(), iLowest(mbt.Symbol(), mbt.TimeFrame(), MODE_LOW, retracementIndex, 0)) + PipsToRange(paddingPips);
+        double low = 0.0;
+        if (!MQLHelper::GetLowestLow(mbt.Symbol(), mbt.TimeFrame(), retracementIndex, 0, true, low))
+        {
+            return ExecutionErrors::COULD_NOT_RETRIEVE_LOW;
+        }
+
+        stopLoss = low - PipsToRange(paddingPips);
     }
     else if (setupType == OP_SELL)
     {
-        int retracementIndex = mbt.CurrentBearishRetracementIndex();
-        if (retracementIndex == EMPTY)
+        if (!mbt.CurrentBearishRetracementIndexIsValid(retracementIndex))
         {
-            return ExecutionErrors::EMPTY_BEARISH_RETRACEMENT;
+            return ExecutionErrors::BEARISH_RETRACEMENT_IS_NOT_VALID;
         }
 
-        stopLoss = iHigh(mbt.Symbol(), mbt.TimeFrame(), iHighest(mbt.Symbol(), mbt.TimeFrame(), MODE_HIGH, retracementIndex, 0)) + PipsToRange(paddingPips) + PipsToRange(spreadPips);
+        double high = 0.0;
+        if (!MQLHelper::GetHighestHigh(mbt.Symbol(), mbt.TimeFrame(), retracementIndex, 0, true, high))
+        {
+            return ExecutionErrors::COULD_NOT_RETRIEVE_HIGH;
+        }
+
+        stopLoss = high + PipsToRange(paddingPips) + PipsToRange(spreadPips);
     }
 
     return ERR_NO_ERROR;
@@ -309,11 +331,23 @@ static int OrderHelper::GetStopLossForStopOrderForBreakOfMB(double paddingPips, 
 
     if (tempMBState.Type() == OP_BUY)
     {
-        stopLoss = iHigh(mbt.Symbol(), mbt.TimeFrame(), iHighest(mbt.Symbol(), mbt.TimeFrame(), MODE_HIGH, tempMBState.EndIndex(), 0)) + PipsToRange(paddingPips) + PipsToRange(spreadPips);
+        double high;
+        if (!MQLHelper::GetHighestHigh(mbt.Symbol(), mbt.TimeFrame(), tempMBState.EndIndex(), 0, true, high))
+        {
+            return ExecutionErrors::COULD_NOT_RETRIEVE_HIGH;
+        }
+
+        stopLoss = high + PipsToRange(paddingPips) + PipsToRange(spreadPips);
     }
     else if (tempMBState.Type() == OP_SELL)
     {
-        stopLoss = iLow(mbt.Symbol(), mbt.TimeFrame(), iLowest(mbt.Symbol(), mbt.TimeFrame(), MODE_LOW, tempMBState.EndIndex(), 0)) + PipsToRange(paddingPips);
+        double low = 0.0;
+        if (!MQLHelper::GetLowestLow(mbt.Symbol(), mbt.TimeFrame(), tempMBState.EndIndex(), 0, true, low))
+        {
+            return ExecutionErrors::COULD_NOT_RETRIEVE_LOW;
+        }
+
+        stopLoss = low - PipsToRange(paddingPips);
     }
 
     return ERR_NO_ERROR;
@@ -538,12 +572,23 @@ static int OrderHelper::PlaceStopOrder(int orderType, double lots, double entryP
 
     if ((orderType == OP_BUYSTOP && stopLoss >= entryPrice) || (orderType == OP_SELLSTOP && stopLoss <= entryPrice))
     {
-        return TerminalErrors::STOPLOSS_ABOVE_ENTRY;
+        return TerminalErrors::STOPLOSS_PAST_ENTRY;
+    }
+
+    MqlTick currentTick;
+    if (!SymbolInfoTick(_Symbol, currentTick))
+    {
+        return GetLastError();
+    }
+
+    if ((orderType == OP_BUYSTOP && entryPrice <= currentTick.ask) || (orderType == OP_SELLSTOP && entryPrice >= currentTick.bid))
+    {
+        return ExecutionErrors::STOP_ORDER_ENTRY_FURTHER_THEN_PRICE;
     }
 
     int error = ERR_NO_ERROR;
-
     ticket = OrderSend(NULL, orderType, lots, entryPrice, 0, stopLoss, takeProfit, NULL, magicNumber, 0, clrNONE);
+
     if (ticket < 0)
     {
         error = GetLastError();
@@ -588,8 +633,13 @@ int OrderHelper::PlaceStopOrderForPendingMBValidation(int paddingPips, int sprea
     }
 
     double lots = GetLotSize(RangeToPips(MathAbs(entryPrice - stopLoss)), riskPercent);
+    int error = PlaceStopOrder(type, lots, entryPrice, stopLoss, 0, magicNumber, ticket);
+    if (error != ERR_NO_ERROR)
+    {
+        SendMBFailedOrderEmail(error, mbt);
+    }
 
-    return PlaceStopOrder(type, lots, entryPrice, stopLoss, 0, magicNumber, ticket);
+    return error;
 }
 
 int OrderHelper::PlaceStopOrderForBreakOfMB(int paddingPips, int spreadPips, double riskPercent, int magicNumber, int mbNumber, MBTracker *&mbt, out int &ticket)
@@ -627,8 +677,13 @@ int OrderHelper::PlaceStopOrderForBreakOfMB(int paddingPips, int spreadPips, dou
     }
 
     double lots = GetLotSize(RangeToPips(MathAbs(entryPrice - stopLoss)), riskPercent);
+    int error = PlaceStopOrder(type, lots, entryPrice, stopLoss, 0, magicNumber, ticket);
+    if (error != ERR_NO_ERROR)
+    {
+        SendMBFailedOrderEmail(error, mbt);
+    }
 
-    return PlaceStopOrder(type, lots, entryPrice, stopLoss, 0, magicNumber, ticket);
+    return error;
 }
 /*
 
@@ -716,7 +771,7 @@ static int OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(double paddingP
     int type = OrderType();
     double entryPrice = OrderOpenPrice();
     double takeProfit = OrderTakeProfit();
-    string comment = OrderComment();
+    // string comment = OrderComment();
     int magicNumber = OrderMagicNumber();
     datetime expiration = OrderExpiration();
 
@@ -727,18 +782,16 @@ static int OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(double paddingP
     }
 
     double newLots = GetLotSize(RangeToPips(MathAbs(entryPrice - newStopLoss)), riskPercent);
-    int error = ERR_NO_ERROR;
-    int newTicket = OrderSend(Symbol(), type, newLots, OrderOpenPrice(), 0, newStopLoss, takeProfit, comment, magicNumber, expiration, clrNONE);
+    int newTicket = EMPTY;
+    int placeOrderError = PlaceStopOrder(type, newLots, entryPrice, newStopLoss, takeProfit, magicNumber, newTicket);
     if (newTicket < 0)
     {
-        error = GetLastError();
-        SendFailedOrderEMail(1, type, entryPrice, newStopLoss, newLots, magicNumber, error);
-
-        return error;
+        SendMBFailedOrderEmail(placeOrderError, mbt);
+        return placeOrderError;
     }
 
     ticket = newTicket;
-    return error;
+    return ERR_NO_ERROR;
 }
 /*
 
@@ -971,6 +1024,7 @@ static int OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(int ticket, double
                      "Current Stop Loss: " + DoubleToString(currentStopLoss) + "\n" +
                      "New Stop Loss: " + DoubleToString(newStopLoss) + "\n" +
                      "Error: " + IntegerToString(error));
+        SendMBFailedOrderEmail(error, mbt);
     }
 
     succeeded = true;

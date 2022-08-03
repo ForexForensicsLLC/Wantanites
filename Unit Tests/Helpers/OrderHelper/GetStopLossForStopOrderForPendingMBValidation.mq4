@@ -28,13 +28,22 @@ input bool CalculateOnTick = true;
 
 MBTracker *MBT;
 
+// https://drive.google.com/file/d/1vyxlPmL8hkSuZmvTEDBj5k8tAnPDPGcR/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *BullishMBNoErrorsUnitTest;
+
+// https://drive.google.com/file/d/1g6zsWMFZXowlyMyMEx5BLFUaL1w4Cu6k/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *BearishMBNoErrorsUnitTest;
 
+// https://drive.google.com/file/d/1V_3iVrxY8ajdt4a7h96tdc7vssm6u9rH/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *BullishMBEmptyRetracementUnitTest;
+
+// https://drive.google.com/file/d/1N8j1ay56uzDDRRORul3uyVKKPP7oWd1X/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *BearishMBEmptyRetracementUnitTest;
 
+// https://drive.google.com/file/d/1VhYpWwVkNJRpZbTd0SdXhYdkeoKTGrtm/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *BullishMBCorrectStopLossUnitTest;
+
+// https://drive.google.com/file/d/1Tl1whOIvDyNklbIAiWPvUTxb4Z0cUaQy/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *BearishMBCorrectStopLossUnitTest;
 
 int OnInit()
@@ -52,7 +61,7 @@ int OnInit()
         ERR_NO_ERROR, BearishMBNoErrors);
 
     BullishMBEmptyRetracementUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
-        Directory, "Bullish MB Empty Reracement", "Should Return Empty Retracement Error",
+        Directory, "Bullish MB Empty Retracement", "Should Return Empty Retracement Error",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
         ExecutionErrors::EMPTY_BULLISH_RETRACEMENT, BullishMBEmptyRetracement);
 
@@ -67,7 +76,7 @@ int OnInit()
         BullishMBCorrectStopLossExpected, BullishMBCorrectStopLoss);
 
     BearishMBCorrectStopLossUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
-        Directory, "Bearish MB Correc Stop Loss", "Stop Loss For Bearish MB Is Correct",
+        Directory, "Bearish MB Correct Stop Loss", "Stop Loss For Bearish MB Is Correct",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
         BearishMBCorrectStopLossExpected, BearishMBCorrectStopLoss);
 

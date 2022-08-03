@@ -14,19 +14,31 @@ template <typename TRecord>
 class IntUnitTest : public UnitTest<int, TRecord>
 {
 private:
-    typedef int (*TActualIntFunc)(int &);
+    typedef int (*TActualIntFunc)(int &actual);
+    typedef int (*TActualUnitTestIntFunc)(IntUnitTest<TRecord> &ut, int &actual);
+
     typedef int (*TExpectedIntFunc)();
 
     int mExpectedValue;
     TExpectedIntFunc mExpectedFunc;
-    TActualIntFunc mActual;
+
+    TActualIntFunc mActualIntFunc;
+    TActualUnitTestIntFunc mActualUnitTestIntFunc;
+
+    void Init(int expected, TExpectedIntFunc expectedFunc, TActualIntFunc actualIntFunc, TActualUnitTestIntFunc actualUnitTestIntFunc);
 
 public:
     IntUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
                 int expected, TActualIntFunc actual);
 
     IntUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+                int expected, TActualUnitTestIntFunc actual);
+
+    IntUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
                 TExpectedIntFunc expected, TActualIntFunc actual);
+
+    IntUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+                TExpectedIntFunc expected, TActualUnitTestIntFunc actual);
 
     ~IntUnitTest();
 
@@ -34,14 +46,29 @@ public:
 };
 
 template <typename TRecord>
+void IntUnitTest::Init(int expected, TExpectedIntFunc expectedFunc, TActualIntFunc actualIntFunc, TActualUnitTestIntFunc actualUnitTestIntFunc)
+{
+    mExpectedValue = expected;
+    mExpectedFunc = expectedFunc;
+
+    mActualIntFunc = actualIntFunc;
+    mActualUnitTestIntFunc = actualUnitTestIntFunc;
+}
+
+template <typename TRecord>
 IntUnitTest::IntUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
                          int expected, TActualIntFunc actual)
     : UnitTest(directory, testName, description, maxAsserts, assertCooldownMinutes, recordScreenShot, recordErrors)
 {
-    mExpectedValue = expected;
-    mActual = actual;
+    Init(expected, NULL, actual, NULL);
+}
 
-    mExpectedFunc = NULL;
+template <typename TRecord>
+IntUnitTest::IntUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+                         int expected, TActualUnitTestIntFunc actual)
+    : UnitTest(directory, testName, description, maxAsserts, assertCooldownMinutes, recordScreenShot, recordErrors)
+{
+    Init(expected, NULL, NULL, actual);
 }
 
 template <typename TRecord>
@@ -49,10 +76,15 @@ IntUnitTest::IntUnitTest(string directory, string testName, string testMessage, 
                          TExpectedIntFunc expected, TActualIntFunc actual)
     : UnitTest(directory, testName, testMessage, maxAsserts, assertCooldownMinutes, recordScreenShot, recordErrors)
 {
-    mExpectedFunc = expected;
-    mActual = actual;
+    Init(NULL, expected, actual, NULL);
+}
 
-    mExpectedValue = NULL;
+template <typename TRecord>
+IntUnitTest::IntUnitTest(string directory, string testName, string testMessage, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+                         TExpectedIntFunc expected, TActualUnitTestIntFunc actual)
+    : UnitTest(directory, testName, testMessage, maxAsserts, assertCooldownMinutes, recordScreenShot, recordErrors)
+{
+    Init(NULL, expected, NULL, actual);
 }
 
 template <typename TRecord>
@@ -69,7 +101,16 @@ void IntUnitTest::Assert(bool equals = true)
     }
 
     int actual;
-    int testStatus = mActual(actual);
+    int testStatus;
+
+    if (mActualIntFunc != NULL)
+    {
+        testStatus = mActualIntFunc(actual);
+    }
+    else
+    {
+        testStatus = mActualUnitTestIntFunc(this, actual);
+    }
 
     if ((testStatus != Results::UNIT_TEST_RAN && testStatus != Results::UNIT_TEST_DID_NOT_RUN) && mRecordErrors)
     {

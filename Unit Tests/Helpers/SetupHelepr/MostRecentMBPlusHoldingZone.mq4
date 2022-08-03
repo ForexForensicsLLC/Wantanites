@@ -33,9 +33,13 @@ input bool CalculateOnTick = true;
 
 MBTracker *MBT;
 
+// https://drive.google.com/file/d/1MVdqEZUyL60R_oLXdU8_0mxqfoNrKzNj/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *MBIsNotMostRecentErrorUnitTest;
 
+// https://drive.google.com/file/d/1xwRIVSUS74Cuzwuu4g2Rzc5nld54ROBN/view?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *HasSetupUnitTest;
+
+// https://drive.google.com/file/d/1euJ9s4_a2oPATNMgY-d0RTl3D7Gblq0o/view?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *DoesNotHaveSetupUnitTest;
 
 int OnInit()
@@ -89,6 +93,8 @@ int MBIsNotMostRecentError(int &actual)
         return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
+    MBIsNotMostRecentErrorUnitTest.TryTakeScreenShot();
+
     bool isTrue = false;
     actual = SetupHelper::MostRecentMBPlusHoldingZone(tempMBState.Number(), MBT, isTrue);
 
@@ -108,6 +114,8 @@ int HasSetup(bool &actual)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
+    HasSetupUnitTest.TryTakeScreenShot();
+
     SetupHelper::MostRecentMBPlusHoldingZone(tempMBState.Number(), MBT, actual);
     return Results::UNIT_TEST_RAN;
 }
@@ -124,6 +132,8 @@ int DoesNotHaveSetup(bool &actual)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
+
+    DoesNotHaveSetupUnitTest.TryTakeScreenShot();
 
     SetupHelper::MostRecentMBPlusHoldingZone(tempMBState.Number(), MBT, actual);
     return Results::UNIT_TEST_RAN;

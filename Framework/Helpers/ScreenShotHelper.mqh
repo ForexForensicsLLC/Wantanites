@@ -17,7 +17,9 @@ private:
     static string DateTimeToFilePathString(datetime dt);
 
 public:
-    static void TryTakeScreenShot(string directory, out string &imageName);
+    static string TryTakeScreenShot(string directory);
+    static string TryTakeBeforeScreenShot(string directory);
+    static string TryTakeAfterScreenShot(string directory);
 };
 
 static string ScreenShotHelper::DateTimeToFilePathString(datetime dt)
@@ -30,9 +32,9 @@ static string ScreenShotHelper::DateTimeToFilePathString(datetime dt)
            IntegerToString(TimeSeconds(dt));
 }
 
-static void ScreenShotHelper::TryTakeScreenShot(string directory, out string &imageName)
+static string ScreenShotHelper::TryTakeScreenShot(string directory)
 {
-    imageName = DateTimeToFilePathString(TimeCurrent()) + ".png";
+    string imageName = DateTimeToFilePathString(TimeCurrent()) + ".png";
     string filePath = directory + "Images/" + imageName;
 
     if (!ChartScreenShot(ChartID(), filePath, 2000, 800, ALIGN_RIGHT))
@@ -40,4 +42,34 @@ static void ScreenShotHelper::TryTakeScreenShot(string directory, out string &im
         int error = GetLastError();
         imageName = "Error: " + IntegerToString(error);
     }
+
+    return imageName;
+}
+
+static string ScreenShotHelper::TryTakeBeforeScreenShot(string directory)
+{
+    string imageName = DateTimeToFilePathString(TimeCurrent()) + "_Before.png";
+    string filePath = directory + "Images/" + imageName;
+
+    if (!ChartScreenShot(ChartID(), filePath, 2000, 800, ALIGN_RIGHT))
+    {
+        int error = GetLastError();
+        imageName = "Error: " + IntegerToString(error);
+    }
+
+    return imageName;
+}
+
+static string ScreenShotHelper::TryTakeAfterScreenShot(string directory)
+{
+    string imageName = DateTimeToFilePathString(TimeCurrent()) + "_After.png";
+    string filePath = directory + "Images/" + imageName;
+
+    if (!ChartScreenShot(ChartID(), filePath, 2000, 800, ALIGN_RIGHT))
+    {
+        int error = GetLastError();
+        imageName = "Error: " + IntegerToString(error);
+    }
+
+    return imageName;
 }

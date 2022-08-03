@@ -23,7 +23,6 @@ private:
     bool mRecordScreenShot;
 
     void SetAssertResult(string result, string message);
-    void TrySetImage();
     bool PastAssertCooldown();
     void SendEmail();
 
@@ -73,11 +72,6 @@ void UnitTest::SetAssertResult(string result, string message)
     PendingRecord.Message = message;
     mLastAssertTime = TimeCurrent();
 
-    if (mRecordScreenShot)
-    {
-        TrySetImage();
-    }
-
     CSVRecordWriter<TRecord>::Write();
 
     if (PendingRecord.Asserts >= PendingRecord.MaxAsserts)
@@ -85,15 +79,6 @@ void UnitTest::SetAssertResult(string result, string message)
         mDone = true;
         SendEmail();
     }
-}
-
-template <typename TUnitTest, typename TRecord>
-void UnitTest::TrySetImage()
-{
-    string imageName = "";
-
-    ScreenShotHelper::TryTakeScreenShot(mDirectory, imageName);
-    PendingRecord.Image = imageName;
 }
 
 template <typename TUnitTest, typename TRecord>

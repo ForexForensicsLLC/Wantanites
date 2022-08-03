@@ -20,7 +20,10 @@ const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
 const bool RecordErrors = true;
 
+// https://drive.google.com/file/d/1y1DaxrjpYMj4LcN3J7N0s41ALWMG2vMD/view?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *SelectsOpenOrderByPositionUnitTest;
+
+// https://drive.google.com/file/d/1GTbk43wZx8mNKQdjDtNFF2BdUVDmb47d/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *NoOpenOrdersInvalidPositionHasErrorUnitTest;
 
 int OnInit()
@@ -72,11 +75,14 @@ int SelectOpenOrdersByPosition(bool &actual)
         }
     }
 
+    OrderDelete(ticket, clrNONE);
+
     actual = ticket == OrderTicket();
     return Results::UNIT_TEST_RAN;
 }
 
 int NoOpenOrdersInvalidPositionHasError(int &actual)
 {
-    return OrderHelper::SelectOpenOrderByPosition(10, "Testing No Orders With Invalid Posiiton");
+    actual = OrderHelper::SelectOpenOrderByPosition(10, "Testing No Orders With Invalid Posiiton");
+    return Results::UNIT_TEST_RAN;
 }

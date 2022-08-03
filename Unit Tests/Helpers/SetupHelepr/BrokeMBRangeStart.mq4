@@ -19,7 +19,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/Helpesr/SetupHelper/BreakAfterMinROC/";
+const string Directory = "/UnitTests/Helpers/SetupHelper/BrokeMBRangeStart/";
 const int NumberOfAsserts = 25;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
@@ -42,6 +42,8 @@ BoolUnitTest<DefaultUnitTestRecord> *DidNotBreakBearishMBUnitTest;
 
 int OnInit()
 {
+    MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, PrintErrors, CalculateOnTick);
+
     BrokeBullishMBUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
         Directory, "Broke Bullish MB", "Should Return True Indicating That The Previous Bullish Start Range Was Broken",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
@@ -78,6 +80,9 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
+    MBT.DrawNMostRecentMBs(1);
+    MBT.DrawZonesForNMostRecentMBs(1);
+
     BrokeBullishMBUnitTest.Assert();
     BrokeBearishMBUnitTest.Assert();
 
@@ -128,6 +133,8 @@ int BrokeBullishMB(bool &actual)
         reset = true;
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
+
+    BrokeBullishMBUnitTest.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(BrokeBullishMBUnitTest.Directory());
 
     int brokeRangeError = SetupHelper::BrokeMBRangeStart(mbNumber, MBT, actual);
     if (brokeRangeError != ERR_NO_ERROR)
@@ -184,6 +191,8 @@ int BrokeBearishMB(bool &actual)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
+    BrokeBearishMBUnitTest.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(BrokeBearishMBUnitTest.Directory());
+
     int brokeRangeError = SetupHelper::BrokeMBRangeStart(mbNumber, MBT, actual);
     if (brokeRangeError != ERR_NO_ERROR)
     {
@@ -208,6 +217,8 @@ int DidNotBreakBullishMB(bool &actual)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
+    DidNotBreakBullishMBUnitTest.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(DidNotBreakBullishMBUnitTest.Directory());
+
     int brokeRangeError = SetupHelper::BrokeMBRangeStart(tempMBState.Number(), MBT, actual);
     if (brokeRangeError != ERR_NO_ERROR)
     {
@@ -229,6 +240,8 @@ int DidNotBreakBearishMB(bool &actual)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
+
+    DidNotBreakBearishMBUnitTest.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(DidNotBreakBearishMBUnitTest.Directory());
 
     int brokeRangeError = SetupHelper::BrokeMBRangeStart(tempMBState.Number(), MBT, actual);
     if (brokeRangeError != ERR_NO_ERROR)

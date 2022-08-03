@@ -181,6 +181,8 @@ int HasBullishSetup(bool &actual)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
+    HasBullishSetupUnitTest.TryTakeScreenShot();
+
     int setupError = SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(secondMBNumber - 1, secondMBNumber, MBT, actual);
     if (setupError != ERR_NO_ERROR)
     {
@@ -239,6 +241,8 @@ int HasBearishSetup(bool &actual)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
+
+    HasBearishSetupUnitTest.TryTakeScreenShot();
 
     int setupError = SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(secondMBNumber - 1, secondMBNumber, MBT, actual);
     if (setupError != ERR_NO_ERROR)

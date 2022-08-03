@@ -45,7 +45,7 @@ BoolUnitTest<DefaultUnitTestRecord> *BearishSetupTrueUnitTest;
 
 int OnInit()
 {
-    MBT = new MBTracker(MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, PrintErrors, CalculateOnTick);
+    MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, PrintErrors, CalculateOnTick);
 
     DifferentSymbolsErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "Different Symbols Errors", "Should Return A Different Symbols Error",
@@ -58,7 +58,7 @@ int OnInit()
         TerminalErrors::NOT_EQUAL_TIMEFRAMES, DifferentTimeFramesError);
 
     NoMinROCIsTrueEqualsFalseUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
-        Directory, "No Min ROC, IsTrue Equals False", "When There Is Not A Min ROC, The Out Parameter IsTrue Should Be Equal To False",
+        Directory, "No Min ROC IsTrue Equals False", "When There Is Not A Min ROC, The Out Parameter IsTrue Should Be Equal To False",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
         false, NoMinROCIsTrueEqualsFalse);
 
@@ -96,6 +96,9 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
+    MBT.DrawNMostRecentMBs(1);
+    MBT.DrawZonesForNMostRecentMBs(1);
+
     DifferentSymbolsErrorUnitTest.Assert();
     DifferentTimeFramesErrorUnitTest.Assert();
 
@@ -177,7 +180,9 @@ int BullishSetupTrue(bool &actual)
 
     if (CheckPointer(tempMRFTS) == POINTER_INVALID || reset)
     {
+        delete tempMRFTS;
         tempMRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), Minute(), Hour() + 1, 59, 0.05);
+
         reset = false;
     }
 
@@ -205,6 +210,9 @@ int BullishSetupTrue(bool &actual)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
+    tempMRFTS.Draw();
+    BullishSetupTrueUnitTest.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(BullishSetupTrueUnitTest.Directory());
+
     int error = SetupHelper::BreakAfterMinROC(tempMRFTS, MBT, actual);
     if (error != ERR_NO_ERROR)
     {
@@ -222,7 +230,9 @@ int BearishSetupTrue(bool &actual)
 
     if (CheckPointer(tempMRFTS) == POINTER_INVALID || reset == true)
     {
+        delete tempMRFTS;
         tempMRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), Minute(), Hour() + 1, 59, 0.05);
+
         reset = false;
     }
 
@@ -250,6 +260,9 @@ int BearishSetupTrue(bool &actual)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
+
+    tempMRFTS.Draw();
+    BearishSetupTrueUnitTest.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(BearishSetupTrueUnitTest.Directory());
 
     int error = SetupHelper::BreakAfterMinROC(tempMRFTS, MBT, actual);
     if (error != ERR_NO_ERROR)

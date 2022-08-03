@@ -9,7 +9,7 @@
 
 interface ICSVRecord
 {
-    void WriteHeaders(int fileHandle);
-    void WriteRecord(int fileHandle);
-    void Reset();
+    virtual void WriteHeaders(int fileHandle);
+    virtual void WriteRecord(int fileHandle);
+    virtual void Reset();
 };

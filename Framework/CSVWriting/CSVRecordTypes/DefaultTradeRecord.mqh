@@ -31,6 +31,7 @@ public:
     int LastState;
     int Error;
     string ErrorImage;
+    string Notes;
 
     DefaultTradeRecord();
     ~DefaultTradeRecord();
@@ -38,9 +39,9 @@ public:
     double TotalMovePips() { return NormalizeDouble(OrderHelper::RangeToPips((EntryPrice - ExitPrice)), 2); }
     double PotentialRR() { return NormalizeDouble((EntryPrice - ExitPrice) / (EntryPrice - EntryStopLoss), 2); }
 
-    void WriteHeaders(int fileHandle);
-    void WriteRecord(int fileHandle);
-    void Reset();
+    virtual void WriteHeaders(int fileHandle);
+    virtual void WriteRecord(int fileHandle);
+    virtual void Reset();
 };
 
 DefaultTradeRecord::DefaultTradeRecord()
@@ -53,13 +54,13 @@ DefaultTradeRecord::~DefaultTradeRecord() {}
 void DefaultTradeRecord::WriteHeaders(int fileHandle)
 {
     FileWrite(fileHandle, "Symbol", "Time Frame", "Order Type", "Account Balance Before", "Account Balance After", "Entry Time", "Entry Image", "Exit Time", "Exit Image",
-              "Entry Price", "Entry Stop Loss", "Lots", "Exit Price", "Exit Stop Loss", "Total Move Pips", "Potential RR", "Last State", "Error", "Error Image");
+              "Entry Price", "Entry Stop Loss", "Lots", "Exit Price", "Exit Stop Loss", "Total Move Pips", "Potential RR", "Last State", "Error", "Error Image", "Notes");
 }
 
 void DefaultTradeRecord::WriteRecord(int fileHandle)
 {
     FileWrite(fileHandle, Symbol, TimeFrame, OrderType, AccountBalanceBefore, AccountBalanceAfter, EntryTime, EntryImage, ExitTime, ExitImage, EntryPrice,
-              EntryStopLoss, Lots, ExitPrice, ExitStopLoss, TotalMovePips(), PotentialRR(), LastState, Error, ErrorImage);
+              EntryStopLoss, Lots, ExitPrice, ExitStopLoss, TotalMovePips(), PotentialRR(), LastState, Error, ErrorImage, Notes);
 }
 
 void DefaultTradeRecord::Reset()
@@ -81,4 +82,5 @@ void DefaultTradeRecord::Reset()
     LastState = 0;
     Error = 0;
     ErrorImage = "";
+    Notes = "";
 }

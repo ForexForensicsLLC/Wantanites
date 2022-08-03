@@ -14,6 +14,7 @@
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
 #include <SummitCapital\Framework\Helpers\SetupHelper.mqh>
 #include <SummitCapital\Framework\UnitTests\BoolUnitTest.mqh>
+#include <SummitCapital\Framework\UnitTests\IntUnitTest.mqh>
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
@@ -32,22 +33,80 @@ input bool CalculateOnTick = true;
 
 MBTracker *MBT;
 
-BoolUnitTest<DefaultUnitTestRecord> *NoErrorsDifferentStopLossUnitTest;
-BoolUnitTest<DefaultUnitTestRecord> *DoesNotTrailPastOpenUnitTest;
+const int PaddingPips = 0.0;
+const int SpreadPips = 0.0;
+const double RiskPercent = 0.25;
+const int MagicNumber = 0;
+
+BoolUnitTest<DefaultUnitTestRecord> *BullishNoErrorsSameStopLossUnitTest;
+BoolUnitTest<DefaultUnitTestRecord> *BearishNoErrorsSameStopLossUnitTest;
+
+BoolUnitTest<DefaultUnitTestRecord> *BullishNoErrorsDifferentStopLossUnitTest;
+BoolUnitTest<DefaultUnitTestRecord> *BearishNoErrorsDifferentStopLossUnitTest;
+
+IntUnitTest<DefaultUnitTestRecord> *DoesNotTrailPendingOrdersUnitTest;
+
+BoolUnitTest<DefaultUnitTestRecord> *BullishDoesNotTrailPastOpenUnitTest;
+BoolUnitTest<DefaultUnitTestRecord> *BearishDoesNotTrailPastOpenUnitTest;
+
+IntUnitTest<DefaultUnitTestRecord> *SubsequentMBDoesNotExistErrorUnitTest;
+
+IntUnitTest<DefaultUnitTestRecord> *BullishNotEqualMBTypesErrorUnitTest;
+IntUnitTest<DefaultUnitTestRecord> *BearishNotEqualMBTypesErrorUnitTest;
 
 int OnInit()
 {
     MBT = new MBTracker(MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, PrintErrors, CalculateOnTick);
 
-    NoErrorsDifferentStopLossUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
-        Directory, "No Errors Different Stop Loss", "The Stop Loss Was Changed When No Errors Were Retruned",
+    BullishNoErrorsSameStopLossUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "Bullish No Errors Same Stop Loss", "The Stop Loss Was Not Changed When No Errors Were Retruned In A Bullish Setup",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        true, NoErrorsDifferentStopLoss);
+        true, BullishNoErrorsSameStopLoss);
 
-    DoesNotTrailPastOpenUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
-        Directory, "Does Not Trail Past Open", "The Stop Loss Is Not Moved Above / Below The Entry",
+    BearishNoErrorsSameStopLossUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "Bearish No Errors Same Stop Loss", "The Stop Loss Was Not Changed When No Errors Were Retruned In A Bearish Setup",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        true, DoesNotTrailPastOpen);
+        true, BearishNoErrorsSameStopLoss);
+
+    BullishNoErrorsDifferentStopLossUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "Bullish No Errors Different Stop Loss", "The Stop Loss Was Changed When No Errors Were Retruned In A Bullish Setup",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        true, BullishNoErrorsDifferentStopLoss);
+
+    BearishNoErrorsDifferentStopLossUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "Bearish No Errors Different Stop Loss", "The Stop Loss Was Changed When No Errors Were Retruned In A Bearish Setup",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        true, BearishNoErrorsDifferentStopLoss);
+
+    DoesNotTrailPendingOrdersUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Does Not Trail Pending Orders", "Should Return A Wrong Order Type Error",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        TerminalErrors::WRONG_ORDER_TYPE, DoesNotTrailPendingOrders);
+
+    BullishDoesNotTrailPastOpenUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "Bullish Does Not Trail Past Open", "The Stop Loss Is Not Moved Above / Below The Entry In A Bullish Setup",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        true, BullishDoesNotTrailPastOpen);
+
+    BearishDoesNotTrailPastOpenUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "Bearish Does Not Trail Past Open", "The Stop Loss Is Not Moved Above / Below The Entry In A Bearish Setup",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        true, BearishDoesNotTrailPastOpen);
+
+    SubsequentMBDoesNotExistErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Subsequent MB Does Not Exist", "Should Return A Subsequent MB Does Not Exist Error",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        ExecutionErrors::SUBSEQUENT_MB_DOES_NOT_EXIST, SubsequentMBDoesNotExist);
+
+    BullishNotEqualMBTypesErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Bullish Not Equal Types Error", "Should Return A Not Equal MB Types Error",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        ExecutionErrors::NOT_EQUAL_MB_TYPES, BullishNotEqualTypesError);
+
+    BearishNotEqualMBTypesErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Bearish Not Equal Types Error", "Should Return A Not Equal MB Types Error",
+        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        ExecutionErrors::NOT_EQUAL_MB_TYPES, BearishNotEqualTypesError);
 
     return (INIT_SUCCEEDED);
 }
@@ -56,8 +115,21 @@ void OnDeinit(const int reason)
 {
     delete MBT;
 
-    delete NoErrorsDifferentStopLossUnitTest;
-    delete DoesNotTrailPastOpenUnitTest;
+    delete BullishNoErrorsSameStopLossUnitTest;
+    delete BearishNoErrorsSameStopLossUnitTest;
+
+    delete BullishNoErrorsDifferentStopLossUnitTest;
+    delete BearishNoErrorsDifferentStopLossUnitTest;
+
+    delete DoesNotTrailPendingOrdersUnitTest;
+
+    delete BullishDoesNotTrailPastOpenUnitTest;
+    delete BearishDoesNotTrailPastOpenUnitTest;
+
+    delete SubsequentMBDoesNotExistErrorUnitTest;
+
+    delete BullishNotEqualMBTypesErrorUnitTest;
+    delete BearishNotEqualMBTypesErrorUnitTest;
 }
 
 void OnTick()
@@ -65,188 +137,129 @@ void OnTick()
     MBT.DrawNMostRecentMBs(1);
     MBT.DrawZonesForNMostRecentMBs(1);
 
-    NoErrorsDifferentStopLossUnitTest.Assert();
-    DoesNotTrailPastOpenUnitTest.Assert();
+    BullishNoErrorsSameStopLossUnitTest.Assert();
+    BearishNoErrorsSameStopLossUnitTest.Assert();
+
+    BullishNoErrorsDifferentStopLossUnitTest.Assert();
+    BearishNoErrorsDifferentStopLossUnitTest.Assert();
+
+    DoesNotTrailPendingOrdersUnitTest.Assert();
+
+    BullishDoesNotTrailPastOpenUnitTest.Assert();
+    BearishDoesNotTrailPastOpenUnitTest.Assert();
+
+    SubsequentMBDoesNotExistErrorUnitTest.Assert();
+
+    BullishNotEqualMBTypesErrorUnitTest.Assert();
+    BearishNotEqualMBTypesErrorUnitTest.Assert();
 }
 
-int NoErrorsDifferentStopLoss(bool &actual)
+int CloseTicket(int &ticket)
 {
-    static int ticket = -1;
-    static int mbNumber = -1;
-    static int setupType = -1;
-    static double stopLoss = 0.0;
-
-    const int paddingPips = 0.0;
-    const int spreadPips = 0.0;
-    const double riskPercent = 0.25;
-    const int magicNumber = 0;
-
-    // reset state if we broke the mb
-    if (mbNumber != -1)
+    bool isPending = false;
+    int pendingOrderError = OrderHelper::IsPendingOrder(ticket, isPending);
+    if (pendingOrderError != ERR_NO_ERROR)
     {
-        bool isTrue = false;
-        int error = SetupHelper::BrokeMBRangeStart(mbNumber, MBT, isTrue);
-
-        if (error != ERR_NO_ERROR || isTrue)
-        {
-            mbNumber = -1;
-            setupType = -1;
-            stopLoss = 0.0;
-
-            if (ticket > 0)
-            {
-                bool isPending = false;
-                int pendingOrderError = OrderHelper::IsPendingOrder(ticket, isPending);
-                if (isPending)
-                {
-                    OrderHelper::CancelPendingOrderByTicket(ticket);
-                }
-                else
-                {
-                    int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Trailing Stop Loss");
-                    if (selectError != ERR_NO_ERROR)
-                    {
-                        return selectError;
-                    }
-
-                    OrderClose(ticket, OrderLots(), Ask, 0, clrNONE);
-                }
-            }
-
-            ticket = -1;
-        }
+        return pendingOrderError;
     }
 
-    if (ticket == -1)
+    if (isPending)
     {
-        MBState *tempMBState;
-        if (!MBT.GetNthMostRecentMB(0, tempMBState))
+        if (!OrderDelete(ticket, clrNONE))
         {
-            return Results::UNIT_TEST_DID_NOT_RUN;
+            return GetLastError();
         }
-
-        if (tempMBState.Type() != OP_BUY)
-        {
-            return Results::UNIT_TEST_DID_NOT_RUN;
-        }
-
-        int retracementIndex = MBT.CurrentBullishRetracementIndex();
-        if (retracementIndex == EMPTY)
-        {
-            return Results::UNIT_TEST_DID_NOT_RUN;
-        }
-
-        mbNumber = tempMBState.Number();
-        setupType = tempMBState.Type();
-        int error = OrderHelper::PlaceStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, riskPercent, magicNumber, mbNumber, MBT, ticket);
-
-        int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
-        if (selectError != ERR_NO_ERROR)
-        {
-            return selectError;
-        }
-
-        stopLoss = OrderStopLoss();
     }
     else
     {
-        bool succeeded = false;
-        int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, paddingPips, spreadPips, mbNumber, setupType, MBT, succeeded);
-        if (!succeeded)
+        int orderSelectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Check Edit Stop Loss");
+        if (orderSelectError != ERR_NO_ERROR)
         {
-            return trailError;
+            return orderSelectError;
         }
 
-        int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
-        if (selectError != ERR_NO_ERROR)
+        if (!OrderClose(ticket, OrderLots(), Ask, 0, clrNONE))
         {
-            return selectError;
+            return GetLastError();
         }
+    }
 
-        actual = OrderStopLoss() != stopLoss;
+    return ERR_NO_ERROR;
+}
+
+int SetSetupVariables(int type, int &ticket, int &mbNumber, int &setupType, double &stopLoss, double &entryPrice, bool &reset)
+{
+    if (reset)
+    {
+        mbNumber = EMPTY;
+        setupType = EMPTY;
+        stopLoss = 0.0;
+        entryPrice = 0.0;
 
         if (ticket > 0)
         {
-            OrderClose(ticket, OrderLots(), Ask, 0, clrNONE);
+            int closeTicketError = CloseTicket(ticket);
+            ticket = EMPTY;
+
+            if (closeTicketError != ERR_NO_ERROR)
+            {
+                reset = false;
+                return closeTicketError;
+            }
         }
 
-        return Results::UNIT_TEST_RAN;
+        reset = false;
     }
 
-    return Results::UNIT_TEST_DID_NOT_RUN;
-}
-
-int DoesNotTrailPastOpen(bool &actual)
-{
-    static int ticket = -1;
-    static int mbNumber = -1;
-    static int setupType = -1;
-    static double stopLoss = 0.0;
-    static double entryPrice = 0.0;
-
-    const int paddingPips = 0.0;
-    const int spreadPips = 0.0;
-    const double riskPercent = 0.25;
-    const int magicNumber = 0;
-
-    // reset state if we broke the mb
-    if (mbNumber != -1)
+    if (mbNumber != EMPTY)
     {
         bool isTrue = false;
         int error = SetupHelper::BrokeMBRangeStart(mbNumber, MBT, isTrue);
-
         if (error != ERR_NO_ERROR || isTrue)
         {
-            mbNumber = -1;
-            setupType = -1;
-            stopLoss = 0.0;
-
-            if (ticket > 0)
-            {
-                bool isPending = false;
-                int pendingOrderError = OrderHelper::IsPendingOrder(ticket, isPending);
-                if (isPending)
-                {
-                    OrderHelper::CancelPendingOrderByTicket(ticket);
-                }
-                else
-                {
-                    int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Trailing Stop Loss");
-                    if (selectError != ERR_NO_ERROR)
-                    {
-                        return selectError;
-                    }
-
-                    OrderClose(ticket, OrderLots(), Ask, 0, clrNONE);
-                }
-            }
-
-            ticket = -1;
+            reset = true;
+            return Results::UNIT_TEST_DID_NOT_RUN;
         }
     }
 
-    if (ticket == -1)
+    if (ticket == EMPTY)
     {
         MBState *tempMBState;
         if (!MBT.GetNthMostRecentMB(0, tempMBState))
         {
-            return Results::UNIT_TEST_DID_NOT_RUN;
+            return TerminalErrors::MB_DOES_NOT_EXIST;
         }
 
-        if (tempMBState.Type() != OP_BUY)
+        if (tempMBState.Type() != type)
         {
             return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
-        int retracementIndex = MBT.CurrentBullishRetracementIndex();
-        if (retracementIndex == EMPTY)
+        int retracementIndex = EMPTY;
+        if (type == OP_BUY)
         {
-            return Results::UNIT_TEST_DID_NOT_RUN;
+            if (!MBT.CurrentBullishRetracementIndexIsValid(retracementIndex))
+            {
+                return Results::UNIT_TEST_DID_NOT_RUN;
+            }
+        }
+        else if (type == OP_SELL)
+        {
+            if (!MBT.CurrentBearishRetracementIndexIsValid(retracementIndex))
+            {
+                return Results::UNIT_TEST_DID_NOT_RUN;
+                ;
+            }
         }
 
         mbNumber = tempMBState.Number();
         setupType = tempMBState.Type();
-        int error = OrderHelper::PlaceStopOrderOnMostRecentPendingMB(paddingPips, spreadPips, riskPercent, magicNumber, mbNumber, MBT, ticket);
+        int error = OrderHelper::PlaceStopOrderForPendingMBValidation(PaddingPips, SpreadPips, RiskPercent, MagicNumber, mbNumber, MBT, ticket);
+
+        if (error != ERR_NO_ERROR)
+        {
+            return error;
+        }
 
         int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
         if (selectError != ERR_NO_ERROR)
@@ -257,34 +270,439 @@ int DoesNotTrailPastOpen(bool &actual)
         stopLoss = OrderStopLoss();
         entryPrice = OrderOpenPrice();
     }
-    else
+
+    return ERR_NO_ERROR;
+}
+
+int CheckSetup(int type, int ticket, int mbNumber, int setupType, double stopLoss, bool shouldBePendingOrder, bool newStopLossShouldBeEqual, bool shouldHaveSameTypeMBs)
+{
+    bool isPending = false;
+    int pendingOrderError = OrderHelper::IsPendingOrder(ticket, isPending);
+    if (pendingOrderError != ERR_NO_ERROR)
     {
-        bool succeeded = false;
-        int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, paddingPips, spreadPips, mbNumber, setupType, MBT, succeeded);
-        if (!succeeded)
-        {
-            return trailError;
-        }
-
-        int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
-        if (selectError != ERR_NO_ERROR)
-        {
-            return selectError;
-        }
-
-        actual = false;
-
-        if (setupType == OP_BUY)
-        {
-            actual = OrderStopLoss() <= entryPrice;
-        }
-        else if (setupType == OP_SELL)
-        {
-            actual = OrderStopLoss() >= entryPrice;
-        }
-
-        return Results::UNIT_TEST_RAN;
+        return pendingOrderError;
     }
 
-    return Results::UNIT_TEST_DID_NOT_RUN;
+    if ((shouldBePendingOrder && !isPending) || (!shouldBePendingOrder && isPending))
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    double newStopLoss;
+    int newStopLossError = OrderHelper::GetStopLossForStopOrderForPendingMBValidation(PaddingPips, SpreadPips, type, MBT, newStopLoss);
+    if (newStopLossError != ERR_NO_ERROR)
+    {
+        return newStopLossError;
+    }
+
+    if ((newStopLossShouldBeEqual && newStopLoss != stopLoss) || (!newStopLossShouldBeEqual && newStopLoss == stopLoss))
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    MBState *tempMBState;
+    if (!MBT.GetNthMostRecentMB(0, tempMBState))
+    {
+        return TerminalErrors::MB_DOES_NOT_EXIST;
+    }
+
+    if (tempMBState.Number() <= mbNumber)
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    if ((shouldHaveSameTypeMBs && tempMBState.Type() != setupType) || (!shouldHaveSameTypeMBs && tempMBState.Type() == setupType))
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    return ERR_NO_ERROR;
+}
+
+int BullishNoErrorsSameStopLoss(bool &actual)
+{
+    const int type = OP_BUY;
+
+    static int ticket = -1;
+    static int mbNumber = -1;
+    static int setupType = -1;
+    static double stopLoss = 0.0;
+    static double entryPrice = 0.0;
+    static bool reset = false;
+
+    int setVariablesError = SetSetupVariables(type, ticket, mbNumber, setupType, stopLoss, entryPrice, reset);
+    if (setVariablesError != ERR_NO_ERROR)
+    {
+        return setVariablesError;
+    }
+
+    int setupError = CheckSetup(type, ticket, mbNumber, setupType, stopLoss, false, true, true);
+    if (setupError != ERR_NO_ERROR)
+    {
+        return setupError;
+    }
+
+    BullishNoErrorsSameStopLossUnitTest.TryTakeScreenShot();
+
+    bool succeeded = false;
+    int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
+    if (!succeeded)
+    {
+        return trailError;
+    }
+
+    int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
+    if (selectError != ERR_NO_ERROR)
+    {
+        return selectError;
+    }
+
+    actual = OrderStopLoss() == stopLoss;
+
+    reset = true;
+    return Results::UNIT_TEST_RAN;
+}
+
+int BearishNoErrorsSameStopLoss(bool &actual)
+{
+    const int type = OP_SELL;
+
+    static int ticket = -1;
+    static int mbNumber = -1;
+    static int setupType = -1;
+    static double stopLoss = 0.0;
+    static double entryPrice = 0.0;
+    static bool reset = false;
+
+    int setVariablesError = SetSetupVariables(type, ticket, mbNumber, setupType, stopLoss, entryPrice, reset);
+    if (setVariablesError != ERR_NO_ERROR)
+    {
+        return setVariablesError;
+    }
+
+    int setupError = CheckSetup(type, ticket, mbNumber, setupType, stopLoss, false, true, true);
+    if (setupError != ERR_NO_ERROR)
+    {
+        return setupError;
+    }
+
+    BearishNoErrorsSameStopLossUnitTest.TryTakeScreenShot();
+
+    bool succeeded = false;
+    int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
+    if (!succeeded)
+    {
+        return trailError;
+    }
+
+    int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
+    if (selectError != ERR_NO_ERROR)
+    {
+        return selectError;
+    }
+
+    actual = OrderStopLoss() == stopLoss;
+
+    reset = true;
+    return Results::UNIT_TEST_RAN;
+}
+
+int BullishNoErrorsDifferentStopLoss(bool &actual)
+{
+    const int type = OP_BUY;
+
+    static int ticket = -1;
+    static int mbNumber = -1;
+    static int setupType = -1;
+    static double stopLoss = 0.0;
+    static double entryPrice = 0.0;
+    static bool reset = false;
+
+    int setVariablesError = SetSetupVariables(type, ticket, mbNumber, setupType, stopLoss, entryPrice, reset);
+    if (setVariablesError != ERR_NO_ERROR)
+    {
+        return setVariablesError;
+    }
+
+    int setupError = CheckSetup(type, ticket, mbNumber, setupType, stopLoss, false, false, true);
+    if (setupError != ERR_NO_ERROR)
+    {
+        return setupError;
+    }
+
+    BullishNoErrorsDifferentStopLossUnitTest.TryTakeScreenShot();
+
+    bool succeeded = false;
+    int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
+    if (!succeeded)
+    {
+        return trailError;
+    }
+
+    int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
+    if (selectError != ERR_NO_ERROR)
+    {
+        return selectError;
+    }
+
+    actual = OrderStopLoss() != stopLoss;
+
+    reset = true;
+    return Results::UNIT_TEST_RAN;
+}
+
+int BearishNoErrorsDifferentStopLoss(bool &actual)
+{
+    const int type = OP_SELL;
+
+    static int ticket = -1;
+    static int mbNumber = -1;
+    static int setupType = -1;
+    static double stopLoss = 0.0;
+    static double entryPrice = 0.0;
+    static bool reset = false;
+
+    int setVariablesError = SetSetupVariables(type, ticket, mbNumber, setupType, stopLoss, entryPrice, reset);
+    if (setVariablesError != ERR_NO_ERROR)
+    {
+        return setVariablesError;
+    }
+
+    int setupError = CheckSetup(type, ticket, mbNumber, setupType, stopLoss, false, false, true);
+    if (setupError != ERR_NO_ERROR)
+    {
+        return setupError;
+    }
+
+    BearishNoErrorsDifferentStopLossUnitTest.TryTakeScreenShot();
+
+    bool succeeded = false;
+    int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
+    if (!succeeded)
+    {
+        return trailError;
+    }
+
+    int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
+    if (selectError != ERR_NO_ERROR)
+    {
+        return selectError;
+    }
+
+    actual = OrderStopLoss() != stopLoss;
+
+    reset = true;
+    return Results::UNIT_TEST_RAN;
+}
+
+int DoesNotTrailPendingOrders(int &actual)
+{
+    const int type = OP_SELL;
+
+    static int ticket = -1;
+    static int mbNumber = -1;
+    static int setupType = -1;
+    static double stopLoss = 0.0;
+    static double entryPrice = 0.0;
+    static bool reset = false;
+
+    int setVariablesError = SetSetupVariables(type, ticket, mbNumber, setupType, stopLoss, entryPrice, reset);
+    if (setVariablesError != ERR_NO_ERROR)
+    {
+        return setVariablesError;
+    }
+
+    int setupError = CheckSetup(type, ticket, mbNumber, setupType, stopLoss, true, false, true);
+    if (setupError != ERR_NO_ERROR)
+    {
+        return setupError;
+    }
+
+    DoesNotTrailPendingOrdersUnitTest.TryTakeScreenShot();
+
+    bool succeeded = false;
+    actual = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
+
+    reset = true;
+    return Results::UNIT_TEST_RAN;
+}
+
+int BullishDoesNotTrailPastOpen(bool &actual)
+{
+    const int type = OP_BUY;
+
+    static int ticket = -1;
+    static int mbNumber = -1;
+    static int setupType = -1;
+    static double stopLoss = 0.0;
+    static double entryPrice = 0.0;
+    static bool reset = false;
+
+    int setupVariablesError = SetSetupVariables(type, ticket, mbNumber, setupType, stopLoss, entryPrice, reset);
+    if (setupVariablesError != ERR_NO_ERROR)
+    {
+        return setupVariablesError;
+    }
+
+    int setupError = CheckSetup(type, ticket, mbNumber, setupType, stopLoss, false, false, true);
+    if (setupError != ERR_NO_ERROR)
+    {
+        return setupError;
+    }
+
+    BullishDoesNotTrailPastOpenUnitTest.TryTakeScreenShot();
+
+    bool succeeded = false;
+    int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
+    if (!succeeded)
+    {
+        return trailError;
+    }
+
+    int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
+    if (selectError != ERR_NO_ERROR)
+    {
+        return selectError;
+    }
+
+    actual = OrderStopLoss() <= entryPrice;
+    reset = true;
+
+    return Results::UNIT_TEST_RAN;
+}
+
+int BearishDoesNotTrailPastOpen(bool &actual)
+{
+    const int type = OP_SELL;
+
+    static int ticket = -1;
+    static int mbNumber = -1;
+    static int setupType = -1;
+    static double stopLoss = 0.0;
+    static double entryPrice = 0.0;
+    static bool reset = false;
+
+    int setupVariablesError = SetSetupVariables(type, ticket, mbNumber, setupType, stopLoss, entryPrice, reset);
+    if (setupVariablesError != ERR_NO_ERROR)
+    {
+        return setupVariablesError;
+    }
+
+    int setupError = CheckSetup(type, ticket, mbNumber, setupType, stopLoss, false, false, true);
+    if (setupError != ERR_NO_ERROR)
+    {
+        return setupError;
+    }
+
+    BearishDoesNotTrailPastOpenUnitTest.TryTakeScreenShot();
+
+    bool succeeded = false;
+    int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
+    if (!succeeded)
+    {
+        return trailError;
+    }
+
+    int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
+    if (selectError != ERR_NO_ERROR)
+    {
+        return selectError;
+    }
+
+    actual = OrderStopLoss() >= entryPrice;
+    reset = true;
+
+    return Results::UNIT_TEST_RAN;
+}
+
+int SubsequentMBDoesNotExist(int &actual)
+{
+    int ticket = OrderSend(Symbol(), OP_BUY, 0.1, Ask, 0, Ask - OrderHelper::PipsToRange(200), 0.0, NULL, 0, 0, clrNONE);
+    if (ticket < 0)
+    {
+        return GetLastError();
+    }
+
+    MBState *tempMBState;
+    if (!MBT.GetNthMostRecentMB(0, tempMBState))
+    {
+        return TerminalErrors::MB_DOES_NOT_EXIST;
+    }
+
+    SubsequentMBDoesNotExistErrorUnitTest.TryTakeScreenShot();
+
+    bool succeeded = false;
+    actual = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, tempMBState.Number(), tempMBState.Type(), MBT, succeeded);
+
+    int error = CloseTicket(ticket);
+    if (error != ERR_NO_ERROR)
+    {
+        return error;
+    }
+
+    return Results::UNIT_TEST_RAN;
+}
+
+int BullishNotEqualTypesError(int &actual)
+{
+    const int type = OP_BUY;
+
+    static int ticket = -1;
+    static int mbNumber = -1;
+    static int setupType = -1;
+    static double stopLoss = 0.0;
+    static double entryPrice = 0.0;
+    static bool reset = false;
+
+    int setupVariablesError = SetSetupVariables(type, ticket, mbNumber, setupType, stopLoss, entryPrice, reset);
+    if (setupVariablesError != ERR_NO_ERROR)
+    {
+        return setupVariablesError;
+    }
+
+    int setupError = CheckSetup(type, ticket, mbNumber, setupType, stopLoss, false, false, false);
+    if (setupError != ERR_NO_ERROR)
+    {
+        return setupError;
+    }
+
+    BullishNotEqualMBTypesErrorUnitTest.TryTakeScreenShot();
+
+    bool succeeded = false;
+    actual = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
+    reset = true;
+
+    return Results::UNIT_TEST_RAN;
+}
+
+int BearishNotEqualTypesError(int &actual)
+{
+    const int type = OP_SELL;
+
+    static int ticket = -1;
+    static int mbNumber = -1;
+    static int setupType = -1;
+    static double stopLoss = 0.0;
+    static double entryPrice = 0.0;
+    static bool reset = false;
+
+    int setupVariablesError = SetSetupVariables(type, ticket, mbNumber, setupType, stopLoss, entryPrice, reset);
+    if (setupVariablesError != ERR_NO_ERROR)
+    {
+        return setupVariablesError;
+    }
+
+    int setupError = CheckSetup(type, ticket, mbNumber, setupType, stopLoss, false, false, false);
+    if (setupError != ERR_NO_ERROR)
+    {
+        return setupError;
+    }
+
+    BearishNotEqualMBTypesErrorUnitTest.TryTakeScreenShot();
+
+    bool succeeded = false;
+    actual = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
+    reset = true;
+
+    return Results::UNIT_TEST_RAN;
 }

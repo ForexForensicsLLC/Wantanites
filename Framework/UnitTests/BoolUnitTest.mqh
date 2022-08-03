@@ -14,14 +14,22 @@ template <typename TRecord>
 class BoolUnitTest : public UnitTest<bool, TRecord>
 {
 private:
-    typedef int (*TBoolFunc)(bool &actual);
+    typedef int (*TActualBoolFunc)(bool &actual);
+    typedef int (*TActualUnitTestBoolFunc)(BoolUnitTest &ut, bool &actual);
 
     bool mExpected;
-    TBoolFunc mActual;
+
+    TActualBoolFunc mActualBoolFunc;
+    TActualUnitTestBoolFunc mActualUnitTestBoolFunc;
+
+    void Init(bool expected, TActualBoolFunc actualBoolFunc, TActualUnitTestBoolFunc actualUnitTestBoolFunc);
 
 public:
     BoolUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
-                 bool expected, TBoolFunc actual);
+                 bool expected, TActualBoolFunc actual);
+
+    BoolUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+                 bool expected, TActualUnitTestBoolFunc actual);
 
     ~BoolUnitTest();
 
@@ -29,12 +37,28 @@ public:
 };
 
 template <typename TRecord>
-BoolUnitTest::BoolUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
-                           bool expected, TBoolFunc actual)
-    : UnitTest(directory, testName, description, maxAsserts, assertCooldownMinutes, recordScreenShot, recordErrors)
+void BoolUnitTest::Init(bool expected, TActualBoolFunc actualBoolFunc, TActualUnitTestBoolFunc actualUnitTestBoolFunc)
 {
     mExpected = expected;
-    mActual = actual;
+
+    mActualBoolFunc = actualBoolFunc;
+    mActualUnitTestBoolFunc = actualUnitTestBoolFunc;
+}
+
+template <typename TRecord>
+BoolUnitTest::BoolUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+                           bool expected, TActualBoolFunc actual)
+    : UnitTest(directory, testName, description, maxAsserts, assertCooldownMinutes, recordScreenShot, recordErrors)
+{
+    Init(expected, actual, NULL);
+}
+
+template <typename TRecord>
+BoolUnitTest::BoolUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+                           bool expected, TActualUnitTestBoolFunc actual)
+    : UnitTest(directory, testName, description, maxAsserts, assertCooldownMinutes, recordScreenShot, recordErrors)
+{
+    Init(expected, NULL, actual);
 }
 
 template <typename TRecord>
@@ -51,7 +75,16 @@ void BoolUnitTest::Assert(bool equals = true)
     }
 
     bool actual;
-    int testStatus = mActual(actual);
+    int testStatus;
+
+    if (mActualBoolFunc != NULL)
+    {
+        testStatus = mActualBoolFunc(actual);
+    }
+    else
+    {
+        testStatus = mActualUnitTestBoolFunc(this, actual);
+    }
 
     if ((testStatus != Results::UNIT_TEST_RAN && testStatus != Results::UNIT_TEST_DID_NOT_RUN) && mRecordErrors)
     {

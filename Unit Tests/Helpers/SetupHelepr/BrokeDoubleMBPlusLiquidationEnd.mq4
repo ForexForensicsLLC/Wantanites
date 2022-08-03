@@ -47,32 +47,32 @@ int OnInit()
     MBT = new MBTracker(MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, PrintErrors, CalculateOnTick);
 
     HasBullishSetupUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
-        Directory, "Has Bullish Setup", "Should Return True Indicating that there Is A Bullish Setup",
+        Directory, "Liq Has Bullish Setup", "Should Return True Indicating that there Is A Bullish Setup",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
         true, HasBullishSetup);
 
     HasBearishSetupUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
-        Directory, "Has Bearish Setup", "Should Return True Indicating that there Is A Bearish Setup",
+        Directory, "Liq Has Bearish Setup", "Should Return True Indicating that there Is A Bearish Setup",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
         true, HasBearishSetup);
 
     DidNotBreakLiquidationMBInBullishSetupUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
-        Directory, "Did Not Break Liquidation MB In Bullish Setup", "Should Return False Indicating that the MB That Liquidated The Second In A Bullish Setup Is Not Broken",
+        Directory, "Liq Does Not Have Bullish Setup", "Should Return False Indicating that the MB That Liquidated The Second In A Bullish Setup Is Not Broken",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
         false, DidNotBreakLiquidationMBInBullishSetup);
 
     DidNotBreakLiquidationMBInBearishSetupUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
-        Directory, "Did Not Break Liquidation MB In Bearish Setup", "Should Return False Indicating that the MB That Liquidated The Second In A Bearish Setup Is Not Broken",
+        Directory, "Liq Does Not Have Bearish Setup", "Should Return False Indicating that the MB That Liquidated The Second In A Bearish Setup Is Not Broken",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
         false, DidNotBreakLiquidationMBInBearishSetup);
 
     ThreeConsecutiveBullishMBErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
-        Directory, "Three Consecutive Bullish MBs Error", "Should Return Equal MB Types Error",
+        Directory, "Liq Three Consecutive Bullish MBs Error", "Should Return Equal MB Types Error",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
         ExecutionErrors::EQUAL_MB_TYPES, ThreeConsecutiveBullishMBError);
 
     ThreeConsecutiveBearishMBErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
-        Directory, "Three Consecutive Bearish MBs Error", "Should Return Equal MB Types Error",
+        Directory, "Liq Three Consecutive Bearish MBs Error", "Should Return Equal MB Types Error",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
         ExecutionErrors::EQUAL_MB_TYPES, ThreeConsecutiveBearishMBError);
 
@@ -196,12 +196,14 @@ int HasBullishSetup(bool &actual)
     }
 
     double price = iHigh(Symbol(), Period(), 0);
-    double end = iHigh(Symbol(), Period(), thirdTempMBState.StartIndex());
+    double end = iHigh(Symbol(), Period(), thirdTempMBState.HighIndex());
 
     if (price <= end)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
+
+    HasBullishSetupUnitTest.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(HasBullishSetupUnitTest.Directory());
 
     actual = false;
     int setupError = SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(secondMBNumber, setupType, MBT, actual);
@@ -239,13 +241,15 @@ int HasBearishSetup(bool &actual)
         return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
-    double price = iHigh(Symbol(), Period(), 0);
-    double end = iHigh(Symbol(), Period(), thirdTempMBState.StartIndex());
+    double price = iLow(Symbol(), Period(), 0);
+    double end = iLow(Symbol(), Period(), thirdTempMBState.LowIndex());
 
     if (price >= end)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
+
+    HasBearishSetupUnitTest.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(HasBearishSetupUnitTest.Directory());
 
     actual = false;
     int setupError = SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(secondMBNumber, setupType, MBT, actual);
@@ -292,6 +296,8 @@ int DidNotBreakLiquidationMBInBullishSetup(bool &actual)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
+    DidNotBreakLiquidationMBInBullishSetupUnitTest.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(DidNotBreakLiquidationMBInBullishSetupUnitTest.Directory());
+
     actual = true;
     int setupError = SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(secondMBNumber, setupType, MBT, actual);
     if (setupError != ERR_NO_ERROR)
@@ -337,6 +343,8 @@ int DidNotBreakLiquidationMBInBearishSetup(bool &actual)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
+    DidNotBreakLiquidationMBInBearishSetupUnitTest.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(DidNotBreakLiquidationMBInBearishSetupUnitTest.Directory());
+
     actual = false;
     int setupError = SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(secondMBNumber, setupType, MBT, actual);
     if (setupError != ERR_NO_ERROR)
@@ -366,6 +374,8 @@ int ThreeConsecutiveBullishMBError(int &actual)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
+    ThreeConsecutiveBullishMBErrorUnitTest.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ThreeConsecutiveBullishMBErrorUnitTest.Directory());
+
     bool isTrue = false;
     actual = SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(secondTempMBState.Number(), secondTempMBState.Type(), MBT, isTrue);
 
@@ -389,6 +399,8 @@ int ThreeConsecutiveBearishMBError(int &actual)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
+
+    ThreeConsecutiveBearishMBErrorUnitTest.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ThreeConsecutiveBearishMBErrorUnitTest.Directory());
 
     bool isTrue = false;
     actual = SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(secondTempMBState.Number(), secondTempMBState.Type(), MBT, isTrue);
