@@ -20,7 +20,7 @@
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/Helpers/SetupHelper/BrokeMBRangeStart/";
-const int NumberOfAsserts = 25;
+const int NumberOfAsserts = 50;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
 const bool RecordErrors = true;
@@ -34,10 +34,16 @@ input bool CalculateOnTick = true;
 
 MBTracker *MBT;
 
+// https://drive.google.com/file/d/1vMTnIdg9z1VkIMp7gPSfATVMzw6GMNue/view?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *BrokeBullishMBUnitTest;
+
+// https://drive.google.com/file/d/1XHgzEBF0-B7wKwe5T7xSYZeH7-x_I0D2/view?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *BrokeBearishMBUnitTest;
 
+// https://drive.google.com/file/d/1VYqJJt1Su1kcXlwpi64YZl-bpzaeiOLr/view?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *DidNotBreakBullishMBUnitTest;
+
+// https://drive.google.com/file/d/1_Ppr4eveekIXnps7pTNtbus8pAIElSQu/view?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *DidNotBreakBearishMBUnitTest;
 
 int OnInit()
@@ -55,14 +61,14 @@ int OnInit()
         true, BrokeBearishMB);
 
     DidNotBreakBullishMBUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
-        Directory, "Did Not Break Bullish MB", "Should Return True Indicating That The Previous Bullish Start Range Was Not Broken",
+        Directory, "Did Not Break Bullish MB", "Should Return False Indicating That The Previous Bullish Start Range Was Not Broken",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        true, DidNotBreakBullishMB);
+        false, DidNotBreakBullishMB);
 
     DidNotBreakBearishMBUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
-        Directory, "Did Not Break Bearish MB", "Should Return True Indicating That The Previous Bearish Start Range Was Not Broken",
+        Directory, "Did Not Break Bearish MB", "Should Return False Indicating That The Previous Bearish Start Range Was Not Broken",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        true, DidNotBreakBearishMB);
+        false, DidNotBreakBearishMB);
 
     return (INIT_SUCCEEDED);
 }
@@ -92,28 +98,31 @@ void OnTick()
 
 int BrokeBullishMB(bool &actual)
 {
-    static int mbNumber = -1;
+    static int mbNumber = EMPTY;
     static bool reset = false;
 
     if (reset)
     {
-        mbNumber = -1;
+        mbNumber = EMPTY;
         reset = false;
     }
 
-    MBState *tempMBState;
-    if (!MBT.GetNthMostRecentMB(0, tempMBState))
-    {
-        return TerminalErrors::MB_DOES_NOT_EXIST;
-    }
+    BrokeBullishMBUnitTest.PendingRecord.AdditionalInformation = "MBNumber: " + IntegerToString(mbNumber);
 
-    if (tempMBState.Type() != OP_BUY)
+    if (mbNumber == EMPTY)
     {
-        return Results::UNIT_TEST_DID_NOT_RUN;
-    }
+        MBState *tempMBState;
+        if (!MBT.GetNthMostRecentMB(0, tempMBState))
+        {
+            reset = true;
+            return TerminalErrors::MB_DOES_NOT_EXIST;
+        }
 
-    if (mbNumber == -1)
-    {
+        if (tempMBState.Type() != OP_BUY)
+        {
+            return Results::UNIT_TEST_DID_NOT_RUN;
+        }
+
         mbNumber = tempMBState.Number();
     }
 
@@ -123,12 +132,12 @@ int BrokeBullishMB(bool &actual)
     }
 
     MBState *tempMBStateTwo;
-    if (!MBT.GetMB(mbNumber + 1, tempMBStateTwo))
+    if (!MBT.GetSubsequentMB(mbNumber, tempMBStateTwo))
     {
-        return TerminalErrors::MB_DOES_NOT_EXIST;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    if (tempMBState.Type() == OP_BUY)
+    if (tempMBStateTwo.Type() == OP_BUY)
     {
         reset = true;
         return Results::UNIT_TEST_DID_NOT_RUN;
@@ -149,28 +158,29 @@ int BrokeBullishMB(bool &actual)
 
 int BrokeBearishMB(bool &actual)
 {
-    static int mbNumber = -1;
+    static int mbNumber = EMPTY;
     static bool reset = false;
 
     if (reset)
     {
-        mbNumber = -1;
+        mbNumber = EMPTY;
         reset = false;
     }
 
-    MBState *tempMBState;
-    if (!MBT.GetNthMostRecentMB(0, tempMBState))
+    if (mbNumber == EMPTY)
     {
-        return TerminalErrors::MB_DOES_NOT_EXIST;
-    }
+        MBState *tempMBState;
+        if (!MBT.GetNthMostRecentMB(0, tempMBState))
+        {
+            reset = true;
+            return TerminalErrors::MB_DOES_NOT_EXIST;
+        }
 
-    if (tempMBState.Type() != OP_SELL)
-    {
-        return Results::UNIT_TEST_DID_NOT_RUN;
-    }
+        if (tempMBState.Type() != OP_SELL)
+        {
+            return Results::UNIT_TEST_DID_NOT_RUN;
+        }
 
-    if (mbNumber == -1)
-    {
         mbNumber = tempMBState.Number();
     }
 
@@ -180,12 +190,12 @@ int BrokeBearishMB(bool &actual)
     }
 
     MBState *tempMBStateTwo;
-    if (!MBT.GetMB(mbNumber + 1, tempMBStateTwo))
+    if (!MBT.GetSubsequentMB(mbNumber, tempMBStateTwo))
     {
-        return TerminalErrors::MB_DOES_NOT_EXIST;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    if (tempMBState.Type() == OP_SELL)
+    if (tempMBStateTwo.Type() == OP_SELL)
     {
         reset = true;
         return Results::UNIT_TEST_DID_NOT_RUN;

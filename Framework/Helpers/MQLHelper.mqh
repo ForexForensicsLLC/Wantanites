@@ -24,6 +24,9 @@ public:
 
     // Tested
     static bool GetHighestHigh(string symbol, int timeFrame, int count, int startIndex, bool inclusive, out double &high);
+
+    static bool GetLowestLowBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &high);
+    static bool GetHighestHighBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &high);
 };
 /**
  * @brief
@@ -103,5 +106,37 @@ static bool MQLHelper::GetHighestHigh(string symbol, int timeFrame, int count, i
     }
 
     high = iHigh(symbol, timeFrame, highestIndex);
+    return true;
+}
+
+static bool MQLHelper::GetLowestLowBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &low)
+{
+    int lowestIndex = EMPTY;
+    if (rightIndex > leftIndex)
+    {
+        return false;
+    }
+
+    if (!MQLHelper::GetLowestLow(symbol, timeFrame, leftIndex - rightIndex, rightIndex, inclusive, low))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+static bool MQLHelper::GetHighestHighBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &high)
+{
+    int highestIndex = EMPTY;
+    if (rightIndex > leftIndex)
+    {
+        return false;
+    }
+
+    if (!MQLHelper::GetHighestHigh(symbol, timeFrame, leftIndex - rightIndex, rightIndex, inclusive, high))
+    {
+        return false;
+    }
+
     return true;
 }

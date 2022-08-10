@@ -32,12 +32,19 @@ input bool CalculateOnTick = true;
 
 MBTracker *MBT;
 
+// https://drive.google.com/file/d/1ymrRwMMYEwfvkhNDcEbhQ8WcN0vG7qYw/view?usp=sharing
 BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> *BullishMBCorrectOrderPlacementImagesUnitTest;
+
+// https://drive.google.com/file/d/1OdCPQD_PAd21hNQ3G7dJWHGlMKNqSHgH/view?usp=sharing
 BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> *BearishMBCorrectOrderPlacementImagesUnitTest;
 
+// https://drive.google.com/file/d/1vRH6o0Ebe_33-6GmKJ42VYsCTD8eNttZ/view?usp=sharing
 IntUnitTest<BeforeAndAfterImagesUnitTestRecord> *BullishMBNoErrorUnitTest;
+
+// https://drive.google.com/file/d/1Jtp8-amf11E-TwAOl9NjyWEot9O1FIWn/view?usp=sharing
 IntUnitTest<BeforeAndAfterImagesUnitTestRecord> *BearishMBNoErrorUnitTest;
 
+// https://drive.google.com/file/d/1LSh4T8IBekHukoQll8U33f4ut6H64kAg/view?usp=sharing
 IntUnitTest<BeforeAndAfterImagesUnitTestRecord> *MBDoesNotExistErrorUnitTest;
 
 int OnInit()
@@ -174,7 +181,7 @@ int BullishMBNoError(int &actual)
     }
 
     BullishMBNoErrorUnitTest.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(BullishMBNoErrorUnitTest.Directory());
-    BullishMBNoErrorUnitTest.PendingRecord.AdditionalInformation = MBT.SingleLineToString();
+    BullishMBNoErrorUnitTest.PendingRecord.AdditionalInformation = MBT.ToSingleLineString();
 
     int ticket = EMPTY;
     actual = PlaceOrder(tempMBState.Number(), ticket);
@@ -207,7 +214,7 @@ int BearishMBNoError(int &actual)
     }
 
     BearishMBNoErrorUnitTest.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(BearishMBNoErrorUnitTest.Directory());
-    BearishMBNoErrorUnitTest.PendingRecord.AdditionalInformation = MBT.SingleLineToString();
+    BearishMBNoErrorUnitTest.PendingRecord.AdditionalInformation = MBT.ToSingleLineString();
 
     int ticket = EMPTY;
     actual = PlaceOrder(tempMBState.Number(), ticket);
@@ -230,7 +237,7 @@ int MBDoesNotExistError(int &actual)
 {
 
     MBDoesNotExistErrorUnitTest.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(MBDoesNotExistErrorUnitTest.Directory());
-    MBDoesNotExistErrorUnitTest.PendingRecord.AdditionalInformation = MBT.SingleLineToString();
+    MBDoesNotExistErrorUnitTest.PendingRecord.AdditionalInformation = MBT.ToSingleLineString();
 
     int ticket = EMPTY;
     actual = PlaceOrder(EMPTY, ticket);
@@ -263,7 +270,7 @@ int BullishMBCorrectOrderPlacementImages(bool &actual)
     }
 
     BullishMBCorrectOrderPlacementImagesUnitTest.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(BullishMBCorrectOrderPlacementImagesUnitTest.Directory());
-    BullishMBCorrectOrderPlacementImagesUnitTest.PendingRecord.AdditionalInformation = MBT.SingleLineToString();
+    BullishMBCorrectOrderPlacementImagesUnitTest.PendingRecord.AdditionalInformation = MBT.ToSingleLineString();
 
     int ticket = EMPTY;
     int placeOrderError = PlaceOrder(tempMBState.Number(), ticket, false);
@@ -301,7 +308,7 @@ int BearishMBCorrectOrderPlacementImages(bool &actual)
     }
 
     BearishMBCorrectOrderPlacementImagesUnitTest.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(BearishMBCorrectOrderPlacementImagesUnitTest.Directory());
-    BearishMBCorrectOrderPlacementImagesUnitTest.PendingRecord.AdditionalInformation = MBT.SingleLineToString();
+    BearishMBCorrectOrderPlacementImagesUnitTest.PendingRecord.AdditionalInformation = MBT.ToSingleLineString();
 
     int ticket = EMPTY;
     int placeOrderError = PlaceOrder(tempMBState.Number(), ticket, false);

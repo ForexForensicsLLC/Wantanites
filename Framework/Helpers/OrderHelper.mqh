@@ -92,11 +92,11 @@ public:
     // ==========================================================================
     // Placing Stop Orders on MBs
     // ==========================================================================
-    // !Tested
+    // Tested
     // ResetsOutParam
     static int PlaceStopOrderForPendingMBValidation(int paddingPips, int spreadPips, double riskPercent, int magicNumber, int setupMBNumber, MBTracker *&mbt, out int &ticket);
 
-    // !Tested
+    // Tested
     // ResetsOutParam
     static int PlaceStopOrderForBreakOfMB(int paddingPips, int spreadPips, double riskPercent, int magicNumber, int mbNumber, MBTracker *&mbt, out int &ticket);
 
@@ -253,7 +253,7 @@ static int OrderHelper::GetStopLossForStopOrderForPendingMBValidation(double pad
         }
 
         double low = 0.0;
-        if (!MQLHelper::GetLowestLow(mbt.Symbol(), mbt.TimeFrame(), retracementIndex, 0, true, low))
+        if (!MQLHelper::GetLowestLow(mbt.Symbol(), mbt.TimeFrame(), retracementIndex, 0, false, low))
         {
             return ExecutionErrors::COULD_NOT_RETRIEVE_LOW;
         }
@@ -268,7 +268,7 @@ static int OrderHelper::GetStopLossForStopOrderForPendingMBValidation(double pad
         }
 
         double high = 0.0;
-        if (!MQLHelper::GetHighestHigh(mbt.Symbol(), mbt.TimeFrame(), retracementIndex, 0, true, high))
+        if (!MQLHelper::GetHighestHigh(mbt.Symbol(), mbt.TimeFrame(), retracementIndex, 0, false, high))
         {
             return ExecutionErrors::COULD_NOT_RETRIEVE_HIGH;
         }
@@ -316,7 +316,7 @@ static int OrderHelper::GetEntryPriceForStopOrderForBreakOfMB(double spreadPips,
  * @param spreadPips
  * @param mbNumber
  * @param mbt
- * @param stopLoss
+ * @param stopLoss - The Furthest point after the previous MB Validated before price retraced and broke it
  * @return int
  */
 static int OrderHelper::GetStopLossForStopOrderForBreakOfMB(double paddingPips, double spreadPips, int mbNumber, MBTracker *&mbt, out double &stopLoss)

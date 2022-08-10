@@ -142,6 +142,16 @@ void TheSunriseShatterSingleMB::CheckInvalidateSetup()
         return;
     }
 
+    // don't have to check for broken start range or if the next mb is the same type
+    // the setup is invalid if ANY mb gets printed after the set up
+    mLastState = EAStates::CHECKING_IF_MOST_RECENT_MB;
+    if (!MBT.MBIsMostRecent(mFirstMBInSetupNumber))
+    {
+        InvalidateSetup();
+        return;
+    }
+
+    /*
     mLastState = EAStates::CHECKING_IF_BROKE_RANGE_START;
 
     bool brokeRange = false;
@@ -170,6 +180,7 @@ void TheSunriseShatterSingleMB::CheckInvalidateSetup()
         InvalidateSetup();
         return;
     }
+    */
 
     mLastState = EAStates::CHECKING_IF_CROSSED_OPEN_PRICE_AFTER_MIN_ROC;
 

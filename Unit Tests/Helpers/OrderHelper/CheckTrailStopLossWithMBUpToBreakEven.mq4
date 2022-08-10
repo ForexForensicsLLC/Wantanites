@@ -16,7 +16,7 @@
 #include <SummitCapital\Framework\UnitTests\BoolUnitTest.mqh>
 #include <SummitCapital\Framework\UnitTests\IntUnitTest.mqh>
 
-#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
+#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\BeforeAndAfterImagesUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/Helpers/OrderHelper/CheckTrailStopLossWithMBUpToBreakEven/";
 const int NumberOfAsserts = 100;
@@ -24,7 +24,7 @@ const int AssertCooldown = 0;
 const bool RecordScreenShot = true;
 const bool RecordErrors = true;
 
-input int MBsToTrack = 3;
+input int MBsToTrack = 5;
 input int MaxZonesInMB = 5;
 input bool AllowMitigatedZones = false;
 input bool AllowZonesAfterMBValidation = true;
@@ -38,74 +38,74 @@ const int SpreadPips = 0.0;
 const double RiskPercent = 0.25;
 const int MagicNumber = 0;
 
-BoolUnitTest<DefaultUnitTestRecord> *BullishNoErrorsSameStopLossUnitTest;
-BoolUnitTest<DefaultUnitTestRecord> *BearishNoErrorsSameStopLossUnitTest;
+BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> *BullishNoErrorsSameStopLossUnitTest;
+BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> *BearishNoErrorsSameStopLossUnitTest;
 
-BoolUnitTest<DefaultUnitTestRecord> *BullishNoErrorsDifferentStopLossUnitTest;
-BoolUnitTest<DefaultUnitTestRecord> *BearishNoErrorsDifferentStopLossUnitTest;
+BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> *BullishNoErrorsDifferentStopLossUnitTest;
+BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> *BearishNoErrorsDifferentStopLossUnitTest;
 
-IntUnitTest<DefaultUnitTestRecord> *DoesNotTrailPendingOrdersUnitTest;
+IntUnitTest<BeforeAndAfterImagesUnitTestRecord> *DoesNotTrailPendingOrdersUnitTest;
 
-BoolUnitTest<DefaultUnitTestRecord> *BullishDoesNotTrailPastOpenUnitTest;
-BoolUnitTest<DefaultUnitTestRecord> *BearishDoesNotTrailPastOpenUnitTest;
+BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> *BullishDoesNotTrailPastOpenUnitTest;
+BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> *BearishDoesNotTrailPastOpenUnitTest;
 
-IntUnitTest<DefaultUnitTestRecord> *SubsequentMBDoesNotExistErrorUnitTest;
+IntUnitTest<BeforeAndAfterImagesUnitTestRecord> *SubsequentMBDoesNotExistErrorUnitTest;
 
-IntUnitTest<DefaultUnitTestRecord> *BullishNotEqualMBTypesErrorUnitTest;
-IntUnitTest<DefaultUnitTestRecord> *BearishNotEqualMBTypesErrorUnitTest;
+IntUnitTest<BeforeAndAfterImagesUnitTestRecord> *BullishNotEqualMBTypesErrorUnitTest;
+IntUnitTest<BeforeAndAfterImagesUnitTestRecord> *BearishNotEqualMBTypesErrorUnitTest;
 
 int OnInit()
 {
-    MBT = new MBTracker(MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, PrintErrors, CalculateOnTick);
+    MBT = new MBTracker(MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, true, PrintErrors, CalculateOnTick);
 
-    BullishNoErrorsSameStopLossUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+    BullishNoErrorsSameStopLossUnitTest = new BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Bullish No Errors Same Stop Loss", "The Stop Loss Was Not Changed When No Errors Were Retruned In A Bullish Setup",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         true, BullishNoErrorsSameStopLoss);
 
-    BearishNoErrorsSameStopLossUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+    BearishNoErrorsSameStopLossUnitTest = new BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Bearish No Errors Same Stop Loss", "The Stop Loss Was Not Changed When No Errors Were Retruned In A Bearish Setup",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         true, BearishNoErrorsSameStopLoss);
 
-    BullishNoErrorsDifferentStopLossUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+    BullishNoErrorsDifferentStopLossUnitTest = new BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Bullish No Errors Different Stop Loss", "The Stop Loss Was Changed When No Errors Were Retruned In A Bullish Setup",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         true, BullishNoErrorsDifferentStopLoss);
 
-    BearishNoErrorsDifferentStopLossUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+    BearishNoErrorsDifferentStopLossUnitTest = new BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Bearish No Errors Different Stop Loss", "The Stop Loss Was Changed When No Errors Were Retruned In A Bearish Setup",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         true, BearishNoErrorsDifferentStopLoss);
 
-    DoesNotTrailPendingOrdersUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+    DoesNotTrailPendingOrdersUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Does Not Trail Pending Orders", "Should Return A Wrong Order Type Error",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         TerminalErrors::WRONG_ORDER_TYPE, DoesNotTrailPendingOrders);
 
-    BullishDoesNotTrailPastOpenUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+    BullishDoesNotTrailPastOpenUnitTest = new BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Bullish Does Not Trail Past Open", "The Stop Loss Is Not Moved Above / Below The Entry In A Bullish Setup",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         true, BullishDoesNotTrailPastOpen);
 
-    BearishDoesNotTrailPastOpenUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+    BearishDoesNotTrailPastOpenUnitTest = new BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Bearish Does Not Trail Past Open", "The Stop Loss Is Not Moved Above / Below The Entry In A Bearish Setup",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         true, BearishDoesNotTrailPastOpen);
 
-    SubsequentMBDoesNotExistErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+    SubsequentMBDoesNotExistErrorUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Subsequent MB Does Not Exist", "Should Return A Subsequent MB Does Not Exist Error",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         ExecutionErrors::SUBSEQUENT_MB_DOES_NOT_EXIST, SubsequentMBDoesNotExist);
 
-    BullishNotEqualMBTypesErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+    BullishNotEqualMBTypesErrorUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Bullish Not Equal Types Error", "Should Return A Not Equal MB Types Error",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         ExecutionErrors::NOT_EQUAL_MB_TYPES, BullishNotEqualTypesError);
 
-    BearishNotEqualMBTypesErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+    BearishNotEqualMBTypesErrorUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Bearish Not Equal Types Error", "Should Return A Not Equal MB Types Error",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         ExecutionErrors::NOT_EQUAL_MB_TYPES, BearishNotEqualTypesError);
 
     return (INIT_SUCCEEDED);
@@ -319,7 +319,7 @@ int CheckSetup(int type, int ticket, int mbNumber, int setupType, double stopLos
     return ERR_NO_ERROR;
 }
 
-int BullishNoErrorsSameStopLoss(bool &actual)
+int BullishNoErrorsSameStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut, bool &actual)
 {
     const int type = OP_BUY;
 
@@ -342,7 +342,7 @@ int BullishNoErrorsSameStopLoss(bool &actual)
         return setupError;
     }
 
-    BullishNoErrorsSameStopLossUnitTest.TryTakeScreenShot();
+    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     bool succeeded = false;
     int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
@@ -350,6 +350,8 @@ int BullishNoErrorsSameStopLoss(bool &actual)
     {
         return trailError;
     }
+
+    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
     int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
     if (selectError != ERR_NO_ERROR)
@@ -363,7 +365,7 @@ int BullishNoErrorsSameStopLoss(bool &actual)
     return Results::UNIT_TEST_RAN;
 }
 
-int BearishNoErrorsSameStopLoss(bool &actual)
+int BearishNoErrorsSameStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut, bool &actual)
 {
     const int type = OP_SELL;
 
@@ -386,7 +388,7 @@ int BearishNoErrorsSameStopLoss(bool &actual)
         return setupError;
     }
 
-    BearishNoErrorsSameStopLossUnitTest.TryTakeScreenShot();
+    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     bool succeeded = false;
     int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
@@ -394,6 +396,8 @@ int BearishNoErrorsSameStopLoss(bool &actual)
     {
         return trailError;
     }
+
+    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
     int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
     if (selectError != ERR_NO_ERROR)
@@ -407,7 +411,7 @@ int BearishNoErrorsSameStopLoss(bool &actual)
     return Results::UNIT_TEST_RAN;
 }
 
-int BullishNoErrorsDifferentStopLoss(bool &actual)
+int BullishNoErrorsDifferentStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut, bool &actual)
 {
     const int type = OP_BUY;
 
@@ -430,7 +434,7 @@ int BullishNoErrorsDifferentStopLoss(bool &actual)
         return setupError;
     }
 
-    BullishNoErrorsDifferentStopLossUnitTest.TryTakeScreenShot();
+    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     bool succeeded = false;
     int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
@@ -438,6 +442,8 @@ int BullishNoErrorsDifferentStopLoss(bool &actual)
     {
         return trailError;
     }
+
+    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
     int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
     if (selectError != ERR_NO_ERROR)
@@ -451,7 +457,7 @@ int BullishNoErrorsDifferentStopLoss(bool &actual)
     return Results::UNIT_TEST_RAN;
 }
 
-int BearishNoErrorsDifferentStopLoss(bool &actual)
+int BearishNoErrorsDifferentStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut, bool &actual)
 {
     const int type = OP_SELL;
 
@@ -474,7 +480,7 @@ int BearishNoErrorsDifferentStopLoss(bool &actual)
         return setupError;
     }
 
-    BearishNoErrorsDifferentStopLossUnitTest.TryTakeScreenShot();
+    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     bool succeeded = false;
     int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
@@ -482,6 +488,8 @@ int BearishNoErrorsDifferentStopLoss(bool &actual)
     {
         return trailError;
     }
+
+    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
     int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
     if (selectError != ERR_NO_ERROR)
@@ -495,7 +503,7 @@ int BearishNoErrorsDifferentStopLoss(bool &actual)
     return Results::UNIT_TEST_RAN;
 }
 
-int DoesNotTrailPendingOrders(int &actual)
+int DoesNotTrailPendingOrders(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut, int &actual)
 {
     const int type = OP_SELL;
 
@@ -518,16 +526,18 @@ int DoesNotTrailPendingOrders(int &actual)
         return setupError;
     }
 
-    DoesNotTrailPendingOrdersUnitTest.TryTakeScreenShot();
+    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     bool succeeded = false;
     actual = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
+
+    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
     reset = true;
     return Results::UNIT_TEST_RAN;
 }
 
-int BullishDoesNotTrailPastOpen(bool &actual)
+int BullishDoesNotTrailPastOpen(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut, bool &actual)
 {
     const int type = OP_BUY;
 
@@ -550,7 +560,7 @@ int BullishDoesNotTrailPastOpen(bool &actual)
         return setupError;
     }
 
-    BullishDoesNotTrailPastOpenUnitTest.TryTakeScreenShot();
+    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     bool succeeded = false;
     int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
@@ -558,6 +568,8 @@ int BullishDoesNotTrailPastOpen(bool &actual)
     {
         return trailError;
     }
+
+    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
     int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
     if (selectError != ERR_NO_ERROR)
@@ -571,7 +583,7 @@ int BullishDoesNotTrailPastOpen(bool &actual)
     return Results::UNIT_TEST_RAN;
 }
 
-int BearishDoesNotTrailPastOpen(bool &actual)
+int BearishDoesNotTrailPastOpen(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut, bool &actual)
 {
     const int type = OP_SELL;
 
@@ -594,7 +606,7 @@ int BearishDoesNotTrailPastOpen(bool &actual)
         return setupError;
     }
 
-    BearishDoesNotTrailPastOpenUnitTest.TryTakeScreenShot();
+    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     bool succeeded = false;
     int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
@@ -602,6 +614,8 @@ int BearishDoesNotTrailPastOpen(bool &actual)
     {
         return trailError;
     }
+
+    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
     int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
     if (selectError != ERR_NO_ERROR)
@@ -615,7 +629,7 @@ int BearishDoesNotTrailPastOpen(bool &actual)
     return Results::UNIT_TEST_RAN;
 }
 
-int SubsequentMBDoesNotExist(int &actual)
+int SubsequentMBDoesNotExist(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut, int &actual)
 {
     int ticket = OrderSend(Symbol(), OP_BUY, 0.1, Ask, 0, Ask - OrderHelper::PipsToRange(200), 0.0, NULL, 0, 0, clrNONE);
     if (ticket < 0)
@@ -629,10 +643,12 @@ int SubsequentMBDoesNotExist(int &actual)
         return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
-    SubsequentMBDoesNotExistErrorUnitTest.TryTakeScreenShot();
+    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     bool succeeded = false;
     actual = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, tempMBState.Number(), tempMBState.Type(), MBT, succeeded);
+
+    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
     int error = CloseTicket(ticket);
     if (error != ERR_NO_ERROR)
@@ -643,7 +659,7 @@ int SubsequentMBDoesNotExist(int &actual)
     return Results::UNIT_TEST_RAN;
 }
 
-int BullishNotEqualTypesError(int &actual)
+int BullishNotEqualTypesError(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut, int &actual)
 {
     const int type = OP_BUY;
 
@@ -666,16 +682,18 @@ int BullishNotEqualTypesError(int &actual)
         return setupError;
     }
 
-    BullishNotEqualMBTypesErrorUnitTest.TryTakeScreenShot();
+    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     bool succeeded = false;
     actual = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
     reset = true;
 
+    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
+
     return Results::UNIT_TEST_RAN;
 }
 
-int BearishNotEqualTypesError(int &actual)
+int BearishNotEqualTypesError(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut, int &actual)
 {
     const int type = OP_SELL;
 
@@ -698,11 +716,13 @@ int BearishNotEqualTypesError(int &actual)
         return setupError;
     }
 
-    BearishNotEqualMBTypesErrorUnitTest.TryTakeScreenShot();
+    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     bool succeeded = false;
     actual = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
     reset = true;
+
+    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
     return Results::UNIT_TEST_RAN;
 }

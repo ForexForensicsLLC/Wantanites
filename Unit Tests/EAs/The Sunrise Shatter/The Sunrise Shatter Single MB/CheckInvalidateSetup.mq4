@@ -71,6 +71,6 @@ void OnTick()
 
 void Reset()
 {
-    MRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), Hour(), Minute(), 59, 0.05);
+    MRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), 23, Minute(), 59, 0.05);
     TSSSMB = new TheSunriseShatterSingleMB(MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, MRFTS, MBT);
 }

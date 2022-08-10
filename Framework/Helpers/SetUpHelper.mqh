@@ -20,10 +20,10 @@ public:
     // ==========================================================================
     // Range Broke Methods
     // ==========================================================================
-    // !Tested
+    // Tested
     static int BrokeMBRangeStart(int mbNumber, MBTracker *&mbt, out bool &isTrue);
 
-    // !Tested
+    // Tested
     static int BrokeDoubleMBPlusLiquidationSetupRangeEnd(int secondMBInSetup, int setupType, MBTracker *&mbt, out bool &isTrue);
 
     // ==========================================================================
@@ -35,13 +35,13 @@ public:
     // !Tested
     static int FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOneNumber, int mbTwoNumber, MBTracker *&mbt, out bool &isTrue);
 
-    //! Tested
+    // !Tested
     static int SameTypeSubsequentMB(int mbNumber, MBTracker *&mbt, out bool isTrue);
 
     // ==========================================================================
     // Min ROC. From Time Stamp Setup Methods
     // ==========================================================================
-    // !Tested
+    // Tested
     static int BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker *&mbt, out bool &isTrue);
 };
 /*
@@ -84,9 +84,9 @@ static int SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(int secondMBIn
     MBState *thirdTempMBState;
 
     // Return false if we can't find the subsequent MB for whatever reason
-    if (!mbt.GetMB(secondMBInSetup + 1, thirdTempMBState))
+    if (!mbt.GetSubsequentMB(secondMBInSetup, thirdTempMBState))
     {
-        return TerminalErrors::MB_DOES_NOT_EXIST;
+        return ExecutionErrors::SUBSEQUENT_MB_DOES_NOT_EXIST;
     }
 
     // Types can't be equal if we are looking for a liquidation of the second MB
@@ -138,7 +138,7 @@ static int SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOne
     {
         if (iLow(secondMBTempMBState.Symbol(), secondMBTempMBState.TimeFrame(), 0) < iLow(secondMBTempMBState.Symbol(), secondMBTempMBState.TimeFrame(), secondMBTempMBState.LowIndex()))
         {
-            if (!mbt.GetMB(mbTwoNumber + 1, thirdMBTempState))
+            if (!mbt.GetSubsequentMB(mbTwoNumber, thirdMBTempState))
             {
                 return ExecutionErrors::SUBSEQUENT_MB_DOES_NOT_EXIST;
             }
@@ -150,7 +150,7 @@ static int SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOne
     {
         if (iHigh(secondMBTempMBState.Symbol(), secondMBTempMBState.TimeFrame(), 0) > iHigh(secondMBTempMBState.Symbol(), secondMBTempMBState.TimeFrame(), secondMBTempMBState.HighIndex()))
         {
-            if (!mbt.GetMB(mbTwoNumber + 1, thirdMBTempState))
+            if (!mbt.GetSubsequentMB(mbTwoNumber, thirdMBTempState))
             {
                 return ExecutionErrors::SUBSEQUENT_MB_DOES_NOT_EXIST;
             }

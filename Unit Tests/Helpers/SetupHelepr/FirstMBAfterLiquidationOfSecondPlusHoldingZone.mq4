@@ -21,10 +21,9 @@
 const string Directory = "/UnitTests/Helpers/SetupHelper/FirstMBAfterLiquidationOfSecondPlusHoldingZone/";
 const int NumberOfAsserts = 25;
 const int AssertCooldown = 1;
-const bool RecordScreenShot = true;
 const bool RecordErrors = true;
 
-input int MBsToTrack = 3;
+input int MBsToTrack = 5;
 input int MaxZonesInMB = 5;
 input bool AllowMitigatedZones = false;
 input bool AllowZonesAfterMBValidation = true;
@@ -38,16 +37,16 @@ BoolUnitTest<DefaultUnitTestRecord> *HasBearishSetupUnitTest;
 
 int OnInit()
 {
-    MBT = new MBTracker(MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, PrintErrors, CalculateOnTick);
+    MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, true, PrintErrors, CalculateOnTick);
 
     HasBullishSetupUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
         Directory, "Has Bullish Setup", "Should Return True Indicating There Is A Bullish Setup",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         true, HasBullishSetup);
 
     HasBearishSetupUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
         Directory, "Has Bearish Setup", "Should Return True Indicating There Is A Bearish Setup",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         true, HasBearishSetup);
 
     return (INIT_SUCCEEDED);
@@ -95,12 +94,24 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
             reset = true;
             return Results::UNIT_TEST_DID_NOT_RUN;
         }
+
+        MBState *tempMBState;
+        if (!MBT.GetMB(secondMBNumber, tempMBState))
+        {
+            reset = true;
+            return TerminalErrors::MB_DOES_NOT_EXIST;
+        }
+
+        if (tempMBState.IsBroken(tempMBState.EndIndex()))
+        {
+            reset = true;
+        }
     }
 
     if (secondMBNumber == EMPTY)
     {
         MBState *secondTempMBState;
-        if (MBT.NthMostRecentMBIsOpposite(1) && MBT.HasNMostRecentConsecutiveMBs(2) && MBT.GetNthMostRecentMB(0, secondTempMBState))
+        if (MBT.HasNMostRecentConsecutiveMBs(2) && MBT.GetNthMostRecentMB(0, secondTempMBState))
         {
             if (secondTempMBState.Type() != type)
             {
@@ -132,7 +143,7 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
     return ERR_NO_ERROR;
 }
 
-int HasBullishSetup(bool &actual)
+int HasBullishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 {
     static int secondMBNumber = EMPTY;
     static int thirdMBNumber = EMPTY;
@@ -181,7 +192,7 @@ int HasBullishSetup(bool &actual)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    HasBullishSetupUnitTest.TryTakeScreenShot();
+    ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
 
     int setupError = SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(secondMBNumber - 1, secondMBNumber, MBT, actual);
     if (setupError != ERR_NO_ERROR)
@@ -193,7 +204,7 @@ int HasBullishSetup(bool &actual)
     return Results::UNIT_TEST_RAN;
 }
 
-int HasBearishSetup(bool &actual)
+int HasBearishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 {
     static int secondMBNumber = EMPTY;
     static int thirdMBNumber = EMPTY;
@@ -242,7 +253,7 @@ int HasBearishSetup(bool &actual)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    HasBearishSetupUnitTest.TryTakeScreenShot();
+    ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
 
     int setupError = SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(secondMBNumber - 1, secondMBNumber, MBT, actual);
     if (setupError != ERR_NO_ERROR)

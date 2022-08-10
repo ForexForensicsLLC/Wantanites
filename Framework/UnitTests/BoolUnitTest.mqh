@@ -25,10 +25,10 @@ private:
     void Init(bool expected, TActualBoolFunc actualBoolFunc, TActualUnitTestBoolFunc actualUnitTestBoolFunc);
 
 public:
-    BoolUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+    BoolUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordErrors,
                  bool expected, TActualBoolFunc actual);
 
-    BoolUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+    BoolUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordErrors,
                  bool expected, TActualUnitTestBoolFunc actual);
 
     ~BoolUnitTest();
@@ -46,17 +46,17 @@ void BoolUnitTest::Init(bool expected, TActualBoolFunc actualBoolFunc, TActualUn
 }
 
 template <typename TRecord>
-BoolUnitTest::BoolUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+BoolUnitTest::BoolUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordErrors,
                            bool expected, TActualBoolFunc actual)
-    : UnitTest(directory, testName, description, maxAsserts, assertCooldownMinutes, recordScreenShot, recordErrors)
+    : UnitTest(directory, testName, description, maxAsserts, assertCooldownMinutes, recordErrors)
 {
     Init(expected, actual, NULL);
 }
 
 template <typename TRecord>
-BoolUnitTest::BoolUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+BoolUnitTest::BoolUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordErrors,
                            bool expected, TActualUnitTestBoolFunc actual)
-    : UnitTest(directory, testName, description, maxAsserts, assertCooldownMinutes, recordScreenShot, recordErrors)
+    : UnitTest(directory, testName, description, maxAsserts, assertCooldownMinutes, recordErrors)
 {
     Init(expected, NULL, actual);
 }

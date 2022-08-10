@@ -16,8 +16,7 @@ class IntUnitTest : public UnitTest<int, TRecord>
 private:
     typedef int (*TActualIntFunc)(int &actual);
     typedef int (*TActualUnitTestIntFunc)(IntUnitTest<TRecord> &ut, int &actual);
-
-    typedef int (*TExpectedIntFunc)();
+    typedef int (*TExpectedIntFunc)(IntUnitTest<TRecord> &ut);
 
     int mExpectedValue;
     TExpectedIntFunc mExpectedFunc;
@@ -28,16 +27,16 @@ private:
     void Init(int expected, TExpectedIntFunc expectedFunc, TActualIntFunc actualIntFunc, TActualUnitTestIntFunc actualUnitTestIntFunc);
 
 public:
-    IntUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+    IntUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordErrors,
                 int expected, TActualIntFunc actual);
 
-    IntUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+    IntUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordErrors,
                 int expected, TActualUnitTestIntFunc actual);
 
-    IntUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+    IntUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordErrors,
                 TExpectedIntFunc expected, TActualIntFunc actual);
 
-    IntUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+    IntUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordErrors,
                 TExpectedIntFunc expected, TActualUnitTestIntFunc actual);
 
     ~IntUnitTest();
@@ -56,33 +55,33 @@ void IntUnitTest::Init(int expected, TExpectedIntFunc expectedFunc, TActualIntFu
 }
 
 template <typename TRecord>
-IntUnitTest::IntUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+IntUnitTest::IntUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordErrors,
                          int expected, TActualIntFunc actual)
-    : UnitTest(directory, testName, description, maxAsserts, assertCooldownMinutes, recordScreenShot, recordErrors)
+    : UnitTest(directory, testName, description, maxAsserts, assertCooldownMinutes, recordErrors)
 {
     Init(expected, NULL, actual, NULL);
 }
 
 template <typename TRecord>
-IntUnitTest::IntUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+IntUnitTest::IntUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordErrors,
                          int expected, TActualUnitTestIntFunc actual)
-    : UnitTest(directory, testName, description, maxAsserts, assertCooldownMinutes, recordScreenShot, recordErrors)
+    : UnitTest(directory, testName, description, maxAsserts, assertCooldownMinutes, recordErrors)
 {
     Init(expected, NULL, NULL, actual);
 }
 
 template <typename TRecord>
-IntUnitTest::IntUnitTest(string directory, string testName, string testMessage, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+IntUnitTest::IntUnitTest(string directory, string testName, string testMessage, int maxAsserts, int assertCooldownMinutes, bool recordErrors,
                          TExpectedIntFunc expected, TActualIntFunc actual)
-    : UnitTest(directory, testName, testMessage, maxAsserts, assertCooldownMinutes, recordScreenShot, recordErrors)
+    : UnitTest(directory, testName, testMessage, maxAsserts, assertCooldownMinutes, recordErrors)
 {
     Init(NULL, expected, actual, NULL);
 }
 
 template <typename TRecord>
-IntUnitTest::IntUnitTest(string directory, string testName, string testMessage, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors,
+IntUnitTest::IntUnitTest(string directory, string testName, string testMessage, int maxAsserts, int assertCooldownMinutes, bool recordErrors,
                          TExpectedIntFunc expected, TActualUnitTestIntFunc actual)
-    : UnitTest(directory, testName, testMessage, maxAsserts, assertCooldownMinutes, recordScreenShot, recordErrors)
+    : UnitTest(directory, testName, testMessage, maxAsserts, assertCooldownMinutes, recordErrors)
 {
     Init(NULL, expected, NULL, actual);
 }
@@ -126,7 +125,7 @@ void IntUnitTest::Assert(bool equals = true)
     int expected;
     if (mExpectedFunc != NULL)
     {
-        expected = mExpectedFunc();
+        expected = mExpectedFunc(this);
     }
     else
     {

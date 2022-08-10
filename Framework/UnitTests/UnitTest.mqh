@@ -20,7 +20,6 @@ private:
     bool mDone;
     int mAssertCooldownMinutes;
     datetime mLastAssertTime;
-    bool mRecordScreenShot;
 
     void SetAssertResult(string result, string message);
     bool PastAssertCooldown();
@@ -38,19 +37,18 @@ protected:
     void RecordError(int error);
 
 public:
-    UnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors);
+    UnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordErrors);
     ~UnitTest();
 
     virtual void Assert(bool equals);
 };
 
 template <typename TUnitTest, typename TRecord>
-UnitTest::UnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordScreenShot, bool recordErrors)
+UnitTest::UnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordErrors)
 {
     mDirectory = directory + testName + "/";
     mCSVFileName = testName + ".csv";
     mAssertCooldownMinutes = assertCooldownMinutes;
-    mRecordScreenShot = recordScreenShot;
     mRecordErrors = recordErrors;
 
     PendingRecord.Name = testName;

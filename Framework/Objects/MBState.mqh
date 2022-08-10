@@ -31,6 +31,7 @@ protected:
     int mMaxZones;
     int mZoneCount;
     int mUnretrievedZoneCount;
+    bool mAllowZoneWickBreaks;
 
     string mName;
 
@@ -51,14 +52,19 @@ public:
     int ZoneCount() { return mZoneCount; }
     int UnretrievedZoneCount() { return mUnretrievedZoneCount; }
 
+    // Tested
     bool IsBroken(int barIndex);
 
-    bool GetUnretrievedZones(int mbOffset, ZoneState *&zoneStates[]);
+    bool GetUnretrievedZones(ZoneState *&zoneStates[]);
     bool GetClosestValidZone(ZoneState *&zoneStates);
     bool ClosestValidZoneIsHolding(int barIndex);
 
+    // Tested
+    bool GetShallowestZone(ZoneState *&zoneState);
+
     // --------- Display Methods ---------
     string ToString();
+    string ToSingleLineString();
     void Draw(bool printErrors);
     void DrawZones(bool printErrors);
 };
@@ -70,7 +76,9 @@ bool MBState::IsBroken(int barIndex)
         if (mType == OP_BUY)
         {
             double low;
-            if (!MQLHelper::GetLowestLow(mSymbol, mTimeFrame, barIndex, 0, false, low))
+            // Should Be Inclusive for when we are checknig the break from the MB End Index. Its not likely but the
+            // end index can confirm the MB and break it in the same candle
+            if (!MQLHelper::GetLowestLow(mSymbol, mTimeFrame, barIndex, 0, true, low))
             {
                 return false;
             }
@@ -80,7 +88,9 @@ bool MBState::IsBroken(int barIndex)
         else if (mType == OP_SELL)
         {
             double high;
-            if (!MQLHelper::GetHighestHigh(mSymbol, mTimeFrame, barIndex, 0, false, high))
+            // Should Be Inclusive for when we are checknig the break from the MB End Index. Its not likely but the
+            // end index can confirm the MB and break it in the same candle
+            if (!MQLHelper::GetHighestHigh(mSymbol, mTimeFrame, barIndex, 0, true, high))
             {
                 return false;
             }
@@ -92,15 +102,24 @@ bool MBState::IsBroken(int barIndex)
     return mIsBroken;
 }
 
-bool MBState::GetUnretrievedZones(int mbOffset, ZoneState *&zoneStates[])
+bool MBState::GetUnretrievedZones(ZoneState *&zoneStates[])
 {
+    ArrayResize(zoneStates, 0);
+
     bool retrievedZones = false;
-    for (int i = (mZoneCount - mUnretrievedZoneCount); i < mZoneCount; i++)
+    for (int i = mMaxZones - 1; i >= 0; i--)
     {
+        if (CheckPointer(mZones[i]) == POINTER_INVALID)
+        {
+            break;
+        }
+
         if (!mZones[i].WasRetrieved())
         {
+            ArrayResize(zoneStates, ArraySize(zoneStates) + 1);
+
             mZones[i].WasRetrieved(true);
-            zoneStates[i + mbOffset] = mZones[i];
+            zoneStates[i] = mZones[i];
 
             retrievedZones = true;
         }
@@ -110,11 +129,27 @@ bool MBState::GetUnretrievedZones(int mbOffset, ZoneState *&zoneStates[])
     return retrievedZones;
 }
 
+bool MBState::GetShallowestZone(ZoneState *&zoneState)
+{
+    for (int i = 0; i <= mMaxZones - 1; i++)
+    {
+        if (CheckPointer(mZones[i]) == POINTER_INVALID)
+        {
+            continue;
+        }
+
+        zoneState = mZones[i];
+        return true;
+    }
+
+    return false;
+}
+
 bool MBState::GetClosestValidZone(ZoneState *&zoneState)
 {
-    for (int i = mZoneCount - 1; i >= 0; i--)
+    for (int i = 0; i <= mMaxZones - 1; i++)
     {
-        if (CheckPointer(mZones[i]) != POINTER_INVALID && !mZones[i].IsBroken(0))
+        if (CheckPointer(mZones[i]) != POINTER_INVALID && !mZones[i].IsBroken())
         {
             zoneState = mZones[i];
             return true;
@@ -144,12 +179,35 @@ bool MBState::ClosestValidZoneIsHolding(int barIndex)
 // returns a string description of the MB
 string MBState::ToString()
 {
-    return "MB - TF: " + IntegerToString(mTimeFrame) +
-           ", Type: " + IntegerToString(mType) +
-           ", Start: " + IntegerToString(mStartIndex) +
-           ", End: " + IntegerToString(mEndIndex) +
-           ", High: " + IntegerToString(mHighIndex) +
-           ", Low: " + IntegerToString(mLowIndex);
+    return "MB - TF: " + IntegerToString(mTimeFrame) + "\n" +
+           ", Type: " + IntegerToString(mType) + "\n" +
+           ", Start: " + IntegerToString(mStartIndex) + "\n" +
+           ", End: " + IntegerToString(mEndIndex) + "\n" +
+           ", High: " + IntegerToString(mHighIndex) + "\n" +
+           ", Low: " + IntegerToString(mLowIndex) + "\n";
+}
+
+string MBState::ToSingleLineString()
+{
+    string mbString = "MB - TF: " + IntegerToString(mTimeFrame) +
+                      " Type: " + IntegerToString(mType) +
+                      " Start: " + IntegerToString(mStartIndex) +
+                      " End: " + IntegerToString(mEndIndex) +
+                      " High: " + IntegerToString(mHighIndex) +
+                      " Low: " + IntegerToString(mLowIndex);
+
+    for (int i = 1; i <= ZoneCount(); i++)
+    {
+        int index = mMaxZones - i;
+        if (CheckPointer(mZones[index]) == POINTER_INVALID)
+        {
+            break;
+        }
+
+        mbString += mZones[index].ToSingleLineString();
+    }
+
+    return mbString;
 }
 // Draws the current MB if it hasn't been drawn before
 void MBState::Draw(bool printErrors)
@@ -187,8 +245,13 @@ void MBState::Draw(bool printErrors)
 
 void MBState::DrawZones(bool printErrors)
 {
-    for (int i = 0; i < mZoneCount; i++)
+    for (int i = mMaxZones - 1; i >= 0; i--)
     {
+        if (CheckPointer(mZones[i]) == POINTER_INVALID)
+        {
+            break;
+        }
+
         mZones[i].Draw(printErrors);
     }
 }

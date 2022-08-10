@@ -20,7 +20,7 @@
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/Helpers/SetupHelper/BreakAfterMinROC/";
-const int NumberOfAsserts = 25;
+const int NumberOfAsserts = 50;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
 const bool RecordErrors = true;
@@ -34,13 +34,22 @@ input bool CalculateOnTick = true;
 
 MBTracker *MBT;
 
+// https://drive.google.com/file/d/16Pfo5Y9kkN08a-FlHXDjm1vUohTi55CZ/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *DifferentSymbolsErrorUnitTest;
+
+// https://drive.google.com/file/d/1ZjqUUcHDAxNk0DGGtG-GHhncrbPrZsj1/view?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *DifferentTimeFramesErrorUnitTest;
 
+// https://drive.google.com/file/d/1m63I5olV6f0uI_uM7uNEgMUps2sY1ex5/view?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *NoMinROCIsTrueEqualsFalseUnitTest;
+
+// https://drive.google.com/file/d/1KlD9w_D2dO7OXbgx6aWoJNNqye3UsBeh/view?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *NotOppositeMBIsTrueEqualsFalseUnitTest;
 
+// https://drive.google.com/file/d/1n9V1kqFldtC8A3uvgrcDeSslFT9CmURy/view?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *BullishSetupTrueUnitTest;
+
+// https://drive.google.com/file/d/1PyawVRMHd4ZUdXRTfaIo8Nir3Na99OL0/view?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *BearishSetupTrueUnitTest;
 
 int OnInit()
@@ -58,12 +67,12 @@ int OnInit()
         TerminalErrors::NOT_EQUAL_TIMEFRAMES, DifferentTimeFramesError);
 
     NoMinROCIsTrueEqualsFalseUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
-        Directory, "No Min ROC IsTrue Equals False", "When There Is Not A Min ROC, The Out Parameter IsTrue Should Be Equal To False",
+        Directory, "No Min ROC IsTrue Equals False", "When There Is Not A Min ROC The Out Parameter IsTrue Should Be Equal To False",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
         false, NoMinROCIsTrueEqualsFalse);
 
     NotOppositeMBIsTrueEqualsFalseUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
-        Directory, "Not Opposite MB, IsTrue Equals False", "When There Is Not An Opposite MB, The Out Parameter IsTrue Should Be Equal To False",
+        Directory, "Not Opposite MB IsTrue Equals False", "When There Is Not An Opposite MB,The Out Parameter IsTrue Should Be Equal To False",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
         false, NotOppositeMBIsTrueEqualsFalse);
 
@@ -119,6 +128,7 @@ int DifferentSymbolsError(int &actual)
     bool isTrue = false;
     actual = SetupHelper::BreakAfterMinROC(tempMRFTS, MBT, isTrue);
 
+    delete tempMRFTS;
     return Results::UNIT_TEST_RAN;
 }
 
@@ -132,20 +142,27 @@ int DifferentTimeFramesError(int &actual)
     bool isTrue = false;
     actual = SetupHelper::BreakAfterMinROC(tempMRFTS, MBT, isTrue);
 
+    delete tempMRFTS;
     return Results::UNIT_TEST_RAN;
 }
 
-int NoMinROCIsTrueEqualsFalse(bool &actual)
+int NoMinROCIsTrueEqualsFalse(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 {
     MinROCFromTimeStamp *tempMRFTS;
-    tempMRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), Minute(), Hour() + 1, 59, 0.5);
+    tempMRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), Hour() + 1, Minute(), 59, 0.5);
 
     if (tempMRFTS.HadMinROC())
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
+    tempMRFTS.Draw();
+    ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
+
     int error = SetupHelper::BreakAfterMinROC(tempMRFTS, MBT, actual);
+
+    delete tempMRFTS;
+
     if (error != ERR_NO_ERROR)
     {
         return error;
@@ -154,7 +171,7 @@ int NoMinROCIsTrueEqualsFalse(bool &actual)
     return Results::UNIT_TEST_RAN;
 }
 
-int NotOppositeMBIsTrueEqualsFalse(bool &actual)
+int NotOppositeMBIsTrueEqualsFalse(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 {
     if (MBT.NthMostRecentMBIsOpposite(0))
     {
@@ -162,9 +179,15 @@ int NotOppositeMBIsTrueEqualsFalse(bool &actual)
     }
 
     MinROCFromTimeStamp *tempMRFTS;
-    tempMRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), Minute(), Hour() + 1, 59, 0.5);
+    tempMRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), Hour() + 1, Minute(), 59, 0.5);
+
+    tempMRFTS.Draw();
+    ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
 
     int error = SetupHelper::BreakAfterMinROC(tempMRFTS, MBT, actual);
+
+    delete tempMRFTS;
+
     if (error != ERR_NO_ERROR)
     {
         return error;
@@ -178,13 +201,20 @@ int BullishSetupTrue(bool &actual)
     static MinROCFromTimeStamp *tempMRFTS;
     static bool reset = false;
 
+    if (Minute() == 0)
+    {
+        reset = true;
+    }
+
     if (CheckPointer(tempMRFTS) == POINTER_INVALID || reset)
     {
         delete tempMRFTS;
-        tempMRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), Minute(), Hour() + 1, 59, 0.05);
+        tempMRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), 23, 0, 59, 0.05);
 
         reset = false;
     }
+
+    tempMRFTS.Draw();
 
     if (!tempMRFTS.HadMinROC())
     {
@@ -210,7 +240,6 @@ int BullishSetupTrue(bool &actual)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    tempMRFTS.Draw();
     BullishSetupTrueUnitTest.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(BullishSetupTrueUnitTest.Directory());
 
     int error = SetupHelper::BreakAfterMinROC(tempMRFTS, MBT, actual);
@@ -228,13 +257,20 @@ int BearishSetupTrue(bool &actual)
     static MinROCFromTimeStamp *tempMRFTS;
     static bool reset = false;
 
+    if (Minute() == 0)
+    {
+        reset = true;
+    }
+
     if (CheckPointer(tempMRFTS) == POINTER_INVALID || reset == true)
     {
         delete tempMRFTS;
-        tempMRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), Minute(), Hour() + 1, 59, 0.05);
+        tempMRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), 23, 0, 59, 0.05);
 
         reset = false;
     }
+
+    tempMRFTS.Draw();
 
     if (!tempMRFTS.HadMinROC())
     {
@@ -261,7 +297,6 @@ int BearishSetupTrue(bool &actual)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    tempMRFTS.Draw();
     BearishSetupTrueUnitTest.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(BearishSetupTrueUnitTest.Directory());
 
     int error = SetupHelper::BreakAfterMinROC(tempMRFTS, MBT, actual);

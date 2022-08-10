@@ -19,21 +19,18 @@ protected:
     int mMBNumber;
     int mNumber;
     int mType;
+    string mDescription;
 
-    int mEntryIndex;
-    int mExitIndex;
+    int mStartIndex;
+    int mEndIndex;
 
     double mEntryPrice;
     double mExitPrice;
 
     bool mAllowWickBreaks;
-    bool mIsBroken;
     bool mWasRetrieved;
     bool mDrawn;
     string mName;
-
-    bool BelowDemandZone(int barIndex);
-    bool AboveSupplyZone(int barIndex);
 
 public:
     // --- Getters ---
@@ -43,9 +40,10 @@ public:
     int Number() { return mNumber; }
     int MBNumber() { return mMBNumber; }
     int Type() { return mType; }
+    string Description() { return mDescription; }
 
-    int EntryIndex() { return mEntryIndex; }
-    int ExitIndex() { return mExitIndex; }
+    int StartIndex() { return mStartIndex; }
+    int EndIndex() { return mEndIndex; }
 
     double EntryPrice() { return mEntryPrice; }
     double ExitPrice() { return mExitPrice; }
@@ -54,11 +52,22 @@ public:
 
     // --- Computed Properties ---
     double Range() { return MathAbs(mEntryPrice - mExitPrice); }
+
+    // Tested
     bool IsHolding(int barIndex);
-    bool IsBroken(int barIndex);
+
+    // Tested
+    bool IsBroken();
+
+    // Tested
+    bool BelowDemandZone(int barIndex);
+
+    // Tested
+    bool AboveSupplyZone(int barIndex);
 
     // --- Display Methods ---
     string ToString();
+    string ToSingleLineString();
     void Draw(bool printErrors);
 };
 bool ZoneState::BelowDemandZone(int barIndex)
@@ -71,7 +80,7 @@ bool ZoneState::AboveSupplyZone(int barIndex)
     return (mAllowWickBreaks && MathMax(iOpen(mSymbol, mTimeFrame, barIndex), iClose(mSymbol, mTimeFrame, barIndex)) > mExitPrice) || (!mAllowWickBreaks && iHigh(mSymbol, mTimeFrame, barIndex) > mExitPrice);
 }
 // ----------------- Computed Properties ----------------------
-// checks if price is  currenlty in the zone, and the zone is holding
+// checks if price is or was  in the zone from the barIndex, and the zone hasn't been broken
 bool ZoneState::IsHolding(int barIndex)
 {
     if (mType == OP_BUY)
@@ -83,7 +92,7 @@ bool ZoneState::IsHolding(int barIndex)
             return false;
         }
 
-        return low <= mEntryPrice && !BelowDemandZone(0);
+        return low <= mEntryPrice && !IsBroken();
     }
     else if (mType == OP_SELL)
     {
@@ -94,40 +103,37 @@ bool ZoneState::IsHolding(int barIndex)
             return false;
         }
 
-        return high >= mEntryPrice && !AboveSupplyZone(0);
+        return high >= mEntryPrice && !IsBroken();
     }
 
     return false;
 }
 
-// checks if a zone was broken from its entry index to barIndex
-bool ZoneState::IsBroken(int barIndex)
+// checks if a zone was broken from its entry index to the current bar
+bool ZoneState::IsBroken()
 {
-    if (!mIsBroken)
+    if (mType == OP_BUY)
     {
-        if (mType == OP_BUY)
+        int lowestIndex;
+        if (!MQLHelper::GetLowest(mSymbol, mTimeFrame, MODE_LOW, mStartIndex, 0, false, lowestIndex))
         {
-            int lowestIndex;
-            if (!MQLHelper::GetLowest(mSymbol, mTimeFrame, MODE_LOW, mEntryIndex - barIndex, barIndex, false, lowestIndex))
-            {
-                return false;
-            }
-
-            mIsBroken = BelowDemandZone(lowestIndex);
+            return false;
         }
-        else if (mType == OP_SELL)
+
+        return BelowDemandZone(lowestIndex);
+    }
+    else if (mType == OP_SELL)
+    {
+        int highestIndex;
+        if (!MQLHelper::GetHighest(mSymbol, mTimeFrame, MODE_HIGH, mStartIndex, 0, false, highestIndex))
         {
-            int highestIndex;
-            if (!MQLHelper::GetHighest(mSymbol, mTimeFrame, MODE_HIGH, mEntryIndex - barIndex, barIndex, false, highestIndex))
-            {
-                return false;
-            }
-
-            mIsBroken = AboveSupplyZone(highestIndex);
+            return false;
         }
+
+        return AboveSupplyZone(highestIndex);
     }
 
-    return mIsBroken;
+    return false;
 }
 
 // ------------------- Display Methods ---------------------
@@ -135,8 +141,26 @@ bool ZoneState::IsBroken(int barIndex)
 string ZoneState::ToString()
 {
     return "Zone - TF: " + IntegerToString(mTimeFrame) +
-           ", Entry: " + IntegerToString(mEntryIndex) +
-           ", Exit: " + IntegerToString(mExitIndex);
+           ", Entry: " + IntegerToString(mStartIndex) +
+           ", Exit: " + IntegerToString(mEndIndex);
+}
+
+string ZoneState::ToSingleLineString()
+{
+    double lowestAfter;
+    double highestAfter;
+
+    MQLHelper::GetLowestLow(mSymbol, mTimeFrame, mStartIndex - 1, 0, false, lowestAfter);
+    MQLHelper::GetHighestHigh(mSymbol, mTimeFrame, mStartIndex - 1, 0, false, highestAfter);
+
+    return " Zone: " + IntegerToString(Number()) +
+           " Description: " + Description() +
+           " Entry Index: " + IntegerToString(StartIndex()) +
+           " Exit Index: " + IntegerToString(EndIndex()) +
+           " Entry Price: " + DoubleToString(EntryPrice(), _Digits) +
+           " Exit Price: " + DoubleToString(ExitPrice(), _Digits) +
+           " Lowest After: " + DoubleToString(lowestAfter, _Digits) +
+           " Highest After: " + DoubleToString(highestAfter, _Digits);
 }
 // Draws the zone on the chart if it hasn't been drawn before
 void ZoneState::Draw(bool printErrors)
@@ -149,9 +173,9 @@ void ZoneState::Draw(bool printErrors)
     color clr = mType == OP_BUY ? clrGold : clrMediumVioletRed;
 
     if (!ObjectCreate(0, mName, OBJ_RECTANGLE, 0,
-                      iTime(mSymbol, mTimeFrame, mEntryIndex), // Start
+                      iTime(mSymbol, mTimeFrame, mStartIndex), // Start
                       mEntryPrice,                             // Entry
-                      iTime(mSymbol, mTimeFrame, mExitIndex),  // End
+                      iTime(mSymbol, mTimeFrame, mEndIndex),   // End
                       mExitPrice))                             // Exit
     {
         if (printErrors)

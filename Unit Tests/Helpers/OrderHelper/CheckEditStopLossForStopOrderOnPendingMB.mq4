@@ -15,15 +15,15 @@
 #include <SummitCapital\Framework\Helpers\SetupHelper.mqh>
 #include <SummitCapital\Framework\UnitTests\BoolUnitTest.mqh>
 
-#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
+#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\BeforeAndAfterImagesUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/Helpers/OrderHelper/CheckEditStopLossForStopOrderOnPendingMB/";
-const int NumberOfAsserts = 100;
+const int NumberOfAsserts = 25;
 const int AssertCooldown = 0;
 const bool RecordScreenShot = true;
 const bool RecordErrors = true;
 
-input int MBsToTrack = 3;
+input int MBsToTrack = 5;
 input int MaxZonesInMB = 5;
 input bool AllowMitigatedZones = false;
 input bool AllowZonesAfterMBValidation = true;
@@ -32,11 +32,11 @@ input bool CalculateOnTick = true;
 
 MBTracker *MBT;
 
-BoolUnitTest<DefaultUnitTestRecord> *DidNotEditBullishMBStopLossUnitTest;
-BoolUnitTest<DefaultUnitTestRecord> *DidNotEditBearishMBStopLossUnitTest;
+BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> *DidNotEditBullishMBStopLossUnitTest;
+BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> *DidNotEditBearishMBStopLossUnitTest;
 
-BoolUnitTest<DefaultUnitTestRecord> *DidEditBullishMBStopLossUnitTest;
-BoolUnitTest<DefaultUnitTestRecord> *DidEditBearishMBStopLossUnitTest;
+BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> *DidEditBullishMBStopLossUnitTest;
+BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> *DidEditBearishMBStopLossUnitTest;
 
 const int PaddingPips = 0.0;
 const int SpreadPips = 0.0;
@@ -46,26 +46,26 @@ const int MinCooldDown = 1;
 
 int OnInit()
 {
-    MBT = new MBTracker(MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, PrintErrors, CalculateOnTick);
+    MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, true, PrintErrors, CalculateOnTick);
 
-    DidNotEditBullishMBStopLossUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+    DidNotEditBullishMBStopLossUnitTest = new BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Did Not Edit Bullish MB Stop Loss", "Stop Loss Was Not Edited When The Old And New Ticker Are The Same",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         true, DidNotEditBullishMBStopLoss);
 
-    DidNotEditBearishMBStopLossUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+    DidNotEditBearishMBStopLossUnitTest = new BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Did Not Edit Bearish MB Stop Loss", "Stop Loss Was Not Edited When The Old And New Ticker Are The Same",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         true, DidNotEditBearishMBStopLoss);
 
-    DidEditBullishMBStopLossUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+    DidEditBullishMBStopLossUnitTest = new BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Did Edit Bullish MB Stop Loss", "Stop Loss Was Edited When Retracement went Further",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         true, DidEditBullishMBStopLoss);
 
-    DidEditBearishMBStopLossUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+    DidEditBearishMBStopLossUnitTest = new BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Did Edit Bearish MB Stop Loss", "Stop Loss Was Edited When Retracement went Further",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         true, DidEditBearishMBStopLoss);
 
     return (INIT_SUCCEEDED);
@@ -88,10 +88,10 @@ void OnTick()
     MBT.DrawZonesForNMostRecentMBs(1);
 
     DidNotEditBullishMBStopLossUnitTest.Assert();
-    DidNotEditBearishMBStopLossUnitTest.Assert();
+    // DidNotEditBearishMBStopLossUnitTest.Assert();
 
-    DidEditBullishMBStopLossUnitTest.Assert();
-    DidEditBearishMBStopLossUnitTest.Assert();
+    // DidEditBullishMBStopLossUnitTest.Assert();
+    // DidEditBearishMBStopLossUnitTest.Assert();
 }
 
 int CloseTicket(int &ticket)
@@ -166,10 +166,17 @@ int SetSetupVariables(int type, int &ticket, double &stopLoss, int &mbNumber, bo
             reset = true;
             return Results::UNIT_TEST_DID_NOT_RUN;
         }
+
+        if (!MBT.MBIsMostRecent(mbNumber))
+        {
+            reset = true;
+            return Results::UNIT_TEST_DID_NOT_RUN;
+        }
     }
 
     if (stopLoss == 0.0)
     {
+        // this should be moved into its own section like for other tests?
         MBState *tempMBState;
         if (!MBT.GetNthMostRecentMB(0, tempMBState))
         {
@@ -233,7 +240,7 @@ bool PastCooldown(datetime cooldown)
     return false;
 }
 
-int DidNotEditBullishMBStopLoss(bool &actual)
+int DidNotEditBullishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut, bool &actual)
 {
     static int ticket = EMPTY;
     static double stopLoss = 0.0;
@@ -244,7 +251,7 @@ int DidNotEditBullishMBStopLoss(bool &actual)
     int setupError = SetSetupVariables(OP_BUY, ticket, stopLoss, mbNumber, reset, cooldown);
     if (setupError != ERR_NO_ERROR)
     {
-        return setupError;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     if (!PastCooldown(cooldown))
@@ -254,22 +261,41 @@ int DidNotEditBullishMBStopLoss(bool &actual)
 
     int oldTicket = ticket;
 
-    DidNotEditBullishMBStopLossUnitTest.TryTakeScreenShot();
+    int bullishRetracementIndex = EMPTY;
+    if (!MBT.CurrentBullishRetracementIndexIsValid(bullishRetracementIndex))
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    int lowestIndex = EMPTY;
+    if (!MQLHelper::GetLowest(Symbol(), Period(), MODE_LOW, bullishRetracementIndex, 0, true, lowestIndex))
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    int selectOrderError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Editing Stop Loss");
+    if (selectOrderError != ERR_NO_ERROR)
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
+    ut.PendingRecord.AdditionalInformation = "Lowest Index: " + lowestIndex + " Lowest Low: " + iLow(Symbol(), Period(), lowestIndex) + " Stop Loss: " + OrderStopLoss();
 
     int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(PaddingPips, SpreadPips, RiskPercent, mbNumber, MBT, ticket);
 
+    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
+
     if (editStopLossError != ExecutionErrors::NEW_STOPLOSS_EQUALS_OLD)
     {
-        return editStopLossError;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     actual = oldTicket == ticket;
-    reset = true;
-
     return Results::UNIT_TEST_RAN;
 }
 
-int DidNotEditBearishMBStopLoss(bool &actual)
+int DidNotEditBearishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut, bool &actual)
 {
     static int ticket = -1;
     static double stopLoss = 0.0;
@@ -290,9 +316,11 @@ int DidNotEditBearishMBStopLoss(bool &actual)
 
     int oldTicket = ticket;
 
-    DidNotEditBearishMBStopLossUnitTest.TryTakeScreenShot();
+    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(PaddingPips, SpreadPips, RiskPercent, mbNumber, MBT, ticket);
+
+    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
     if (editStopLossError != ExecutionErrors::NEW_STOPLOSS_EQUALS_OLD)
     {
@@ -300,12 +328,10 @@ int DidNotEditBearishMBStopLoss(bool &actual)
     }
 
     actual = oldTicket == ticket;
-    reset = true;
-
     return Results::UNIT_TEST_RAN;
 }
 
-int DidEditBullishMBStopLoss(bool &actual)
+int DidEditBullishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut, bool &actual)
 {
     static int ticket = -1;
     static double stopLoss = 0.0;
@@ -336,7 +362,7 @@ int DidEditBullishMBStopLoss(bool &actual)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    DidEditBullishMBStopLossUnitTest.TryTakeScreenShot();
+    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(PaddingPips, SpreadPips, RiskPercent, mbNumber, MBT, ticket);
     if (editStopLossError != ERR_NO_ERROR)
@@ -344,6 +370,8 @@ int DidEditBullishMBStopLoss(bool &actual)
         reset = true;
         return editStopLossError;
     }
+
+    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
     int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Editing Stop Loss");
     if (selectError != ERR_NO_ERROR)
@@ -353,11 +381,10 @@ int DidEditBullishMBStopLoss(bool &actual)
     }
 
     actual = stopLoss != OrderStopLoss();
-    reset = true;
     return Results::UNIT_TEST_RAN;
 }
 
-int DidEditBearishMBStopLoss(bool &actual)
+int DidEditBearishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut, bool &actual)
 {
     static int ticket = -1;
     static double stopLoss = 0.0;
@@ -388,7 +415,7 @@ int DidEditBearishMBStopLoss(bool &actual)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    DidEditBearishMBStopLossUnitTest.TryTakeScreenShot();
+    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(PaddingPips, SpreadPips, RiskPercent, mbNumber, MBT, ticket);
     if (editStopLossError != ERR_NO_ERROR)
@@ -396,6 +423,8 @@ int DidEditBearishMBStopLoss(bool &actual)
         reset = true;
         return editStopLossError;
     }
+
+    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
     int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Editing Stop Loss");
     if (selectError != ERR_NO_ERROR)
@@ -405,6 +434,5 @@ int DidEditBearishMBStopLoss(bool &actual)
     }
 
     actual = stopLoss != OrderStopLoss();
-    reset = true;
     return Results::UNIT_TEST_RAN;
 }

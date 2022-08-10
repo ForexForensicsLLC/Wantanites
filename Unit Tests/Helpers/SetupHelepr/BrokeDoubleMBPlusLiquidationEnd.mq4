@@ -19,12 +19,11 @@
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/Helpers/SetupHelper/BrokeDoubleMBPlusLiquidationEnd/";
-const int NumberOfAsserts = 25;
+const int NumberOfAsserts = 50;
 const int AssertCooldown = 1;
-const bool RecordScreenShot = true;
 const bool RecordErrors = true;
 
-input int MBsToTrack = 3;
+input int MBsToTrack = 10;
 input int MaxZonesInMB = 5;
 input bool AllowMitigatedZones = false;
 input bool AllowZonesAfterMBValidation = true;
@@ -33,47 +32,56 @@ input bool CalculateOnTick = true;
 
 MBTracker *MBT;
 
+// https://drive.google.com/drive/folders/1xCYcFy0KB6WJycE3tjIV4fhPNFLZ6dhg?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *HasBullishSetupUnitTest;
+
+// https://drive.google.com/drive/folders/1vEBfawzFgpJEs0zEpYEgQAXo6Hna7zq6?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *HasBearishSetupUnitTest;
 
+// https://drive.google.com/drive/folders/1CFbEtKNu120ZkYd2S_-Nhq7bgEQQkLEM?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *DidNotBreakLiquidationMBInBullishSetupUnitTest;
+
+// https://drive.google.com/drive/folders/1Eg6AWnMERbwLAMBa-YZP8GjyuBsnd1dU?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *DidNotBreakLiquidationMBInBearishSetupUnitTest;
 
+// https://drive.google.com/drive/folders/1L1Ul379Tf8YIbDRe5_RWHcIK_OljZUt_?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *ThreeConsecutiveBullishMBErrorUnitTest;
+
+// https://drive.google.com/drive/folders/10iWn3iaXQKiCLvHlEz4BsChwvKKz9KyZ?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *ThreeConsecutiveBearishMBErrorUnitTest;
 
 int OnInit()
 {
-    MBT = new MBTracker(MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, PrintErrors, CalculateOnTick);
+    MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, true, PrintErrors, CalculateOnTick);
 
     HasBullishSetupUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
         Directory, "Liq Has Bullish Setup", "Should Return True Indicating that there Is A Bullish Setup",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         true, HasBullishSetup);
 
     HasBearishSetupUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
         Directory, "Liq Has Bearish Setup", "Should Return True Indicating that there Is A Bearish Setup",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         true, HasBearishSetup);
 
     DidNotBreakLiquidationMBInBullishSetupUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
         Directory, "Liq Does Not Have Bullish Setup", "Should Return False Indicating that the MB That Liquidated The Second In A Bullish Setup Is Not Broken",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         false, DidNotBreakLiquidationMBInBullishSetup);
 
     DidNotBreakLiquidationMBInBearishSetupUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
         Directory, "Liq Does Not Have Bearish Setup", "Should Return False Indicating that the MB That Liquidated The Second In A Bearish Setup Is Not Broken",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         false, DidNotBreakLiquidationMBInBearishSetup);
 
     ThreeConsecutiveBullishMBErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "Liq Three Consecutive Bullish MBs Error", "Should Return Equal MB Types Error",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         ExecutionErrors::EQUAL_MB_TYPES, ThreeConsecutiveBullishMBError);
 
     ThreeConsecutiveBearishMBErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "Liq Three Consecutive Bearish MBs Error", "Should Return Equal MB Types Error",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         ExecutionErrors::EQUAL_MB_TYPES, ThreeConsecutiveBearishMBError);
 
     return (INIT_SUCCEEDED);
@@ -101,11 +109,13 @@ void OnTick()
     HasBullishSetupUnitTest.Assert();
     HasBearishSetupUnitTest.Assert();
 
+    /*
     DidNotBreakLiquidationMBInBullishSetupUnitTest.Assert();
     DidNotBreakLiquidationMBInBearishSetupUnitTest.Assert();
 
     ThreeConsecutiveBullishMBErrorUnitTest.Assert();
     ThreeConsecutiveBearishMBErrorUnitTest.Assert();
+    */
 }
 
 int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &setupType, bool &reset)
@@ -116,12 +126,6 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
         thirdMBNumber = EMPTY;
         setupType = EMPTY;
         reset = false;
-    }
-
-    if (MBT.HasNMostRecentConsecutiveMBs(3))
-    {
-        reset = true;
-        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     if (secondMBNumber != EMPTY)
@@ -139,7 +143,7 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
     if (secondMBNumber == EMPTY)
     {
         MBState *secondTempMBState;
-        if (MBT.NthMostRecentMBIsOpposite(1) && MBT.HasNMostRecentConsecutiveMBs(2) && MBT.GetNthMostRecentMB(0, secondTempMBState))
+        if (MBT.HasNMostRecentConsecutiveMBs(2) && MBT.GetNthMostRecentMB(0, secondTempMBState))
         {
             if (secondTempMBState.Type() != type)
             {
@@ -170,7 +174,7 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
     return ERR_NO_ERROR;
 }
 
-int HasBullishSetup(bool &actual)
+int HasBullishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 {
     static int secondMBNumber = EMPTY;
     static int thirdMBNumber = EMPTY;
@@ -195,15 +199,12 @@ int HasBullishSetup(bool &actual)
         return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
-    double price = iHigh(Symbol(), Period(), 0);
-    double end = iHigh(Symbol(), Period(), thirdTempMBState.HighIndex());
-
-    if (price <= end)
+    if (!thirdTempMBState.IsBroken(thirdTempMBState.EndIndex()))
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    HasBullishSetupUnitTest.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(HasBullishSetupUnitTest.Directory());
+    ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
 
     actual = false;
     int setupError = SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(secondMBNumber, setupType, MBT, actual);
@@ -216,7 +217,7 @@ int HasBullishSetup(bool &actual)
     return Results::UNIT_TEST_RAN;
 }
 
-int HasBearishSetup(bool &actual)
+int HasBearishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 {
     static int secondMBNumber = EMPTY;
     static int thirdMBNumber = EMPTY;
@@ -241,15 +242,12 @@ int HasBearishSetup(bool &actual)
         return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
-    double price = iLow(Symbol(), Period(), 0);
-    double end = iLow(Symbol(), Period(), thirdTempMBState.LowIndex());
-
-    if (price >= end)
+    if (!thirdTempMBState.IsBroken(thirdTempMBState.EndIndex()))
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    HasBearishSetupUnitTest.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(HasBearishSetupUnitTest.Directory());
+    ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
 
     actual = false;
     int setupError = SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(secondMBNumber, setupType, MBT, actual);
