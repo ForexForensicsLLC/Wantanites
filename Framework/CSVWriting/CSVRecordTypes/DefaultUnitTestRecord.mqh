@@ -12,58 +12,58 @@
 
 class DefaultUnitTestRecord : ICSVRecord
 {
-protected:
-    string mName;
-    string mResult;
-    string mErrorMessage;
-    int mAsserts;
-    int mMaxAsserts;
-    string mImage;
-
 public:
-    string Name() { return mName; }
-    void Name(string name) { mName = name; }
-
-    void Result(string result) { mResult = result; }
-
-    void ErrorMessage(string errorMessage) { mErrorMessage = errorMessage; }
-
-    int Asserts() { return mAsserts; }
-    void IncrementAsserts() { mAsserts += 1; }
-
-    int MaxAsserts() { return mMaxAsserts; }
-    void MaxAsserts(int maxAsserts) { mMaxAsserts = maxAsserts; }
-
-    void Image(string image) { mImage = image; }
+    string Name;
+    string Description;
+    datetime AssertTime;
+    string Result;
+    string Message;
+    string AdditionalInformation;
+    int Asserts;
+    int MaxAsserts;
+    string Image;
+    string Notes;
 
     DefaultUnitTestRecord();
     ~DefaultUnitTestRecord();
 
-    void Write(int fileHandle);
-    void Reset();
+    virtual void WriteHeaders(int fileHandle);
+    virtual void WriteRecord(int fileHandle);
+    virtual void Reset();
 };
 
 DefaultUnitTestRecord::DefaultUnitTestRecord()
 {
-    mName = "";
-    mResult = "";
-    mErrorMessage = "";
-    mAsserts = 0;
-    mMaxAsserts = 0;
-    mImage = "";
+    Name = "";
+    Description = "";
+    AssertTime = 0;
+    Result = "";
+    Message = "";
+    AdditionalInformation = "";
+    Asserts = 0;
+    MaxAsserts = 0;
+    Image = "";
+    Notes = "";
 }
+
 DefaultUnitTestRecord::~DefaultUnitTestRecord() {}
 
-void DefaultUnitTestRecord::Write(int fileHandle)
+void DefaultUnitTestRecord::WriteHeaders(int fileHandle)
 {
-    FileWrite(fileHandle, mName, mResult, mErrorMessage, mAsserts, mMaxAsserts, mImage);
+    FileWrite(fileHandle, "Name", "Description", "Assert Time", "Result", "Message", "Additional Information", "Assert Number", "Max Asserts", "Image", "Notes");
+}
+
+void DefaultUnitTestRecord::WriteRecord(int fileHandle)
+{
+    FileWrite(fileHandle, Name, Description, AssertTime, Result, Message, AdditionalInformation, Asserts, MaxAsserts, Image, Notes);
 }
 
 void DefaultUnitTestRecord::Reset()
 {
-    mResult = "";
-    mErrorMessage = "";
-    mAsserts = 0;
-    mMaxAsserts = 0;
-    mImage = "";
+    AssertTime = 0;
+    Result = "";
+    Message = "";
+    AdditionalInformation = "";
+    Image = "";
+    Notes = "";
 }

@@ -1,690 +1,146 @@
-/* -*- coding: utf-8 -*-
- *
- * This indicator is licensed under GNU GENERAL PUBLIC LICENSE Version 3.
- * See a LICENSE file for detail of the license.
- */
-
-#property copyright "Copyright 2014, micclly."
-#property link "https://github.com/micclly"
+//+------------------------------------------------------------------+
+//|                                                     UnitTest.mq4 |
+//|                        Copyright 2022, MetaQuotes Software Corp. |
+//|                                             https://www.mql5.com |
+//+------------------------------------------------------------------+
+#property copyright "Copyright 2022, MetaQuotes Software Corp."
+#property link "https://www.mql5.com"
+#property version "1.00"
 #property strict
 
-#include <Object.mqh>
-#include <Arrays/List.mqh>
+#include <SummitCapital\Framework\Constants\Index.mqh>
 
 #include <SummitCapital\Framework\Helpers\ScreenShotHelper.mqh>
 #include <SummitCapital\Framework\CSVWriting\CSVRecordWriter.mqh>
 
-template <typename TRecord>
+template <typename TUnitTest, typename TRecord>
 class UnitTest : public CSVRecordWriter<TRecord>
 {
+private:
+    bool mDone;
+    int mAssertCooldownMinutes;
+    datetime mLastAssertTime;
+
+    void SetAssertResult(string result, string message);
+    bool PastAssertCooldown();
+    void SendEmail();
+
+protected:
+    bool mRecordErrors;
+
+    bool CanAssert();
+
+    // TODO: Can Update These To Take a message string from child if implicit string conversion is causing issues
+    void AssertEquals(TUnitTest expected, TUnitTest actual);
+    void AssertNotEquals(TUnitTest expected, TUnitTest actual);
+
+    void RecordError(int error);
+
 public:
-    UnitTest(string directory, string csvFileName, int maxAsserts);
+    UnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordErrors);
     ~UnitTest();
 
-    void addTest(string name);
-    void setSuccess();
-    void setFailure(string message);
-    void printSummary();
-
-    void assertEquals(string message, bool expected, bool actual);
-    void assertEquals(string message, char expected, char actual);
-    void assertEquals(string message, uchar expected, uchar actual);
-    void assertEquals(string message, short expected, short actual);
-    void assertEquals(string message, ushort expected, ushort actual);
-    void assertEquals(string message, int expected, int actual);
-    void assertEquals(string message, uint expected, uint actual);
-    void assertEquals(string message, long expected, long actual);
-    void assertEquals(string message, ulong expected, ulong actual);
-    void assertEquals(string message, datetime expected, datetime actual);
-    void assertEquals(string message, color expected, color actual);
-    void assertEquals(string message, float expected, float actual);
-    void assertEquals(string message, double expected, double actual);
-    void assertEquals(string message, string expected, string actual);
-
-    void assertEquals(string message, const bool &expected[], const bool &actual[]);
-    void assertEquals(string message, const char &expected[], const char &actual[]);
-    void assertEquals(string message, const uchar &expected[], const uchar &actual[]);
-    void assertEquals(string message, const short &expected[], const short &actual[]);
-    void assertEquals(string message, const ushort &expected[], const ushort &actual[]);
-    void assertEquals(string message, const int &expected[], const int &actual[]);
-    void assertEquals(string message, const uint &expected[], const uint &actual[]);
-    void assertEquals(string message, const long &expected[], const long &actual[]);
-    void assertEquals(string message, const ulong &expected[], const ulong &actual[]);
-    void assertEquals(string message, const datetime &expected[], const datetime &actual[]);
-    void assertEquals(string message, const color &expected[], const color &actual[]);
-    void assertEquals(string message, const float &expected[], const float &actual[]);
-    void assertEquals(string message, const double &expected[], const double &actual[]);
-    void assertEquals(string message, const string &expected[], const string &actual[]);
-
-private:
-    bool assertArraySize(string message, const int expectedSize, const int actualSize);
-    void TrySetImage();
+    virtual void Assert(bool equals);
 };
 
-template <typename TRecord>
-UnitTest::UnitTest(string directory, string csvFileName, int maxAsserts)
+template <typename TUnitTest, typename TRecord>
+UnitTest::UnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordErrors)
 {
-    mDirectory = directory;
-    mCSVFileName = csvFileName;
+    mDirectory = directory + testName + "/";
+    mCSVFileName = testName + ".csv";
+    mAssertCooldownMinutes = assertCooldownMinutes;
+    mRecordErrors = recordErrors;
 
-    PendingRecord.MaxAsserts(maxAsserts);
+    PendingRecord.Name = testName;
+    PendingRecord.Description = description;
+    PendingRecord.MaxAsserts = maxAsserts;
 }
 
-template <typename TRecord>
+template <typename TUnitTest, typename TRecord>
 UnitTest::~UnitTest(void)
 {
 }
 
-template <typename TRecord>
-void UnitTest::addTest(string name)
+template <typename TUnitTest, typename TRecord>
+void UnitTest::SetAssertResult(string result, string message)
 {
-    if (PendingRecord.Name() != "")
-    {
-        return;
-    }
-
-    PendingRecord.Name(name);
-}
-
-template <typename TRecord>
-void UnitTest::setSuccess()
-{
-    if (PendingRecord.Asserts() >= PendingRecord.MaxAsserts())
-    {
-        return;
-    }
-
-    PendingRecord.Result("Passed");
-    PendingRecord.IncrementAsserts();
-    TrySetImage();
+    PendingRecord.AssertTime = TimeCurrent();
+    PendingRecord.Result = result;
+    PendingRecord.Asserts += 1;
+    PendingRecord.Message = message;
+    mLastAssertTime = TimeCurrent();
 
     CSVRecordWriter<TRecord>::Write();
-}
 
-template <typename TRecord>
-void UnitTest::setFailure(string message)
-{
-    PendingRecord.Result("Failed");
-    PendingRecord.ErrorMessage(message);
-    PendingRecord.IncrementAsserts();
-    TrySetImage();
-
-    CSVRecordWriter<TRecord>::Write();
-}
-
-template <typename TRecord>
-void UnitTest::TrySetImage()
-{
-    string filePath = "";
-    int screenShotError = ScreenShotHelper::TryTakeUnitTestScreenShot(mDirectory, filePath);
-    if (screenShotError != ERR_NO_ERROR)
+    if (PendingRecord.Asserts >= PendingRecord.MaxAsserts)
     {
-        return;
-    }
-
-    PendingRecord.Image(filePath);
-}
-
-template <typename TRecord>
-void UnitTest::assertEquals(string message, bool expected, bool actual)
-{
-    if (expected == actual)
-    {
-        setSuccess();
-    }
-    else
-    {
-        string m;
-        StringConcatenate(m, message, ": expected is <", expected, "> but <", actual, ">");
-        setFailure(m);
+        mDone = true;
+        SendEmail();
     }
 }
 
-template <typename TRecord>
-void UnitTest::assertEquals(string message, char expected, char actual)
+template <typename TUnitTest, typename TRecord>
+bool UnitTest::CanAssert()
 {
-    if (expected == actual)
+    if (mDone)
     {
-        setSuccess();
+        return false;
     }
-    else
-    {
-        const string m = message + ": expected is <" + CharToString(expected) +
-                         "> but <" + CharToString(actual) + ">";
-        setFailure(m);
-    }
+
+    return PastAssertCooldown();
 }
 
-template <typename TRecord>
-void UnitTest::assertEquals(string message, uchar expected, uchar actual)
+template <typename TUnitTest, typename TRecord>
+bool UnitTest::PastAssertCooldown()
 {
-    if (expected == actual)
-    {
-        setSuccess();
-    }
-    else
-    {
-        const string m = message + ": expected is <" + CharToString(expected) +
-                         "> but <" + CharToString(actual) + ">";
-        setFailure(m);
-    }
-}
-
-template <typename TRecord>
-void UnitTest::assertEquals(string message, short expected, short actual)
-{
-    if (expected == actual)
-    {
-        setSuccess();
-    }
-    else
-    {
-        const string m = message + ": expected is <" + IntegerToString(expected) +
-                         "> but <" + IntegerToString(actual) + ">";
-        setFailure(m);
-    }
-}
-
-template <typename TRecord>
-void UnitTest::assertEquals(string message, ushort expected, ushort actual)
-{
-    if (expected == actual)
-    {
-        setSuccess();
-    }
-    else
-    {
-        const string m = message + ": expected is <" + IntegerToString(expected) +
-                         "> but <" + IntegerToString(actual) + ">";
-        setFailure(m);
-    }
-}
-
-template <typename TRecord>
-void UnitTest::assertEquals(string message, int expected, int actual)
-{
-    if (expected == actual)
-    {
-        setSuccess();
-    }
-    else
-    {
-        const string m = message + ": expected is <" + IntegerToString(expected) +
-                         "> but <" + IntegerToString(actual) + ">";
-        setFailure(m);
-    }
-}
-
-template <typename TRecord>
-void UnitTest::assertEquals(string message, uint expected, uint actual)
-{
-    if (expected == actual)
-    {
-        setSuccess();
-    }
-    else
-    {
-        const string m = message + ": expected is <" + IntegerToString(expected) +
-                         "> but <" + IntegerToString(actual) + ">";
-        setFailure(m);
-    }
-}
-
-template <typename TRecord>
-void UnitTest::assertEquals(string message, long expected, long actual)
-{
-    if (expected == actual)
-    {
-        setSuccess();
-    }
-    else
-    {
-        const string m = message + ": expected is <" + IntegerToString(expected) +
-                         "> but <" + IntegerToString(actual) + ">";
-        setFailure(m);
-    }
-}
-
-template <typename TRecord>
-void UnitTest::assertEquals(string message, ulong expected, ulong actual)
-{
-    if (expected == actual)
-    {
-        setSuccess();
-    }
-    else
-    {
-        const string m = message + ": expected is <" + IntegerToString(expected) +
-                         "> but <" + IntegerToString(actual) + ">";
-        setFailure(m);
-    }
-}
-
-template <typename TRecord>
-void UnitTest::assertEquals(string message, datetime expected, datetime actual)
-{
-    if (expected == actual)
-    {
-        setSuccess();
-    }
-    else
-    {
-        const string m = message + ": expected is <" + TimeToString(expected) +
-                         "> but <" + TimeToString(actual) + ">";
-        setFailure(m);
-    }
-}
-
-template <typename TRecord>
-void UnitTest::assertEquals(string message, color expected, color actual)
-{
-    if (expected == actual)
-    {
-        setSuccess();
-    }
-    else
-    {
-        const string m = message + ": expected is <" + ColorToString(expected) +
-                         "> but <" + ColorToString(actual) + ">";
-        setFailure(m);
-    }
-}
-
-template <typename TRecord>
-void UnitTest::assertEquals(string message, float expected, float actual)
-{
-    if (expected == actual)
-    {
-        setSuccess();
-    }
-    else
-    {
-        const string m = message + ": expected is <" + DoubleToString(expected) +
-                         "> but <" + DoubleToString(actual) + ">";
-        setFailure(m);
-    }
-}
-
-template <typename TRecord>
-void UnitTest::assertEquals(string message, double expected, double actual)
-{
-    if (expected == actual)
-    {
-        setSuccess();
-    }
-    else
-    {
-        const string m = message + ": expected is <" + DoubleToString(expected) +
-                         "> but <" + DoubleToString(actual) + ">";
-        setFailure(m);
-    }
-}
-
-template <typename TRecord>
-void UnitTest::assertEquals(string message, string expected, string actual)
-{
-    if (expected == actual)
-    {
-        setSuccess();
-    }
-    else
-    {
-        const string m = message + ": expected is <" + expected +
-                         "> but <" + actual + ">";
-        setFailure(m);
-    }
-}
-
-template <typename TRecord>
-bool UnitTest::assertArraySize(string message, const int expectedSize, const int actualSize)
-{
-    if (expectedSize == actualSize)
+    if (mLastAssertTime == 0)
     {
         return true;
     }
-    else
+
+    if (Hour() == TimeHour(mLastAssertTime) && (Minute() - TimeMinute(mLastAssertTime) >= mAssertCooldownMinutes))
     {
-        const string m = message + ": expected array size is <" + IntegerToString(expectedSize) +
-                         "> but <" + IntegerToString(actualSize) + ">";
-        setFailure(m);
-        return false;
+        return true;
     }
+
+    if (Hour() > TimeHour(mLastAssertTime))
+    {
+        int minutes = (59 - TimeMinute(mLastAssertTime)) + Minute();
+        return minutes >= mAssertCooldownMinutes;
+    }
+
+    return false;
 }
 
-template <typename TRecord>
-void UnitTest::assertEquals(string message, const bool &expected[], const bool &actual[])
+template <typename TUnitTest, typename TRecord>
+void UnitTest::SendEmail()
 {
-    const int expectedSize = ArraySize(expected);
-    const int actualSize = ArraySize(actual);
-
-    if (!assertArraySize(message, expectedSize, actualSize))
-    {
-        return;
-    }
-
-    for (int i = 0; i < actualSize; i++)
-    {
-        if (expected[i] != actual[i])
-        {
-            string m;
-            StringConcatenate(m, message, ": expected array[", IntegerToString(i), "] is <",
-                              expected[i], "> but <", actual[i], ">");
-            setFailure(m);
-            return;
-        }
-    }
-
-    setSuccess();
+    SendMail("Unit Test " + PendingRecord.Name + " Completed", "");
 }
 
-template <typename TRecord>
-void UnitTest::assertEquals(string message, const char &expected[], const char &actual[])
+template <typename TUnitTest, typename TRecord>
+void UnitTest::AssertEquals(TUnitTest expected, TUnitTest actual)
 {
-    const int expectedSize = ArraySize(expected);
-    const int actualSize = ArraySize(actual);
+    string message = "Expected: " + expected + " - Actual: " + actual;
+    string result = expected == actual ? "Pass" : "Fail";
 
-    if (!assertArraySize(message, expectedSize, actualSize))
-    {
-        return;
-    }
-
-    for (int i = 0; i < actualSize; i++)
-    {
-        if (expected[i] != actual[i])
-        {
-            const string m = message + ": expected array[" + IntegerToString(i) + "] is <" +
-                             CharToString(expected[i]) +
-                             "> but <" + CharToString(actual[i]) + ">";
-            setFailure(m);
-            return;
-        }
-    }
-
-    setSuccess();
+    SetAssertResult(result, message);
 }
 
-template <typename TRecord>
-void UnitTest::assertEquals(string message, const uchar &expected[], const uchar &actual[])
+template <typename TUnitTest, typename TRecord>
+void UnitTest::AssertNotEquals(TUnitTest expected, TUnitTest actual)
 {
-    const int expectedSize = ArraySize(expected);
-    const int actualSize = ArraySize(actual);
+    string message = "Didn't Expect: " + expected + " - Actual: " + actual;
+    string result = expected != actual ? "Pass" : "Fail";
 
-    if (!assertArraySize(message, expectedSize, actualSize))
-    {
-        return;
-    }
-
-    for (int i = 0; i < actualSize; i++)
-    {
-        if (expected[i] != actual[i])
-        {
-            const string m = message + ": expected array[" + IntegerToString(i) + "] is <" +
-                             CharToString(expected[i]) +
-                             "> but <" + CharToString(actual[i]) + ">";
-            setFailure(m);
-            return;
-        }
-    }
-
-    setSuccess();
+    SetAssertResult(result, message);
 }
 
-template <typename TRecord>
-void UnitTest::assertEquals(string message, const short &expected[], const short &actual[])
+template <typename TUnitTest, typename TRecord>
+void UnitTest::RecordError(int error)
 {
-    const int expectedSize = ArraySize(expected);
-    const int actualSize = ArraySize(actual);
+    PendingRecord.Result = "Error";
+    PendingRecord.Message = IntegerToString(error);
 
-    if (!assertArraySize(message, expectedSize, actualSize))
-    {
-        return;
-    }
-
-    for (int i = 0; i < actualSize; i++)
-    {
-        if (expected[i] != actual[i])
-        {
-            const string m = message + ": expected array[" + IntegerToString(i) + "] is <" +
-                             IntegerToString(expected[i]) +
-                             "> but <" + IntegerToString(actual[i]) + ">";
-            setFailure(m);
-            return;
-        }
-    }
-
-    setSuccess();
-}
-
-template <typename TRecord>
-void UnitTest::assertEquals(string message, const ushort &expected[], const ushort &actual[])
-{
-    const int expectedSize = ArraySize(expected);
-    const int actualSize = ArraySize(actual);
-
-    if (!assertArraySize(message, expectedSize, actualSize))
-    {
-        return;
-    }
-
-    for (int i = 0; i < actualSize; i++)
-    {
-        if (expected[i] != actual[i])
-        {
-            const string m = message + ": expected array[" + IntegerToString(i) + "] is <" +
-                             IntegerToString(expected[i]) +
-                             "> but <" + IntegerToString(actual[i]) + ">";
-            setFailure(m);
-            return;
-        }
-    }
-
-    setSuccess();
-}
-
-template <typename TRecord>
-void UnitTest::assertEquals(string message, const int &expected[], const int &actual[])
-{
-    const int expectedSize = ArraySize(expected);
-    const int actualSize = ArraySize(actual);
-
-    if (!assertArraySize(message, expectedSize, actualSize))
-    {
-        return;
-    }
-
-    for (int i = 0; i < actualSize; i++)
-    {
-        if (expected[i] != actual[i])
-        {
-            const string m = message + ": expected array[" + IntegerToString(i) + "] is <" +
-                             IntegerToString(expected[i]) +
-                             "> but <" + IntegerToString(actual[i]) + ">";
-            setFailure(m);
-            return;
-        }
-    }
-
-    setSuccess();
-}
-
-template <typename TRecord>
-void UnitTest::assertEquals(string message, const uint &expected[], const uint &actual[])
-{
-    const int expectedSize = ArraySize(expected);
-    const int actualSize = ArraySize(actual);
-
-    if (!assertArraySize(message, expectedSize, actualSize))
-    {
-        return;
-    }
-
-    for (int i = 0; i < actualSize; i++)
-    {
-        if (expected[i] != actual[i])
-        {
-            const string m = message + ": expected array[" + IntegerToString(i) + "] is <" +
-                             IntegerToString(expected[i]) +
-                             "> but <" + IntegerToString(actual[i]) + ">";
-            setFailure(m);
-            return;
-        }
-    }
-
-    setSuccess();
-}
-
-template <typename TRecord>
-void UnitTest::assertEquals(string message, const long &expected[], const long &actual[])
-{
-    const int expectedSize = ArraySize(expected);
-    const int actualSize = ArraySize(actual);
-
-    if (!assertArraySize(message, expectedSize, actualSize))
-    {
-        return;
-    }
-
-    for (int i = 0; i < actualSize; i++)
-    {
-        if (expected[i] != actual[i])
-        {
-            const string m = message + ": expected array[" + IntegerToString(i) + "] is <" +
-                             IntegerToString(expected[i]) +
-                             "> but <" + IntegerToString(actual[i]) + ">";
-            setFailure(m);
-            return;
-        }
-    }
-
-    setSuccess();
-}
-
-template <typename TRecord>
-void UnitTest::assertEquals(string message, const ulong &expected[], const ulong &actual[])
-{
-    const int expectedSize = ArraySize(expected);
-    const int actualSize = ArraySize(actual);
-
-    if (!assertArraySize(message, expectedSize, actualSize))
-    {
-        return;
-    }
-
-    for (int i = 0; i < actualSize; i++)
-    {
-        if (expected[i] != actual[i])
-        {
-            const string m = message + ": expected array[" + IntegerToString(i) + "] is <" +
-                             IntegerToString(expected[i]) +
-                             "> but <" + IntegerToString(actual[i]) + ">";
-            setFailure(m);
-            return;
-        }
-    }
-
-    setSuccess();
-}
-
-template <typename TRecord>
-void UnitTest::assertEquals(string message, const datetime &expected[], const datetime &actual[])
-{
-    const int expectedSize = ArraySize(expected);
-    const int actualSize = ArraySize(actual);
-
-    if (!assertArraySize(message, expectedSize, actualSize))
-    {
-        return;
-    }
-
-    for (int i = 0; i < actualSize; i++)
-    {
-        if (expected[i] != actual[i])
-        {
-            const string m = message + ": expected array[" + IntegerToString(i) + "] is <" +
-                             TimeToString(expected[i]) +
-                             "> but <" + TimeToString(actual[i]) + ">";
-            setFailure(m);
-            return;
-        }
-    }
-
-    setSuccess();
-}
-
-template <typename TRecord>
-void UnitTest::assertEquals(string message, const color &expected[], const color &actual[])
-{
-    const int expectedSize = ArraySize(expected);
-    const int actualSize = ArraySize(actual);
-
-    if (!assertArraySize(message, expectedSize, actualSize))
-    {
-        return;
-    }
-
-    for (int i = 0; i < actualSize; i++)
-    {
-        if (expected[i] != actual[i])
-        {
-            const string m = message + ": expected array[" + IntegerToString(i) + "] is <" +
-                             ColorToString(expected[i]) +
-                             "> but <" + ColorToString(actual[i]) + ">";
-            setFailure(m);
-            return;
-        }
-    }
-
-    setSuccess();
-}
-
-template <typename TRecord>
-void UnitTest::assertEquals(string message, const float &expected[], const float &actual[])
-{
-    const int expectedSize = ArraySize(expected);
-    const int actualSize = ArraySize(actual);
-
-    if (!assertArraySize(message, expectedSize, actualSize))
-    {
-        return;
-    }
-
-    for (int i = 0; i < actualSize; i++)
-    {
-        if (expected[i] != actual[i])
-        {
-            const string m = message + ": expected array[" + IntegerToString(i) + "] is <" +
-                             DoubleToString(expected[i]) +
-                             "> but <" + DoubleToString(actual[i]) + ">";
-            setFailure(m);
-            return;
-        }
-    }
-
-    setSuccess();
-}
-
-template <typename TRecord>
-void UnitTest::assertEquals(string message, const double &expected[], const double &actual[])
-{
-    const int expectedSize = ArraySize(expected);
-    const int actualSize = ArraySize(actual);
-
-    if (!assertArraySize(message, expectedSize, actualSize))
-    {
-        return;
-    }
-
-    for (int i = 0; i < actualSize; i++)
-    {
-        if (expected[i] != actual[i])
-        {
-            const string m = message + ": expected array[" + IntegerToString(i) + "] is <" +
-                             DoubleToString(expected[i]) +
-                             "> but <" + DoubleToString(actual[i]) + ">";
-            setFailure(m);
-            return;
-        }
-    }
-
-    setSuccess();
+    CSVRecordWriter<TRecord>::Write();
 }

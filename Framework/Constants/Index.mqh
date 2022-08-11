@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                      IRecord.mqh |
+//|                                                        Index.mqh |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -7,9 +7,9 @@
 #property link "https://www.mql5.com"
 #property strict
 
-interface ICSVRecord
-{
-    virtual void WriteHeaders(int fileHandle);
-    virtual void WriteRecord(int fileHandle);
-    virtual void Reset();
-};
+#define out
+
+#include <SummitCapital/Framework/Constants/TerminalErrors.mqh>
+#include <SummitCapital/Framework/Constants/ExecutionErrors.mqh>
+
+#include <SummitCapital/Framework/Constants/Results.mqh>

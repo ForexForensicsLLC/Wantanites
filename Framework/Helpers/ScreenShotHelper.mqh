@@ -9,72 +9,67 @@
 #property strict
 
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
-#include <SummitCapital\Framework\Constants\Errors.mqh>
+#include <SummitCapital\Framework\Constants\Index.mqh>
 
 class ScreenShotHelper
 {
+private:
+    static string DateTimeToFilePathString(datetime dt);
+
 public:
-    static int TryTakeUnitTestScreenShot(string directory, out string &imageFilePath);
-    static int TryTakeOrderOpenScreenShot(int ticket, string directory, out string &imageFilePath);
-    static int TryTakeOrderCloseScreenShot(int ticket, string directory, out string &imageFilePath);
+    static string TryTakeScreenShot(string directory);
+    static string TryTakeBeforeScreenShot(string directory, string suffix);
+    static string TryTakeAfterScreenShot(string directory, string suffix);
 };
 
-static int ScreenShotHelper::TryTakeUnitTestScreenShot(string directory, out string &imageFilePath)
+static string ScreenShotHelper::DateTimeToFilePathString(datetime dt)
 {
-    imageFilePath = directory + "/Images/" + TimeToString(TimeCurrent(), TIME_DATE | TIME_SECONDS);
-    if (!ChartScreenShot(ChartID(), imageFilePath, 2000, 800, ALIGN_RIGHT))
-    {
-        imageFilePath = "";
-        return GetLastError();
-    }
-
-    return ERR_NO_ERROR;
+    return IntegerToString(TimeYear(dt)) + "-" +
+           IntegerToString(TimeMonth(dt)) + "-" +
+           IntegerToString(TimeDay(dt)) + "_" +
+           IntegerToString(TimeHour(dt)) + "-" +
+           IntegerToString(TimeMinute(dt)) + "-" +
+           IntegerToString(TimeSeconds(dt));
 }
 
-static int ScreenShotHelper::TryTakeOrderOpenScreenShot(int ticket, string directory, out string &imageFilePath)
+static string ScreenShotHelper::TryTakeScreenShot(string directory)
 {
-    imageFilePath = "";
-    if (ticket == EMPTY)
+    string imageName = DateTimeToFilePathString(TimeCurrent()) + ".png";
+    string filePath = directory + "Images/" + imageName;
+
+    if (!ChartScreenShot(ChartID(), filePath, 2000, 800, ALIGN_RIGHT))
     {
-        return Errors::ERR_EMPTY_TICKET;
+        int error = GetLastError();
+        imageName = "Error: " + IntegerToString(error);
     }
 
-    int orderSelectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Taking Entry Screen Shot");
-    if (orderSelectError != ERR_NO_ERROR)
-    {
-        return orderSelectError;
-    }
-
-    imageFilePath = directory + "/Images/" + TimeToString(OrderOpenTime(), TIME_DATE | TIME_SECONDS);
-    if (!ChartScreenShot(ChartID(), imageFilePath, 2000, 800, ALIGN_RIGHT))
-    {
-        imageFilePath = "";
-        return GetLastError();
-    }
-
-    return ERR_NO_ERROR;
+    return imageName;
 }
 
-static int ScreenShotHelper::TryTakeOrderCloseScreenShot(int ticket, string directory, out string &imageFilePath)
+static string ScreenShotHelper::TryTakeBeforeScreenShot(string directory, string suffix = "")
 {
-    imageFilePath = "";
-    if (ticket == EMPTY)
+    string imageName = DateTimeToFilePathString(TimeCurrent()) + "_Before" + suffix + ".png";
+    string filePath = directory + "Images/" + imageName;
+
+    if (!ChartScreenShot(ChartID(), filePath, 2000, 800, ALIGN_RIGHT))
     {
-        return Errors::ERR_EMPTY_TICKET;
+        int error = GetLastError();
+        imageName = "Error: " + IntegerToString(error);
     }
 
-    int orderSelectError = OrderHelper::SelectClosedOrderByTicket(ticket, "Taking Closed Screen Shot");
-    if (orderSelectError != ERR_NO_ERROR)
+    return imageName;
+}
+
+static string ScreenShotHelper::TryTakeAfterScreenShot(string directory, string suffix = "")
+{
+    string imageName = DateTimeToFilePathString(TimeCurrent()) + "_After" + suffix + ".png";
+    string filePath = directory + "Images/" + imageName;
+
+    if (!ChartScreenShot(ChartID(), filePath, 2000, 800, ALIGN_RIGHT))
     {
-        return orderSelectError;
+        int error = GetLastError();
+        imageName = "Error: " + IntegerToString(error);
     }
 
-    imageFilePath = directory + "/Images/" + TimeToString(OrderCloseTime(), TIME_DATE | TIME_SECONDS);
-    if (!ChartScreenShot(ChartID(), imageFilePath, 2000, 800, ALIGN_RIGHT))
-    {
-        imageFilePath = "";
-        return GetLastError();
-    }
-
-    return ERR_NO_ERROR;
+    return imageName;
 }

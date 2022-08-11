@@ -11,33 +11,38 @@
 #include <SummitCapital\Framework\Objects\MBState.mqh>
 #include <SummitCapital\Framework\Objects\Zone.mqh>
 
-/*
-
-       _           _                 _   _
-    __| | ___  ___| | __ _ _ __ __ _| |_(_) ___  _ __
-   / _` |/ _ \/ __| |/ _` | '__/ _` | __| |/ _ \| '_ \
-  | (_| |  __/ (__| | (_| | | | (_| | |_| | (_) | | | |
-   \__,_|\___|\___|_|\__,_|_|  \__,_|\__|_|\___/|_| |_|
-
-
-*/
 class MB : public MBState
 {
 private:
-   void InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZoneMitigation, bool calculatingOnCurrentCandle);
+    // Tested
+    void InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZoneMitigation, bool calculatingOnCurrentCandle);
+
+    // Tested
+    bool PendingZoneIsOverlappingOtherZone(int type, int startIndex, double imbalanceExit);
+
+    // Tested
+    bool PendingDemandZoneWasMitigated(int startIndex, int endingIndex, int entryOffset, double imbalanceEntry);
+
+    // Tested
+    bool PendingSupplyZoneWasMitigated(int startIndex, int endingIndex, int entryOffset, double imbalanceEntry);
 
 public:
-   // --- Constructors / Destructors ----------
-   MB(string symbol, int timeFrame, int number, int type, int startIndex, int endIndex, int highIndex, int lowIndex, int maxZones);
-   ~MB();
+    // --- Constructors / Destructors ----------
+    MB(string symbol, int timeFrame, int number, int type, int startIndex, int endIndex, int highIndex, int lowIndex, int maxZones, bool allowZoneWickBreaks);
+    ~MB();
 
-   // --- Maintenance Methods ---
-   void UpdateIndexes(int barIndex);
+    // --- Maintenance Methods ---
+    void UpdateIndexes(int barIndex);
 
-   // ---- Adding Zones -------------
-   void CheckAddZones(bool allowZoneMitigation);
-   void CheckAddZonesAfterMBValidation(int barIndex, bool allowZoneMitigation);
-   void AddZone(int entryIndex, double entryPrice, int exitIndex, double exitPrice);
+    // ---- Adding Zones -------------
+    // Tested
+    void CheckAddZones(bool allowZoneMitigation);
+
+    // Tested
+    void CheckAddZonesAfterMBValidation(int barIndex, bool allowZoneMitigation);
+
+    // Tested
+    void AddZone(string description, int startIndex, double entryPrice, int endIndex, double exitPrice);
 };
 /*
 
@@ -54,74 +59,402 @@ public:
 // GOES LEFT TO RIGHT
 void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZoneMitigation, bool calculatingOnCurrentCandle)
 {
-   bool prevImbalance = false;
-   bool currentImbalance = false;
+    if (mType == OP_BUY)
+    {
+        if (calculatingOnCurrentCandle)
+        {
+            endingIndex += 1;
+        }
 
-   int runningZoneCount = 0;
-
-   if (mType == OP_BUY)
-   {
-      // only go from low -> current so that we only grab imbalances that are in the imbpulse that broke structure and not in the move down
-      for (int i = startingIndex; i >= endingIndex; i--)
-      {
-         // can only calculate imbalances for candles that we have a candle before and after for.
-         // If we're on the current candle, then we don't have one after and we have to do the calculation on the previous candle
-         int index = calculatingOnCurrentCandle ? i + 1 : i;
-
-         // make sure imbalance is in current mb. This allows for imbalances after the MB was valdiated
-         double imbalanceExit = iLow(mSymbol, mTimeFrame, iLowest(mSymbol, mTimeFrame, MODE_LOW, 2, index));
-         currentImbalance = iHigh(mSymbol, mTimeFrame, index + 1) < iLow(mSymbol, mTimeFrame, index - 1) && imbalanceExit < iHigh(mSymbol, mTimeFrame, mStartIndex);
-
-         if (currentImbalance && !prevImbalance)
-         {
-            double imbalanceEntry = iHigh(mSymbol, mTimeFrame, index + 1);
-            double mitigatedZone = iLow(mSymbol, mTimeFrame, iLowest(mSymbol, mTimeFrame, MODE_LOW, index - endingIndex, endingIndex)) < imbalanceEntry;
-
-            // only allow zones we haven't added yet, that follow the mitigation parameter, that arenen't single ticks, and occur after the start of the zone
-            if (runningZoneCount >= mZoneCount && (allowZoneMitigation || !mitigatedZone) && imbalanceEntry != imbalanceExit && index + 1 <= mStartIndex)
+        for (int i = startingIndex; i >= endingIndex; i--)
+        {
+            bool currentImbalance = iHigh(mSymbol, mTimeFrame, i + 1) < iLow(mSymbol, mTimeFrame, i - 1);
+            if (currentImbalance)
             {
-               // account for zones after the validaiton of an mb
-               int endIndex = mEndIndex <= index ? mEndIndex : index;
-               AddZone(index + 1, imbalanceEntry, endIndex, imbalanceExit);
+                // Zone variables that get set depending on the zone
+                int startIndex = EMPTY;
+                double imbalanceEntry = -1.0;
+                double imbalanceExit = -1.0;
+                string description = "";
+                int entryOffset = EMPTY;
+
+                // Open, Close, High, Low of the previous 3 bars
+                double indexOpen = iOpen(mSymbol, mTimeFrame, i);
+                double indexClose = iClose(mSymbol, mTimeFrame, i);
+                double indexHigh = iHigh(mSymbol, mTimeFrame, i);
+                double indexLow = iLow(mSymbol, mTimeFrame, i);
+
+                double previousIndexOpen = iOpen(mSymbol, mTimeFrame, i + 1);
+                double previousIndexClose = iClose(mSymbol, mTimeFrame, i + 1);
+                double previousIndexHigh = iHigh(mSymbol, mTimeFrame, i + 1);
+                double previousIndexLow = iLow(mSymbol, mTimeFrame, i + 1);
+
+                double candleTwoBeforeIndexHigh = iHigh(mSymbol, mTimeFrame, i + 2);
+                double candleTwoBeforeIndexOpen = iOpen(mSymbol, mTimeFrame, i + 2);
+                double candleTwoBeforeIndexLow = iLow(mSymbol, mTimeFrame, i + 2);
+                double candleTwoBeforeIndexClose = iClose(mSymbol, mTimeFrame, i + 2);
+
+                // Bullish Flags
+                bool indexIsBullish = indexOpen <= indexClose;
+                bool previousIndexIsBullish = previousIndexOpen <= previousIndexClose;
+                bool candleTwoBeforeIndexIsBullish = candleTwoBeforeIndexOpen <= candleTwoBeforeIndexClose;
+
+                // Wick Flags
+                bool indexWickLowerThanPreviousBody = (previousIndexIsBullish && indexOpen >= previousIndexOpen && indexLow <= previousIndexOpen) ||
+                                                      (!previousIndexIsBullish && indexOpen >= previousIndexClose && indexLow <= previousIndexClose);
+                bool bullishIndexWickLongerThanPreviousCandle = indexIsBullish && (indexOpen - indexLow) >= (previousIndexHigh - previousIndexLow);
+
+                // Zones
+                bool bullishIndexCandleWickLowerAndLongerThanPreviousCandle = indexIsBullish && indexWickLowerThanPreviousBody && bullishIndexWickLongerThanPreviousCandle;
+                bool previousIndexIsBearishEngulfing = !previousIndexIsBullish && previousIndexHigh >= indexHigh && previousIndexLow <= indexLow;
+
+                // Add previousIndexIsBullish so that a bearish candle before the imbalance will get caught as a default zone on the next candle
+                bool candleTwoBeforeIndexIsBearishEngulfing = previousIndexIsBullish &&
+                                                              !candleTwoBeforeIndexIsBullish &&
+                                                              candleTwoBeforeIndexHigh >= previousIndexHigh &&
+                                                              candleTwoBeforeIndexLow <= previousIndexLow;
+
+                bool setDefault = true;
+                // Wick Zone
+                if (bullishIndexCandleWickLowerAndLongerThanPreviousCandle)
+                {
+                    startIndex = i;
+                    entryOffset = 0;
+                    imbalanceEntry = indexOpen;
+                    imbalanceExit = indexLow;
+                    description = "Bullish Index Candle Wick Lower And Longer Than Previous Candle";
+
+                    setDefault = false;
+                }
+                // Engulfing Zones
+                else if (previousIndexIsBearishEngulfing)
+                {
+                    startIndex = i + 1;
+                    entryOffset = 1;
+                    imbalanceEntry = previousIndexHigh;
+                    imbalanceExit = MathMin(indexLow, previousIndexLow);
+                    description = "Previous index Is Bearish Engulfing";
+
+                    setDefault = false;
+                }
+                else if (candleTwoBeforeIndexIsBearishEngulfing)
+                {
+                    startIndex = i + 2;
+                    entryOffset = 2;
+                    imbalanceEntry = candleTwoBeforeIndexHigh;
+                    imbalanceExit = MathMin(indexLow, candleTwoBeforeIndexLow);
+                    description = "Candle Two Before Index Is Bearish Engulfing";
+
+                    // if the bearish engulfing 2 candles before has been mititgated, try and use a default zone within it
+                    setDefault = PendingDemandZoneWasMitigated(startIndex, endingIndex, entryOffset, imbalanceEntry);
+                }
+                // Default Zones
+                if (setDefault)
+                {
+                    // don't allow zones if 3 consecutive candles are above each other. Mainly a 1 sec thing
+                    if (candleTwoBeforeIndexHigh <= previousIndexLow && previousIndexHigh <= indexLow)
+                    {
+                        continue;
+                    }
+
+                    // specifically for ticks on the 1 second chart
+                    // if there is a candle above the tick that is before the imbalance, go from that candle to the tick
+                    if (previousIndexLow <= indexLow && previousIndexHigh == previousIndexLow && candleTwoBeforeIndexHigh > previousIndexHigh)
+                    {
+                        startIndex = i + 2;
+                        entryOffset = 2;
+                        imbalanceEntry = MathMax(candleTwoBeforeIndexLow, candleTwoBeforeIndexClose);
+                        imbalanceExit = previousIndexLow;
+                        description = "Default Tick Candle Before";
+                    }
+                    else
+                    {
+                        startIndex = i + 1;
+                        entryOffset = 1;
+                        imbalanceEntry = previousIndexHigh;
+                        imbalanceExit = MathMin(indexLow, previousIndexLow);
+                        description = "Default Candle Before";
+                    }
+                }
+
+                // don't create a zone on our previosu candle if there is an imbalance on it. If there should be a zone there it should have
+                // been caught within the previous i check
+                if (previousIndexIsBullish && candleTwoBeforeIndexHigh < indexLow && startIndex <= i + 1)
+                {
+                    continue;
+                }
+
+                if (PendingZoneIsOverlappingOtherZone(OP_BUY, startIndex, imbalanceExit))
+                {
+                    continue;
+                }
+
+                // Don't create zones that are higher than the MB
+                if (imbalanceExit > iHigh(mSymbol, mTimeFrame, mStartIndex))
+                {
+                    continue;
+                }
+
+                // if we have an imbalance on our last index, we can't be mitigating or below it
+                bool mitigatedZone = false;
+                if (startIndex - entryOffset != endingIndex)
+                {
+
+                    double lowestPriceAfterIndex = 0.0;
+                    if (!MQLHelper::GetLowestLowBetween(mSymbol, mTimeFrame, startIndex - entryOffset, endingIndex, false, lowestPriceAfterIndex))
+                    {
+                        continue;
+                    }
+
+                    // Check to make sure we haven't gone below the zone within the MB. This can happen in large MBs when price bounces around a lot
+                    if (lowestPriceAfterIndex < imbalanceExit)
+                    {
+                        continue;
+                    }
+
+                    mitigatedZone = PendingDemandZoneWasMitigated(startIndex, endingIndex, entryOffset, imbalanceEntry);
+                }
+
+                // only allow zones that follow the mitigation parameter, that arenen't single ticks, and occur after the start of the MB
+                if ((allowZoneMitigation || !mitigatedZone) && imbalanceEntry != imbalanceExit && startIndex <= mStartIndex)
+                {
+                    // account for zones after the validaiton of an mb
+                    int endIndex = i >= mEndIndex ? mEndIndex : i;
+                    AddZone(description, startIndex, imbalanceEntry, endIndex, imbalanceExit);
+                }
             }
+        }
+    }
+    else if (mType == OP_SELL)
+    {
+        if (calculatingOnCurrentCandle)
+        {
+            endingIndex += 1;
+        }
 
-            runningZoneCount += 1;
-         }
+        // only go from high -> current so that we only grab imbalances that are in the impulse that broke sructure and not in the move up
+        for (int i = startingIndex; i >= endingIndex; i--)
+        {
+            bool currentImbalance = iLow(mSymbol, mTimeFrame, i + 1) > iHigh(mSymbol, mTimeFrame, i - 1);
 
-         prevImbalance = currentImbalance;
-      }
-   }
-   else if (mType == OP_SELL)
-   {
-      // only go from high -> current so that we only grab imbalances that are in the impulse taht broke sructure and not in the move up
-      for (int i = startingIndex; i >= endingIndex; i--)
-      {
-         // can only calculate imbalances for candles that we have a candle before and after for.
-         // If we're on the current candle, then we don't have one after and we have to do the calculation on the previous candle
-         int index = calculatingOnCurrentCandle ? i + 1 : i;
-
-         // make sure imbalance is in current mb. This allows for imbalances after the MB was validated
-         double imbalanceExit = iHigh(mSymbol, mTimeFrame, iHighest(mSymbol, mTimeFrame, MODE_HIGH, 2, index));
-         currentImbalance = iLow(mSymbol, mTimeFrame, index + 1) > iHigh(mSymbol, mTimeFrame, index - 1) && imbalanceExit > iLow(mSymbol, mTimeFrame, mStartIndex);
-
-         if (currentImbalance && !prevImbalance)
-         {
-            double imbalanceEntry = iLow(mSymbol, mTimeFrame, index + 1);
-            double mitigatedZone = iHigh(mSymbol, mTimeFrame, iHighest(mSymbol, mTimeFrame, MODE_HIGH, index - endingIndex, endingIndex)) > imbalanceEntry;
-
-            // only allow zones we haven't added yet, that follow the mitigation parameter, that arenen't single ticks, and occur after the start of the zone
-            if (runningZoneCount >= mZoneCount && (allowZoneMitigation || !mitigatedZone) && imbalanceEntry != imbalanceExit && index + 1 <= mStartIndex)
+            if (currentImbalance)
             {
-               int endIndex = mEndIndex <= index ? mEndIndex : index;
-               AddZone(index + 1, imbalanceEntry, endIndex, imbalanceExit);
+                // Zone variables that get set depending on the zone
+                int startIndex = EMPTY;
+                double imbalanceEntry = -1.0;
+                double imbalanceExit = -1.0;
+                string description = "";
+                int entryOffset = EMPTY;
+
+                // Open, Close, High, Low of the previous 3 bars
+                double indexOpen = iOpen(mSymbol, mTimeFrame, i);
+                double indexClose = iClose(mSymbol, mTimeFrame, i);
+                double indexHigh = iHigh(mSymbol, mTimeFrame, i);
+                double indexLow = iLow(mSymbol, mTimeFrame, i);
+
+                double previousIndexOpen = iOpen(mSymbol, mTimeFrame, i + 1);
+                double previousIndexClose = iClose(mSymbol, mTimeFrame, i + 1);
+                double previousIndexHigh = iHigh(mSymbol, mTimeFrame, i + 1);
+                double previousIndexLow = iLow(mSymbol, mTimeFrame, i + 1);
+
+                double candleTwoBeforeIndexHigh = iHigh(mSymbol, mTimeFrame, i + 2);
+                double candleTwoBeforeIndexOpen = iOpen(mSymbol, mTimeFrame, i + 2);
+                double candleTwoBeforeIndexLow = iLow(mSymbol, mTimeFrame, i + 2);
+                double candleTwoBeforeIndexClose = iClose(mSymbol, mTimeFrame, i + 2);
+
+                // Bearish Flags
+                bool indexIsBearish = indexOpen >= indexClose;
+                bool previousIndexIsBearish = previousIndexOpen >= previousIndexClose;
+                bool candleTwoBeforeIndexIsBearish = candleTwoBeforeIndexOpen >= candleTwoBeforeIndexClose;
+
+                // Wick Flags
+                bool indexWickHigherThanPreviousBody = (previousIndexIsBearish && indexOpen <= previousIndexOpen && indexHigh >= previousIndexOpen) ||
+                                                       (!previousIndexIsBearish && indexOpen <= previousIndexClose && indexHigh >= previousIndexClose);
+                bool bearishIndexWickLongerThanPreviousCandle = indexIsBearish && (indexHigh - indexOpen) >= (previousIndexHigh - previousIndexLow);
+
+                // Zones
+                bool bearishIndexCandleWickHigherAndLongerThanPreviousCandle = indexIsBearish && indexWickHigherThanPreviousBody && bearishIndexWickLongerThanPreviousCandle;
+                bool previousIndexIsBullishEngulfing = !previousIndexIsBearish && previousIndexHigh >= indexHigh && previousIndexLow <= indexLow;
+
+                // Add previousIndexIsBearish so that a bullish candle before the imbalance will get caught as a default zone on the next candle
+                bool candleTwoBeforeIndexIsBullishEngulfing = previousIndexIsBearish &&
+                                                              !candleTwoBeforeIndexIsBearish &&
+                                                              candleTwoBeforeIndexHigh >= previousIndexHigh &&
+                                                              candleTwoBeforeIndexLow <= previousIndexLow;
+
+                bool setDefault = true;
+
+                // Wick Zone
+                if (bearishIndexCandleWickHigherAndLongerThanPreviousCandle)
+                {
+                    startIndex = i;
+                    entryOffset = 0;
+                    imbalanceEntry = indexOpen;
+                    imbalanceExit = indexHigh;
+                    description = "Bearish Index Candle Wick High And Longer Than Previous Candle Zone";
+
+                    setDefault = false;
+                }
+                else if (previousIndexIsBullishEngulfing)
+                {
+                    startIndex = i + 1;
+                    entryOffset = 1;
+                    imbalanceEntry = previousIndexLow;
+                    imbalanceExit = MathMax(indexHigh, previousIndexHigh);
+                    description = "Previous Index Bullish Engulfing Zone";
+
+                    setDefault = false;
+                }
+                else if (candleTwoBeforeIndexIsBullishEngulfing)
+                {
+                    startIndex = i + 2;
+                    entryOffset = 2;
+                    imbalanceEntry = candleTwoBeforeIndexLow;
+                    imbalanceExit = MathMax(indexHigh, candleTwoBeforeIndexHigh);
+                    description = "Two Before Index Bullish Engulfing Zone";
+
+                    setDefault = true;
+                }
+
+                // Default Zone
+                if (setDefault)
+                {
+                    if (candleTwoBeforeIndexLow >= previousIndexHigh && previousIndexLow >= indexHigh)
+                    {
+                        continue;
+                    }
+
+                    // specifically for ticks on the 1 second chart
+                    // if there is a candle below the tick that is above and before the imbalance, go from thtat candle to the tick
+                    if (previousIndexHigh >= indexHigh && previousIndexHigh == previousIndexLow && candleTwoBeforeIndexLow <= previousIndexLow)
+                    {
+                        startIndex = i + 2;
+                        entryOffset = 2;
+                        imbalanceEntry = MathMin(candleTwoBeforeIndexHigh, candleTwoBeforeIndexClose);
+                        imbalanceExit = previousIndexHigh;
+                        description = "Default Tick Zone";
+                    }
+                    else
+                    {
+                        startIndex = i + 1;
+                        entryOffset = 1;
+                        imbalanceEntry = previousIndexLow;
+                        imbalanceExit = MathMax(indexHigh, previousIndexHigh);
+                        description = "Default Zone";
+                    }
+                }
+
+                // don't create a zone on the previous candle if it is bearish there is an imbalance on it. If there should be a zone there it should have been
+                // caught within the previous check
+                if (previousIndexIsBearish && candleTwoBeforeIndexLow > indexHigh && startIndex <= i + 1)
+                {
+                    continue;
+                }
+
+                if (PendingZoneIsOverlappingOtherZone(OP_SELL, startIndex, imbalanceExit))
+                {
+                    continue;
+                }
+
+                // don't create zones that are lower than the MB
+                if (imbalanceExit < iLow(mSymbol, mTimeFrame, mStartIndex))
+                {
+                    continue;
+                }
+
+                // if we have an imbalance on our last index, we can't be mitigating or below it
+                bool mitigatedZone = false;
+                if (startIndex - entryOffset != endingIndex)
+                {
+                    double highestPriceAfterIndex = 0.0;
+                    if (!MQLHelper::GetHighestHighBetween(mSymbol, mTimeFrame, startIndex - entryOffset, endingIndex, false, highestPriceAfterIndex))
+                    {
+                        continue;
+                    }
+
+                    // Check to make sure we havne't gone above the zone while within the MB. This can happen in large MBs when price
+                    // bounces around a lot
+                    if (highestPriceAfterIndex > imbalanceExit)
+                    {
+                        continue;
+                    }
+
+                    mitigatedZone = PendingSupplyZoneWasMitigated(startIndex, endingIndex, entryOffset, imbalanceEntry);
+                }
+
+                // that follow the mitigation parameter, that arenen't single ticks, and occur after the start of the zone
+                if ((allowZoneMitigation || !mitigatedZone) && imbalanceEntry != imbalanceExit && startIndex <= mStartIndex)
+                {
+                    // Account for zones after the validation of the mb
+                    int endIndex = mEndIndex <= i ? mEndIndex : i;
+                    AddZone(description, startIndex, imbalanceEntry, endIndex, imbalanceExit);
+                }
             }
+        }
+    }
+}
 
-            runningZoneCount += 1;
-         }
+bool MB::PendingDemandZoneWasMitigated(int startIndex, int endingIndex, int entryOffset, double imbalanceEntry)
+{
+    int firstIndexAboveZone = EMPTY;
+    for (int j = startIndex - entryOffset; j >= 0; j--)
+    {
+        if (iHigh(mSymbol, mTimeFrame, j) > imbalanceEntry)
+        {
+            firstIndexAboveZone = j;
+            break;
+        }
+    }
 
-         prevImbalance = currentImbalance;
-      }
-   }
+    double lowestPriceAfterValidation = 0.0;
+    if (!MQLHelper::GetLowestLowBetween(mSymbol, mTimeFrame, firstIndexAboveZone, endingIndex, false, lowestPriceAfterValidation))
+    {
+        return false;
+    }
+
+    return lowestPriceAfterValidation < imbalanceEntry;
+}
+
+bool MB::PendingSupplyZoneWasMitigated(int startIndex, int endingIndex, int entryOffset, double imbalanceEntry)
+{
+    int firstIndexAboveZone = EMPTY;
+    for (int j = startIndex - entryOffset; j >= 0; j--)
+    {
+        if (iLow(mSymbol, mTimeFrame, j) < imbalanceEntry)
+        {
+            firstIndexAboveZone = j;
+            break;
+        }
+    }
+
+    double highestPriceAfterValidation = 0.0;
+    if (!MQLHelper::GetHighestHighBetween(mSymbol, mTimeFrame, firstIndexAboveZone, endingIndex, false, highestPriceAfterValidation))
+    {
+        return false;
+    }
+
+    return highestPriceAfterValidation > imbalanceEntry;
+}
+
+bool MB::PendingZoneIsOverlappingOtherZone(int type, int startIndex, double imbalanceExit)
+{
+    bool overlappingZones = false;
+    for (int j = 1; j <= mMaxZones; j++)
+    {
+        int zoneIndex = mMaxZones - j;
+        if (CheckPointer(mZones[zoneIndex]) != POINTER_INVALID)
+        {
+            // Add one to this to prevent consecutive zones from forming
+            if (startIndex + 1 >= mZones[zoneIndex].StartIndex() ||
+                (type == OP_BUY && imbalanceExit < mZones[zoneIndex].EntryPrice()) ||
+                (type == OP_SELL && imbalanceExit > mZones[zoneIndex].EntryPrice()))
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 /*
 
@@ -134,75 +467,90 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
 
 */
 // --------- Constructor / Destructor --------
-MB::MB(string symbol, int timeFrame, int number, int type, int startIndex, int endIndex, int highIndex, int lowIndex, int maxZones)
+MB::MB(string symbol, int timeFrame, int number, int type, int startIndex, int endIndex, int highIndex, int lowIndex, int maxZones, bool allowZoneWickBreaks)
 {
-   mSymbol = symbol;
-   mTimeFrame = timeFrame;
+    mSymbol = symbol;
+    mTimeFrame = timeFrame;
 
-   mNumber = number;
-   mType = type;
-   mStartIndex = startIndex;
-   mEndIndex = endIndex;
-   mHighIndex = highIndex;
-   mLowIndex = lowIndex;
+    mNumber = number;
+    mType = type;
+    mStartIndex = startIndex;
+    mEndIndex = endIndex;
+    mHighIndex = highIndex;
+    mLowIndex = lowIndex;
 
-   mIsBroken = false;
+    mIsBroken = false;
 
-   mMaxZones = maxZones;
-   mZoneCount = 0;
-   mUnretrievedZoneCount = 0;
+    mMaxZones = maxZones;
+    mZoneCount = 0;
+    mUnretrievedZoneCount = 0;
+    mAllowZoneWickBreaks = allowZoneWickBreaks;
 
-   mName = "MB: " + IntegerToString(number);
-   mDrawn = false;
+    mName = "MB: " + IntegerToString(number);
+    mDrawn = false;
 
-   ArrayResize(mZones, maxZones);
+    ArrayResize(mZones, maxZones);
 }
 
 MB::~MB()
 {
-   ObjectsDeleteAll(ChartID(), mName, 0, OBJ_RECTANGLE);
+    ObjectsDeleteAll(ChartID(), mName, 0, OBJ_RECTANGLE);
 
-   for (int i = 0; i < mZoneCount; i++)
-   {
-      delete mZones[i];
-   }
+    for (int i = mMaxZones - 1; i >= 0; i--)
+    {
+        if (CheckPointer(mZones[i]) == POINTER_INVALID)
+        {
+            break;
+        }
+
+        delete mZones[i];
+    }
 }
+
 // ------------- Maintenance Methods ---------------
 void MB::UpdateIndexes(int barIndex)
 {
-   mStartIndex = mStartIndex + barIndex;
-   mEndIndex = mEndIndex + barIndex;
-   mHighIndex = mHighIndex + barIndex;
-   mLowIndex = mLowIndex + barIndex;
+    mStartIndex = mStartIndex + barIndex;
+    mEndIndex = mEndIndex + barIndex;
+    mHighIndex = mHighIndex + barIndex;
+    mLowIndex = mLowIndex + barIndex;
 
-   for (int i = 0; i < mZoneCount; i++)
-   {
-      mZones[i].UpdateIndexes(barIndex);
-   }
+    for (int i = mMaxZones - 1; i >= 0; i--)
+    {
+        if (CheckPointer(mZones[i]) == POINTER_INVALID)
+        {
+            break;
+        }
+
+        mZones[i].UpdateIndexes(barIndex);
+    }
 }
 // --------------- Adding Zones -------------------
 // Checks for zones that are within the MB
 void MB::CheckAddZones(bool allowZoneMitigation)
 {
-   int startIndex = mType == OP_BUY ? mLowIndex : mHighIndex;
-   InternalCheckAddZones(startIndex, mEndIndex, allowZoneMitigation, false);
+    int startIndex = mType == OP_BUY ? mLowIndex : mHighIndex;
+    InternalCheckAddZones(startIndex, mEndIndex, allowZoneMitigation, false);
 }
 // Checks for  zones that occur after the MB
 void MB::CheckAddZonesAfterMBValidation(int barIndex, bool allowZoneMitigation)
 {
-   InternalCheckAddZones(mEndIndex, barIndex, allowZoneMitigation, true);
+    // Add one to this so that imbalances on the candle before the end index can be found
+    InternalCheckAddZones(mEndIndex, barIndex, allowZoneMitigation, true);
 }
 
 // Add zones
-void MB::AddZone(int entryIndex, double entryPrice, int exitIndex, double exitPrice)
+void MB::AddZone(string description, int startIndex, double entryPrice, int endIndex, double exitPrice)
 {
-   if (mZoneCount < mMaxZones)
-   {
-      Zone *zone = new Zone(mSymbol, mTimeFrame, mNumber, mZoneCount, mType, entryIndex, entryPrice, exitIndex, exitPrice, false);
+    if (mZoneCount < mMaxZones)
+    {
+        // So Zone Numbers Match the order they are placed in the array, from back to front with the furthest in the back
+        int zoneNumber = mMaxZones - mZoneCount - 1;
+        Zone *zone = new Zone(mSymbol, mTimeFrame, mNumber, zoneNumber, mType, description, startIndex, entryPrice, endIndex, exitPrice, mAllowZoneWickBreaks);
 
-      mZones[mZoneCount] = zone;
+        mZones[zoneNumber] = zone;
 
-      mZoneCount += 1;
-      mUnretrievedZoneCount += 1;
-   }
+        mZoneCount += 1;
+        mUnretrievedZoneCount += 1;
+    }
 }

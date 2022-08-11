@@ -21,65 +21,71 @@
 class MinROCFromTimeStamp
 {
 private:
-   string mSymbol;
-   int mTimeFrame;
+    string mSymbol;
+    int mTimeFrame;
 
-   int mServerHourStartTime;
-   int mServerHourEndTime;
-   int mServerMinuteStartTime;
-   int mServerMinuteEndTime;
-   double mMinROCPercent;
+    int mServerHourStartTime;
+    int mServerHourEndTime;
+    int mServerMinuteStartTime;
+    int mServerMinuteEndTime;
+    double mMinROCPercent;
 
-   double mOpenPrice;
-   datetime mOpenTime;
-   datetime mMinROCAchievedTime;
+    double mOpenPrice;
+    datetime mOpenTime;
+    datetime mMinROCAchievedTime;
 
-   bool mHadMinROC;
-   bool mCrossedOpenPriceAfterMinROC;
+    bool mCandleIsMinROC;
+    bool mHadMinROC;
+    bool mCrossedOpenPriceAfterMinROC;
 
-   bool mDrawnMinROCAchievedTime;
+    bool mDrewOpenPrice;
+    int mLastDrawnCandle;
 
-   string mOpenPriceDrawingName;
-   string mMinROCAchievedDrawingName;
+    string mOpenPriceDrawingName;
+    string mMinROCAchievedDrawingName;
 
-   // Tested
-   void Update();
+    // Tested
+    void Update();
+
+    void Reset();
+    void DeleteObjects();
+    bool DuringTime();
 
 public:
-   // ==========================================================================
-   // Constructor / destructor
-   // ==========================================================================
-   MinROCFromTimeStamp(string symbol, int timeFrame, int serverHourStartTime, int serverHourEndTime, int serverMinuteStartTime, int serverMinuteEndTime, double minROCPercent);
-   ~MinROCFromTimeStamp();
+    // ==========================================================================
+    // Constructor / destructor
+    // ==========================================================================
+    MinROCFromTimeStamp(string symbol, int timeFrame, int serverHourStartTime, int serverHourEndTime, int serverMinuteStartTime, int serverMinuteEndTime, double minROCPercent);
+    ~MinROCFromTimeStamp();
 
-   // ==========================================================================
-   // Getters
-   // ==========================================================================
-   bool HadMinROC() { return mHadMinROC; }
-   string Symbol() { return mSymbol; }
-   int TimeFrame() { return mTimeFrame; }
+    // ==========================================================================
+    // Getters
+    // ==========================================================================
+    bool HadMinROC() { return mHadMinROC; }
+    string Symbol() { return mSymbol; }
+    int TimeFrame() { return mTimeFrame; }
 
-   // ==========================================================================
-   // Computed Properties
-   // ==========================================================================
-   // Tested
-   // CallsUpdate
-   double OpenPrice();
+    // ==========================================================================
+    // Computed Properties
+    // ==========================================================================
+    // Tested
+    // CallsUpdate
+    double OpenPrice();
 
-   // Tested
-   // CallsUpdate
-   datetime MinROCAchievedTime();
+    // Tested
+    // CallsUpdate
+    datetime MinROCAchievedTime();
 
-   // Tested
-   // CallsUpdate
-   bool CrossedOpenPriceAfterMinROC();
+    // Tested
+    // CallsUpdate
+    bool CrossedOpenPriceAfterMinROC();
 
-   // ==========================================================================
-   // Display Methods
-   // ==========================================================================
-   // Tested
-   // CallsUpdate
-   void Draw();
+    // ==========================================================================
+    // Display Methods
+    // ==========================================================================
+    // Tested
+    // CallsUpdate
+    void Draw();
 };
 /*
 
@@ -98,45 +104,69 @@ public:
  */
 void MinROCFromTimeStamp::Update()
 {
-   if (Hour() >= mServerHourStartTime && Minute() >= mServerMinuteStartTime && Hour() <= mServerHourEndTime && Minute() < mServerMinuteEndTime && DayOfWeek() > 0 /*&& DayOfWeek() < 6 */)
-   {
-      Print("time");
+    if (DuringTime())
+    {
+        if (mOpenPrice == 0.0)
+        {
+            mOpenPrice = iOpen(mSymbol, mTimeFrame, 0);
+            mOpenTime = iTime(mSymbol, mTimeFrame, 0);
+        }
 
-      if (mOpenPrice == 0.0)
-      {
-         Print("Setting open Price");
-         mOpenPrice = iOpen(mSymbol, mTimeFrame, 0);
-         mOpenTime = iTime(mSymbol, mTimeFrame, 0);
-      }
+        double value = 0.0;
+        if (iClose(mSymbol, mTimeFrame, 0) > mOpenPrice)
+        {
+            value = MathMax(iHigh(mSymbol, mTimeFrame, 0), iLow(mSymbol, mTimeFrame, 0));
+        }
+        else
+        {
+            value = MathMin(iHigh(mSymbol, mTimeFrame, 0), iLow(mSymbol, mTimeFrame, 0));
+        }
 
-      double value = 0.0;
-      if (iClose(mSymbol, mTimeFrame, 0) > mOpenPrice)
-      {
-         Print("Setting to high ");
-         value = MathMax(iHigh(mSymbol, mTimeFrame, 0), iLow(mSymbol, mTimeFrame, 0));
-      }
-      else
-      {
-         Print("Setting to low");
-         value = MathMin(iHigh(mSymbol, mTimeFrame, 0), iLow(mSymbol, mTimeFrame, 0));
-      }
+        double roc = ((value - mOpenPrice) / mOpenPrice) * 100;
+        mCandleIsMinROC = roc >= mMinROCPercent || roc <= -1 * mMinROCPercent;
+        if (mCandleIsMinROC && mMinROCAchievedTime == NULL)
+        {
+            mMinROCAchievedTime = TimeCurrent();
+            mHadMinROC = true;
+        }
+    }
+    else
+    {
+        Reset();
+    }
+}
 
-      double roc = ((value - mOpenPrice) / mOpenPrice) * 100;
-      bool isMinROC = roc >= mMinROCPercent || roc <= -1 * mMinROCPercent;
-      Print("ROC: ", roc, ", Threshold: ", mMinROCPercent);
-      if (isMinROC && mMinROCAchievedTime == NULL)
-      {
-         Print("Min ROC. Achieved");
-         mMinROCAchievedTime = TimeCurrent();
-         mHadMinROC = true;
-      }
-   }
-   else
-   {
-      Print("Not time");
-      mOpenPrice = 0.0;
-      mMinROCAchievedTime = NULL;
-   }
+bool MinROCFromTimeStamp::DuringTime()
+{
+    int currentTime = (Hour() * 59) + Minute();
+    int startTime = (mServerHourStartTime * 59) + mServerMinuteStartTime;
+    int endTime = (mServerHourEndTime * 59) + mServerMinuteEndTime;
+
+    // TODO: Add && DayOfWeek() < 6; back
+    return currentTime >= startTime && currentTime < endTime;
+}
+
+void MinROCFromTimeStamp::Reset()
+{
+    mOpenPrice = 0.0;
+    mOpenTime = 0;
+    mMinROCAchievedTime = 0;
+
+    mCandleIsMinROC = false;
+    mHadMinROC = false;
+    mCrossedOpenPriceAfterMinROC = false;
+
+    mDrewOpenPrice = false;
+
+    mLastDrawnCandle = 0;
+
+    DeleteObjects();
+}
+
+void MinROCFromTimeStamp::DeleteObjects()
+{
+    ObjectDelete(ChartID(), mOpenPriceDrawingName);
+    ObjectsDeleteAll(ChartID(), mMinROCAchievedDrawingName);
 }
 
 /*
@@ -162,23 +192,19 @@ void MinROCFromTimeStamp::Update()
  */
 MinROCFromTimeStamp::MinROCFromTimeStamp(string symbol, int timeFrame, int serverHourStartTime, int serverHourEndTime, int serverMinuteStartTime, int serverMinuteEndTime, double minROCPercnet)
 {
-   mSymbol = symbol;
-   mTimeFrame = timeFrame;
+    mSymbol = symbol;
+    mTimeFrame = timeFrame;
 
-   mServerHourStartTime = serverHourStartTime;
-   mServerHourEndTime = serverHourEndTime;
-   mServerMinuteStartTime = serverMinuteStartTime;
-   mServerMinuteEndTime = serverMinuteEndTime;
-   mMinROCPercent = minROCPercnet;
+    mServerHourStartTime = serverHourStartTime;
+    mServerHourEndTime = serverHourEndTime;
+    mServerMinuteStartTime = serverMinuteStartTime;
+    mServerMinuteEndTime = serverMinuteEndTime;
+    mMinROCPercent = minROCPercnet;
 
-   mHadMinROC = false;
-   mCrossedOpenPriceAfterMinROC = false;
+    Reset();
 
-   mOpenPrice = 0.0;
-   mMinROCAchievedTime = NULL;
-
-   mOpenPriceDrawingName = "Open Price for " + mSymbol + " " + IntegerToString(mTimeFrame);
-   mMinROCAchievedDrawingName = "Min ROC. for " + mSymbol + " " + IntegerToString(mTimeFrame);
+    mOpenPriceDrawingName = "Open Price for " + mSymbol + " " + IntegerToString(mTimeFrame);
+    mMinROCAchievedDrawingName = "Min ROC. for " + mSymbol + " " + IntegerToString(mTimeFrame);
 }
 /**
  * @brief Destroy the MinROCFromTimeStamp::MinROCFromTimeStamp object and remove all drawings
@@ -186,8 +212,7 @@ MinROCFromTimeStamp::MinROCFromTimeStamp(string symbol, int timeFrame, int serve
  */
 MinROCFromTimeStamp::~MinROCFromTimeStamp()
 {
-   ObjectDelete(ChartID(), mOpenPriceDrawingName);
-   ObjectDelete(ChartID(), mMinROCAchievedDrawingName);
+    DeleteObjects();
 }
 /*
 
@@ -201,26 +226,26 @@ MinROCFromTimeStamp::~MinROCFromTimeStamp()
 */
 datetime MinROCFromTimeStamp::MinROCAchievedTime()
 {
-   Update();
-   return mMinROCAchievedTime;
+    Update();
+    return mMinROCAchievedTime;
 }
 double MinROCFromTimeStamp::OpenPrice()
 {
-   Update();
-   return mOpenPrice;
+    Update();
+    return mOpenPrice;
 }
 bool MinROCFromTimeStamp::CrossedOpenPriceAfterMinROC()
 {
-   if (!mCrossedOpenPriceAfterMinROC)
-   {
-      if (mOpenPrice > 0.0 && mHadMinROC && iTime(mSymbol, mTimeFrame, 0) > mMinROCAchievedTime)
-      {
-         mCrossedOpenPriceAfterMinROC = (iLow(mSymbol, mTimeFrame, 1) > mOpenPrice && iLow(mSymbol, mTimeFrame, 0) < mOpenPrice) ||
-                                        (iHigh(mSymbol, mTimeFrame, 1) < mOpenPrice && iHigh(mSymbol, mTimeFrame, 0) > mOpenPrice);
-      }
-   }
+    if (!mCrossedOpenPriceAfterMinROC)
+    {
+        if (mOpenPrice > 0.0 && mHadMinROC && iTime(mSymbol, mTimeFrame, 0) > mMinROCAchievedTime)
+        {
+            mCrossedOpenPriceAfterMinROC = (iLow(mSymbol, mTimeFrame, 1) > mOpenPrice && iLow(mSymbol, mTimeFrame, 0) < mOpenPrice) ||
+                                           (iHigh(mSymbol, mTimeFrame, 1) < mOpenPrice && iHigh(mSymbol, mTimeFrame, 0) > mOpenPrice);
+        }
+    }
 
-   return mCrossedOpenPriceAfterMinROC;
+    return mCrossedOpenPriceAfterMinROC;
 }
 /*
 
@@ -234,18 +259,31 @@ bool MinROCFromTimeStamp::CrossedOpenPriceAfterMinROC()
 */
 void MinROCFromTimeStamp::Draw()
 {
-   Update();
+    Update();
 
-   if (mOpenPrice > 0.0)
-   {
-      ObjectCreate(ChartID(), mOpenPriceDrawingName, OBJ_HLINE, 0, mOpenTime, mOpenPrice, iTime(mSymbol, mTimeFrame, 0), mOpenPrice);
-      ObjectSetInteger(ChartID(), mOpenPriceDrawingName, OBJPROP_COLOR, clrYellow);
-   }
+    if (mOpenPrice > 0.0 && !mDrewOpenPrice)
+    {
+        ObjectCreate(ChartID(), mOpenPriceDrawingName, OBJ_HLINE, 0, mOpenTime, mOpenPrice, iTime(mSymbol, mTimeFrame, 0), mOpenPrice);
+        ObjectSetInteger(ChartID(), mOpenPriceDrawingName, OBJPROP_COLOR, clrYellow);
 
-   if (!mDrawnMinROCAchievedTime && mHadMinROC)
-   {
-      ObjectCreate(ChartID(), mMinROCAchievedDrawingName, OBJ_VLINE, 0, mMinROCAchievedTime, mOpenPrice);
-      ObjectSetInteger(ChartID(), mMinROCAchievedDrawingName, OBJPROP_COLOR, clrPurple);
-      ObjectSetInteger(ChartID(), mMinROCAchievedDrawingName, OBJPROP_STYLE, STYLE_DASH);
-   }
+        mDrewOpenPrice = true;
+    }
+
+    // Only draw on new candles so we don't get multiple objects with the same name
+    if (iBars(mSymbol, mTimeFrame) == mLastDrawnCandle)
+    {
+        return;
+    }
+
+    if (mCandleIsMinROC)
+    {
+        // only update mLastDrawnCandle if we had a min roc or else it won't trigger if a first tick isn't and a second tick is
+        mLastDrawnCandle = iBars(mSymbol, mTimeFrame);
+
+        string name = mMinROCAchievedDrawingName + " Bar: " + IntegerToString(mLastDrawnCandle);
+
+        ObjectCreate(ChartID(), name, OBJ_VLINE, 0, TimeCurrent(), mOpenPrice);
+        ObjectSetInteger(ChartID(), name, OBJPROP_COLOR, clrPurple);
+        ObjectSetInteger(ChartID(), name, OBJPROP_STYLE, STYLE_DASH);
+    }
 }
