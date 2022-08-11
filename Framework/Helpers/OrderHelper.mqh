@@ -109,7 +109,7 @@ public:
     // ==========================================================================
     // Editing Orders For MB Stop Orders
     // ==========================================================================
-    // !Tested
+    // Tested
     static int CheckEditStopLossForStopOrderOnPendingMB(double paddingPips, double spreadPips, double riskPercent, int setupMBNumber, MBTracker *&mbt, out int &ticket);
 
     // ==========================================================================

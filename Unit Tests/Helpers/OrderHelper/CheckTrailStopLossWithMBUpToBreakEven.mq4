@@ -19,7 +19,7 @@
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\BeforeAndAfterImagesUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/Helpers/OrderHelper/CheckTrailStopLossWithMBUpToBreakEven/";
-const int NumberOfAsserts = 100;
+const int NumberOfAsserts = 25;
 const int AssertCooldown = 0;
 const bool RecordScreenShot = true;
 const bool RecordErrors = true;
@@ -56,7 +56,7 @@ IntUnitTest<BeforeAndAfterImagesUnitTestRecord> *BearishNotEqualMBTypesErrorUnit
 
 int OnInit()
 {
-    MBT = new MBTracker(MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, true, PrintErrors, CalculateOnTick);
+    MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, true, PrintErrors, CalculateOnTick);
 
     BullishNoErrorsSameStopLossUnitTest = new BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Bullish No Errors Same Stop Loss", "The Stop Loss Was Not Changed When No Errors Were Retruned In A Bullish Setup",
@@ -138,6 +138,7 @@ void OnTick()
     MBT.DrawZonesForNMostRecentMBs(1);
 
     BullishNoErrorsSameStopLossUnitTest.Assert();
+    /*
     BearishNoErrorsSameStopLossUnitTest.Assert();
 
     BullishNoErrorsDifferentStopLossUnitTest.Assert();
@@ -152,6 +153,7 @@ void OnTick()
 
     BullishNotEqualMBTypesErrorUnitTest.Assert();
     BearishNotEqualMBTypesErrorUnitTest.Assert();
+    */
 }
 
 int CloseTicket(int &ticket)
@@ -199,15 +201,9 @@ int SetSetupVariables(int type, int &ticket, int &mbNumber, int &setupType, doub
         if (ticket > 0)
         {
             int closeTicketError = CloseTicket(ticket);
-            ticket = EMPTY;
-
-            if (closeTicketError != ERR_NO_ERROR)
-            {
-                reset = false;
-                return closeTicketError;
-            }
         }
 
+        ticket = EMPTY;
         reset = false;
     }
 
@@ -255,15 +251,16 @@ int SetSetupVariables(int type, int &ticket, int &mbNumber, int &setupType, doub
         mbNumber = tempMBState.Number();
         setupType = tempMBState.Type();
         int error = OrderHelper::PlaceStopOrderForPendingMBValidation(PaddingPips, SpreadPips, RiskPercent, MagicNumber, mbNumber, MBT, ticket);
-
         if (error != ERR_NO_ERROR)
         {
+            reset = true;
             return error;
         }
 
         int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
         if (selectError != ERR_NO_ERROR)
         {
+            reset = true;
             return selectError;
         }
 
@@ -329,17 +326,18 @@ int BullishNoErrorsSameStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
     static double stopLoss = 0.0;
     static double entryPrice = 0.0;
     static bool reset = false;
+    static datetime cooldown = 0;
 
     int setVariablesError = SetSetupVariables(type, ticket, mbNumber, setupType, stopLoss, entryPrice, reset);
     if (setVariablesError != ERR_NO_ERROR)
     {
-        return setVariablesError;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     int setupError = CheckSetup(type, ticket, mbNumber, setupType, stopLoss, false, true, true);
     if (setupError != ERR_NO_ERROR)
     {
-        return setupError;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
@@ -348,7 +346,7 @@ int BullishNoErrorsSameStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
     int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
     if (!succeeded)
     {
-        return trailError;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
@@ -356,7 +354,7 @@ int BullishNoErrorsSameStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
     int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
     if (selectError != ERR_NO_ERROR)
     {
-        return selectError;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     actual = OrderStopLoss() == stopLoss;

@@ -71,7 +71,7 @@ void OnTick()
     HasBearishSetupUnitTest.Assert();
 }
 
-int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &setupType, bool &reset, datetime &cooldown)
+int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &setupType, bool &reset, datetime &cooldown, int &count)
 {
     if (reset)
     {
@@ -80,16 +80,11 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
         setupType = EMPTY;
         reset = false;
         cooldown = TimeCurrent();
+        count = 0;
     }
 
     if (!PastCooldown(cooldown))
     {
-        return Results::UNIT_TEST_DID_NOT_RUN;
-    }
-
-    if (MBT.HasNMostRecentConsecutiveMBs(3))
-    {
-        reset = true;
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
@@ -101,18 +96,6 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
         {
             reset = true;
             return Results::UNIT_TEST_DID_NOT_RUN;
-        }
-
-        MBState *tempMBState;
-        if (!MBT.GetMB(secondMBNumber, tempMBState))
-        {
-            reset = true;
-            return TerminalErrors::MB_DOES_NOT_EXIST;
-        }
-
-        if (tempMBState.IsBroken(tempMBState.EndIndex()))
-        {
-            reset = true;
         }
     }
 
@@ -135,7 +118,6 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
         MBState *thirdTempMBState;
         if (!MBT.GetMB(secondMBNumber + 1, thirdTempMBState))
         {
-            reset = true;
             return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
@@ -179,8 +161,9 @@ int HasBullishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     static int setupType = EMPTY;
     static bool reset = false;
     static datetime cooldown = 0;
+    static int count = 0;
 
-    int setVariablesError = SetSetupVariables(OP_BUY, secondMBNumber, thirdMBNumber, setupType, reset, cooldown);
+    int setVariablesError = SetSetupVariables(OP_BUY, secondMBNumber, thirdMBNumber, setupType, reset, cooldown, count);
     if (setVariablesError != ERR_NO_ERROR)
     {
         return setVariablesError;
@@ -212,7 +195,7 @@ int HasBullishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
         return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
-    if (!iLow(secondTempMBState.Symbol(), secondTempMBState.TimeFrame(), 0) < iLow(secondTempMBState.Symbol(), secondTempMBState.TimeFrame(), secondTempMBState.LowIndex()))
+    if (!(iLow(secondTempMBState.Symbol(), secondTempMBState.TimeFrame(), 0) < iLow(secondTempMBState.Symbol(), secondTempMBState.TimeFrame(), secondTempMBState.LowIndex())))
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -222,7 +205,7 @@ int HasBullishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
+    ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + IntegerToString(count));
 
     int setupError = SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(secondMBNumber - 1, secondMBNumber, MBT, actual);
     if (setupError != ERR_NO_ERROR)
@@ -231,6 +214,7 @@ int HasBullishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
         return setupError;
     }
 
+    count += 1;
     return Results::UNIT_TEST_RAN;
 }
 
@@ -241,8 +225,9 @@ int HasBearishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     static int setupType = EMPTY;
     static bool reset = false;
     static datetime cooldown = 0;
+    static int count = 0;
 
-    int setVariablesError = SetSetupVariables(OP_SELL, secondMBNumber, thirdMBNumber, setupType, reset, cooldown);
+    int setVariablesError = SetSetupVariables(OP_SELL, secondMBNumber, thirdMBNumber, setupType, reset, cooldown, count);
     if (setVariablesError != ERR_NO_ERROR)
     {
         return setVariablesError;
@@ -284,7 +269,7 @@ int HasBearishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
+    ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + IntegerToString(count));
 
     int setupError = SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(secondMBNumber - 1, secondMBNumber, MBT, actual);
     if (setupError != ERR_NO_ERROR)
@@ -293,5 +278,6 @@ int HasBearishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
         return setupError;
     }
 
+    count += 1;
     return Results::UNIT_TEST_RAN;
 }
