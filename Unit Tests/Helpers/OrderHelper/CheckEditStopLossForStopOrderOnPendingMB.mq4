@@ -87,8 +87,8 @@ void OnTick()
     MBT.DrawNMostRecentMBs(1);
     MBT.DrawZonesForNMostRecentMBs(1);
 
-    DidNotEditBullishMBStopLossUnitTest.Assert();
-    // DidNotEditBearishMBStopLossUnitTest.Assert();
+    // DidNotEditBullishMBStopLossUnitTest.Assert();
+    DidNotEditBearishMBStopLossUnitTest.Assert();
 
     // DidEditBullishMBStopLossUnitTest.Assert();
     // DidEditBearishMBStopLossUnitTest.Assert();
@@ -127,13 +127,14 @@ int CloseTicket(int &ticket)
     return ERR_NO_ERROR;
 }
 
-int SetSetupVariables(int type, int &ticket, double &stopLoss, int &mbNumber, bool &reset, datetime &cooldown)
+int SetSetupVariables(int type, int &ticket, double &stopLoss, int &mbNumber, bool &reset, datetime &cooldown, int &setupImageCount)
 {
     if (reset)
     {
         stopLoss = 0.0;
         mbNumber = EMPTY;
         cooldown = TimeCurrent();
+        setupImageCount = 0;
 
         if (ticket != EMPTY)
         {
@@ -148,6 +149,11 @@ int SetSetupVariables(int type, int &ticket, double &stopLoss, int &mbNumber, bo
         }
 
         reset = false;
+    }
+
+    if (!PastCooldown(cooldown))
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     if (mbNumber != -1)
@@ -247,44 +253,21 @@ int DidNotEditBullishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
     static int mbNumber = EMPTY;
     static bool reset = false;
     static datetime cooldown = 0;
+    static int setupImageCount = 0;
 
-    int setupError = SetSetupVariables(OP_BUY, ticket, stopLoss, mbNumber, reset, cooldown);
+    int setupError = SetSetupVariables(OP_BUY, ticket, stopLoss, mbNumber, reset, cooldown, setupImageCount);
     if (setupError != ERR_NO_ERROR)
-    {
-        return Results::UNIT_TEST_DID_NOT_RUN;
-    }
-
-    if (!PastCooldown(cooldown))
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     int oldTicket = ticket;
 
-    int bullishRetracementIndex = EMPTY;
-    if (!MBT.CurrentBullishRetracementIndexIsValid(bullishRetracementIndex))
-    {
-        return Results::UNIT_TEST_DID_NOT_RUN;
-    }
-
-    int lowestIndex = EMPTY;
-    if (!MQLHelper::GetLowest(Symbol(), Period(), MODE_LOW, bullishRetracementIndex, 0, true, lowestIndex))
-    {
-        return Results::UNIT_TEST_DID_NOT_RUN;
-    }
-
-    int selectOrderError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Editing Stop Loss");
-    if (selectOrderError != ERR_NO_ERROR)
-    {
-        return Results::UNIT_TEST_DID_NOT_RUN;
-    }
-
-    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
-    ut.PendingRecord.AdditionalInformation = "Lowest Index: " + lowestIndex + " Lowest Low: " + iLow(Symbol(), Period(), lowestIndex) + " Stop Loss: " + OrderStopLoss();
+    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory(), IntegerToString(setupImageCount));
 
     int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(PaddingPips, SpreadPips, RiskPercent, mbNumber, MBT, ticket);
 
-    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
+    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory(), IntegerToString(setupImageCount));
 
     if (editStopLossError != ExecutionErrors::NEW_STOPLOSS_EQUALS_OLD)
     {
@@ -292,6 +275,8 @@ int DidNotEditBullishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
     }
 
     actual = oldTicket == ticket;
+
+    setupImageCount += 1;
     return Results::UNIT_TEST_RAN;
 }
 
@@ -302,25 +287,21 @@ int DidNotEditBearishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
     static int mbNumber = -1;
     static bool reset = false;
     static datetime cooldown = 0;
+    static int setupImageCount = 0;
 
-    int setupError = SetSetupVariables(OP_SELL, ticket, stopLoss, mbNumber, reset, cooldown);
+    int setupError = SetSetupVariables(OP_SELL, ticket, stopLoss, mbNumber, reset, cooldown, setupImageCount);
     if (setupError != ERR_NO_ERROR)
     {
         return setupError;
     }
 
-    if (!PastCooldown(cooldown))
-    {
-        return Results::UNIT_TEST_DID_NOT_RUN;
-    }
-
     int oldTicket = ticket;
 
-    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
+    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory(), IntegerToString(setupImageCount));
 
     int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(PaddingPips, SpreadPips, RiskPercent, mbNumber, MBT, ticket);
 
-    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
+    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory(), IntegerToString(setupImageCount));
 
     if (editStopLossError != ExecutionErrors::NEW_STOPLOSS_EQUALS_OLD)
     {
@@ -328,6 +309,8 @@ int DidNotEditBearishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
     }
 
     actual = oldTicket == ticket;
+
+    setupImageCount += 1;
     return Results::UNIT_TEST_RAN;
 }
 
@@ -338,8 +321,9 @@ int DidEditBullishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
     static int mbNumber = -1;
     static bool reset = false;
     static datetime cooldown = 0;
+    static int setupImageCount = 0;
 
-    int setupVariablesError = SetSetupVariables(OP_BUY, ticket, stopLoss, mbNumber, reset, cooldown);
+    int setupVariablesError = SetSetupVariables(OP_BUY, ticket, stopLoss, mbNumber, reset, cooldown, setupImageCount);
     if (setupVariablesError != ERR_NO_ERROR)
     {
         return setupVariablesError;
@@ -362,7 +346,7 @@ int DidEditBullishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
+    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory(), IntegerToString(setupImageCount));
 
     int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(PaddingPips, SpreadPips, RiskPercent, mbNumber, MBT, ticket);
     if (editStopLossError != ERR_NO_ERROR)
@@ -371,7 +355,7 @@ int DidEditBullishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
         return editStopLossError;
     }
 
-    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
+    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory(), IntegerToString(setupImageCount));
 
     int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Editing Stop Loss");
     if (selectError != ERR_NO_ERROR)
@@ -381,6 +365,8 @@ int DidEditBullishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
     }
 
     actual = stopLoss != OrderStopLoss();
+
+    setupImageCount += 1;
     return Results::UNIT_TEST_RAN;
 }
 
@@ -391,8 +377,9 @@ int DidEditBearishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
     static int mbNumber = -1;
     static bool reset = false;
     static datetime cooldown = 0;
+    static int setupImageCount = 0;
 
-    int setupVariablesError = SetSetupVariables(OP_SELL, ticket, stopLoss, mbNumber, reset, cooldown);
+    int setupVariablesError = SetSetupVariables(OP_SELL, ticket, stopLoss, mbNumber, reset, cooldown, setupImageCount);
     if (setupVariablesError != ERR_NO_ERROR)
     {
         return setupVariablesError;
@@ -415,7 +402,7 @@ int DidEditBearishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
+    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory(), IntegerToString(setupImageCount));
 
     int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(PaddingPips, SpreadPips, RiskPercent, mbNumber, MBT, ticket);
     if (editStopLossError != ERR_NO_ERROR)
@@ -424,7 +411,7 @@ int DidEditBearishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
         return editStopLossError;
     }
 
-    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
+    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory(), IntegerToString(setupImageCount));
 
     int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Editing Stop Loss");
     if (selectError != ERR_NO_ERROR)
@@ -434,5 +421,7 @@ int DidEditBearishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
     }
 
     actual = stopLoss != OrderStopLoss();
+
+    setupImageCount += 1;
     return Results::UNIT_TEST_RAN;
 }

@@ -763,6 +763,11 @@ static int OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(double paddingP
         return selectError;
     }
 
+    if (OrderType() < 2)
+    {
+        return TerminalErrors::WRONG_ORDER_TYPE;
+    }
+
     if (OrderStopLoss() == newStopLoss)
     {
         return ExecutionErrors::NEW_STOPLOSS_EQUALS_OLD;

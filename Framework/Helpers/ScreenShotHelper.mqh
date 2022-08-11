@@ -18,8 +18,8 @@ private:
 
 public:
     static string TryTakeScreenShot(string directory);
-    static string TryTakeBeforeScreenShot(string directory);
-    static string TryTakeAfterScreenShot(string directory);
+    static string TryTakeBeforeScreenShot(string directory, string suffix);
+    static string TryTakeAfterScreenShot(string directory, string suffix);
 };
 
 static string ScreenShotHelper::DateTimeToFilePathString(datetime dt)
@@ -46,9 +46,9 @@ static string ScreenShotHelper::TryTakeScreenShot(string directory)
     return imageName;
 }
 
-static string ScreenShotHelper::TryTakeBeforeScreenShot(string directory)
+static string ScreenShotHelper::TryTakeBeforeScreenShot(string directory, string suffix = "")
 {
-    string imageName = DateTimeToFilePathString(TimeCurrent()) + "_Before.png";
+    string imageName = DateTimeToFilePathString(TimeCurrent()) + "_Before" + suffix + ".png";
     string filePath = directory + "Images/" + imageName;
 
     if (!ChartScreenShot(ChartID(), filePath, 2000, 800, ALIGN_RIGHT))
@@ -60,9 +60,9 @@ static string ScreenShotHelper::TryTakeBeforeScreenShot(string directory)
     return imageName;
 }
 
-static string ScreenShotHelper::TryTakeAfterScreenShot(string directory)
+static string ScreenShotHelper::TryTakeAfterScreenShot(string directory, string suffix = "")
 {
-    string imageName = DateTimeToFilePathString(TimeCurrent()) + "_After.png";
+    string imageName = DateTimeToFilePathString(TimeCurrent()) + "_After" + suffix + ".png";
     string filePath = directory + "Images/" + imageName;
 
     if (!ChartScreenShot(ChartID(), filePath, 2000, 800, ALIGN_RIGHT))

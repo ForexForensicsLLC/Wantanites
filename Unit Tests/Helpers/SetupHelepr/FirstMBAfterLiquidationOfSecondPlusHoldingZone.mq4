@@ -20,7 +20,7 @@
 
 const string Directory = "/UnitTests/Helpers/SetupHelper/FirstMBAfterLiquidationOfSecondPlusHoldingZone/";
 const int NumberOfAsserts = 25;
-const int AssertCooldown = 1;
+const int AssertCooldown = 0;
 const bool RecordErrors = true;
 
 input int MBsToTrack = 5;
@@ -34,6 +34,8 @@ MBTracker *MBT;
 
 BoolUnitTest<DefaultUnitTestRecord> *HasBullishSetupUnitTest;
 BoolUnitTest<DefaultUnitTestRecord> *HasBearishSetupUnitTest;
+
+const int MinCooldDown = 1;
 
 int OnInit()
 {
@@ -69,7 +71,7 @@ void OnTick()
     HasBearishSetupUnitTest.Assert();
 }
 
-int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &setupType, bool &reset)
+int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &setupType, bool &reset, datetime &cooldown)
 {
     if (reset)
     {
@@ -77,6 +79,12 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
         thirdMBNumber = EMPTY;
         setupType = EMPTY;
         reset = false;
+        cooldown = TimeCurrent();
+    }
+
+    if (!PastCooldown(cooldown))
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     if (MBT.HasNMostRecentConsecutiveMBs(3))
@@ -143,14 +151,36 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
     return ERR_NO_ERROR;
 }
 
+bool PastCooldown(datetime cooldown)
+{
+    if (cooldown == 0)
+    {
+        return true;
+    }
+
+    if (Hour() == TimeHour(cooldown) && (Minute() - TimeMinute(cooldown) >= MinCooldDown))
+    {
+        return true;
+    }
+
+    if (Hour() > TimeHour(cooldown))
+    {
+        int minutes = (59 - TimeMinute(cooldown)) + Minute();
+        return minutes >= MinCooldDown;
+    }
+
+    return false;
+}
+
 int HasBullishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 {
     static int secondMBNumber = EMPTY;
     static int thirdMBNumber = EMPTY;
     static int setupType = EMPTY;
     static bool reset = false;
+    static datetime cooldown = 0;
 
-    int setVariablesError = SetSetupVariables(OP_BUY, secondMBNumber, thirdMBNumber, setupType, reset);
+    int setVariablesError = SetSetupVariables(OP_BUY, secondMBNumber, thirdMBNumber, setupType, reset, cooldown);
     if (setVariablesError != ERR_NO_ERROR)
     {
         return setVariablesError;
@@ -210,8 +240,9 @@ int HasBearishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     static int thirdMBNumber = EMPTY;
     static int setupType = EMPTY;
     static bool reset = false;
+    static datetime cooldown = 0;
 
-    int setVariablesError = SetSetupVariables(OP_SELL, secondMBNumber, thirdMBNumber, setupType, reset);
+    int setVariablesError = SetSetupVariables(OP_SELL, secondMBNumber, thirdMBNumber, setupType, reset, cooldown);
     if (setVariablesError != ERR_NO_ERROR)
     {
         return setVariablesError;

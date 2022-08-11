@@ -55,7 +55,7 @@ private:
     // Tested
     void CalculateMB(int barIndex);
 
-    void CheckInvalidateRetracement(int mbType);
+    bool IsEngulfingCandle(int mbType, int index);
 
     // Tested
     void CheckSetRetracement(int startingIndex, int mbType, int prevMBType);
@@ -237,7 +237,7 @@ void MBTracker::CalculateMB(int barIndex)
         }
 
         // check pending first so that a single candle can trigger the pending flag and confirm an MB else retracement will get reset in CheckSetRetracement()
-        CheckInvalidateRetracement(OP_BUY);
+        // CheckInvalidateRetracement(OP_BUY);
         CheckSetPendingMB(barIndex, OP_BUY);
         CheckSetRetracement(barIndex, OP_BUY, OP_BUY);
 
@@ -281,7 +281,7 @@ void MBTracker::CalculateMB(int barIndex)
         }
 
         // check pending first so that a single candle can trigger the pending flag and confirm an MB else retracement will get reset in CheckSetRetracement()
-        CheckInvalidateRetracement(OP_SELL);
+        // CheckInvalidateRetracement(OP_SELL);
         CheckSetPendingMB(barIndex, OP_SELL);
         CheckSetRetracement(barIndex, OP_SELL, OP_SELL);
 
@@ -307,42 +307,44 @@ void MBTracker::CalculateMB(int barIndex)
     }
 }
 
-void MBTracker::CheckInvalidateRetracement(int mbType)
+bool MBTracker::IsEngulfingCandle(int mbType, int index)
 {
-    if (mbType == OP_BUY && mCurrentBullishRetracementIndex > -1)
+    if (mbType == OP_BUY)
     {
-        double retracementOpen = iOpen(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex);
-        double retracementClose = iClose(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex);
-        double retracementHigh = iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex);
-        double retracementLow = iLow(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex);
+        double retracementOpen = iOpen(mSymbol, mTimeFrame, index);
+        double retracementClose = iClose(mSymbol, mTimeFrame, index);
+        double retracementHigh = iHigh(mSymbol, mTimeFrame, index);
+        double retracementLow = iLow(mSymbol, mTimeFrame, index);
 
-        double candleBeforeRetracementLow = iLow(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex + 1);
-        double candelBeforeRetracementHigh = iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex + 1);
+        double candleBeforeRetracementLow = iLow(mSymbol, mTimeFrame, index + 1);
+        double candelBeforeRetracementHigh = iHigh(mSymbol, mTimeFrame, index + 1);
 
         // check if the retracement candle is a bullish candle that started and validated an MB on its own. This won't get checked in other logic
         // if there are a few candles after the retracment that don't break it
         if (retracementOpen < retracementClose && retracementLow < candleBeforeRetracementLow && retracementHigh > candelBeforeRetracementHigh)
         {
-            ResetTracking();
+            return true;
         }
     }
-    else if (mbType == OP_SELL && mCurrentBearishRetracementIndex > -1)
+    else if (mbType == OP_SELL)
     {
-        double retracementOpen = iOpen(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex);
-        double retracementClose = iClose(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex);
-        double retracementHigh = iHigh(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex);
-        double retracementLow = iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex);
+        double retracementOpen = iOpen(mSymbol, mTimeFrame, index);
+        double retracementClose = iClose(mSymbol, mTimeFrame, index);
+        double retracementHigh = iHigh(mSymbol, mTimeFrame, index);
+        double retracementLow = iLow(mSymbol, mTimeFrame, index);
 
-        double candleBeforeRetracementLow = iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex + 1);
-        double candelBeforeRetracementHigh = iHigh(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex + 1);
+        double candleBeforeRetracementLow = iLow(mSymbol, mTimeFrame, index + 1);
+        double candelBeforeRetracementHigh = iHigh(mSymbol, mTimeFrame, index + 1);
 
         // check if the retracement candle is a bearish candle that started and validated an MB on its own. This won't get checked in other logic
         // if there are a few candles after the retracment that don't break it
         if (retracementOpen > retracementClose && retracementLow < candleBeforeRetracementLow && retracementHigh > candelBeforeRetracementHigh)
         {
-            ResetTracking();
+            return true;
         }
     }
+
+    return false;
 }
 
 // Method that Checks for retracements
@@ -352,15 +354,28 @@ void MBTracker::CheckSetRetracement(int startingIndex, int mbType, int prevMBTyp
 {
     if (mbType == OP_BUY)
     {
+        // Already have a retracement
+        if (mCurrentBullishRetracementIndex != EMPTY)
+        {
+            // broke further than a retracmeent index without starting an MB. The retracement becomes invalidated
+            if (!mPendingBullishMB && iHigh(mSymbol, mTimeFrame, startingIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex))
+            {
+                mCurrentBullishRetracementIndex = EMPTY;
+            }
+
+            return;
+        }
+
         // candle that has a high that is lower than the one before it, bullish retracement started
-        if (mCurrentBullishRetracementIndex == -1 &&
-            (iHigh(mSymbol, mTimeFrame, startingIndex) < iHigh(mSymbol, mTimeFrame, startingIndex + 1) || iLow(mSymbol, mTimeFrame, startingIndex) < iLow(mSymbol, mTimeFrame, startingIndex + 1)))
+        if ((iHigh(mSymbol, mTimeFrame, startingIndex) < iHigh(mSymbol, mTimeFrame, startingIndex + 1) ||
+             iLow(mSymbol, mTimeFrame, startingIndex) < iLow(mSymbol, mTimeFrame, startingIndex + 1)) &&
+            !IsEngulfingCandle(OP_BUY, startingIndex))
         {
             if (prevMBType == OP_BUY)
             {
-                // Add one to this in case the highest candle of the next mb is the ending index of the previous
+                // Inclusive in case the highest candle of the next mb is the ending index of the previous
                 int highestIndex;
-                if (!MQLHelper::GetHighest(mSymbol, mTimeFrame, MODE_HIGH, mMBs[MostRecentMBIndex()].EndIndex() - startingIndex + 1, startingIndex, false, highestIndex))
+                if (!MQLHelper::GetHighest(mSymbol, mTimeFrame, MODE_HIGH, mMBs[MostRecentMBIndex()].EndIndex() - startingIndex, startingIndex, true, highestIndex))
                 {
                     return;
                 }
@@ -381,24 +396,29 @@ void MBTracker::CheckSetRetracement(int startingIndex, int mbType, int prevMBTyp
                 mCurrentBullishRetracementIndex = startingIndex;
             }
         }
-        // bullish retracement invalidated
-        else if (!mPendingBullishMB && mCurrentBullishRetracementIndex > -1 && iHigh(mSymbol, mTimeFrame, startingIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex))
-        {
-            mCurrentBullishRetracementIndex = -1;
-        }
     }
     else if (mbType == OP_SELL)
     {
+        if (mCurrentBearishRetracementIndex > EMPTY)
+        {
+            // broke further than a retracmeent index without starting an MB. The retracement becomes invalidated
+            if (!mPendingBearishMB && iLow(mSymbol, mTimeFrame, startingIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex))
+            {
+                mCurrentBearishRetracementIndex = EMPTY;
+            }
+
+            return;
+        }
+
         // candle that has a low that is higher than the one before it, bearish retraceemnt started
-        // TODO: This might be bugged. EX: We have a candle that has a low that is highger but no candles after that that is higher. This will still pass and be an MB
-        // Even though there were no bodies further
-        if (mCurrentBearishRetracementIndex == -1 &&
-            (iLow(mSymbol, mTimeFrame, startingIndex) > iLow(mSymbol, mTimeFrame, startingIndex + 1) || iHigh(mSymbol, mTimeFrame, startingIndex) > iHigh(mSymbol, mTimeFrame, startingIndex + 1)))
+        if ((iLow(mSymbol, mTimeFrame, startingIndex) > iLow(mSymbol, mTimeFrame, startingIndex + 1) ||
+             iHigh(mSymbol, mTimeFrame, startingIndex) > iHigh(mSymbol, mTimeFrame, startingIndex + 1)) &&
+            !IsEngulfingCandle(OP_SELL, startingIndex))
         {
             if (prevMBType == OP_SELL)
             {
                 // Add one to this in case the low of the next mb is the ending index of the previous
-                int lowestIndex = -1;
+                int lowestIndex;
                 if (!MQLHelper::GetLowest(mSymbol, mTimeFrame, MODE_LOW, mMBs[MostRecentMBIndex()].EndIndex() - startingIndex + 1, startingIndex, false, lowestIndex))
                 {
                     return;
@@ -419,11 +439,6 @@ void MBTracker::CheckSetRetracement(int startingIndex, int mbType, int prevMBTyp
             {
                 mCurrentBearishRetracementIndex = startingIndex;
             }
-        }
-        // bearish retracement invalidated
-        else if (!mPendingBearishMB && mCurrentBearishRetracementIndex > -1 && iLow(mSymbol, mTimeFrame, startingIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex))
-        {
-            mCurrentBearishRetracementIndex = -1;
         }
     }
 }

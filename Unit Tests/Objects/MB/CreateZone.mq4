@@ -31,7 +31,10 @@ input bool CalculateOnTick = true;
 
 MBTracker *MBT;
 
+// https://drive.google.com/drive/folders/1GcOzUTiNmLQwNk33agwbRDoQe9LEk__B?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *DemandZoneImagesUnitTest;
+
+// https://drive.google.com/drive/folders/1VP440ru2UahYyY-DDj_Y1SmQSgsfnhJW?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *SupplyZoneImagesUnitTest;
 int OnInit()
 {
@@ -64,7 +67,7 @@ void OnTick()
     MBT.DrawZonesForNMostRecentMBs(1);
 
     DemandZoneImagesUnitTest.Assert();
-    // SupplyZoneImagesUnitTest.Assert();
+    SupplyZoneImagesUnitTest.Assert();
 }
 
 int DemandZoneImages(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
