@@ -19,7 +19,7 @@ public:
 
     // 8100s Are For Order Related States
     static int EAStates::CHECKING_IF_PENDING_ORDER;
-    static int EAStates::CANCELING_PENDING_ORDER;
+    static int EAStates::CLOSING_PENDING_ORDER;
     static int EAStates::CHECKING_TO_EDIT_STOP_LOSS;
     static int EAStates::CHECKING_TO_TRAIL_STOP_LOSS;
     static int EAStates::COUNTING_OTHER_EA_ORDERS;
@@ -37,6 +37,9 @@ public:
     static int EAStates::CHECKING_IF_CROSSED_OPEN_PRICE_AFTER_MIN_ROC;
     static int EAStates::CHECKING_FOR_BREAK_AFTER_MIN_ROC;
     static int EAStates::GETTING_NTH_MOST_RECENT_MB;
+    static int EAStates::CHECKING_IF_MOST_RECENT_MB;
+    static int EAStates::GETTING_FIRST_MB_IN_SETUP;
+    static int EAStates::CHECKING_IF_BROKE_RANGE_END;
 
     // 8300s Are For Confirmation Related States
     static int EAStates::CHECKING_FOR_CONFIRMATION;
@@ -51,7 +54,7 @@ static int EAStates::ATTEMPTING_TO_MANAGE_ORDER = 8003;
 
 // 8100s Are For Order Related States
 static int EAStates::CHECKING_IF_PENDING_ORDER = 8100;
-static int EAStates::CANCELING_PENDING_ORDER = 8101;
+static int EAStates::CLOSING_PENDING_ORDER = 8101;
 static int EAStates::CHECKING_TO_EDIT_STOP_LOSS = 8102;
 static int EAStates::CHECKING_TO_TRAIL_STOP_LOSS = 8103;
 static int EAStates::COUNTING_OTHER_EA_ORDERS = 8103;
@@ -69,6 +72,9 @@ static int EAStates::CHECKING_FOR_SAME_TYPE_SUBSEQUENT_MB = 8204;
 static int EAStates::CHECKING_IF_CROSSED_OPEN_PRICE_AFTER_MIN_ROC = 8205;
 static int EAStates::CHECKING_FOR_BREAK_AFTER_MIN_ROC = 8206;
 static int EAStates::GETTING_NTH_MOST_RECENT_MB = 8207;
+static int EAStates::CHECKING_IF_MOST_RECENT_MB = 8208;
+static int EAStates::GETTING_FIRST_MB_IN_SETUP = 8209;
+static int EAStates::CHECKING_IF_BROKE_RANGE_END = 8210;
 
 // 8300s Are For Confirmation Related States
 static int EAStates::CHECKING_FOR_CONFIRMATION = 8300;

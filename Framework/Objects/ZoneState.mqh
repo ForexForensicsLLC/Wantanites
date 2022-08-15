@@ -85,7 +85,6 @@ bool ZoneState::IsHolding(int barIndex)
 {
     if (mType == OP_BUY)
     {
-        // TODO: Sill Needed? -> Subtract 2 so that the imbalance candle can't count as having entered the zone
         double low;
         if (!MQLHelper::GetLowestLow(mSymbol, mTimeFrame, barIndex, 0, false, low))
         {
@@ -96,7 +95,6 @@ bool ZoneState::IsHolding(int barIndex)
     }
     else if (mType == OP_SELL)
     {
-        // TODO: Still Needed? -> subtract 2 so that the imbalance candle can't count as having entered the zone
         double high;
         if (!MQLHelper::GetHighestHigh(mSymbol, mTimeFrame, barIndex, 0, false, high))
         {

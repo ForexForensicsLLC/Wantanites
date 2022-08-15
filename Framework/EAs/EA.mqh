@@ -11,7 +11,6 @@
 #include <SummitCapital\Framework\Constants\EAStates.mqh>
 #include <SummitCapital\Framework\Constants\Index.mqh>
 
-#include <SummitCapital\Framework\EAs\IEA.mqh>
 #include <SummitCapital\Framework\CSVWriting\CSVRecordWriter.mqh>
 
 template <typename TRecord>
@@ -30,32 +29,38 @@ protected:
 
     int mStrategyMagicNumbers[];
 
+    double mPartialRRs[];
+    double mPartialPrices[];
+    int mPartialPercents[];
+
 public:
     EA(int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, double riskPercent);
     ~EA();
 
-    bool StopTrading() { return mStopTrading; }
     bool HasSetup() { return mHasSetup; }
     bool WasReset() { return mWasReset; }
-    int LastState() { return mLastState; }
+    int GetLastState() { return mLastState; }
 
     int MaxTradesPerStrategy() { return mMaxTradesPerStrategy; }
     int StopLossPaddingPips() { return mStopLossPaddingPips; }
     int MaxSpreadPips() { return mMaxSpreadPips; }
     double RiskPercent() { return mRiskPercent; }
 
+    virtual void SetPartialPrice(double price, int percent);
+
     void StrategyMagicNumbers(int &strategyMagicNumbers[]);
 
     virtual void FillStrategyMagicNumber();
-    virtual void FillSetupsThatInvalidate();
+    virtual void SetActiveTickets();
 
     virtual void RecordPreOrderOpenData();
     virtual void RecordPostOrderOpenData();
-    virtual void CheckRecordOrderCloseData();
+    virtual void RecordOrderCloseData();
 
+    virtual void CheckTicket();
     virtual void Manage();
     virtual void CheckInvalidateSetup();
-    virtual void InvalidateSetup();
+    virtual void StopTrading(int error);
     virtual bool AllowedToTrade();
     virtual bool Confirmation();
     virtual void PlaceOrders();
@@ -101,9 +106,7 @@ void EA::RecordError(int error)
     PendingRecord.LastState = mLastState;
     PendingRecord.Error = error;
 
-    string imageName = "";
-
-    ScreenShotHelper::TryTakeScreenShot(mDirectory, imageName);
+    string imageName = ScreenShotHelper::TryTakeScreenShot(mDirectory);
     PendingRecord.ErrorImage = imageName;
 
     CSVRecordWriter<TRecord>::Write();

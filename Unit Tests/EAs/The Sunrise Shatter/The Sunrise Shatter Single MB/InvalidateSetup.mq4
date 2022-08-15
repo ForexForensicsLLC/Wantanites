@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                         CheckInvalidateSetup.mq4 |
+//|                                              InvalidateSetup.mq4 |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -23,7 +23,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/EAs/The Sunrise Shatter/The Sunrise Shatter Single MB/CheckInvalidateSetup/";
+const string Directory = "/UnitTests/EAs/The Sunrise Shatter/The Sunrise Shatter Single MB/InvalidateSetup/";
 const int NumberOfAsserts = 1;
 const int AssertCooldown = 1;
 const bool RecordErrors = true;
@@ -45,25 +45,31 @@ const int StopLossPaddingPips = 0;
 const int MaxSpreadPips = 70;
 const double RiskPercent = 0.25;
 
-IntUnitTest<DefaultUnitTestRecord> *CheckingIfMostRecentMBUnitTest;
-IntUnitTest<DefaultUnitTestRecord> *CheckingIfCrossingOpenPriceAfterMinROCUnitTest;
+BoolUnitTest<DefaultUnitTestRecord> *InvalidateWhenNotMostRecentMBUnitTest;
+BoolUnitTest<DefaultUnitTestRecord> *InvalidateAfterCrossedOpenPriceAfterMinROCUnitTest;
+
+IntUnitTest<DefaultUnitTestRecord> *ClosedPendingOrderWhenInvalidatedUnitTest;
 
 int OnInit()
 {
     MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
 
-    CheckingIfMostRecentMBUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
-        Directory, "Most Recent MB Check", "Should Return CHECKING IF MOST RECENT MB State",
+    InvalidateWhenNotMostRecentMBUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "Invalidate When Not Most Recent MB", "GetLastState should return 1 of 3 possible states, indicating InvalidateSetup() was called",
         NumberOfAsserts, AssertCooldown, RecordErrors,
-        EAStates::CHECKING_IF_MOST_RECENT_MB, CheckingIfMostRecentMB);
+        true, InvalidateWhenNotMostRecentMB);
 
-    CheckingIfCrossingOpenPriceAfterMinROCUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
-        Directory, "Crossed Open Price After ROC", "Should Return CHECKING IF CROSSED OPEN PRICE AFTER MIN ROC State",
+    InvalidateAfterCrossedOpenPriceAfterMinROCUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "Invalidate After Crossed Open After Min ROC", "GetLastState should return 1 of 3 possible states, indicating InvalidateSetup() was called",
         NumberOfAsserts, AssertCooldown, RecordErrors,
-        EAStates::CHECKING_IF_CROSSED_OPEN_PRICE_AFTER_MIN_ROC, CheckingIfCrossingOpenPriceAfterMinROC);
+        true, InvalidateAfterCrossedOpenPriceAfterMinROC);
+
+    ClosedPendingOrderWhenInvalidatedUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+        Directory, "Closed Pending Order", "GetLastState should return CLOSING PENDING ORDER",
+        NumberOfAsserts, AssertCooldown, RecordErrors,
+        EAStates::CHECKING_IF_PENDING_ORDER, ClosedPendingOrderWhenInvalidated);
 
     Reset();
-
     return (INIT_SUCCEEDED);
 }
 
@@ -73,8 +79,10 @@ void OnDeinit(const int reason)
     delete MRFTS;
     delete TSSSMB;
 
-    delete CheckingIfMostRecentMBUnitTest;
-    delete CheckingIfCrossingOpenPriceAfterMinROCUnitTest;
+    delete InvalidateWhenNotMostRecentMBUnitTest;
+    delete InvalidateAfterCrossedOpenPriceAfterMinROCUnitTest;
+
+    delete ClosedPendingOrderWhenInvalidatedUnitTest;
 }
 
 void OnTick()
@@ -84,10 +92,13 @@ void OnTick()
         Reset();
     }
 
-    TSSSMB.Run();
+    InvalidateWhenNotMostRecentMBUnitTest.Assert();
+    InvalidateAfterCrossedOpenPriceAfterMinROCUnitTest.Assert();
 
-    CheckingIfMostRecentMBUnitTest.Assert();
-    CheckingIfCrossingOpenPriceAfterMinROCUnitTest.Assert();
+    ClosedPendingOrderWhenInvalidatedUnitTest.Assert();
+
+    // Run after checking tests so that I can check invalidations on the next tick
+    TSSSMB.Run();
 }
 
 void Reset()
@@ -99,7 +110,7 @@ void Reset()
     TSSSMB = new TheSunriseShatterSingleMB(MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, MRFTS, MBT);
 }
 
-int CheckingIfMostRecentMB(IntUnitTest<DefaultUnitTestRecord> &ut, int &actual)
+int InvalidateWhenNotMostRecentMB(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 {
     if (!TSSSMB.HasSetup())
     {
@@ -114,12 +125,16 @@ int CheckingIfMostRecentMB(IntUnitTest<DefaultUnitTestRecord> &ut, int &actual)
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
 
     TSSSMB.CheckInvalidateSetup();
-    actual = TSSSMB.GetLastState();
+    int state = TSSSMB.GetLastState();
+
+    // any of these mean we called InvalidateSetup()
+    actual = state == EAStates::INVALIDATING_SETUP ||
+             state == EAStates::CHECKING_IF_PENDING_ORDER ||
+             state == EAStates::CLOSING_PENDING_ORDER;
 
     return Results::UNIT_TEST_RAN;
 }
-
-int CheckingIfCrossingOpenPriceAfterMinROC(IntUnitTest<DefaultUnitTestRecord> &ut, int &actual)
+int InvalidateAfterCrossedOpenPriceAfterMinROC(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 {
     if (!TSSSMB.HasSetup())
     {
@@ -139,7 +154,41 @@ int CheckingIfCrossingOpenPriceAfterMinROC(IntUnitTest<DefaultUnitTestRecord> &u
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
 
     TSSSMB.CheckInvalidateSetup();
-    actual = TSSSMB.GetLastState();
+    int state = TSSSMB.GetLastState();
+
+    // any of these mean we called InvalidateSetup()
+    actual = state == EAStates::INVALIDATING_SETUP ||
+             state == EAStates::CHECKING_IF_PENDING_ORDER ||
+             state == EAStates::CLOSING_PENDING_ORDER;
+
+    return Results::UNIT_TEST_RAN;
+}
+
+int ClosedPendingOrderWhenInvalidated(IntUnitTest<DefaultUnitTestRecord> &ut, int &actual)
+{
+    if (!TSSSMB.HasSetup())
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    if (TSSSMB.TicketNumber() == EMPTY)
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    bool invalidation = !MBT.MBIsMostRecent(TSSSMB.FirstMBInSetupNumber()) || MRFTS.CrossedOpenPriceAfterMinROC();
+    if (!invalidation)
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
+
+    TSSSMB.CheckInvalidateSetup();
+    int state = TSSSMB.GetLastState();
+
+    actual = state == EAStates::CHECKING_IF_PENDING_ORDER ||
+             state == EAStates::CLOSING_PENDING_ORDER;
 
     return Results::UNIT_TEST_RAN;
 }

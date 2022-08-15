@@ -23,7 +23,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/EAs/The Sunrise Shatter/The Sunrise Shatter Single MB/BreakAfterMinROC/";
+const string Directory = "/UnitTests/EAs/The Sunrise Shatter/The Sunrise Shatter Single MB/FillStrategyMagicNumbers/";
 const int NumberOfAsserts = 1;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = false;

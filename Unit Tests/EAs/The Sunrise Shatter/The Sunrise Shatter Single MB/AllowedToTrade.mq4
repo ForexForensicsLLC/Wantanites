@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                         CheckInvalidateSetup.mq4 |
+//|                                               AllowedToTrade.mq4 |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -23,7 +23,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/EAs/The Sunrise Shatter/The Sunrise Shatter Single MB/CheckInvalidateSetup/";
+const string Directory = "/UnitTests/EAs/The Sunrise Shatter/The Sunrise Shatter Single MB/AllowedToTrade/";
 const int NumberOfAsserts = 1;
 const int AssertCooldown = 1;
 const bool RecordErrors = true;
@@ -45,22 +45,16 @@ const int StopLossPaddingPips = 0;
 const int MaxSpreadPips = 70;
 const double RiskPercent = 0.25;
 
-IntUnitTest<DefaultUnitTestRecord> *CheckingIfMostRecentMBUnitTest;
-IntUnitTest<DefaultUnitTestRecord> *CheckingIfCrossingOpenPriceAfterMinROCUnitTest;
+BoolUnitTest<DefaultUnitTestRecord> *AllowedToTradeUnitTest;
 
 int OnInit()
 {
     MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
 
-    CheckingIfMostRecentMBUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
-        Directory, "Most Recent MB Check", "Should Return CHECKING IF MOST RECENT MB State",
+    AllowedToTradeUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "Allowed To Trade", "Should return true, indicating the ea is allowed to trade",
         NumberOfAsserts, AssertCooldown, RecordErrors,
-        EAStates::CHECKING_IF_MOST_RECENT_MB, CheckingIfMostRecentMB);
-
-    CheckingIfCrossingOpenPriceAfterMinROCUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
-        Directory, "Crossed Open Price After ROC", "Should Return CHECKING IF CROSSED OPEN PRICE AFTER MIN ROC State",
-        NumberOfAsserts, AssertCooldown, RecordErrors,
-        EAStates::CHECKING_IF_CROSSED_OPEN_PRICE_AFTER_MIN_ROC, CheckingIfCrossingOpenPriceAfterMinROC);
+        true, AllowedToTrade);
 
     Reset();
 
@@ -73,8 +67,7 @@ void OnDeinit(const int reason)
     delete MRFTS;
     delete TSSSMB;
 
-    delete CheckingIfMostRecentMBUnitTest;
-    delete CheckingIfCrossingOpenPriceAfterMinROCUnitTest;
+    delete AllowedToTradeUnitTest;
 }
 
 void OnTick()
@@ -86,8 +79,7 @@ void OnTick()
 
     TSSSMB.Run();
 
-    CheckingIfMostRecentMBUnitTest.Assert();
-    CheckingIfCrossingOpenPriceAfterMinROCUnitTest.Assert();
+    AllowedToTradeUnitTest.Assert();
 }
 
 void Reset()
@@ -99,47 +91,20 @@ void Reset()
     TSSSMB = new TheSunriseShatterSingleMB(MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, MRFTS, MBT);
 }
 
-int CheckingIfMostRecentMB(IntUnitTest<DefaultUnitTestRecord> &ut, int &actual)
+int AllowedToTrade(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 {
-    if (!TSSSMB.HasSetup())
+    if (MRFTS.OpenPrice() == 0.0)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    if (MBT.MBIsMostRecent(TSSSMB.FirstMBInSetupNumber()))
+    if ((MarketInfo(Symbol(), MODE_SPREAD) / 10) > MaxSpreadPips)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
 
-    TSSSMB.CheckInvalidateSetup();
-    actual = TSSSMB.GetLastState();
-
-    return Results::UNIT_TEST_RAN;
-}
-
-int CheckingIfCrossingOpenPriceAfterMinROC(IntUnitTest<DefaultUnitTestRecord> &ut, int &actual)
-{
-    if (!TSSSMB.HasSetup())
-    {
-        return Results::UNIT_TEST_DID_NOT_RUN;
-    }
-
-    if (!MBT.MBIsMostRecent(TSSSMB.FirstMBInSetupNumber()))
-    {
-        return Results::UNIT_TEST_DID_NOT_RUN;
-    }
-
-    if (!MRFTS.CrossedOpenPriceAfterMinROC())
-    {
-        return Results::UNIT_TEST_DID_NOT_RUN;
-    }
-
-    ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
-
-    TSSSMB.CheckInvalidateSetup();
-    actual = TSSSMB.GetLastState();
-
+    actual = TSSSMB.AllowedToTrade();
     return Results::UNIT_TEST_RAN;
 }

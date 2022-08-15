@@ -244,7 +244,6 @@ int SetSetupVariables(int type, int &ticket, int &mbNumber, int &setupType, doub
             if (!MBT.CurrentBearishRetracementIndexIsValid(retracementIndex))
             {
                 return Results::UNIT_TEST_DID_NOT_RUN;
-                ;
             }
         }
 
@@ -266,6 +265,23 @@ int SetSetupVariables(int type, int &ticket, int &mbNumber, int &setupType, doub
 
         stopLoss = OrderStopLoss();
         entryPrice = OrderOpenPrice();
+    }
+    else
+    {
+        bool isTrue;
+        int pendingOrderError = OrderHelper::IsPendingOrder(ticket, isTrue);
+        if (isTrue)
+        {
+            OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(PaddingPips, SpreadPips, RiskPercent, mbNumber, MBT, ticket);
+        }
+
+        // This is here just to catch if the order has been closed and reset if it has
+        int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
+        if (selectError != ERR_NO_ERROR)
+        {
+            reset = true;
+            return Results::UNIT_TEST_DID_NOT_RUN;
+        }
     }
 
     return ERR_NO_ERROR;
@@ -359,7 +375,11 @@ int BullishNoErrorsSameStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
 
     actual = OrderStopLoss() == stopLoss;
 
-    reset = true;
+    if (OrderStopLoss() == OrderOpenPrice())
+    {
+        reset = true;
+    }
+
     return Results::UNIT_TEST_RAN;
 }
 
@@ -405,7 +425,10 @@ int BearishNoErrorsSameStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
 
     actual = OrderStopLoss() == stopLoss;
 
-    reset = true;
+    if (OrderStopLoss() == OrderOpenPrice())
+    {
+        reset = true;
+    }
     return Results::UNIT_TEST_RAN;
 }
 
@@ -451,7 +474,10 @@ int BullishNoErrorsDifferentStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRe
 
     actual = OrderStopLoss() != stopLoss;
 
-    reset = true;
+    if (OrderStopLoss() == OrderOpenPrice())
+    {
+        reset = true;
+    }
     return Results::UNIT_TEST_RAN;
 }
 
@@ -497,7 +523,10 @@ int BearishNoErrorsDifferentStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRe
 
     actual = OrderStopLoss() != stopLoss;
 
-    reset = true;
+    if (OrderStopLoss() == OrderOpenPrice())
+    {
+        reset = true;
+    }
     return Results::UNIT_TEST_RAN;
 }
 
@@ -576,7 +605,10 @@ int BullishDoesNotTrailPastOpen(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
     }
 
     actual = OrderStopLoss() <= entryPrice;
-    reset = true;
+    if (OrderStopLoss() == OrderOpenPrice())
+    {
+        reset = true;
+    }
 
     return Results::UNIT_TEST_RAN;
 }
@@ -622,7 +654,10 @@ int BearishDoesNotTrailPastOpen(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
     }
 
     actual = OrderStopLoss() >= entryPrice;
-    reset = true;
+    if (OrderStopLoss() == OrderOpenPrice())
+    {
+        reset = true;
+    }
 
     return Results::UNIT_TEST_RAN;
 }

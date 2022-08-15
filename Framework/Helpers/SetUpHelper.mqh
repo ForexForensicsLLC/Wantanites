@@ -32,7 +32,7 @@ public:
     // Tested
     static int MostRecentMBPlusHoldingZone(int mostRecentMBNumber, MBTracker *&mbt, out bool &isTrue);
 
-    // !Tested
+    // Tested
     static int FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOneNumber, int mbTwoNumber, MBTracker *&mbt, out bool &isTrue);
 
     // !Tested
@@ -136,27 +136,21 @@ static int SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOne
 
     if (secondMBTempMBState.Type() == OP_BUY)
     {
-        if (iLow(secondMBTempMBState.Symbol(), secondMBTempMBState.TimeFrame(), 0) < iLow(secondMBTempMBState.Symbol(), secondMBTempMBState.TimeFrame(), secondMBTempMBState.LowIndex()))
+        if (!mbt.GetSubsequentMB(mbTwoNumber, thirdMBTempState))
         {
-            if (!mbt.GetSubsequentMB(mbTwoNumber, thirdMBTempState))
-            {
-                return ExecutionErrors::SUBSEQUENT_MB_DOES_NOT_EXIST;
-            }
-
-            isTrue = mbt.MBsClosestValidZoneIsHolding(mbOneNumber, thirdMBTempState.EndIndex());
+            return ExecutionErrors::SUBSEQUENT_MB_DOES_NOT_EXIST;
         }
+
+        isTrue = mbt.MBsClosestValidZoneIsHolding(mbOneNumber, thirdMBTempState.EndIndex());
     }
     else if (secondMBTempMBState.Type() == OP_SELL)
     {
-        if (iHigh(secondMBTempMBState.Symbol(), secondMBTempMBState.TimeFrame(), 0) > iHigh(secondMBTempMBState.Symbol(), secondMBTempMBState.TimeFrame(), secondMBTempMBState.HighIndex()))
+        if (!mbt.GetSubsequentMB(mbTwoNumber, thirdMBTempState))
         {
-            if (!mbt.GetSubsequentMB(mbTwoNumber, thirdMBTempState))
-            {
-                return ExecutionErrors::SUBSEQUENT_MB_DOES_NOT_EXIST;
-            }
-
-            isTrue = mbt.MBsClosestValidZoneIsHolding(mbOneNumber, thirdMBTempState.EndIndex());
+            return ExecutionErrors::SUBSEQUENT_MB_DOES_NOT_EXIST;
         }
+
+        isTrue = mbt.MBsClosestValidZoneIsHolding(mbOneNumber, thirdMBTempState.EndIndex());
     }
 
     return ERR_NO_ERROR;
