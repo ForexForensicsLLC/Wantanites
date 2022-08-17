@@ -10,6 +10,7 @@
 
 #include <SummitCapital\Framework\Constants\Index.mqh>
 
+#include <SummitCapital\Framework\Objects\Ticket.mqh>
 #include <SummitCapital\Framework\Trackers\MBTracker.mqh>
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
 #include <SummitCapital\Framework\Helpers\SetupHelper.mqh>
@@ -33,8 +34,8 @@ input bool CalculateOnTick = true;
 
 MBTracker *MBT;
 
-const int PaddingPips = 0.0;
-const int SpreadPips = 0.0;
+const int PaddingPips = 0;
+const int SpreadPips = 0;
 const double RiskPercent = 0.25;
 const int MagicNumber = 0;
 
@@ -156,40 +157,7 @@ void OnTick()
     */
 }
 
-int CloseTicket(int &ticket)
-{
-    bool isPending = false;
-    int pendingOrderError = OrderHelper::IsPendingOrder(ticket, isPending);
-    if (pendingOrderError != ERR_NO_ERROR)
-    {
-        return pendingOrderError;
-    }
-
-    if (isPending)
-    {
-        if (!OrderDelete(ticket, clrNONE))
-        {
-            return GetLastError();
-        }
-    }
-    else
-    {
-        int orderSelectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Check Edit Stop Loss");
-        if (orderSelectError != ERR_NO_ERROR)
-        {
-            return orderSelectError;
-        }
-
-        if (!OrderClose(ticket, OrderLots(), Ask, 0, clrNONE))
-        {
-            return GetLastError();
-        }
-    }
-
-    return ERR_NO_ERROR;
-}
-
-int SetSetupVariables(int type, int &ticket, int &mbNumber, int &setupType, double &stopLoss, double &entryPrice, bool &reset)
+int SetSetupVariables(int type, Ticket *&ticket, int &mbNumber, int &setupType, double &stopLoss, double &entryPrice, bool &reset)
 {
     if (reset)
     {
@@ -198,12 +166,12 @@ int SetSetupVariables(int type, int &ticket, int &mbNumber, int &setupType, doub
         stopLoss = 0.0;
         entryPrice = 0.0;
 
-        if (ticket > 0)
+        if (ticket.Number() != EMPTY)
         {
-            int closeTicketError = CloseTicket(ticket);
+            ticket.Close();
         }
 
-        ticket = EMPTY;
+        ticket.SetNewTicket(EMPTY);
         reset = false;
     }
 
@@ -218,7 +186,7 @@ int SetSetupVariables(int type, int &ticket, int &mbNumber, int &setupType, doub
         }
     }
 
-    if (ticket == EMPTY)
+    if (ticket.Number() == EMPTY)
     {
         MBState *tempMBState;
         if (!MBT.GetNthMostRecentMB(0, tempMBState))
@@ -249,14 +217,17 @@ int SetSetupVariables(int type, int &ticket, int &mbNumber, int &setupType, doub
 
         mbNumber = tempMBState.Number();
         setupType = tempMBState.Type();
-        int error = OrderHelper::PlaceStopOrderForPendingMBValidation(PaddingPips, SpreadPips, RiskPercent, MagicNumber, mbNumber, MBT, ticket);
+
+        int ticketNumber;
+        int error = OrderHelper::PlaceStopOrderForPendingMBValidation(PaddingPips, SpreadPips, RiskPercent, MagicNumber, mbNumber, MBT, ticketNumber);
         if (error != ERR_NO_ERROR)
         {
             reset = true;
             return error;
         }
 
-        int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
+        ticket.SetNewTicket(ticketNumber);
+        int selectError = ticket.SelectIfOpen("Testing trailing stop losss");
         if (selectError != ERR_NO_ERROR)
         {
             reset = true;
@@ -268,15 +239,15 @@ int SetSetupVariables(int type, int &ticket, int &mbNumber, int &setupType, doub
     }
     else
     {
-        bool isTrue;
-        int pendingOrderError = OrderHelper::IsPendingOrder(ticket, isTrue);
-        if (isTrue)
+        bool isActive;
+        int isActiveError = ticket.IsActive(isActive);
+        if (isActive)
         {
             OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(PaddingPips, SpreadPips, RiskPercent, mbNumber, MBT, ticket);
         }
 
         // This is here just to catch if the order has been closed and reset if it has
-        int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
+        int selectError = ticket.SelectIfOpen("Testing trailing stop losss");
         if (selectError != ERR_NO_ERROR)
         {
             reset = true;
@@ -287,16 +258,16 @@ int SetSetupVariables(int type, int &ticket, int &mbNumber, int &setupType, doub
     return ERR_NO_ERROR;
 }
 
-int CheckSetup(int type, int ticket, int mbNumber, int setupType, double stopLoss, bool shouldBePendingOrder, bool newStopLossShouldBeEqual, bool shouldHaveSameTypeMBs)
+int CheckSetup(int type, Ticket *&ticket, int mbNumber, int setupType, double stopLoss, bool shouldBePendingOrder, bool newStopLossShouldBeEqual, bool shouldHaveSameTypeMBs)
 {
-    bool isPending = false;
-    int pendingOrderError = OrderHelper::IsPendingOrder(ticket, isPending);
-    if (pendingOrderError != ERR_NO_ERROR)
+    bool isActive;
+    int isActiveError = ticket.IsActive(isActive);
+    if (isActiveError != ERR_NO_ERROR)
     {
-        return pendingOrderError;
+        return isActiveError;
     }
 
-    if ((shouldBePendingOrder && !isPending) || (!shouldBePendingOrder && isPending))
+    if ((shouldBePendingOrder && !isActive) || (!shouldBePendingOrder && isActive))
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -336,7 +307,7 @@ int BullishNoErrorsSameStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
 {
     const int type = OP_BUY;
 
-    static int ticket = -1;
+    static Ticket *ticket = new Ticket(EMPTY);
     static int mbNumber = -1;
     static int setupType = -1;
     static double stopLoss = 0.0;
@@ -359,7 +330,7 @@ int BullishNoErrorsSameStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
     ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     bool succeeded = false;
-    int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
+    int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(PaddingPips, SpreadPips, mbNumber, setupType, MBT, ticket, succeeded);
     if (!succeeded)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
@@ -367,7 +338,7 @@ int BullishNoErrorsSameStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
 
     ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
-    int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
+    int selectError = ticket.SelectIfOpen("Testing trailing stop losss");
     if (selectError != ERR_NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
@@ -387,7 +358,7 @@ int BearishNoErrorsSameStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
 {
     const int type = OP_SELL;
 
-    static int ticket = -1;
+    static Ticket *ticket = new Ticket(EMPTY);
     static int mbNumber = -1;
     static int setupType = -1;
     static double stopLoss = 0.0;
@@ -409,7 +380,7 @@ int BearishNoErrorsSameStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
     ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     bool succeeded = false;
-    int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
+    int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(PaddingPips, SpreadPips, mbNumber, setupType, MBT, ticket, succeeded);
     if (!succeeded)
     {
         return trailError;
@@ -417,10 +388,10 @@ int BearishNoErrorsSameStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
 
     ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
-    int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
+    int selectError = ticket.SelectIfOpen("Testing trailing stop losss");
     if (selectError != ERR_NO_ERROR)
     {
-        return selectError;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     actual = OrderStopLoss() == stopLoss;
@@ -436,7 +407,7 @@ int BullishNoErrorsDifferentStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRe
 {
     const int type = OP_BUY;
 
-    static int ticket = -1;
+    static Ticket *ticket = new Ticket(EMPTY);
     static int mbNumber = -1;
     static int setupType = -1;
     static double stopLoss = 0.0;
@@ -458,7 +429,7 @@ int BullishNoErrorsDifferentStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRe
     ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     bool succeeded = false;
-    int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
+    int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(PaddingPips, SpreadPips, mbNumber, setupType, MBT, ticket, succeeded);
     if (!succeeded)
     {
         return trailError;
@@ -466,10 +437,10 @@ int BullishNoErrorsDifferentStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRe
 
     ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
-    int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
+    int selectError = ticket.SelectIfOpen("Testing trailing stop losss");
     if (selectError != ERR_NO_ERROR)
     {
-        return selectError;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     actual = OrderStopLoss() != stopLoss;
@@ -485,7 +456,7 @@ int BearishNoErrorsDifferentStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRe
 {
     const int type = OP_SELL;
 
-    static int ticket = -1;
+    static Ticket *ticket = new Ticket(EMPTY);
     static int mbNumber = -1;
     static int setupType = -1;
     static double stopLoss = 0.0;
@@ -507,7 +478,7 @@ int BearishNoErrorsDifferentStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRe
     ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     bool succeeded = false;
-    int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
+    int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(PaddingPips, SpreadPips, mbNumber, setupType, MBT, ticket, succeeded);
     if (!succeeded)
     {
         return trailError;
@@ -515,10 +486,10 @@ int BearishNoErrorsDifferentStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRe
 
     ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
-    int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
+    int selectError = ticket.SelectIfOpen("Testing trailing stop losss");
     if (selectError != ERR_NO_ERROR)
     {
-        return selectError;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     actual = OrderStopLoss() != stopLoss;
@@ -534,7 +505,7 @@ int DoesNotTrailPendingOrders(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
 {
     const int type = OP_SELL;
 
-    static int ticket = -1;
+    static Ticket *ticket = new Ticket(EMPTY);
     static int mbNumber = -1;
     static int setupType = -1;
     static double stopLoss = 0.0;
@@ -556,7 +527,8 @@ int DoesNotTrailPendingOrders(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
     ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     bool succeeded = false;
-    actual = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
+
+    actual = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(PaddingPips, SpreadPips, mbNumber, setupType, MBT, ticket, succeeded);
 
     ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
@@ -568,7 +540,7 @@ int BullishDoesNotTrailPastOpen(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
 {
     const int type = OP_BUY;
 
-    static int ticket = -1;
+    static Ticket *ticket = new Ticket(EMPTY);
     static int mbNumber = -1;
     static int setupType = -1;
     static double stopLoss = 0.0;
@@ -590,7 +562,7 @@ int BullishDoesNotTrailPastOpen(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
     ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     bool succeeded = false;
-    int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
+    int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(PaddingPips, SpreadPips, mbNumber, setupType, MBT, ticket, succeeded);
     if (!succeeded)
     {
         return trailError;
@@ -598,10 +570,10 @@ int BullishDoesNotTrailPastOpen(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
 
     ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
-    int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
+    int selectError = ticket.SelectIfOpen("Testing trailing stop losss");
     if (selectError != ERR_NO_ERROR)
     {
-        return selectError;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     actual = OrderStopLoss() <= entryPrice;
@@ -617,7 +589,7 @@ int BearishDoesNotTrailPastOpen(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
 {
     const int type = OP_SELL;
 
-    static int ticket = -1;
+    static Ticket *ticket = new Ticket(EMPTY);
     static int mbNumber = -1;
     static int setupType = -1;
     static double stopLoss = 0.0;
@@ -639,7 +611,7 @@ int BearishDoesNotTrailPastOpen(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
     ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     bool succeeded = false;
-    int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
+    int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(PaddingPips, SpreadPips, mbNumber, setupType, MBT, ticket, succeeded);
     if (!succeeded)
     {
         return trailError;
@@ -647,10 +619,10 @@ int BearishDoesNotTrailPastOpen(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
 
     ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
-    int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing trailing stop losss");
+    int selectError = ticket.SelectIfOpen("Testing trailing stop losss");
     if (selectError != ERR_NO_ERROR)
     {
-        return selectError;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     actual = OrderStopLoss() >= entryPrice;
@@ -664,11 +636,15 @@ int BearishDoesNotTrailPastOpen(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
 
 int SubsequentMBDoesNotExist(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut, int &actual)
 {
-    int ticket = OrderSend(Symbol(), OP_BUY, 0.1, Ask, 0, Ask - OrderHelper::PipsToRange(200), 0.0, NULL, 0, 0, clrNONE);
-    if (ticket < 0)
+    static Ticket *ticket = new Ticket(EMPTY);
+
+    int ticketNumber = OrderSend(Symbol(), OP_BUY, 0.1, Ask, 0, Ask - OrderHelper::PipsToRange(200), 0.0, NULL, 0, 0, clrNONE);
+    if (ticketNumber < 0)
     {
         return GetLastError();
     }
+
+    ticket.SetNewTicket(ticketNumber);
 
     MBState *tempMBState;
     if (!MBT.GetNthMostRecentMB(0, tempMBState))
@@ -679,11 +655,11 @@ int SubsequentMBDoesNotExist(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut
     ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     bool succeeded = false;
-    actual = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, tempMBState.Number(), tempMBState.Type(), MBT, succeeded);
+    actual = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(PaddingPips, SpreadPips, tempMBState.Number(), tempMBState.Type(), MBT, ticket, succeeded);
 
     ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
-    int error = CloseTicket(ticket);
+    int error = ticket.Close();
     if (error != ERR_NO_ERROR)
     {
         return error;
@@ -696,7 +672,7 @@ int BullishNotEqualTypesError(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
 {
     const int type = OP_BUY;
 
-    static int ticket = -1;
+    static Ticket *ticket = new Ticket(EMPTY);
     static int mbNumber = -1;
     static int setupType = -1;
     static double stopLoss = 0.0;
@@ -718,7 +694,7 @@ int BullishNotEqualTypesError(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
     ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     bool succeeded = false;
-    actual = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
+    actual = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(PaddingPips, SpreadPips, mbNumber, setupType, MBT, ticket, succeeded);
     reset = true;
 
     ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
@@ -730,7 +706,7 @@ int BearishNotEqualTypesError(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
 {
     const int type = OP_SELL;
 
-    static int ticket = -1;
+    static Ticket *ticket = new Ticket(EMPTY);
     static int mbNumber = -1;
     static int setupType = -1;
     static double stopLoss = 0.0;
@@ -752,7 +728,7 @@ int BearishNotEqualTypesError(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
     ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory());
 
     bool succeeded = false;
-    actual = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(ticket, PaddingPips, SpreadPips, mbNumber, setupType, MBT, succeeded);
+    actual = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(PaddingPips, SpreadPips, mbNumber, setupType, MBT, ticket, succeeded);
     reset = true;
 
     ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());

@@ -108,6 +108,7 @@ bool ZoneState::IsHolding(int barIndex)
 }
 
 // checks if a zone was broken from its entry index to the current bar
+// TODO: Do I need to add offset to this that matches the offset when the zone was created?
 bool ZoneState::IsBroken()
 {
     if (mType == OP_BUY)

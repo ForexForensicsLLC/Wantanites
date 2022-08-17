@@ -39,8 +39,13 @@ public:
                               MBTracker *&mbt);
     ~TheSunriseShatterDoubleMB();
 
+    int FirstMBInSetupNumber() { return mFirstMBInSetupNumber; }
+    int SecondMBInSetupNumber() { return mSecondMBInSetupNumber; }
+    void Ticket(Ticket *&ticket) { ticket = mTicket; }
+
     static int MagicNumber;
 
+    // Tested
     virtual void FillStrategyMagicNumbers();
     virtual void SetActiveTickets();
 
@@ -50,8 +55,10 @@ public:
 
     virtual void CheckTicket();
     virtual void Manage();
-    virtual void CheckInvalidateSetup();
-    virtual void StopTrading(int error);
+    virtual void CheckStopTrading();
+    virtual void StopTrading(bool deletePendingOrder, int error);
+
+    // Tested
     virtual bool AllowedToTrade();
     virtual bool Confirmation();
     virtual void PlaceOrders();
@@ -70,8 +77,14 @@ TheSunriseShatterDoubleMB::TheSunriseShatterDoubleMB(int maxTradesPerStrategy, i
 
     mMBT = mbt;
     mMRFTS = mrfts;
+    mTicket = new Ticket();
+
+    mSetupType = EMPTY;
+    mFirstMBInSetupNumber = EMPTY;
+    mSecondMBInSetupNumber = EMPTY;
 
     FillStrategyMagicNumbers();
+    SetActiveTickets();
 }
 
 TheSunriseShatterDoubleMB::~TheSunriseShatterDoubleMB()
@@ -93,7 +106,7 @@ void TheSunriseShatterDoubleMB::FillStrategyMagicNumbers()
 void TheSunriseShatterDoubleMB::SetActiveTickets()
 {
     int tickets[];
-    int findTicketsError = OrderHelper::FindActiveTicketsByMagicNumber(MagicNumber, tickets);
+    int findTicketsError = OrderHelper::FindActiveTicketsByMagicNumber(true, MagicNumber, tickets);
     if (findTicketsError != ERR_NO_ERROR)
     {
         EA<DefaultTradeRecord>::RecordError(findTicketsError);
@@ -107,16 +120,20 @@ void TheSunriseShatterDoubleMB::SetActiveTickets()
 
 void TheSunriseShatterDoubleMB::CheckTicket()
 {
+    mLastState = EAStates::CHECKING_TICKET;
+
     if (mTicket.Number() == EMPTY)
     {
         return;
     }
 
+    mLastState = EAStates::CHECKING_IF_TICKET_IS_ACTIVE;
+
     bool activated;
     int activatedError = mTicket.WasActivated(activated);
     if (TerminalErrors::IsTerminalError(activatedError))
     {
-        StopTrading(activatedError);
+        StopTrading(false, activatedError);
         return;
     }
 
@@ -125,11 +142,13 @@ void TheSunriseShatterDoubleMB::CheckTicket()
         RecordPostOrderOpenData();
     }
 
+    mLastState = EAStates::CHECKING_IF_TICKET_IS_CLOSED;
+
     bool closed;
     int closeError = mTicket.WasClosed(closed);
     if (TerminalErrors::IsTerminalError(closeError))
     {
-        StopTrading(closeError);
+        StopTrading(false, closeError);
         return;
     }
 
@@ -137,6 +156,9 @@ void TheSunriseShatterDoubleMB::CheckTicket()
     {
         RecordOrderCloseData();
         CSVRecordWriter<DefaultTradeRecord>::Write();
+
+        StopTrading(false);
+        mTicket.SetNewTicket(EMPTY);
     }
 }
 
@@ -154,7 +176,7 @@ void TheSunriseShatterDoubleMB::Manage()
     int isActiveError = mTicket.IsActive(isActive);
     if (TerminalErrors::IsTerminalError(isActiveError))
     {
-        StopTrading(isActiveError);
+        StopTrading(false, isActiveError);
         return;
     }
 
@@ -167,7 +189,7 @@ void TheSunriseShatterDoubleMB::Manage()
 
         if (TerminalErrors::IsTerminalError(editStopLossError))
         {
-            StopTrading(editStopLossError);
+            StopTrading(true, editStopLossError);
             return;
         }
     }
@@ -181,57 +203,84 @@ void TheSunriseShatterDoubleMB::Manage()
 
         if (TerminalErrors::IsTerminalError(trailError))
         {
-            StopTrading(trailError);
+            StopTrading(false, trailError);
             return;
         }
     }
 }
 
-void TheSunriseShatterDoubleMB::CheckInvalidateSetup()
+void TheSunriseShatterDoubleMB::CheckStopTrading()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
+
+    // Want to try to close the pending order if we have a setup or not and we break the range start
+    if (mSecondMBInSetupNumber != EMPTY)
+    {
+        mLastState = EAStates::CHECKING_IF_BROKE_RANGE_START;
+
+        bool brokeRangeStart;
+        int brokeRangeStartError = SetupHelper::BrokeMBRangeStart(mSecondMBInSetupNumber, mMBT, brokeRangeStart);
+        if (TerminalErrors::IsTerminalError(brokeRangeStartError))
+        {
+            StopTrading(true, brokeRangeStartError);
+            return;
+        }
+
+        if (brokeRangeStart)
+        {
+            StopTrading(true);
+            return;
+        }
+    }
 
     if (!mHasSetup)
     {
         return;
     }
 
-    mLastState = EAStates::CHECKING_IF_MOST_RECENT_MB;
+    mLastState = EAStates::CHECKING_IF_CROSSED_OPEN_PRICE_AFTER_MIN_ROC;
 
-    // don't have to check for broken start range or if the next mb is the same type.
-    // The setup is invalid if ANY mb gets printed after the first
-    if (!mMBT.MBIsMostRecent(mSecondMBInSetupNumber))
+    // should be checked before checking if we broke the range end so that it can cancel the pending order
+    if (mMRFTS.CrossedOpenPriceAfterMinROC())
     {
-        StopTrading();
+        StopTrading(true);
+    }
+
+    MBState *tempMBState;
+    if (!mMBT.GetNthMostRecentMB(0, tempMBState))
+    {
+        StopTrading(true, TerminalErrors::MB_DOES_NOT_EXIST);
         return;
     }
 
-    mLastState = EAStates::CHECKING_IF_CROSSED_OPEN_PRICE_AFTER_MIN_ROC;
-
-    if (mMRFTS.CrossedOpenPriceAfterMinROC())
+    // should invalide the setup no matter if we have a ticket or not. Just don't cancel the ticket if we do
+    // will allow the ticket to be hit since there is spread calculated and it is above the mb
+    if (tempMBState.Number() != mSecondMBInSetupNumber)
     {
-        StopTrading();
+        StopTrading(false);
+        return;
     }
 }
 
-void TheSunriseShatterDoubleMB::StopTrading(int error = ERR_NO_ERROR)
+void TheSunriseShatterDoubleMB::StopTrading(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
-    mLastState = EAStates::INVALIDATING_SETUP;
-
     mHasSetup = false;
     mStopTrading = true;
-
-    if (mTicket.Number() == EMPTY)
-    {
-        return;
-    }
 
     if (error != ERR_NO_ERROR)
     {
         EA<DefaultTradeRecord>::RecordError(error);
     }
 
-    mLastState = EAStates::CHECKING_IF_PENDING_ORDER;
+    if (mTicket.Number() == EMPTY)
+    {
+        return;
+    }
+
+    if (!deletePendingOrder)
+    {
+        return;
+    }
 
     bool isActive = false;
     int isActiveError = mTicket.IsActive(isActive);
@@ -240,13 +289,13 @@ void TheSunriseShatterDoubleMB::StopTrading(int error = ERR_NO_ERROR)
     // as soon as the setup is finished
     if (!isActive)
     {
-        mLastState = EAStates::CLOSING_PENDING_ORDER;
-
         int closeError = mTicket.Close();
         if (TerminalErrors::IsTerminalError(closeError))
         {
             EA<DefaultTradeRecord>::RecordError(closeError);
         }
+
+        mTicket.SetNewTicket(EMPTY);
     }
 }
 
@@ -265,7 +314,8 @@ bool TheSunriseShatterDoubleMB::Confirmation()
     int confirmationError = SetupHelper::MostRecentMBPlusHoldingZone(mSecondMBInSetupNumber, mMBT, isTrue);
     if (confirmationError == ExecutionErrors::MB_IS_NOT_MOST_RECENT)
     {
-        StopTrading(confirmationError);
+        StopTrading(false, confirmationError);
+        return false;
     }
 
     return isTrue;
@@ -281,16 +331,16 @@ void TheSunriseShatterDoubleMB::PlaceOrders()
     mLastState = EAStates::COUNTING_OTHER_EA_ORDERS;
 
     int orders = 0;
-    int ordersError = OrderHelper::CountOtherEAOrders(mStrategyMagicNumbers, orders);
+    int ordersError = OrderHelper::CountOtherEAOrders(true, mStrategyMagicNumbers, orders);
     if (ordersError != ERR_NO_ERROR)
     {
-        StopTrading(ordersError);
+        StopTrading(false, ordersError);
         return;
     }
 
-    if (orders > mMaxTradesPerStrategy)
+    if (orders >= mMaxTradesPerStrategy)
     {
-        StopTrading();
+        StopTrading(false);
         return;
     }
 
@@ -304,7 +354,14 @@ void TheSunriseShatterDoubleMB::PlaceOrders()
     if (ticketNumber == EMPTY)
     {
         PendingRecord.Reset();
-        StopTrading(orderPlaceError);
+        if (TerminalErrors::IsTerminalError(orderPlaceError))
+        {
+            StopTrading(false, orderPlaceError);
+        }
+        else
+        {
+            StopTrading(false);
+        }
 
         return;
     }
@@ -345,8 +402,6 @@ void TheSunriseShatterDoubleMB::RecordOrderCloseData()
     PendingRecord.ExitImage = imageName;
     PendingRecord.ExitPrice = OrderClosePrice();
     PendingRecord.ExitStopLoss = OrderStopLoss();
-
-    CSVRecordWriter<DefaultTradeRecord>::Write();
 }
 
 void TheSunriseShatterDoubleMB::CheckSetSetup()
@@ -364,7 +419,7 @@ void TheSunriseShatterDoubleMB::CheckSetSetup()
     int setupError = SetupHelper::BreakAfterMinROC(mMRFTS, mMBT, isTrue);
     if (TerminalErrors::IsTerminalError(setupError))
     {
-        StopTrading(setupError);
+        StopTrading(false, setupError);
         return;
     }
 
@@ -380,7 +435,7 @@ void TheSunriseShatterDoubleMB::CheckSetSetup()
         MBState *mbOneTempState;
         if (!mMBT.GetNthMostRecentMB(0, mbOneTempState))
         {
-            StopTrading(TerminalErrors::MB_DOES_NOT_EXIST);
+            StopTrading(false, TerminalErrors::MB_DOES_NOT_EXIST);
             return;
         }
 
@@ -420,7 +475,7 @@ void TheSunriseShatterDoubleMB::Run()
 
     CheckTicket();
     Manage();
-    CheckInvalidateSetup();
+    CheckStopTrading();
 
     if (!AllowedToTrade())
     {

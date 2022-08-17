@@ -37,6 +37,7 @@ public:
     EA(int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, double riskPercent);
     ~EA();
 
+    bool IsDoneTrading() { return mStopTrading; }
     bool HasSetup() { return mHasSetup; }
     bool WasReset() { return mWasReset; }
     int GetLastState() { return mLastState; }
@@ -59,8 +60,8 @@ public:
 
     virtual void CheckTicket();
     virtual void Manage();
-    virtual void CheckInvalidateSetup();
-    virtual void StopTrading(int error);
+    virtual void CheckStopTrading();
+    virtual void StopTrading(bool deletePendingOrder, int error);
     virtual bool AllowedToTrade();
     virtual bool Confirmation();
     virtual void PlaceOrders();

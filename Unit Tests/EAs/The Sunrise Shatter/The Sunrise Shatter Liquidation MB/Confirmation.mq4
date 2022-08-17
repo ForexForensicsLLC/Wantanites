@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                               AllowedToTrade.mq4 |
+//|                                                 Confirmation.mq4 |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -7,7 +7,6 @@
 #property link "https://www.mql5.com"
 #property version "1.00"
 #property strict
-
 #include <SummitCapital\EAs\The Sunrise Shatter\TheSunriseShatterSingleMB.mqh>
 #include <SummitCapital\EAs\The Sunrise Shatter\TheSunriseShatterDoubleMB.mqh>
 #include <SummitCapital\EAs\The Sunrise Shatter\TheSunriseShatterLiquidationMB.mqh>
@@ -23,7 +22,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/EAs/The Sunrise Shatter/The Sunrise Shatter Single MB/AllowedToTrade/";
+const string Directory = "/UnitTests/EAs/The Sunrise Shatter/The Sunrise Shatter Liqudidation MB/Confirmation/";
 const int NumberOfAsserts = 25;
 const int AssertCooldown = 1;
 const bool RecordErrors = true;
@@ -39,32 +38,22 @@ input bool CalculateOnTick = true;
 
 MinROCFromTimeStamp *MRFTS;
 
-TheSunriseShatterSingleMB *TSSSMB;
+TheSunriseShatterLiquidationMB *TSSLMB;
 const int MaxTradesPerStrategy = 1;
 const int StopLossPaddingPips = 0;
 const int MaxSpreadPips = 70;
 const double RiskPercent = 0.25;
 
-// https://drive.google.com/drive/folders/1OHTHHN7kg9Gy_EHPPpJcWmD9nDGW8_fm?usp=sharing
-BoolUnitTest<DefaultUnitTestRecord> *AllowedToTradeUnitTest;
-
-// https://drive.google.com/drive/folders/1zfXL9OC0r3Nax3lMjyX-I-4JlNvOJfxv?usp=sharing
-BoolUnitTest<DefaultUnitTestRecord> *TooMuchSpreadUnitTest;
+BoolUnitTest<DefaultUnitTestRecord> *HasConfirmationUnitTest;
 
 int OnInit()
 {
-    AllowedToTradeUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
-        Directory, "Allowed To Trade", "Should return true indicating the ea is allowed to trade",
+    HasConfirmationUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "Has Confirmation", "Should Return True, Indication There Is Confirmation",
         NumberOfAsserts, AssertCooldown, RecordErrors,
-        true, AllowedToTrade);
-
-    TooMuchSpreadUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
-        Directory, "Too Much Spread", "Should Return False indicating that the ea cant trade due to too much spread",
-        NumberOfAsserts, AssertCooldown, RecordErrors,
-        false, TooMuchSpread);
+        true, HasConfirmation);
 
     Reset();
-
     return (INIT_SUCCEEDED);
 }
 
@@ -72,59 +61,47 @@ void OnDeinit(const int reason)
 {
     delete MBT;
     delete MRFTS;
-    delete TSSSMB;
+    delete TSSLMB;
 
-    delete AllowedToTradeUnitTest;
-    delete TooMuchSpreadUnitTest;
+    delete HasConfirmationUnitTest;
 }
 
 void OnTick()
 {
-    if (MRFTS.HadMinROC() && TSSSMB.IsDoneTrading())
+    if (MRFTS.HadMinROC() && TSSLMB.IsDoneTrading())
     {
         Reset();
     }
 
-    TSSSMB.Run();
+    TSSLMB.Run();
 
-    // AllowedToTradeUnitTest.Assert();
-    TooMuchSpreadUnitTest.Assert();
+    HasConfirmationUnitTest.Assert();
 }
 
 void Reset()
 {
-    delete TSSSMB;
-
+    delete TSSLMB;
     MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
-    MRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), 23, Minute(), Minute() + 1, 0.05);
-    TSSSMB = new TheSunriseShatterSingleMB(MaxTradesPerStrategy, StopLossPaddingPips, 5, RiskPercent, MRFTS, MBT);
+    MRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), 23, Minute(), 59, 0.01);
+    TSSLMB = new TheSunriseShatterLiquidationMB(MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, MRFTS, MBT);
 }
 
-int AllowedToTrade(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
+int HasConfirmation(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 {
-    if (MRFTS.OpenPrice() == 0.0)
+    if (!TSSLMB.HasSetup())
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    if ((MarketInfo(Symbol(), MODE_SPREAD) / 10) > MaxSpreadPips)
+    bool hasConfirmation = false;
+    int confirmationError = SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(TSSLMB.FirstMBInSetupNumber(), TSSLMB.SecondMBInSetupNumber(), MBT, hasConfirmation);
+    if (confirmationError == ExecutionErrors::MB_IS_NOT_MOST_RECENT)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
 
-    actual = TSSSMB.AllowedToTrade();
-    return Results::UNIT_TEST_RAN;
-}
-
-int TooMuchSpread(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
-{
-    if (MRFTS.OpenPrice() == 0.0)
-    {
-        return Results::UNIT_TEST_DID_NOT_RUN;
-    }
-
-    actual = TSSSMB.AllowedToTrade();
+    actual = TSSLMB.Confirmation();
     return Results::UNIT_TEST_RAN;
 }

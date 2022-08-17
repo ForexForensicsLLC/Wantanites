@@ -169,6 +169,11 @@ bool MBState::ClosestValidZoneIsHolding(int barIndex)
     ZoneState *tempZoneState;
     if (GetClosestValidZone(tempZoneState))
     {
+        if (barIndex > tempZoneState.EndIndex())
+        {
+            barIndex = tempZoneState.EndIndex();
+        }
+
         return tempZoneState.IsHolding(barIndex);
     }
 

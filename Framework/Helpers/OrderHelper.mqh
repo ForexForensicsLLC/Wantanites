@@ -75,10 +75,10 @@ public:
 
     // Tested
     // ResetsOutParam
-    static int CountOtherEAOrders(int &magicNumbers[], out int &orders);
+    static int CountOtherEAOrders(bool todayOnly, int &magicNumbers[], out int &orders);
 
     // !Tested
-    static int FindActiveTicketsByMagicNumber(int magicNumber, int &tickets[]);
+    static int FindActiveTicketsByMagicNumber(bool todayOnly, int magicNumber, int &tickets[]);
 
     // ==========================================================================
     // Placing Limit Orders
@@ -438,7 +438,7 @@ static int OrderHelper::IsPendingOrder(int ticket, out bool &isTrue)
 }
 */
 
-static int OrderHelper::CountOtherEAOrders(int &magicNumbers[], out int &orders)
+static int OrderHelper::CountOtherEAOrders(bool todayOnly, int &magicNumbers[], out int &orders)
 {
     orders = 0;
     for (int i = 0; i < OrdersTotal(); i++)
@@ -457,6 +457,12 @@ static int OrderHelper::CountOtherEAOrders(int &magicNumbers[], out int &orders)
         {
             if (OrderMagicNumber() == magicNumbers[j])
             {
+                datetime openDate = OrderOpenTime();
+                if (todayOnly && (TimeYear(openDate) != Year() || TimeMonth(openDate) != Month() || TimeDay(openDate) != Day()))
+                {
+                    continue;
+                }
+
                 orders += 1;
             }
         }
@@ -465,7 +471,7 @@ static int OrderHelper::CountOtherEAOrders(int &magicNumbers[], out int &orders)
     return ERR_NO_ERROR;
 }
 
-static int OrderHelper::FindActiveTicketsByMagicNumber(int magicNumber, int &tickets[])
+static int OrderHelper::FindActiveTicketsByMagicNumber(bool todayOnly, int magicNumber, int &tickets[])
 {
     ArrayFree(tickets);
     ArrayResize(tickets, 0);
@@ -482,8 +488,14 @@ static int OrderHelper::FindActiveTicketsByMagicNumber(int magicNumber, int &tic
             return error;
         }
 
-        if (OrderMagicNumber() == magicNumber)
+        if (OrderMagicNumber() == magicNumber && OrderType() < 2 && OrderCloseTime() == 0)
         {
+            datetime openDate = OrderOpenTime();
+            if (todayOnly && (TimeYear(openDate) != Year() || TimeMonth(openDate) != Month() || TimeDay(openDate) != Day()))
+            {
+                continue;
+            }
+
             ArrayResize(tickets, ArraySize(tickets) + 1);
             tickets[ArraySize(tickets) - 1] = OrderTicket();
         }

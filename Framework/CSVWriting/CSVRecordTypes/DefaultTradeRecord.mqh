@@ -36,8 +36,8 @@ public:
     DefaultTradeRecord();
     ~DefaultTradeRecord();
 
-    double TotalMovePips() { return NormalizeDouble(OrderHelper::RangeToPips((EntryPrice - ExitPrice)), 2); }
-    double PotentialRR() { return NormalizeDouble((EntryPrice - ExitPrice) / (EntryPrice - EntryStopLoss), 2); }
+    double TotalMovePips();
+    double PotentialRR();
 
     virtual void WriteHeaders(int fileHandle);
     virtual void WriteRecord(int fileHandle);
@@ -50,6 +50,21 @@ DefaultTradeRecord::DefaultTradeRecord()
 }
 
 DefaultTradeRecord::~DefaultTradeRecord() {}
+
+double DefaultTradeRecord::TotalMovePips()
+{
+    return NormalizeDouble(OrderHelper::RangeToPips((EntryPrice - ExitPrice)), 2);
+}
+
+double DefaultTradeRecord::PotentialRR()
+{
+    if (EntryPrice - EntryStopLoss == 0)
+    {
+        return -9999999.9;
+    }
+
+    return NormalizeDouble((EntryPrice - ExitPrice) / (EntryPrice - EntryStopLoss), 2);
+}
 
 void DefaultTradeRecord::WriteHeaders(int fileHandle)
 {

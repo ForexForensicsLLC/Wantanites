@@ -19,8 +19,8 @@
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/Objects/ZoneState/IsHolding/";
-const int NumberOfAsserts = 100;
-const int AssertCooldown = 1;
+const int NumberOfAsserts = 500;
+const int AssertCooldown = 0;
 const bool RecordErrors = true;
 
 input int MBsToTrack = 3;
@@ -87,13 +87,11 @@ void OnTick()
     MBT.DrawNMostRecentMBs(1);
     MBT.DrawZonesForNMostRecentMBs(1);
 
-    BullishIsHoldingUnitTest.Assert();
-    BearishIsHoldingUnitTest.Assert();
+    // BullishIsHoldingUnitTest.Assert();
+    // BearishIsHoldingUnitTest.Assert();
 
-    /*
     BullishNotHoldingUnitTest.Assert();
     BearishNotHoldingUnitTest.Assert();
-    */
 }
 
 int CheckSetup(int type, bool zoneShouldBeHolding, int &mbEndIndex)
@@ -115,7 +113,7 @@ int CheckSetup(int type, bool zoneShouldBeHolding, int &mbEndIndex)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    bool zoneIsHolding = tempZoneState.IsHolding(tempMBState.EndIndex());
+    bool zoneIsHolding = tempZoneState.IsHolding(tempZoneState.EndIndex());
 
     if ((zoneShouldBeHolding && !zoneIsHolding) || (!zoneShouldBeHolding && zoneIsHolding))
     {

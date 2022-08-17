@@ -23,13 +23,13 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/EAs/The Sunrise Shatter/The Sunrise Shatter Single MB/InvalidateSetup/";
-const int NumberOfAsserts = 1;
-const int AssertCooldown = 1;
+const string Directory = "/UnitTests/EAs/The Sunrise Shatter/The Sunrise Shatter Single MB/StopTrading/";
+const int NumberOfAsserts = 25;
+const int AssertCooldown = 0;
 const bool RecordErrors = true;
 
 MBTracker *MBT;
-input int MBsToTrack = 3;
+input int MBsToTrack = 8;
 input int MaxZonesInMB = 5;
 input bool AllowMitigatedZones = false;
 input bool AllowZonesAfterMBValidation = true;
@@ -42,32 +42,30 @@ MinROCFromTimeStamp *MRFTS;
 TheSunriseShatterSingleMB *TSSSMB;
 const int MaxTradesPerStrategy = 1;
 const int StopLossPaddingPips = 0;
-const int MaxSpreadPips = 70;
+const int MaxSpreadPips = 16;
 const double RiskPercent = 0.25;
 
-BoolUnitTest<DefaultUnitTestRecord> *InvalidateWhenNotMostRecentMBUnitTest;
+BoolUnitTest<DefaultUnitTestRecord> *InvalidateWhenBrokenSetupMBUnitTest;
 BoolUnitTest<DefaultUnitTestRecord> *InvalidateAfterCrossedOpenPriceAfterMinROCUnitTest;
 
 IntUnitTest<DefaultUnitTestRecord> *ClosedPendingOrderWhenInvalidatedUnitTest;
 
 int OnInit()
 {
-    MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
-
-    InvalidateWhenNotMostRecentMBUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
-        Directory, "Invalidate When Not Most Recent MB", "GetLastState should return 1 of 3 possible states, indicating InvalidateSetup() was called",
+    InvalidateWhenBrokenSetupMBUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "Broken Setup MB", "GetLastState should return true indicating InvalidateSetup() was called",
         NumberOfAsserts, AssertCooldown, RecordErrors,
-        true, InvalidateWhenNotMostRecentMB);
+        true, InvalidateWhenBrokenSetupMB);
 
     InvalidateAfterCrossedOpenPriceAfterMinROCUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
-        Directory, "Invalidate After Crossed Open After Min ROC", "GetLastState should return 1 of 3 possible states, indicating InvalidateSetup() was called",
+        Directory, "Crossed Open After", "GetLastState should return 1 of 3 possible states indicating InvalidateSetup() was called",
         NumberOfAsserts, AssertCooldown, RecordErrors,
         true, InvalidateAfterCrossedOpenPriceAfterMinROC);
 
     ClosedPendingOrderWhenInvalidatedUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "Closed Pending Order", "GetLastState should return CLOSING PENDING ORDER",
         NumberOfAsserts, AssertCooldown, RecordErrors,
-        EAStates::CHECKING_IF_PENDING_ORDER, ClosedPendingOrderWhenInvalidated);
+        true, ClosedPendingOrderWhenInvalidated);
 
     Reset();
     return (INIT_SUCCEEDED);
@@ -79,7 +77,7 @@ void OnDeinit(const int reason)
     delete MRFTS;
     delete TSSSMB;
 
-    delete InvalidateWhenNotMostRecentMBUnitTest;
+    delete InvalidateWhenBrokenSetupMBUnitTest;
     delete InvalidateAfterCrossedOpenPriceAfterMinROCUnitTest;
 
     delete ClosedPendingOrderWhenInvalidatedUnitTest;
@@ -87,15 +85,16 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    if (MRFTS.HadMinROC() && TSSSMB.StopTrading())
+    InvalidateWhenBrokenSetupMBUnitTest.Assert();
+    // InvalidateAfterCrossedOpenPriceAfterMinROCUnitTest.Assert();
+
+    // ClosedPendingOrderWhenInvalidatedUnitTest.Assert();
+
+    // Print("Has Setup: ", TSSSMB.HasSetup(), "Had Min ROC: ", MRFTS.HadMinROC(), ", Stop Trading: ", TSSSMB.IsDoneTrading());
+    if (MRFTS.HadMinROC() && TSSSMB.IsDoneTrading())
     {
         Reset();
     }
-
-    InvalidateWhenNotMostRecentMBUnitTest.Assert();
-    InvalidateAfterCrossedOpenPriceAfterMinROCUnitTest.Assert();
-
-    ClosedPendingOrderWhenInvalidatedUnitTest.Assert();
 
     // Run after checking tests so that I can check invalidations on the next tick
     TSSSMB.Run();
@@ -103,37 +102,41 @@ void OnTick()
 
 void Reset()
 {
-    delete MRFTS;
-    MRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), 23, Minute(), 59, 0.05);
-
     delete TSSSMB;
+
+    MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
+    MRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), 23, Minute(), 59, 0.01);
     TSSSMB = new TheSunriseShatterSingleMB(MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, MRFTS, MBT);
 }
 
-int InvalidateWhenNotMostRecentMB(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
+int InvalidateWhenBrokenSetupMB(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 {
     if (!TSSSMB.HasSetup())
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    if (MBT.MBIsMostRecent(TSSSMB.FirstMBInSetupNumber()))
+    MBState *tempMBState;
+    if (!MBT.GetMB(TSSSMB.FirstMBInSetupNumber(), tempMBState))
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    if (!tempMBState.IsBroken(tempMBState.EndIndex()))
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
 
-    TSSSMB.CheckInvalidateSetup();
-    int state = TSSSMB.GetLastState();
+    bool hasSetup = TSSSMB.HasSetup();
 
-    // any of these mean we called InvalidateSetup()
-    actual = state == EAStates::INVALIDATING_SETUP ||
-             state == EAStates::CHECKING_IF_PENDING_ORDER ||
-             state == EAStates::CLOSING_PENDING_ORDER;
+    TSSSMB.CheckStopTrading();
 
+    actual = hasSetup != TSSSMB.HasSetup() && !TSSSMB.HasSetup();
     return Results::UNIT_TEST_RAN;
 }
+
 int InvalidateAfterCrossedOpenPriceAfterMinROC(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 {
     if (!TSSSMB.HasSetup())
@@ -153,14 +156,12 @@ int InvalidateAfterCrossedOpenPriceAfterMinROC(BoolUnitTest<DefaultUnitTestRecor
 
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
 
-    TSSSMB.CheckInvalidateSetup();
-    int state = TSSSMB.GetLastState();
+    bool hasSetup = TSSSMB.HasSetup();
 
-    // any of these mean we called InvalidateSetup()
-    actual = state == EAStates::INVALIDATING_SETUP ||
-             state == EAStates::CHECKING_IF_PENDING_ORDER ||
-             state == EAStates::CLOSING_PENDING_ORDER;
+    TSSSMB.CheckStopTrading();
 
+    // has setup should have been reset if we called StopTrading()
+    actual = TSSSMB.HasSetup() != hasSetup;
     return Results::UNIT_TEST_RAN;
 }
 
@@ -176,7 +177,13 @@ int ClosedPendingOrderWhenInvalidated(IntUnitTest<DefaultUnitTestRecord> &ut, in
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    bool invalidation = !MBT.MBIsMostRecent(TSSSMB.FirstMBInSetupNumber()) || MRFTS.CrossedOpenPriceAfterMinROC();
+    MBState *tempMBState;
+    if (!MBT.GetMB(TSSSMB.FirstMBInSetupNumber(), tempMBState))
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    bool invalidation = tempMBState.IsBroken(tempMBState.EndIndex()) || MRFTS.CrossedOpenPriceAfterMinROC();
     if (!invalidation)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
@@ -184,11 +191,8 @@ int ClosedPendingOrderWhenInvalidated(IntUnitTest<DefaultUnitTestRecord> &ut, in
 
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
 
-    TSSSMB.CheckInvalidateSetup();
-    int state = TSSSMB.GetLastState();
-
-    actual = state == EAStates::CHECKING_IF_PENDING_ORDER ||
-             state == EAStates::CLOSING_PENDING_ORDER;
+    TSSSMB.CheckStopTrading();
+    actual = TSSSMB.TicketNumber() == EMPTY;
 
     return Results::UNIT_TEST_RAN;
 }

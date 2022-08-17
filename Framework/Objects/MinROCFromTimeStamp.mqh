@@ -240,8 +240,8 @@ bool MinROCFromTimeStamp::CrossedOpenPriceAfterMinROC()
     {
         if (mOpenPrice > 0.0 && mHadMinROC && iTime(mSymbol, mTimeFrame, 0) > mMinROCAchievedTime)
         {
-            mCrossedOpenPriceAfterMinROC = (iLow(mSymbol, mTimeFrame, 1) > mOpenPrice && iLow(mSymbol, mTimeFrame, 0) < mOpenPrice) ||
-                                           (iHigh(mSymbol, mTimeFrame, 1) < mOpenPrice && iHigh(mSymbol, mTimeFrame, 0) > mOpenPrice);
+            mCrossedOpenPriceAfterMinROC = (iLow(mSymbol, mTimeFrame, 1) > mOpenPrice && iLow(mSymbol, mTimeFrame, 0) <= mOpenPrice) ||
+                                           (iHigh(mSymbol, mTimeFrame, 1) < mOpenPrice && iHigh(mSymbol, mTimeFrame, 0) >= mOpenPrice);
         }
     }
 

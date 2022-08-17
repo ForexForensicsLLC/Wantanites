@@ -32,10 +32,16 @@ public:
 
     int Number() { return mNumber; }
 
+    // Tested
     int WasActivated(bool &active);
+
+    // Tested
     int IsActive(bool &active);
 
+    // Tested
     int WasClosed(bool &closed);
+
+    // Tested
     int IsClosed(bool &closed);
 
     int Close();
@@ -115,7 +121,7 @@ int Ticket::SelectIfOpen(string action)
         return selectOrderError;
     }
 
-    if (OrderCloseTime() > 0)
+    if (OrderCloseTime() != 0)
     {
         return TerminalErrors::ORDER_IS_CLOSED;
     }
@@ -141,9 +147,10 @@ int Ticket::SelectIfClosed(string action)
 
 int Ticket::InternalCheckActive(bool &isActive)
 {
-    int selectTicketError = SelectTicket("Checking if Active");
+    int selectTicketError = SelectIfOpen("Checking if Active");
     if (selectTicketError != ERR_NO_ERROR)
     {
+        isActive = false;
         return selectTicketError;
     }
 
@@ -153,7 +160,7 @@ int Ticket::InternalCheckActive(bool &isActive)
         return ERR_NO_ERROR;
     }
 
-    mIsActive = OrderClosePrice() == 0;
+    mIsActive = true;
     isActive = mIsActive;
 
     return ERR_NO_ERROR;
@@ -161,14 +168,16 @@ int Ticket::InternalCheckActive(bool &isActive)
 
 int Ticket::InternalCheckClosed(bool &closed)
 {
-    int selectTicketError = SelectTicket("Checking if Closed");
+    int selectTicketError = SelectIfClosed("Checking if Closed");
     if (selectTicketError != ERR_NO_ERROR)
     {
         closed = false;
         return ERR_NO_ERROR;
     }
 
-    closed = OrderClosePrice() > 0;
+    mIsClosed = true;
+    closed = mIsClosed;
+
     return ERR_NO_ERROR;
 }
 
@@ -180,7 +189,6 @@ int Ticket::InternalCheckClosed(bool &closed)
  */
 int Ticket::WasActivated(bool &activated)
 {
-    // Already an OP_BUY or OP_SELL order, can return false
     if (mIsActive)
     {
         activated = false;
@@ -198,7 +206,6 @@ int Ticket::WasActivated(bool &activated)
  */
 int Ticket::IsActive(bool &active)
 {
-    // Already an OP_BUY or OP_SELL order, can return true
     if (mIsActive)
     {
         active = true;
@@ -259,7 +266,7 @@ int Ticket::Close()
     }
     else
     {
-        double closeAt = OrderType() == OP_BUY ? Ask : Bid;
+        double closeAt = OrderType() == OP_BUY ? Bid : Ask;
         if (!OrderClose(mNumber, OrderLots(), closeAt, 0, clrNONE))
         {
             return GetLastError();

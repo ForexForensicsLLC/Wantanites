@@ -199,7 +199,6 @@ static int SetupHelper::BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker 
         return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
-    // TODO: This should be moved over to MBTracker for easier testing
     bool bothAbove = iLow(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[1].LowIndex()) > mrfts.OpenPrice() && iLow(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[0].LowIndex()) > mrfts.OpenPrice();
     bool bothBelow = iHigh(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[1].HighIndex()) < mrfts.OpenPrice() && iHigh(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[0].HighIndex()) < mrfts.OpenPrice();
 

@@ -20,7 +20,7 @@
 
 const string Directory = "/UnitTests/Objects/ZoneState/IsBroken/";
 const int NumberOfAsserts = 100;
-const int AssertCooldown = 1;
+const int AssertCooldown = 0;
 const bool RecordErrors = true;
 
 input int MBsToTrack = 3;
@@ -90,10 +90,8 @@ void OnTick()
     BullishIsBrokenUnitTest.Assert();
     BearishIsBrokenUnitTest.Assert();
 
-    /*
     BullishNotBrokenUnitTest.Assert();
     BearishNotBrokenUnitTest.Assert();
-    */
 }
 
 int CheckSetup(int type, bool zoneShouldBeBroken, double &entryPrice, double &exitPrice)
