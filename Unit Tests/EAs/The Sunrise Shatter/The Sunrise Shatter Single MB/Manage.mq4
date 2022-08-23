@@ -21,7 +21,7 @@
 #include <SummitCapital\Framework\UnitTests\IntUnitTest.mqh>
 #include <SummitCapital\Framework\UnitTests\BoolUnitTest.mqh>
 
-#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
+#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\BeforeAndAfterImagesUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/EAs/The Sunrise Shatter/The Sunrise Shatter Single MB/Manage/";
 const int NumberOfAsserts = 25;
@@ -41,27 +41,27 @@ MinROCFromTimeStamp *MRFTS;
 TheSunriseShatterSingleMB *TSSSMB;
 const int MaxTradesPerStrategy = 1;
 const int StopLossPaddingPips = 0;
-const int MaxSpreadPips = 12;
+input const int MaxSpreadPips = 1;
 const double RiskPercent = 0.25;
 
-IntUnitTest<DefaultUnitTestRecord> *EmptyTicketStateUnitTest;
+IntUnitTest<BeforeAndAfterImagesUnitTestRecord> *EmptyTicketStateUnitTest;
 
-IntUnitTest<DefaultUnitTestRecord> *CheckingToEditStopLossStateUnitTest;
-IntUnitTest<DefaultUnitTestRecord> *CheckingToTrailStopLossStateUnitTest;
+IntUnitTest<BeforeAndAfterImagesUnitTestRecord> *CheckingToEditStopLossStateUnitTest;
+IntUnitTest<BeforeAndAfterImagesUnitTestRecord> *CheckingToTrailStopLossStateUnitTest;
 
 int OnInit()
 {
-    EmptyTicketStateUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+    EmptyTicketStateUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Empty Ticket State", "Should Return ATTEMPTING TO MANAGE ORDER state",
         NumberOfAsserts, AssertCooldown, RecordErrors,
         EAStates::ATTEMPTING_TO_MANAGE_ORDER, EmptyTicketState);
 
-    CheckingToEditStopLossStateUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+    CheckingToEditStopLossStateUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Checking To Edit Stop Loss State", "Should Return CHECKING TO EDIT STOP LOSS state",
         NumberOfAsserts, AssertCooldown, RecordErrors,
         EAStates::CHECKING_TO_EDIT_STOP_LOSS, CheckingToEditStopLossState);
 
-    CheckingToTrailStopLossStateUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
+    CheckingToTrailStopLossStateUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Checking To Trail Stop Loss State", "Should Return CHECKING TO Trail STOP LOSS state",
         NumberOfAsserts, AssertCooldown, RecordErrors,
         EAStates::CHECKING_TO_TRAIL_STOP_LOSS, CheckingToTrailStopLossState);
@@ -92,9 +92,12 @@ void OnTick()
 
     TSSSMB.Run();
 
-    // EmptyTicketStateUnitTest.Assert();
+    EmptyTicketStateUnitTest.Assert();
 
+    // https://drive.google.com/drive/folders/1A_quaQVCoTKTveeswpqZki0k8SyFVbYn?usp=sharing
     CheckingToEditStopLossStateUnitTest.Assert();
+
+    // https://drive.google.com/drive/folders/1vawcBLyGZFGEh-1Uuty-OQgCziEFCMA9?usp=sharing
     CheckingToTrailStopLossStateUnitTest.Assert();
 }
 
@@ -103,7 +106,7 @@ void Reset()
     delete TSSSMB;
 
     MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, true, PrintErrors, CalculateOnTick);
-    MRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), 23, Minute(), 59, 0.17);
+    MRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), 23, Minute(), 59, 0.10);
     TSSSMB = new TheSunriseShatterSingleMB(MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, MRFTS, MBT);
 }
 
@@ -120,10 +123,11 @@ int EmptyTicketState(int &actual)
     return Results::UNIT_TEST_RAN;
 }
 
-int CheckingToEditStopLossState(int &actual)
+int CheckingToEditStopLossState(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut, int &actual)
 {
     Ticket *ticket;
     TSSSMB.Ticket(ticket);
+    static int count = 0;
 
     if (ticket.Number() == EMPTY)
     {
@@ -142,16 +146,22 @@ int CheckingToEditStopLossState(int &actual)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
+    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory(), "_" + IntegerToString(count));
+
     TSSSMB.Manage();
     actual = TSSSMB.GetLastState();
+    count += 1;
+
+    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory(), "_" + IntegerToString(count));
 
     return Results::UNIT_TEST_RAN;
 }
 
-int CheckingToTrailStopLossState(int &actual)
+int CheckingToTrailStopLossState(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut, int &actual)
 {
     Ticket *ticket;
     TSSSMB.Ticket(ticket);
+    static int count = 0;
 
     if (ticket.Number() == EMPTY)
     {
@@ -170,8 +180,13 @@ int CheckingToTrailStopLossState(int &actual)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
+    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory(), "_" + IntegerToString(count));
+
     TSSSMB.Manage();
     actual = TSSSMB.GetLastState();
+    count += 1;
+
+    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory(), "_" + IntegerToString(count));
 
     return Results::UNIT_TEST_RAN;
 }

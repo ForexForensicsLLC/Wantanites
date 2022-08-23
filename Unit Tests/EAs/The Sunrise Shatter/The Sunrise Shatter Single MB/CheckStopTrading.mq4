@@ -45,9 +45,13 @@ const int StopLossPaddingPips = 0;
 const int MaxSpreadPips = 70;
 const double RiskPercent = 0.25;
 
+// https://drive.google.com/drive/folders/1BRZXZ91Ud_dV72--9zaOTs45NyeLUdVK?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *CheckingIfBrokeRangeStartUnitTest;
+
+// https://drive.google.com/drive/folders/14nWNTtt5T9VkIsQvkxulGTgMUUYTR4KY?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *CheckingIfBrokeRangeEndUnitTest;
 
+// https://drive.google.com/drive/folders/1Ee30EQbrQWSnj07CVRPI0OnfVrlrUiw5?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *CheckingIfCrossingOpenPriceAfterMinROCUnitTest;
 
 int OnInit()
@@ -92,7 +96,7 @@ void OnTick()
     }
 
     CheckingIfBrokeRangeStartUnitTest.Assert();
-    CheckingIfBrokeRangeEndUnitTest.Assert();
+    // CheckingIfBrokeRangeEndUnitTest.Assert();
 
     CheckingIfCrossingOpenPriceAfterMinROCUnitTest.Assert();
 

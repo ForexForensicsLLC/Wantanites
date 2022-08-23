@@ -53,18 +53,28 @@ public:
     virtual void RecordOrderCloseData();
 
     virtual void CheckTicket();
+
+    // Tested
     virtual void Manage();
+
+    // Tested
     virtual void CheckStopTrading();
+
+    // Tested
     virtual void StopTrading(bool deletePendingOrder, int error);
 
     // Tested
     virtual bool AllowedToTrade();
+
+    // Tested
     virtual bool Confirmation();
     virtual void PlaceOrders();
 
     // Tested
     virtual void CheckSetSetup();
     virtual void Reset();
+
+    // Tested
     virtual void Run();
 };
 
@@ -246,6 +256,7 @@ void TheSunriseShatterSingleMB::CheckStopTrading()
     if (mMRFTS.CrossedOpenPriceAfterMinROC())
     {
         StopTrading(true);
+        return;
     }
 
     mLastState = EAStates::CHECKING_IF_BROKE_RANGE_END;
@@ -316,7 +327,7 @@ bool TheSunriseShatterSingleMB::Confirmation()
 
     bool isTrue = false;
     int confirmationError = SetupHelper::MostRecentMBPlusHoldingZone(mFirstMBInSetupNumber, mMBT, isTrue);
-    if (confirmationError == ExecutionErrors::MB_IS_NOT_MOST_RECENT)
+    if (confirmationError != ERR_NO_ERROR)
     {
         StopTrading(false, confirmationError);
         return false;

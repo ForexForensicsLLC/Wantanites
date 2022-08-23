@@ -22,13 +22,13 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/EAs/The Sunrise Shatter/The Sunrise Shatter Liqudidation MB/Confirmation/";
+const string Directory = "/UnitTests/EAs/The Sunrise Shatter/The Sunrise Shatter Liquidation MB/Confirmation/";
 const int NumberOfAsserts = 25;
-const int AssertCooldown = 1;
+const int AssertCooldown = 0;
 const bool RecordErrors = true;
 
 MBTracker *MBT;
-input int MBsToTrack = 3;
+input int MBsToTrack = 10;
 input int MaxZonesInMB = 5;
 input bool AllowMitigatedZones = false;
 input bool AllowZonesAfterMBValidation = true;
@@ -95,7 +95,7 @@ int HasConfirmation(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 
     bool hasConfirmation = false;
     int confirmationError = SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(TSSLMB.FirstMBInSetupNumber(), TSSLMB.SecondMBInSetupNumber(), MBT, hasConfirmation);
-    if (confirmationError == ExecutionErrors::MB_IS_NOT_MOST_RECENT)
+    if (TerminalErrors::IsTerminalError(confirmationError) || !hasConfirmation)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }

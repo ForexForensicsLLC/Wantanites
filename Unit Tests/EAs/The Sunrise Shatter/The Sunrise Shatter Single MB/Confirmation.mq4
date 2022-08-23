@@ -21,7 +21,7 @@
 #include <SummitCapital\Framework\UnitTests\IntUnitTest.mqh>
 #include <SummitCapital\Framework\UnitTests\BoolUnitTest.mqh>
 
-#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
+#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\BeforeAndAfterImagesUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/EAs/The Sunrise Shatter/The Sunrise Shatter Single MB/Confirmation/";
 const int NumberOfAsserts = 25;
@@ -45,12 +45,13 @@ const int StopLossPaddingPips = 0;
 const int MaxSpreadPips = 70;
 const double RiskPercent = 0.25;
 
-BoolUnitTest<DefaultUnitTestRecord> *HasConfirmationUnitTest;
+// https://drive.google.com/drive/folders/1QqwK4jQiOkDlcJNuOdSPIwCw1ekbfrdt?usp=sharing
+BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> *HasConfirmationUnitTest;
 
 int OnInit()
 {
-    HasConfirmationUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
-        Directory, "Has Confirmation", "Should Return True, Indication There Is Confirmation",
+    HasConfirmationUnitTest = new BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>(
+        Directory, "Has Confirmation", "Should Return True Indication There Is Confirmation",
         NumberOfAsserts, AssertCooldown, RecordErrors,
         true, HasConfirmation);
 
@@ -76,7 +77,6 @@ void OnTick()
     }
 
     TSSSMB.Run();
-
     HasConfirmationUnitTest.Assert();
 }
 
@@ -88,12 +88,15 @@ void Reset()
     TSSSMB = new TheSunriseShatterSingleMB(MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, MRFTS, MBT);
 }
 
-int HasConfirmation(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
+int HasConfirmation(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut, bool &actual)
 {
+    static int count = 0;
     if (!TSSSMB.HasSetup())
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
+
+    ut.PendingRecord.BeforeImage = ScreenShotHelper::TryTakeBeforeScreenShot(ut.Directory(), "_" + IntegerToString(count));
 
     bool isTrue = false;
     int confirmationError = SetupHelper::MostRecentMBPlusHoldingZone(TSSSMB.FirstMBInSetupNumber(), MBT, isTrue);
@@ -107,8 +110,17 @@ int HasConfirmation(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
+    MBState *tempMBState;
+    if (!MBT.GetMB(TSSSMB.FirstMBInSetupNumber(), tempMBState))
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    ut.PendingRecord.AdditionalInformation = tempMBState.ToSingleLineString();
+    ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory(), "_" + IntegerToString(count));
 
     actual = TSSSMB.Confirmation();
+    count += 1;
+
     return Results::UNIT_TEST_RAN;
 }

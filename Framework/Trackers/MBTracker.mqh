@@ -88,7 +88,7 @@ public:
     bool CurrentBullishRetracementIndexIsValid(out int &currentBullishRetracementIndex, int barIndex);
     bool CurrentBearishRetracementIndexIsValid(out int &currentBearishRetracementIndex, int barIndex);
 
-    // --- MB Schematic Methods ---
+    bool MBExists(int mbNumber);
     bool GetNthMostRecentMB(int nthMB, MBState *&mbState);
     bool GetNMostRecentMBs(int nMostRecent, MBState *&mbStates[]);
     bool GetMB(int mbNumber, MBState *&mbState);
@@ -237,7 +237,6 @@ void MBTracker::CalculateMB(int barIndex)
         }
 
         // check pending first so that a single candle can trigger the pending flag and confirm an MB else retracement will get reset in CheckSetRetracement()
-        // CheckInvalidateRetracement(OP_BUY);
         CheckSetPendingMB(barIndex, OP_BUY);
         CheckSetRetracement(barIndex, OP_BUY, OP_BUY);
 
@@ -281,7 +280,6 @@ void MBTracker::CalculateMB(int barIndex)
         }
 
         // check pending first so that a single candle can trigger the pending flag and confirm an MB else retracement will get reset in CheckSetRetracement()
-        // CheckInvalidateRetracement(OP_SELL);
         CheckSetPendingMB(barIndex, OP_SELL);
         CheckSetRetracement(barIndex, OP_SELL, OP_SELL);
 
@@ -725,6 +723,21 @@ bool MBTracker::CurrentBearishRetracementIndexIsValid(out int &currentBearishRet
 }
 
 // -------------- MB Schematic Mehthods ---------------
+bool MBTracker::MBExists(int mbNumber)
+{
+    if (mbNumber == EMPTY)
+    {
+        return false;
+    }
+
+    if (mMBsCreated <= mMBsToTrack)
+    {
+        return true;
+    }
+
+    return mbNumber >= (mMBsCreated - mMBsToTrack) && mbNumber <= (mMBsCreated - 1);
+}
+
 bool MBTracker::GetNthMostRecentMB(int nthMB, MBState *&mbState)
 {
     Update();

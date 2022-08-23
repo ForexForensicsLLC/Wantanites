@@ -25,7 +25,7 @@
 
 const string Directory = "/UnitTests/EAs/The Sunrise Shatter/The Sunrise Shatter Double MB/CheckSetSetup/";
 const int NumberOfAsserts = 25;
-const int AssertCooldown = 1;
+const int AssertCooldown = 0;
 const bool RecordErrors = true;
 
 MBTracker *MBT;
@@ -42,9 +42,10 @@ MinROCFromTimeStamp *MRFTS;
 TheSunriseShatterDoubleMB *TSSDMB;
 const int MaxTradesPerStrategy = 1;
 const int StopLossPaddingPips = 0;
-const int MaxSpreadPips = 70;
+input const int MaxSpreadPips = 7000;
 const double RiskPercent = 0.25;
 
+// https://drive.google.com/drive/folders/1H5WcqjljpFOH9jFifR72xJB9WkY1kzHV?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *HasSetupUnitTest;
 
 int OnInit()
@@ -66,75 +67,48 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    HasSetupUnitTest.Assert();
     TSSDMB.Run();
+    HasSetupUnitTest.Assert();
 }
 
 void Reset()
 {
     delete TSSDMB;
     MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
-    MRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), 23, Minute(), 59, 0.01);
+    MRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), 23, Minute(), 59, 0.07);
     TSSDMB = new TheSunriseShatterDoubleMB(MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, MRFTS, MBT);
 }
 
-int FirstMBNumber = EMPTY;
-int SecondMBNumber = EMPTY;
-
 int HasSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 {
+    static bool previousHasSetup = false;
+
     if (MRFTS.HadMinROC() && TSSDMB.IsDoneTrading())
     {
-        FirstMBNumber = EMPTY;
-        SecondMBNumber = EMPTY;
         Reset();
     }
 
-    bool isTrue = false;
-    int setupError = SetupHelper::BreakAfterMinROC(MRFTS, MBT, isTrue);
-    if (TerminalErrors::IsTerminalError(setupError))
+    if (!previousHasSetup && TSSDMB.HasSetup())
     {
-        return setupError;
-    }
-
-    if (!isTrue)
-    {
-        return Results::UNIT_TEST_DID_NOT_RUN;
-    }
-
-    if (FirstMBNumber == EMPTY)
-    {
-        MBState *mbOneTempState;
-        if (!MBT.GetNthMostRecentMB(0, mbOneTempState))
-        {
-            FirstMBNumber = EMPTY;
-            SecondMBNumber = EMPTY;
-            Reset();
-            return Results::UNIT_TEST_DID_NOT_RUN;
-        }
-
-        FirstMBNumber = mbOneTempState.Number();
-    }
-    else if (SecondMBNumber == EMPTY)
-    {
-        MBState *mbTwoTempState;
-        if (!MBT.GetSubsequentMB(FirstMBNumber, mbTwoTempState))
+        MBState *tempMBStates[];
+        if (!MBT.GetNMostRecentMBs(2, tempMBStates))
         {
             return Results::UNIT_TEST_DID_NOT_RUN;
         }
 
-        SecondMBNumber = mbTwoTempState.Number();
+        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
+
+        TSSDMB.CheckSetSetup();
+
+        previousHasSetup = TSSDMB.HasSetup();
+        actual = tempMBStates[1].Number() == TSSDMB.FirstMBInSetupNumber() &&
+                 tempMBStates[0].Number() == TSSDMB.SecondMBInSetupNumber() &&
+                 TSSDMB.HasSetup();
+
+        Reset();
+        return Results::UNIT_TEST_RAN;
     }
 
-    ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
-    TSSDMB.CheckSetSetup();
-
-    actual = FirstMBNumber == TSSDMB.FirstMBInSetupNumber() &&
-             SecondMBNumber == TSSDMB.SecondMBInSetupNumber() &&
-             TSSDMB.HasSetup();
-
-    FirstMBNumber = EMPTY;
-    SecondMBNumber = EMPTY;
-    Reset();
-    return Results::UNIT_TEST_RAN;
+    previousHasSetup = TSSDMB.HasSetup();
+    return Results::UNIT_TEST_DID_NOT_RUN;
 }

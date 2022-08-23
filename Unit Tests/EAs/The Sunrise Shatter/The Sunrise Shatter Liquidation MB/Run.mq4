@@ -15,6 +15,23 @@
 #include <SummitCapital\Framework\Trackers\MBTracker.mqh>
 #include <SummitCapital\Framework\Objects\MinROCFromTimeStamp.mqh>
 
+#include <SummitCapital\EAs\The Sunrise Shatter\TheSunriseShatterSingleMB.mqh>
+
+#include <SummitCapital\Framework\Constants\Index.mqh>
+
+#include <SummitCapital\Framework\Trackers\MBTracker.mqh>
+#include <SummitCapital\Framework\Objects\MinROCFromTimeStamp.mqh>
+
+#include <SummitCapital\Framework\UnitTests\BoolUnitTest.mqh>
+
+#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
+
+const string Directory = "/UnitTests/EAs/The Sunrise Shatter/The Sunrise Shatter Liquidation MB/Run/";
+
+const int NumberOfAsserts = 100;
+const int AssertCooldown = 0;
+const bool RecordErrors = true;
+
 MBTracker *MBT;
 input int MBsToTrack = 3;
 input int MaxZonesInMB = 5;
@@ -31,9 +48,14 @@ const int StopLossPaddingPips = 0;
 const int MaxSpreadPips = 70;
 const double RiskPercent = 0.25;
 
+BoolUnitTest<DefaultUnitTestRecord> *HasSetupChangedUnitTest;
+
 int OnInit()
 {
-    MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, true, PrintErrors, CalculateOnTick);
+    HasSetupChangedUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "Has Setup Changed", "Should take an image whenever HasSetup() has changed",
+        NumberOfAsserts, AssertCooldown, RecordErrors,
+        true, HasSetupChanged);
 
     Reset();
     return (INIT_SUCCEEDED);
@@ -41,9 +63,8 @@ int OnInit()
 
 void OnDeinit(const int reason)
 {
-    delete MBT;
-    delete MRFTS;
     delete TSSLMB;
+    delete HasSetupChangedUnitTest;
 }
 
 void OnTick()
@@ -54,13 +75,31 @@ void OnTick()
     }
 
     TSSLMB.Run();
+    HasSetupChangedUnitTest.Assert();
 }
 
 void Reset()
 {
-    delete MRFTS;
-    MRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), 23, Minute(), 59, 0.05);
-
     delete TSSLMB;
+
+    MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, true, PrintErrors, CalculateOnTick);
+    MRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), 23, Minute(), 59, 0.17);
     TSSLMB = new TheSunriseShatterLiquidationMB(MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, MRFTS, MBT);
+}
+
+int HasSetupChanged(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
+{
+    static bool hasSetupLastCheck = TSSLMB.HasSetup();
+
+    if (hasSetupLastCheck == TSSLMB.HasSetup())
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
+    ut.PendingRecord.AdditionalInformation = "Previous Has Setup: " + hasSetupLastCheck + " Current Has Setup: " + TSSLMB.HasSetup();
+
+    hasSetupLastCheck = TSSLMB.HasSetup();
+    actual = true;
+    return Results::UNIT_TEST_RAN;
 }

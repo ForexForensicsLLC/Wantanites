@@ -199,6 +199,13 @@ static int SetupHelper::BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker 
         return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
+    // only use the mb if it broke after we have a min roc. This makes sure we don't use an mb that broke its previous mb and then we
+    // had a min roc before another mb is created
+    if (iTime(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[0].EndIndex()) <= mrfts.MinROCAchievedTime())
+    {
+        return ERR_NO_ERROR;
+    }
+
     bool bothAbove = iLow(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[1].LowIndex()) > mrfts.OpenPrice() && iLow(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[0].LowIndex()) > mrfts.OpenPrice();
     bool bothBelow = iHigh(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[1].HighIndex()) < mrfts.OpenPrice() && iHigh(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[0].HighIndex()) < mrfts.OpenPrice();
 

@@ -42,12 +42,16 @@ MinROCFromTimeStamp *MRFTS;
 TheSunriseShatterSingleMB *TSSSMB;
 const int MaxTradesPerStrategy = 1;
 const int StopLossPaddingPips = 0;
-const int MaxSpreadPips = 16;
+const int MaxSpreadPips = 70;
 const double RiskPercent = 0.25;
 
+// https://drive.google.com/drive/folders/1BhYiTpxuG9ctbQt7bID4cHkDAV1W0ez2?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *InvalidateWhenBrokenSetupMBUnitTest;
+
+// https://drive.google.com/drive/folders/1GCM3JSmMjDS1eHMKqSVde8lFRz6vv6O0?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *InvalidateAfterCrossedOpenPriceAfterMinROCUnitTest;
 
+// https://drive.google.com/drive/folders/1n3DU9mL9u6cKgGDy9M52cUD_Qp8o4UAD?usp=sharing
 IntUnitTest<DefaultUnitTestRecord> *ClosedPendingOrderWhenInvalidatedUnitTest;
 
 int OnInit()
@@ -90,7 +94,6 @@ void OnTick()
 
     // ClosedPendingOrderWhenInvalidatedUnitTest.Assert();
 
-    // Print("Has Setup: ", TSSSMB.HasSetup(), "Had Min ROC: ", MRFTS.HadMinROC(), ", Stop Trading: ", TSSSMB.IsDoneTrading());
     if (MRFTS.HadMinROC() && TSSSMB.IsDoneTrading())
     {
         Reset();

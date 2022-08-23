@@ -41,6 +41,7 @@ public:
 
     int FirstMBInSetupNumber() { return mFirstMBInSetupNumber; }
     int SecondMBInSetupNumber() { return mSecondMBInSetupNumber; }
+    int SetupType() { return mSetupType; }
     void Ticket(Ticket *&ticket) { ticket = mTicket; }
 
     static int MagicNumber;
@@ -212,7 +213,7 @@ void TheSunriseShatterLiquidationMB::CheckStopTrading()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
     // Want to try to close the pending order if we have a setup or not and we break the range start
-    if (mFirstMBInSetupNumber != EMPTY)
+    if (mFirstMBInSetupNumber != EMPTY && mMBT.MBExists(mFirstMBInSetupNumber))
     {
         mLastState = EAStates::CHECKING_IF_BROKE_RANGE_START;
 
@@ -231,17 +232,19 @@ void TheSunriseShatterLiquidationMB::CheckStopTrading()
         }
     }
 
-    if (!mHasSetup)
-    {
-        return;
-    }
-
     mLastState = EAStates::CHECKING_IF_CROSSED_OPEN_PRICE_AFTER_MIN_ROC;
 
-    // should be checked before checking if we broke the range end so that it can cancel the pending order
+    // should be checked before checking if we broke the range end so that it can cancel the pending order.
+    // Also should be above the check for a setup since a setup doesn't count until we have 2 MBs. We can have 1 and still cross
+    // the open price after a min roc
     if (mMRFTS.CrossedOpenPriceAfterMinROC())
     {
         StopTrading(true);
+        return;
+    }
+
+    if (!mHasSetup)
+    {
         return;
     }
 
@@ -414,23 +417,23 @@ void TheSunriseShatterLiquidationMB::CheckSetSetup()
         return;
     }
 
-    mLastState = EAStates::CHECKING_FOR_BREAK_AFTER_MIN_ROC;
-
-    bool isTrue = false;
-    int setupError = SetupHelper::BreakAfterMinROC(mMRFTS, mMBT, isTrue);
-    if (TerminalErrors::IsTerminalError(setupError))
-    {
-        StopTrading(false, setupError);
-        return;
-    }
-
-    if (!isTrue)
-    {
-        return;
-    }
-
     if (mFirstMBInSetupNumber == EMPTY)
     {
+        mLastState = EAStates::CHECKING_FOR_BREAK_AFTER_MIN_ROC;
+
+        bool isTrue = false;
+        int setupError = SetupHelper::BreakAfterMinROC(mMRFTS, mMBT, isTrue);
+        if (TerminalErrors::IsTerminalError(setupError))
+        {
+            StopTrading(false, setupError);
+            return;
+        }
+
+        if (!isTrue)
+        {
+            return;
+        }
+
         mLastState = EAStates::GETTING_FIRST_MB_IN_SETUP;
 
         MBState *mbOneTempState;
@@ -441,6 +444,7 @@ void TheSunriseShatterLiquidationMB::CheckSetSetup()
         }
 
         mFirstMBInSetupNumber = mbOneTempState.Number();
+        mSetupType = mbOneTempState.Type();
     }
     else if (mSecondMBInSetupNumber == EMPTY)
     {
@@ -450,8 +454,13 @@ void TheSunriseShatterLiquidationMB::CheckSetSetup()
             return;
         }
 
+        if (mbTwoTempState.Type() != mSetupType)
+        {
+            StopTrading(false);
+            return;
+        }
+
         mSecondMBInSetupNumber = mbTwoTempState.Number();
-        mSetupType = mbTwoTempState.Type();
     }
     else
     {

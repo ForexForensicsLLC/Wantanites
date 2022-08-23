@@ -42,29 +42,33 @@ MinROCFromTimeStamp *MRFTS;
 TheSunriseShatterDoubleMB *TSSDMB;
 const int MaxTradesPerStrategy = 1;
 const int StopLossPaddingPips = 0;
-const int MaxSpreadPips = 70;
+input const int MaxSpreadPips = 70;
 const double RiskPercent = 0.25;
 
+// https://drive.google.com/drive/folders/17qYei-4LwMivlWU--ivGcMfrdSwA1ZPk?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *CheckingIfBrokeRangeStartUnitTest;
+
+// https://drive.google.com/drive/folders/1k_QbBuNFAxfCu0Qswk0_GuZWWTPOa3mb?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *CheckingIfBrokeRangeEndUnitTest;
 
+// https://drive.google.com/drive/folders/1d76j6XSPXekkOXJhMlOK7HdqONJbUG0y?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *CheckingIfCrossingOpenPriceAfterMinROCUnitTest;
 
 int OnInit()
 {
     CheckingIfBrokeRangeStartUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
         Directory, "Broke Range Start", "Should Return true",
-        NumberOfAsserts, AssertCooldown, RecordErrors,
+        14, AssertCooldown, RecordErrors,
         true, CheckingIfBrokeRangeStart);
 
     CheckingIfBrokeRangeEndUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
-        Directory, "Broke Range Start", "Should Return true",
+        Directory, "Broke Range End", "Should Return true",
         NumberOfAsserts, AssertCooldown, RecordErrors,
         true, CheckingIfBrokeRangeEnd);
 
     CheckingIfCrossingOpenPriceAfterMinROCUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
         Directory, "Crossed Open Price After ROC", "Should Return true",
-        NumberOfAsserts, AssertCooldown, RecordErrors,
+        9, AssertCooldown, RecordErrors,
         true, CheckingIfCrossingOpenPriceAfterMinROC);
 
     Reset();
@@ -102,7 +106,7 @@ void Reset()
 {
     delete TSSDMB;
     MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
-    MRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), 23, Minute(), 59, 0.01);
+    MRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), 23, Minute(), 59, 0.07);
     TSSDMB = new TheSunriseShatterDoubleMB(MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, MRFTS, MBT);
 }
 
@@ -131,7 +135,7 @@ int CheckingIfBrokeRangeStart(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &act
 
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
 
-    TSSDMB.CheckInvalidateSetup();
+    TSSDMB.CheckStopTrading();
     actual = TSSDMB.GetLastState() == EAStates::CHECKING_IF_BROKE_RANGE_START && !TSSDMB.HasSetup();
 
     return Results::UNIT_TEST_RAN;
@@ -167,7 +171,7 @@ int CheckingIfBrokeRangeEnd(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actua
 
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
 
-    TSSDMB.CheckInvalidateSetup();
+    TSSDMB.CheckStopTrading();
     actual = TSSDMB.GetLastState() == EAStates::CHECKING_IF_BROKE_RANGE_END && !TSSDMB.HasSetup();
 
     return Results::UNIT_TEST_RAN;
@@ -187,7 +191,7 @@ int CheckingIfCrossingOpenPriceAfterMinROC(BoolUnitTest<DefaultUnitTestRecord> &
 
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
 
-    TSSDMB.CheckInvalidateSetup();
+    TSSDMB.CheckStopTrading();
     actual = TSSDMB.GetLastState() == EAStates::CHECKING_IF_CROSSED_OPEN_PRICE_AFTER_MIN_ROC && !TSSDMB.HasSetup();
 
     return Results::UNIT_TEST_RAN;

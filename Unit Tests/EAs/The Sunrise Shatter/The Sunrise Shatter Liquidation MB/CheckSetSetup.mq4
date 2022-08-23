@@ -23,13 +23,13 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/EAs/The Sunrise Shatter/The Sunrise Shatter Liqudidation MB/CheckSetSetup/";
+const string Directory = "/UnitTests/EAs/The Sunrise Shatter/The Sunrise Shatter Liquidation MB/CheckSetSetup/";
 const int NumberOfAsserts = 25;
-const int AssertCooldown = 1;
+const int AssertCooldown = 0;
 const bool RecordErrors = true;
 
 MBTracker *MBT;
-input int MBsToTrack = 3;
+input int MBsToTrack = 10;
 input int MaxZonesInMB = 5;
 input bool AllowMitigatedZones = false;
 input bool AllowZonesAfterMBValidation = true;
@@ -92,20 +92,20 @@ int HasSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
         Reset();
     }
 
-    bool isTrue = false;
-    int setupError = SetupHelper::BreakAfterMinROC(MRFTS, MBT, isTrue);
-    if (TerminalErrors::IsTerminalError(setupError))
-    {
-        return setupError;
-    }
-
-    if (!isTrue)
-    {
-        return Results::UNIT_TEST_DID_NOT_RUN;
-    }
-
     if (FirstMBNumber == EMPTY)
     {
+        bool isTrue = false;
+        int setupError = SetupHelper::BreakAfterMinROC(MRFTS, MBT, isTrue);
+        if (TerminalErrors::IsTerminalError(setupError))
+        {
+            return setupError;
+        }
+
+        if (!isTrue)
+        {
+            return Results::UNIT_TEST_DID_NOT_RUN;
+        }
+
         MBState *mbOneTempState;
         if (!MBT.GetNthMostRecentMB(0, mbOneTempState))
         {
@@ -146,6 +146,17 @@ int HasSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
         Reset();
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
+
+    MBState *tempMBState;
+    if (!MBT.GetNthMostRecentMB(0, tempMBState))
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    ut.PendingRecord.AdditionalInformation = "Most Recent MB: " + tempMBState.Number() +
+                                             " Setup Type: " + TSSLMB.SetupType() +
+                                             " First MB In Setup: " + TSSLMB.FirstMBInSetupNumber() +
+                                             " Second MB In Setup: " + TSSLMB.SecondMBInSetupNumber();
 
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
     TSSLMB.CheckSetSetup();

@@ -137,7 +137,7 @@ public:
     // !Tested
     // static bool TrailAllOrdersToMBUpToBreakEven(int magicNumber, double paddingPips, double spreadPips, MBState *&mbState);
 
-    // !Tested
+    // Tested
     static int CheckTrailStopLossWithMBUpToBreakEven(double paddingPips, double spreadPips, int setUpMB, int setUpType, MBTracker *&mbt, Ticket *&ticket, out bool &succeeded);
 };
 /*
@@ -959,7 +959,7 @@ static int OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(double paddingPips
         return selectError;
     }
 
-    if (OrderType() > 2)
+    if (OrderType() >= 2)
     {
         return TerminalErrors::WRONG_ORDER_TYPE;
     }

@@ -52,39 +52,50 @@ BoolUnitTest<DefaultUnitTestRecord> *BullishSetupTrueUnitTest;
 // https://drive.google.com/file/d/1PyawVRMHd4ZUdXRTfaIo8Nir3Na99OL0/view?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *BearishSetupTrueUnitTest;
 
+// https://drive.google.com/drive/folders/1KYKO8X96_CBsYYNScyEzLCKzo2zCFCrf?usp=sharing
+BoolUnitTest<DefaultUnitTestRecord> *MinROCAfterBreakReturnsFalseUnitTest;
+
+// https://drive.google.com/drive/folders/10fv7FoVVoicR7Hnsh22UzsGJiOM-mkrY?usp=sharing
+BoolUnitTest<DefaultUnitTestRecord> *MBBreakIsAfterMinROCUnitTest;
+
 int OnInit()
 {
-    MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, PrintErrors, CalculateOnTick);
+    MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, true, PrintErrors, CalculateOnTick);
 
     DifferentSymbolsErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "Different Symbols Errors", "Should Return A Different Symbols Error",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         TerminalErrors::NOT_EQUAL_SYMBOLS, DifferentSymbolsError);
 
     DifferentTimeFramesErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "Different Time Frames Errors", "Should Return A Different Time Frames Error",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         TerminalErrors::NOT_EQUAL_TIMEFRAMES, DifferentTimeFramesError);
 
     NoMinROCIsTrueEqualsFalseUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
         Directory, "No Min ROC IsTrue Equals False", "When There Is Not A Min ROC The Out Parameter IsTrue Should Be Equal To False",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         false, NoMinROCIsTrueEqualsFalse);
 
     NotOppositeMBIsTrueEqualsFalseUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
         Directory, "Not Opposite MB IsTrue Equals False", "When There Is Not An Opposite MB,The Out Parameter IsTrue Should Be Equal To False",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         false, NotOppositeMBIsTrueEqualsFalse);
 
     BullishSetupTrueUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
         Directory, "Bullish Setup True", "Should Return True That There Is A Bullish Setup",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         true, BullishSetupTrue);
 
-    BearishSetupTrueUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
-        Directory, "Bearish Setup True", "Should Return True That There Is A Bearish Setup",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        true, BearishSetupTrue);
+    MinROCAfterBreakReturnsFalseUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "Min ROC After Break Is False", "Should Return False when an MB breaks and then there is a min roc before a new mb",
+        NumberOfAsserts, AssertCooldown, RecordErrors,
+        true, MinROCAfterBreakReturnsFalse);
+
+    MBBreakIsAfterMinROCUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "MB Break is after Min ROC", "Should Return True That The MB that broke happened after the min roc was achieved",
+        NumberOfAsserts, AssertCooldown, RecordErrors,
+        true, MBBreakIsAfterMinROC);
 
     return (INIT_SUCCEEDED);
 }
@@ -101,6 +112,9 @@ void OnDeinit(const int reason)
 
     delete BullishSetupTrueUnitTest;
     delete BearishSetupTrueUnitTest;
+
+    delete MinROCAfterBreakReturnsFalseUnitTest;
+    delete MBBreakIsAfterMinROCUnitTest;
 }
 
 void OnTick()
@@ -108,6 +122,7 @@ void OnTick()
     MBT.DrawNMostRecentMBs(1);
     MBT.DrawZonesForNMostRecentMBs(1);
 
+    /*
     DifferentSymbolsErrorUnitTest.Assert();
     DifferentTimeFramesErrorUnitTest.Assert();
 
@@ -116,6 +131,10 @@ void OnTick()
 
     BullishSetupTrueUnitTest.Assert();
     BearishSetupTrueUnitTest.Assert();
+    */
+
+    MinROCAfterBreakReturnsFalseUnitTest.Assert();
+    MBBreakIsAfterMinROCUnitTest.Assert();
 }
 
 int DifferentSymbolsError(int &actual)
@@ -305,6 +324,100 @@ int BearishSetupTrue(bool &actual)
         return error;
     }
 
+    reset = true;
+    return Results::UNIT_TEST_RAN;
+}
+
+int MinROCAfterBreakReturnsFalse(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
+{
+    static MinROCFromTimeStamp *tempMRFTS;
+    static bool reset = false;
+
+    if (CheckPointer(tempMRFTS) == POINTER_INVALID || reset == true)
+    {
+        delete tempMRFTS;
+        tempMRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), 23, Minute(), Minute() + 2, 0.07);
+
+        reset = false;
+    }
+
+    if (tempMRFTS.OpenPrice() == 0.0)
+    {
+        reset = true;
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    tempMRFTS.Draw();
+
+    if (!tempMRFTS.HadMinROC())
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    if (!MBT.NthMostRecentMBIsOpposite(0))
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    MBState *tempMBStates[];
+    if (!MBT.GetNMostRecentMBs(2, tempMBStates))
+    {
+        return TerminalErrors::MB_DOES_NOT_EXIST;
+    }
+
+    if (iTime(tempMRFTS.Symbol(), tempMRFTS.TimeFrame(), tempMBStates[0].EndIndex()) > tempMRFTS.MinROCAchievedTime())
+    {
+        reset = true;
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
+
+    bool isTrue = true;
+    int error = SetupHelper::BreakAfterMinROC(tempMRFTS, MBT, isTrue);
+
+    actual = !isTrue && error == ERR_NO_ERROR;
+    reset = true;
+    return Results::UNIT_TEST_RAN;
+}
+
+int MBBreakIsAfterMinROC(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
+{
+    static MinROCFromTimeStamp *tempMRFTS;
+    static bool reset = false;
+
+    if (CheckPointer(tempMRFTS) == POINTER_INVALID || reset == true)
+    {
+        delete tempMRFTS;
+        tempMRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), 23, Minute(), Minute() + 2, 0.07);
+
+        reset = false;
+    }
+
+    if (tempMRFTS.OpenPrice() == 0.0)
+    {
+        reset = true;
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    tempMRFTS.Draw();
+
+    bool isTrue = true;
+    int error = SetupHelper::BreakAfterMinROC(tempMRFTS, MBT, isTrue);
+
+    if (error != ERR_NO_ERROR || !isTrue)
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    MBState *tempMBState;
+    if (!MBT.GetNthMostRecentMB(0, tempMBState))
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
+    actual = iTime(tempMRFTS.Symbol(), tempMRFTS.TimeFrame(), tempMBState.EndIndex()) > tempMRFTS.MinROCAchievedTime();
     reset = true;
     return Results::UNIT_TEST_RAN;
 }

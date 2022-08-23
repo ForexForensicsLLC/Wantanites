@@ -40,7 +40,9 @@ public:
     bool IsDoneTrading() { return mStopTrading; }
     bool HasSetup() { return mHasSetup; }
     bool WasReset() { return mWasReset; }
+
     int GetLastState() { return mLastState; }
+    int LastState;
 
     int MaxTradesPerStrategy() { return mMaxTradesPerStrategy; }
     int StopLossPaddingPips() { return mStopLossPaddingPips; }
