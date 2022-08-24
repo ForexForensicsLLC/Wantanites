@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\EAs\The Sunrise Shatter\TheSunriseShatterSingleMB.mqh>
+#include <SummitCapital\EAs\The Sunrise Shatter\TheSunriseShatterDoubleMB - Copy.mqh>
 
 #include <SummitCapital\Framework\Constants\Index.mqh>
 
@@ -34,7 +34,7 @@ input bool CalculateOnTick = true;
 
 MinROCFromTimeStamp *MRFTS;
 
-TheSunriseShatterDoubleMB *TSSDMB;
+TheSunriseShatterDoubleMBC *TSSDMBC;
 const int MaxTradesPerStrategy = 1;
 const int StopLossPaddingPips = 0;
 input const int MaxSpreadPips = 70;
@@ -58,43 +58,43 @@ int OnInit()
 
 void OnDeinit(const int reason)
 {
-    delete TSSDMB;
+    delete TSSDMBC;
     delete HasSetupChangedUnitTest;
 }
 
 void OnTick()
 {
-    if (MRFTS.HadMinROC() && TSSDMB.IsDoneTrading())
+    if (MRFTS.HadMinROC() && TSSDMBC.mStopTrading)
     {
         Reset();
     }
 
-    TSSDMB.Run();
+    TSSDMBC.Run();
     HasSetupChangedUnitTest.Assert();
 }
 
 void Reset()
 {
-    delete TSSDMB;
+    delete TSSDMBC;
 
     MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, true, PrintErrors, CalculateOnTick);
     MRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), 23, Minute(), 59, 0.17);
-    TSSDMB = new TheSunriseShatterDoubleMB(MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, MRFTS, MBT);
+    TSSDMBC = new TheSunriseShatterDoubleMBC(MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, MRFTS, MBT);
 }
 
 int HasSetupChanged(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 {
-    static bool hasSetupLastCheck = TSSDMB.HasSetup();
+    static bool hasSetupLastCheck = TSSDMBC.mHasSetup;
 
-    if (hasSetupLastCheck == TSSDMB.HasSetup())
+    if (hasSetupLastCheck == TSSDMBC.mHasSetup)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
-    ut.PendingRecord.AdditionalInformation = "Previous Has Setup: " + hasSetupLastCheck + " Current Has Setup: " + TSSDMB.HasSetup();
+    ut.PendingRecord.AdditionalInformation = "Previous Has Setup: " + hasSetupLastCheck + " Current Has Setup: " + TSSDMBC.mHasSetup;
 
-    hasSetupLastCheck = TSSDMB.HasSetup();
+    hasSetupLastCheck = TSSDMBC.mHasSetup;
     actual = true;
     return Results::UNIT_TEST_RAN;
 }

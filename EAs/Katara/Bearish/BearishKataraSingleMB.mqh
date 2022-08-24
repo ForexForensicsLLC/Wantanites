@@ -23,9 +23,12 @@
 class BearishKataraSingleMB : public EA<DefaultTradeRecord>
 {
 private:
-
 public:
-   Ticket *mTicket;
+    Ticket *mTicket;
+    int mFirstMBInSetupNumber;
+    int mSetupType;
+    MBTracker *mMBT;
+
     BearishKataraSingleMB();
     ~BearishKataraSingleMB();
 };

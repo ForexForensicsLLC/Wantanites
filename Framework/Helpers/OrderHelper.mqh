@@ -114,8 +114,12 @@ public:
     // Editing Orders For MB Stop Orders
     // ==========================================================================
     // Tested
-    static int CheckEditStopLossForStopOrderOnPendingMB(double paddingPips, double spreadPips, double riskPercent, int setupMBNumber, MBTracker *&mbt, out Ticket *&ticket);
+    static int CheckEditStopLossForStopOrderOnPendingMB(double paddingPips, double spreadPips, double riskPercent,
+                                                        int setupMBNumber, MBTracker *&mbt, out Ticket *&ticket);
 
+    // !Tested
+    static int CheckEditStopLossForStopOrderOnBreakOfMB(double paddingPips, double spreadPips, double riskPercent,
+                                                        int mbNumber, MBTracker *&mbt, out Ticket *&ticket);
     // ==========================================================================
     // Canceling Pending Orders
     // ==========================================================================
@@ -738,6 +742,62 @@ static int OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(double paddingP
     double newStopLoss = 0.0;
     int stopLossError = GetStopLossForStopOrderForPendingMBValidation(paddingPips, spreadPips, tempMBState.Type(), mbt, newStopLoss);
     if (stopLossError != ERR_NO_ERROR)
+    {
+        return stopLossError;
+    }
+
+    bool selectError = ticket.SelectIfOpen("Checking To Edit Stop Loss");
+    if (selectError != ERR_NO_ERROR)
+    {
+        return selectError;
+    }
+
+    if (OrderType() < 2)
+    {
+        return TerminalErrors::WRONG_ORDER_TYPE;
+    }
+
+    if (OrderStopLoss() == newStopLoss)
+    {
+        return ExecutionErrors::NEW_STOPLOSS_EQUALS_OLD;
+    }
+
+    int type = OrderType();
+    double entryPrice = OrderOpenPrice();
+    double takeProfit = OrderTakeProfit();
+    int magicNumber = OrderMagicNumber();
+    datetime expiration = OrderExpiration();
+
+    int closeError = ticket.Close();
+    if (closeError != ERR_NO_ERROR)
+    {
+        return closeError;
+    }
+
+    double newLots = GetLotSize(RangeToPips(MathAbs(entryPrice - newStopLoss)), riskPercent);
+    int newTicket;
+    int placeOrderError = PlaceStopOrder(type, newLots, entryPrice, newStopLoss, takeProfit, magicNumber, newTicket);
+    if (newTicket == EMPTY)
+    {
+        SendMBFailedOrderEmail(placeOrderError, mbt);
+        return placeOrderError;
+    }
+
+    ticket.SetNewTicket(newTicket);
+    return ERR_NO_ERROR;
+}
+
+static int OrderHelper::CheckEditStopLossForStopOrderOnBreakOfMB(double paddingPips, double spreadPips, double riskPercent,
+                                                                 int mbNumber, MBTracker *&mbt, out Ticket *&ticket)
+{
+    MBState *tempMBState;
+    if (!mbt.GetMB(mbNumber, tempMBState))
+    {
+        return TerminalErrors::MB_DOES_NOT_EXIST;
+    }
+
+    double newStopLoss = 0.0;
+    int stopLossError = GetStopLossForStopOrderForBreakOfMB(paddingPips, spreadPips, mbNumber, mbt, newStopLoss);
     {
         return stopLossError;
     }

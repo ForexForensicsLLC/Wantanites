@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\EAs\The Sunrise Shatter\TheSunriseShatterSingleMB.mqh>
+#include <SummitCapital\EAs\The Sunrise Shatter\TheSunriseShatterSingleMB - Copy.mqh>
 
 #include <SummitCapital\Framework\Constants\Index.mqh>
 
@@ -34,7 +34,7 @@ input bool CalculateOnTick = true;
 
 MinROCFromTimeStamp *MRFTS;
 
-TheSunriseShatterSingleMB *TSSSMB;
+TheSunriseShatterSingleMBC *TSSSMBC;
 const int MaxTradesPerStrategy = 1;
 const int StopLossPaddingPips = 0;
 input const int MaxSpreadPips = 7000;
@@ -42,7 +42,6 @@ const double RiskPercent = 0.25;
 
 // https://drive.google.com/drive/folders/1XGWnYCxvr1doXz0Pvtsqhcy1xGeT_LqI?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *HasSetupChangedUnitTest;
-BoolUnitTest<DefaultUnitTestRecord> *NewMBDuringSetupUnitTest;
 
 int OnInit()
 {
@@ -51,104 +50,50 @@ int OnInit()
         75, AssertCooldown, RecordErrors,
         true, HasSetupChanged);
 
-    NewMBDuringSetupUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
-        Directory, "New MB During Setup", "Should take an image whenever there is a new mb during a setup",
-        NumberOfAsserts, AssertCooldown, RecordErrors,
-        true, NewMBDuringSetup);
-
     Reset();
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete TSSSMB;
+    delete TSSSMBC;
 
     delete HasSetupChangedUnitTest;
-    delete NewMBDuringSetupUnitTest;
 }
 
 void OnTick()
 {
-    if (MRFTS.HadMinROC() && TSSSMB.IsDoneTrading())
+    if (MRFTS.HadMinROC() && TSSSMBC.mStopTrading)
     {
         Reset();
     }
 
-    TSSSMB.Run();
-
+    TSSSMBC.Run();
     HasSetupChangedUnitTest.Assert();
-
-    // this basically does the exact same thing as the first test but not as well
-    // NewMBDuringSetupUnitTest.Assert();
 }
 
 void Reset()
 {
-    delete TSSSMB;
+    delete TSSSMBC;
 
     MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, true, PrintErrors, CalculateOnTick);
     MRFTS = new MinROCFromTimeStamp(Symbol(), Period(), Hour(), 23, Minute(), 59, 0.17);
-    TSSSMB = new TheSunriseShatterSingleMB(MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, MRFTS, MBT);
+    TSSSMBC = new TheSunriseShatterSingleMBC(MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, MRFTS, MBT);
 }
 
 int HasSetupChanged(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 {
-    static bool hasSetupLastCheck = TSSSMB.HasSetup();
+    static bool hasSetupLastCheck = TSSSMBC.mHasSetup;
 
-    if (hasSetupLastCheck == TSSSMB.HasSetup())
+    if (hasSetupLastCheck == TSSSMBC.mHasSetup)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
-    ut.PendingRecord.AdditionalInformation = "Previous Has Setup: " + hasSetupLastCheck + " Current Has Setup: " + TSSSMB.HasSetup();
+    ut.PendingRecord.AdditionalInformation = "Previous Has Setup: " + hasSetupLastCheck + " Current Has Setup: " + TSSSMBC.mHasSetup;
 
-    hasSetupLastCheck = TSSSMB.HasSetup();
+    hasSetupLastCheck = TSSSMBC.mHasSetup;
     actual = true;
-    return Results::UNIT_TEST_RAN;
-}
-
-int NewMBDuringSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
-{
-    static int currentMBNumber = EMPTY;
-    static int hasSetupLastCheck = false;
-
-    if (!hasSetupLastCheck && !TSSSMB.HasSetup())
-    {
-        currentMBNumber = EMPTY;
-        return Results::UNIT_TEST_DID_NOT_RUN;
-    }
-
-    MBState *tempMBState;
-    if (!MBT.GetNthMostRecentMB(0, tempMBState))
-    {
-        return Results::UNIT_TEST_DID_NOT_RUN;
-    }
-
-    if (currentMBNumber == EMPTY)
-    {
-        currentMBNumber = tempMBState.Number();
-
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
-        ut.PendingRecord.AdditionalInformation = "Has Setup: " + TSSSMB.HasSetup() + " Stop Trading: " + TSSSMB.IsDoneTrading();
-
-        actual = true;
-        return Results::UNIT_TEST_RAN;
-    }
-
-    if (currentMBNumber == tempMBState.Number())
-    {
-        return Results::UNIT_TEST_DID_NOT_RUN;
-    }
-
-    currentMBNumber = tempMBState.Number();
-
-    ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
-    ut.PendingRecord.AdditionalInformation = "Has Setup: " + TSSSMB.HasSetup() + " Stop Trading: " + TSSSMB.IsDoneTrading();
-
-    actual = true;
-    hasSetupLastCheck = TSSSMB.HasSetup();
-
     return Results::UNIT_TEST_RAN;
 }

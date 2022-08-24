@@ -30,6 +30,7 @@ public:
     static int EAStates::RECORDING_POST_ORDER_CLOSE_DATA;
     static int EAStates::CHECKING_IF_TICKET_IS_ACTIVE;
     static int EAStates::CHECKING_IF_TICKET_IS_CLOSED;
+    static int EAStates::CHECKING_TO_PLACE_ORDER;
 
     // 8200s Are For Setup Related States
     static int EAStates::CHECKING_FOR_SETUP;
@@ -43,6 +44,8 @@ public:
     static int EAStates::CHECKING_IF_MOST_RECENT_MB;
     static int EAStates::GETTING_FIRST_MB_IN_SETUP;
     static int EAStates::CHECKING_IF_BROKE_RANGE_END;
+    static int EAStates::CHECKING_GETTING_SECOND_MB_IN_SETUP;
+    static int EAStates::CHECKING_GETTING_LIQUIDATION_MB_IN_SETUP;
 
     // 8300s Are For Confirmation Related States
     static int EAStates::CHECKING_FOR_CONFIRMATION;
@@ -68,6 +71,7 @@ static int EAStates::RECORDING_POST_ORDER_OPEN_DATA = 8106;
 static int EAStates::RECORDING_POST_ORDER_CLOSE_DATA = 8107;
 static int EAStates::CHECKING_IF_TICKET_IS_ACTIVE = 8108;
 static int EAStates::CHECKING_IF_TICKET_IS_CLOSED = 8109;
+static int EAStates::CHECKING_TO_PLACE_ORDER = 8110;
 
 // 8200s Are For Setup Related States
 static int EAStates::CHECKING_FOR_SETUP = 8200;
@@ -81,6 +85,8 @@ static int EAStates::GETTING_NTH_MOST_RECENT_MB = 8207;
 static int EAStates::CHECKING_IF_MOST_RECENT_MB = 8208;
 static int EAStates::GETTING_FIRST_MB_IN_SETUP = 8209;
 static int EAStates::CHECKING_IF_BROKE_RANGE_END = 8210;
+static int EAStates::CHECKING_GETTING_SECOND_MB_IN_SETUP = 8211;
+static int EAStates::CHECKING_GETTING_LIQUIDATION_MB_IN_SETUP = 8212;
 
 // 8300s Are For Confirmation Related States
 static int EAStates::CHECKING_FOR_CONFIRMATION = 8300;
