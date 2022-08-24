@@ -25,7 +25,7 @@ const int AssertCooldown = 0;
 const bool RecordErrors = true;
 
 MBTracker *MBT;
-input int MBsToTrack = 3;
+input int MBsToTrack = 10;
 input int MaxZonesInMB = 5;
 input bool AllowMitigatedZones = false;
 input bool AllowZonesAfterMBValidation = true;

@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                           EAC.mqh |
+//|                                                           EA.mqh |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -14,7 +14,7 @@
 #include <SummitCapital\Framework\CSVWriting\CSVRecordWriter.mqh>
 
 template <typename TRecord>
-class EAC : public CSVRecordWriter<TRecord>
+class EA : public CSVRecordWriter<TRecord>
 {
 public:
     bool mStopTrading;
@@ -35,30 +35,32 @@ public:
     int mLastState;
 
 public:
-    EAC(int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, double riskPercent);
-    ~EAC();
+    EA(int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, double riskPercent);
+    ~EA();
 
     virtual void SetPartialPrice(double price, int percent);
 
-    virtual void Run();
-    virtual bool AllowedToTrade();
-    virtual void CheckSetSetup();
-    virtual void CheckStopTrading();
-    virtual void StopTrading(bool deletePendingOrder, int error);
-    virtual bool Confirmation();
-    virtual void PlaceOrders();
-    virtual void ManagePendingTicket();
-    virtual void ManageActiveTicket();
-    virtual void CheckTicket();
-    virtual void RecordOrderOpenData();
-    virtual void RecordOrderCloseData();
-    virtual void Reset();
+    virtual int MagicNumber() = NULL;
+
+    virtual void Run() = NULL;
+    virtual bool AllowedToTrade() = NULL;
+    virtual void CheckSetSetup() = NULL;
+    virtual void CheckStopTrading() = NULL;
+    virtual void StopTrading(bool deletePendingOrder, int error) = NULL;
+    virtual bool Confirmation() = NULL;
+    virtual void PlaceOrders() = NULL;
+    virtual void ManagePendingTicket() = NULL;
+    virtual void ManageActiveTicket() = NULL;
+    virtual void CheckTicket() = NULL;
+    virtual void RecordOrderOpenData() = NULL;
+    virtual void RecordOrderCloseData() = NULL;
+    virtual void Reset() = NULL;
 
     void RecordError(int error);
 };
 
 template <typename TRecord>
-EAC::EAC(int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, double riskPercent)
+EA::EA(int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, double riskPercent)
 {
     mStopTrading = false;
     mHasSetup = false;
@@ -71,12 +73,12 @@ EAC::EAC(int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, d
 }
 
 template <typename TRecord>
-EAC::~EAC()
+EA::~EA()
 {
 }
 
 template <typename TRecord>
-void EAC::RecordError(int error)
+void EA::RecordError(int error)
 {
     PendingRecord.LastState = mLastState;
     PendingRecord.Error = error;

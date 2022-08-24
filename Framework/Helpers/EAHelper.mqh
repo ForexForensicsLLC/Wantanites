@@ -12,9 +12,9 @@
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
 #include <SummitCapital\Framework\Helpers\ScreenShotHelper.mqh>
 
-#include <SummitCapital\EAs\The Sunrise Shatter\TheSunriseShatterSingleMB - Copy.mqh>
-#include <SummitCapital\EAs\The Sunrise Shatter\TheSunriseShatterDoubleMB - Copy.mqh>
-#include <SummitCapital\EAs\The Sunrise Shatter\TheSunriseShatterLiquidationMB - Copy.mqh>
+#include <SummitCapital\EAs\The Sunrise Shatter\TheSunriseShatterSingleMB.mqh>
+#include <SummitCapital\EAs\The Sunrise Shatter\TheSunriseShatterDoubleMB.mqh>
+#include <SummitCapital\EAs\The Sunrise Shatter\TheSunriseShatterLiquidationMB.mqh>
 
 class EAHelper
 {
@@ -200,9 +200,9 @@ static void EAHelper::FillSunriseShatterMagicNumbers(TEA &ea)
     ArrayFree(ea.mStrategyMagicNumbers);
     ArrayResize(ea.mStrategyMagicNumbers, 3);
 
-    ea.mStrategyMagicNumbers[0] = TheSunriseShatterSingleMBC::MagicNumber;
-    ea.mStrategyMagicNumbers[1] = TheSunriseShatterDoubleMBC::MagicNumber;
-    ea.mStrategyMagicNumbers[2] = TheSunriseShatterLiquidationMBC::MagicNumber;
+    ea.mStrategyMagicNumbers[0] = MagicNumbers::TheSunriseShatterSingleMB;
+    ea.mStrategyMagicNumbers[1] = MagicNumbers::TheSunriseShatterDoubleMB;
+    ea.mStrategyMagicNumbers[2] = MagicNumbers::TheSunriseShatterLiquidationMB;
 }
 
 template <typename TEA>
@@ -214,7 +214,12 @@ static void EAHelper::FillBullishKataraMagicNumbers(TEA &ea)
 template <typename TEA>
 static void EAHelper::FillBearishKataraMagicNumbers(TEA &ea)
 {
-    // TODO
+    ArrayFree(ea.mStrategyMagicNumbers);
+    ArrayResize(ea.mStrategyMagicNumbers, 3);
+
+    ea.mStrategyMagicNumbers[0] = MagicNumbers::BearishKataraSingleMB;
+    ea.mStrategyMagicNumbers[1] = MagicNumbers::BearishKataraDoubleMB;
+    ea.mStrategyMagicNumbers[2] = MagicNumbers::BearishKataraLiquidationMB;
 }
 /*
 
@@ -230,7 +235,7 @@ template <typename TEA>
 static void EAHelper::SetSingleActiveTicket(TEA &ea)
 {
     int tickets[];
-    int findTicketsError = OrderHelper::FindActiveTicketsByMagicNumber(true, ea.MagicNumber, tickets);
+    int findTicketsError = OrderHelper::FindActiveTicketsByMagicNumber(true, ea.MagicNumber(), tickets);
     if (findTicketsError != ERR_NO_ERROR)
     {
         ea.RecordError(findTicketsError);
@@ -374,6 +379,7 @@ static bool EAHelper::CheckSetFirstMBInSetup(TEA &ea)
 
     return true;
 }
+
 template <typename TEA>
 static bool EAHelper::CheckSetSecondMBInSetup(TEA &ea)
 {
@@ -394,6 +400,7 @@ static bool EAHelper::CheckSetSecondMBInSetup(TEA &ea)
     ea.mSecondMBInSetupNumber = mbTwoTempState.Number();
     return true;
 }
+
 template <typename TEA>
 static bool EAHelper::CheckSetLiquidationMBInSetup(TEA &ea)
 {
@@ -413,6 +420,7 @@ static bool EAHelper::CheckSetLiquidationMBInSetup(TEA &ea)
 
     return true;
 }
+
 template <typename TEA>
 static bool EAHelper::CheckBreakAfterMinROC(TEA &ea)
 {
@@ -428,6 +436,7 @@ static bool EAHelper::CheckBreakAfterMinROC(TEA &ea)
 
     return isTrue;
 }
+
 template <typename TEA>
 static bool EAHelper::CheckSetSingleMBAfterMinROCBreak(TEA &ea)
 {
@@ -443,6 +452,7 @@ static bool EAHelper::CheckSetSingleMBAfterMinROCBreak(TEA &ea)
 
     return false;
 }
+
 template <typename TEA>
 static bool EAHelper::CheckSetDoubleMBAfterMinROCBreak(TEA &ea)
 {
@@ -462,6 +472,7 @@ static bool EAHelper::CheckSetDoubleMBAfterMinROCBreak(TEA &ea)
 
     return false;
 }
+
 template <typename TEA>
 static bool EAHelper::CheckSetLiquidationMBAfterMinROCBreak(TEA &ea)
 {
@@ -748,7 +759,7 @@ static void EAHelper::PlaceOrderOnFirstMB(TEA &ea)
     ea.mLastState = EAStates::PLACING_ORDER;
 
     int ticketNumber = EMPTY;
-    int orderPlaceError = OrderHelper::PlaceStopOrderForPendingMBValidation(ea.mStopLossPaddingPips, ea.mMaxSpreadPips, ea.mRiskPercent, ea.MagicNumber,
+    int orderPlaceError = OrderHelper::PlaceStopOrderForPendingMBValidation(ea.mStopLossPaddingPips, ea.mMaxSpreadPips, ea.mRiskPercent, ea.MagicNumber(),
                                                                             ea.mFirstMBInSetupNumber, ea.mMBT, ticketNumber);
     PostPlaceOrderChecks<TEA>(ea, ticketNumber, orderPlaceError);
 }
@@ -758,7 +769,7 @@ static void EAHelper::PlaceOrderOnSecondMB(TEA &ea)
     ea.mLastState = EAStates::PLACING_ORDER;
 
     int ticketNumber = EMPTY;
-    int orderPlaceError = OrderHelper::PlaceStopOrderForPendingMBValidation(ea.mStopLossPaddingPips, ea.mMaxSpreadPips, ea.mRiskPercent, ea.MagicNumber,
+    int orderPlaceError = OrderHelper::PlaceStopOrderForPendingMBValidation(ea.mStopLossPaddingPips, ea.mMaxSpreadPips, ea.mRiskPercent, ea.MagicNumber(),
                                                                             ea.mSecondMBInSetupNumber, ea.mMBT, ticketNumber);
 
     PostPlaceOrderChecks<TEA>(ea, ticketNumber, orderPlaceError);
@@ -769,7 +780,7 @@ static void EAHelper::PlaceOrderOnLiquidationMB(TEA &ea)
     ea.mLastState = EAStates::PLACING_ORDER;
 
     int ticketNumber = EMPTY;
-    int orderPlaceError = OrderHelper::PlaceStopOrderForBreakOfMB(ea.mStopLossPaddingPips, ea.mMaxSpreadPips, ea.mRiskPercent, ea.MagicNumber,
+    int orderPlaceError = OrderHelper::PlaceStopOrderForBreakOfMB(ea.mStopLossPaddingPips, ea.mMaxSpreadPips, ea.mRiskPercent, ea.MagicNumber(),
                                                                   ea.mSecondMBInSetupNumber + 1, ea.mMBT, ticketNumber);
 
     PostPlaceOrderChecks<TEA>(ea, ticketNumber, orderPlaceError);

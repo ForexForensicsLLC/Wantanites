@@ -53,17 +53,60 @@ DefaultTradeRecord::~DefaultTradeRecord() {}
 
 double DefaultTradeRecord::TotalMovePips()
 {
-    return NormalizeDouble(OrderHelper::RangeToPips((EntryPrice - ExitPrice)), 2);
+    double furthestPoint;
+    if (OrderType == "Buy")
+    {
+        int entryIndex = iBarShift(Symbol, TimeFrame, EntryTime, true);
+        if (entryIndex == EMPTY)
+        {
+            return 0.0;
+        }
+
+        if (!MQLHelper::GetHighestHighBetween(Symbol, TimeFrame, entryIndex, 0, true, furthestPoint))
+        {
+            return 0.0;
+        }
+
+        return NormalizeDouble(OrderHelper::RangeToPips((furthestPoint - EntryPrice)), 2);
+    }
+    else if (OrderType == "Sell")
+    {
+        int entryIndex = iBarShift(Symbol, TimeFrame, EntryTime, true);
+        if (entryIndex == EMPTY)
+        {
+            return 0.0;
+        }
+
+        if (!MQLHelper::GetLowestLowBetween(Symbol, TimeFrame, entryIndex, 0, true, furthestPoint))
+        {
+            return 0.0;
+        }
+
+        return NormalizeDouble(OrderHelper::RangeToPips((EntryPrice - furthestPoint)), 2);
+    }
+
+    return 0.0;
 }
 
 double DefaultTradeRecord::PotentialRR()
 {
+    double totalMovePips = TotalMovePips();
+
     if (EntryPrice - EntryStopLoss == 0)
     {
-        return -9999999.9;
+        return 0.0;
     }
 
-    return NormalizeDouble((EntryPrice - ExitPrice) / (EntryPrice - EntryStopLoss), 2);
+    if (OrderType == "Buy")
+    {
+        return NormalizeDouble(totalMovePips / (EntryPrice - EntryStopLoss), 2);
+    }
+    else if (OrderType == "Sell")
+    {
+        return NormalizeDouble(totalMovePips / (EntryStopLoss - EntryPrice), 2);
+    }
+
+    return 0.0;
 }
 
 void DefaultTradeRecord::WriteHeaders(int fileHandle)

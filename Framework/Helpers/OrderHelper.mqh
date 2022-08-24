@@ -555,8 +555,7 @@ static bool OrderHelper::PlaceLimitOrderWithSinglePartial(int orderType, double 
                               |___/                 |_|
 
 */
-static int
-OrderHelper::PlaceStopOrder(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber, out int &ticket)
+int OrderHelper::PlaceStopOrder(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber, out int &ticket)
 {
     if (orderType != OP_BUYSTOP && orderType != OP_SELLSTOP)
     {
