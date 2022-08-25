@@ -49,6 +49,7 @@ public:
     // 8300s Are For Confirmation Related States
     static int EAStates::CHECKING_FOR_CONFIRMATION;
     static int EAStates::CHECKING_FOR_MOST_RECENT_MB_PLUS_HOLDING_ZONE;
+    static int EAStates::CHECKING_IF_CONFIRMATION_IS_STILL_VALID;
 };
 
 // 8000s Are For General States
@@ -89,3 +90,4 @@ static int EAStates::CHECKING_GETTING_LIQUIDATION_MB_IN_SETUP = 8212;
 // 8300s Are For Confirmation Related States
 static int EAStates::CHECKING_FOR_CONFIRMATION = 8300;
 static int EAStates::CHECKING_FOR_MOST_RECENT_MB_PLUS_HOLDING_ZONE = 8301;
+static int EAStates::CHECKING_IF_CONFIRMATION_IS_STILL_VALID = 8302;

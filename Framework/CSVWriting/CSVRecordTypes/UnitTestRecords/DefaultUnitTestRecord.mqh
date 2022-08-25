@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\CSVWriting\ICSVRecord.mqh>
+#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\ICSVRecord.mqh>
 
 class DefaultUnitTestRecord : ICSVRecord
 {

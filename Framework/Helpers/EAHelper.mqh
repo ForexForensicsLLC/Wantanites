@@ -128,6 +128,7 @@ public:
     static void CheckEditStopLossForPendingMBValidation(TEA &ea, MBTracker *&mbt, int mbNumber);
     template <typename TEA>
     static void CheckEditStopLossForBreakOfMB(TEA &ea, MBTracker *&mbt, int mbNumber);
+
     // =========================================================================
     // Manage Active Ticket
     // =========================================================================
@@ -291,13 +292,35 @@ static void EAHelper::Run(TEA &ea)
         return;
     }
 
-    if (ea.mHasSetup && ea.Confirmation())
+    if (ea.mHasSetup)
     {
-        ea.PlaceOrders();
-        return;
-    }
+        if (ea.mTicket.Number() == EMPTY)
+        {
+            if (ea.Confirmation())
+            {
+                ea.PlaceOrders();
+            }
+        }
+        else
+        {
+            ea.mLastState = EAStates::CHECKING_IF_CONFIRMATION_IS_STILL_VALID;
 
-    if (!ea.mHasSetup)
+            bool isActive;
+            int isActiveError = ea.mTicket.IsActive(isActive);
+            if (TerminalErrors::IsTerminalError(isActiveError))
+            {
+                ea.StopTrading(false, isActiveError);
+                return;
+            }
+
+            if (!isActive && !ea.Confirmation())
+            {
+                ea.mTicket.Close();
+                ea.mTicket.SetNewTicket(EMPTY);
+            }
+        }
+    }
+    else
     {
         ea.CheckSetSetup();
     }
