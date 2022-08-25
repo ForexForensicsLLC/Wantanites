@@ -55,24 +55,8 @@ public:
     static int GetStopLossForStopOrderForBreakOfMB(double paddingPips, double spreadPips, int mbNumber, MBTracker *&mbt, out double &stopLoss);
 
     // ==========================================================================
-    // Selecting Orders
-    // ==========================================================================
-    // Tested
-    // static int SelectOpenOrderByPosition(int position, string action);
-
-    // Tested
-    // static int SelectOpenOrderByTicket(int ticket, string action);
-
-    // Tested
-    // static int SelectClosedOrderByTicket(int ticket, string action);
-
-    // ==========================================================================
     // Checking Orders
     // ==========================================================================
-    // Tested
-    // ResetsOutParam
-    // static int IsPendingOrder(int ticket, out bool &isTrue);
-
     // Tested
     // ResetsOutParam
     static int CountOtherEAOrders(bool todayOnly, int &magicNumbers[], out int &orders);
@@ -126,9 +110,6 @@ public:
     // !Tested
     // static bool CancelAllPendingOrdersByMagicNumber(int magicNumber);
 
-    // Tested
-    // static int CancelPendingOrderByTicket(out int &ticket);
-
     // ==========================================================================
     // Moving To Break Even
     // ==========================================================================
@@ -138,9 +119,6 @@ public:
     // ==========================================================================
     // Moving To Break Even By MB
     // ==========================================================================
-    // !Tested
-    // static bool TrailAllOrdersToMBUpToBreakEven(int magicNumber, double paddingPips, double spreadPips, MBState *&mbState);
-
     // Tested
     static int CheckTrailStopLossWithMBUpToBreakEven(double paddingPips, double spreadPips, int setUpMB, int setUpType, MBTracker *&mbt, Ticket *&ticket, out bool &succeeded);
 };
@@ -362,62 +340,6 @@ static int OrderHelper::GetStopLossForStopOrderForBreakOfMB(double paddingPips, 
 }
 /*
 
-   ____       _           _   _                ___          _
-  / ___|  ___| | ___  ___| |_(_)_ __   __ _   / _ \ _ __ __| | ___ _ __ ___
-  \___ \ / _ \ |/ _ \/ __| __| | '_ \ / _` | | | | | '__/ _` |/ _ \ '__/ __|
-   ___) |  __/ |  __/ (__| |_| | | | | (_| | | |_| | | | (_| |  __/ |  \__ \
-  |____/ \___|_|\___|\___|\__|_|_| |_|\__, |  \___/|_|  \__,_|\___|_|  |___/
-                                      |___/
-
-*/
-/*
-static int OrderHelper::SelectClosedOrderByTicket(int ticket, string action)
-{
-    if (ticket == EMPTY)
-    {
-        return TerminalErrors::TICKET_IS_EMPTY;
-    }
-
-    if (!OrderSelect(ticket, SELECT_BY_TICKET))
-    {
-        bool found = false;
-        for (int i = 0; i < OrdersHistoryTotal(); i++)
-        {
-            if (!OrderSelect(i, SELECT_BY_POS, MODE_HISTORY))
-            {
-                int error = GetLastError();
-                SendMail("Failed To Select Order By Ticket When " + action,
-                         "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
-                             "Current Index: " + IntegerToString(i) + "\n" +
-                             "Current Ticket: " + IntegerToString(ticket) + "\n" +
-                             IntegerToString(error));
-
-                return error;
-            }
-
-            if (OrderTicket() == ticket)
-            {
-                found = true;
-                break;
-            }
-        }
-
-        if (!found)
-        {
-            return TerminalErrors::ORDER_NOT_FOUND;
-        }
-    }
-
-    if (OrderCloseTime() == 0)
-    {
-        return TerminalErrors::ORDER_IS_OPEN;
-    }
-
-    return ERR_NO_ERROR;
-}
-*/
-/*
-
     ____ _               _    _                ___          _
    / ___| |__   ___  ___| | _(_)_ __   __ _   / _ \ _ __ __| | ___ _ __ ___
   | |   | '_ \ / _ \/ __| |/ / | '_ \ / _` | | | | | '__/ _` |/ _ \ '__/ __|
@@ -426,22 +348,6 @@ static int OrderHelper::SelectClosedOrderByTicket(int ticket, string action)
                                       |___/
 
 */
-/*
-static int OrderHelper::IsPendingOrder(int ticket, out bool &isTrue)
-{
-    isTrue = false;
-    int selectError = SelectOpenOrderByTicket(ticket, "Checking if Pending Order");
-    if (selectError != ERR_NO_ERROR)
-    {
-        return selectError;
-    }
-
-    // OP_BUY == 0, OP_SELL = 1, anything else is above
-    isTrue = OrderType() > 1;
-    return ERR_NO_ERROR;
-}
-*/
-
 static int OrderHelper::CountOtherEAOrders(bool todayOnly, int &magicNumbers[], out int &orders)
 {
     orders = 0;
@@ -882,24 +788,6 @@ static bool OrderHelper::CancelAllPendingOrdersByMagicNumber(int magicNumber)
 }
 */
 /*
-static int OrderHelper::CancelPendingOrderByTicket(out int &ticket)
-{
-    if (!OrderDelete(ticket))
-    {
-        int error = GetLastError();
-        SendMail("Failed To Delete Order",
-                 "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
-                     "Ticket: " + IntegerToString(ticket) + "\n" +
-                     IntegerToString(error));
-
-        return error;
-    }
-
-    ticket = EMPTY;
-    return ERR_NO_ERROR;
-}
-*/
-/*
 
    __  __            _               _____       ____                 _      _____
   |  \/  | _____   _(_)_ __   __ _  |_   _|__   | __ ) _ __ ___  __ _| | __ | ____|_   _____ _ __
@@ -949,64 +837,6 @@ static bool OrderHelper::MoveAllOrdersToBreakEvenByMagicNumber(int magicNumber)
   |_|  |_|\___/ \_/ |_|_| |_|\__, |   |_|\___/  |____/|_|  \___|\__,_|_|\_\ |_____| \_/ \___|_| |_| |____/ \__, | |_|  |_|____/
                              |___/                                                                         |___/
 
-*/
-/*
-static bool OrderHelper::TrailAllOrdersToMBUpToBreakEven(int magicNumber, double paddingPips, double spreadPips, MBState *&mbState)
-{
-   bool allOrdersMoved = true;
-   for (int i = OrdersTotal() - 1; i >= 0; i--)
-   {
-      if (!SelectOrderByPosition(i, "Trailing to MB up to Break Even"))
-      {
-         allOrdersMoved = false;
-      }
-
-      // OP_BUY or OP_SELL
-      if (OrderType() < 2 && OrderMagicNumber() == magicNumber)
-      {
-         double currentStopLoss = OrderStopLoss();
-         double newStopLoss = 0.0;
-
-         if (mbState.Type() == OP_BUY)
-         {
-            newStopLoss = MathMin(
-                OrderOpenPrice(), MathMax(
-                                      currentStopLoss, iLow(mbState.Symbol(), mbState.TimeFrame(), mbState.LowIndex()) - OrderHelper::PipsToRange(paddingPips)));
-         }
-         else if (mbState.Type() == OP_SELL)
-         {
-            newStopLoss = MathMax(
-                OrderOpenPrice(), MathMin(
-                                      currentStopLoss, iHigh(mbState.Symbol(), mbState.TimeFrame(), mbState.HighIndex()) + OrderHelper::PipsToRange(paddingPips) + OrderHelper::PipsToRange(spreadPips)));
-         }
-
-         if (newStopLoss == currentStopLoss)
-         {
-            continue;
-         }
-
-         Print("Trailing - Current Stop Loss: ", currentStopLoss, ", New Stop Loss: ", newStopLoss);
-
-         if (!OrderModify(OrderTicket(), OrderOpenPrice(), newStopLoss, OrderTakeProfit(), OrderExpiration(), clrGreen))
-         {
-            SendMail("Failed to trail stop loss",
-                     "Time: " + IntegerToString(Hour()) + ":" + IntegerToString(Minute()) + ":" + IntegerToString(Seconds()) + "\n" +
-                         "Magic Number: " + IntegerToString(magicNumber) + "\n" +
-                         "Type: " + IntegerToString(OrderType()) + "\n" +
-                         "Ask: " + DoubleToString(Ask) + "\n" +
-                         "Bid: " + DoubleToString(Bid) + "\n" +
-                         "Entry: " + DoubleToString(OrderOpenPrice()) + "\n" +
-                         "Current Stop Loss: " + DoubleToString(currentStopLoss) + "\n" +
-                         "New Stop Loss: " + DoubleToString(newStopLoss) + "\n" +
-                         "Error: " + IntegerToString(GetLastError()));
-
-            allOrdersMoved = false;
-         }
-      }
-   }
-
-   return allOrdersMoved;
-}
 */
 static int OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(double paddingPips, double spreadPips, int setUpMB, int setUpType, MBTracker *&mbt, Ticket *&ticket, out bool &succeeded)
 {

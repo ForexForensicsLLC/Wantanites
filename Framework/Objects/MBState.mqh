@@ -24,7 +24,8 @@ protected:
     int mHighIndex;
     int mLowIndex;
 
-    bool mIsBroken;
+    bool mStartIsBroken;
+
     bool mDrawn;
 
     Zone *mZones[];
@@ -45,6 +46,7 @@ public:
     int EndIndex() { return mEndIndex; }
     int HighIndex() { return mHighIndex; }
     int LowIndex() { return mLowIndex; }
+    bool mEndIsBroken;
 
     bool CanUseLowIndexForILow(int &lowIndex);
     bool CanUseHighIndexForIHigh(int &highIndex);
@@ -53,7 +55,8 @@ public:
     int UnretrievedZoneCount() { return mUnretrievedZoneCount; }
 
     // Tested
-    bool IsBroken(int barIndex);
+    bool StartIsBroken();
+    bool EndIsBroken();
 
     bool GetUnretrievedZones(ZoneState *&zoneStates[]);
     bool GetClosestValidZone(ZoneState *&zoneStates);
@@ -69,37 +72,33 @@ public:
     void DrawZones(bool printErrors);
 };
 
-bool MBState::IsBroken(int barIndex)
+bool MBState::StartIsBroken()
 {
-    if (!mIsBroken)
+    if (!mStartIsBroken)
     {
         if (mType == OP_BUY)
         {
             double low;
-            // Should Be Inclusive for when we are checknig the break from the MB End Index. Its not likely but the
-            // end index can confirm the MB and break it in the same candle
-            if (!MQLHelper::GetLowestLow(mSymbol, mTimeFrame, barIndex, 0, true, low))
+            if (!MQLHelper::GetLowestLow(mSymbol, mTimeFrame, mLowIndex, 0, false, low))
             {
                 return false;
             }
 
-            mIsBroken = low < iLow(mSymbol, mTimeFrame, mLowIndex);
+            mStartIsBroken = low < iLow(mSymbol, mTimeFrame, mLowIndex);
         }
         else if (mType == OP_SELL)
         {
             double high;
-            // Should Be Inclusive for when we are checknig the break from the MB End Index. Its not likely but the
-            // end index can confirm the MB and break it in the same candle
-            if (!MQLHelper::GetHighestHigh(mSymbol, mTimeFrame, barIndex, 0, true, high))
+            if (!MQLHelper::GetHighestHigh(mSymbol, mTimeFrame, mHighIndex, 0, false, high))
             {
                 return false;
             }
 
-            mIsBroken = high > iHigh(mSymbol, mTimeFrame, mHighIndex);
+            mStartIsBroken = high > iHigh(mSymbol, mTimeFrame, mHighIndex);
         }
     }
 
-    return mIsBroken;
+    return mStartIsBroken;
 }
 
 bool MBState::GetUnretrievedZones(ZoneState *&zoneStates[])

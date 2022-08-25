@@ -26,6 +26,9 @@ public:
     // 6200s Are for MQL Extension Errors
     static int ExecutionErrors::COULD_NOT_RETRIEVE_LOW;
     static int ExecutionErrors::COULD_NOT_RETRIEVE_HIGH;
+
+    // 6300s Are for ScreenShot Errors
+    static int ExecutionErrors::SECOND_CHART_NOT_FOUND;
 };
 
 // 6000s Are For Indicator Errors
@@ -43,3 +46,6 @@ static int ExecutionErrors::STOP_ORDER_ENTRY_FURTHER_THEN_PRICE = 6101;
 // 6200s Are for MQL Extension Errors
 static int ExecutionErrors::COULD_NOT_RETRIEVE_LOW = 6200;
 static int ExecutionErrors::COULD_NOT_RETRIEVE_HIGH = 6201;
+
+// 6300s Are for ScreenShot Errors
+static int ExecutionErrors::SECOND_CHART_NOT_FOUND = 6300;

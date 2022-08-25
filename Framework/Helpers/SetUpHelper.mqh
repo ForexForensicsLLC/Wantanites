@@ -21,9 +21,6 @@ public:
     // Range Broke Methods
     // ==========================================================================
     // Tested
-    static int BrokeMBRangeStart(int mbNumber, MBTracker *&mbt, out bool &isTrue);
-
-    // Tested
     static int BrokeDoubleMBPlusLiquidationSetupRangeEnd(int secondMBInSetup, int setupType, MBTracker *&mbt, out bool &isTrue);
 
     // ==========================================================================
@@ -54,20 +51,6 @@ public:
                     |___/
 
 */
-static int SetupHelper::BrokeMBRangeStart(int mbNumber, MBTracker *&mbt, out bool &isTrue)
-{
-    isTrue = false;
-
-    MBState *tempMBState;
-    if (!mbt.GetMB(mbNumber, tempMBState))
-    {
-        return TerminalErrors::MB_DOES_NOT_EXIST;
-    }
-
-    isTrue = tempMBState.IsBroken(tempMBState.EndIndex());
-    return ERR_NO_ERROR;
-}
-
 /**
  * @brief Checks if price broke the second MB, held the first, and then continued past the second
  *
@@ -96,7 +79,7 @@ static int SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(int secondMBIn
     }
 
     // The end of our setup is the same as the start of the MB that liquidated the second MB
-    isTrue = thirdTempMBState.IsBroken(thirdTempMBState.StartIndex());
+    isTrue = thirdTempMBState.StartIsBroken();
     return ERR_NO_ERROR;
 }
 /*

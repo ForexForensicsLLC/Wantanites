@@ -479,7 +479,8 @@ MB::MB(string symbol, int timeFrame, int number, int type, int startIndex, int e
     mHighIndex = highIndex;
     mLowIndex = lowIndex;
 
-    mIsBroken = false;
+    mStartIsBroken = false;
+    mEndIsBroken = false;
 
     mMaxZones = maxZones;
     mZoneCount = 0;

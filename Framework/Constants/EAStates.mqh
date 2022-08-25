@@ -25,9 +25,8 @@ public:
     static int EAStates::CHECKING_TO_TRAIL_STOP_LOSS;
     static int EAStates::COUNTING_OTHER_EA_ORDERS;
     static int EAStates::PLACING_ORDER;
-    static int EAStates::RECORDING_PRE_ORDER_OPEN_DATA;
-    static int EAStates::RECORDING_POST_ORDER_OPEN_DATA;
-    static int EAStates::RECORDING_POST_ORDER_CLOSE_DATA;
+    static int EAStates::RECORDING_ORDER_OPEN_DATA;
+    static int EAStates::RECORDING_ORDER_CLOSE_DATA;
     static int EAStates::CHECKING_IF_TICKET_IS_ACTIVE;
     static int EAStates::CHECKING_IF_TICKET_IS_CLOSED;
     static int EAStates::CHECKING_TO_PLACE_ORDER;
@@ -66,12 +65,11 @@ static int EAStates::CHECKING_TO_EDIT_STOP_LOSS = 8102;
 static int EAStates::CHECKING_TO_TRAIL_STOP_LOSS = 8103;
 static int EAStates::COUNTING_OTHER_EA_ORDERS = 8103;
 static int EAStates::PLACING_ORDER = 8104;
-static int EAStates::RECORDING_PRE_ORDER_OPEN_DATA = 8105;
-static int EAStates::RECORDING_POST_ORDER_OPEN_DATA = 8106;
-static int EAStates::RECORDING_POST_ORDER_CLOSE_DATA = 8107;
-static int EAStates::CHECKING_IF_TICKET_IS_ACTIVE = 8108;
-static int EAStates::CHECKING_IF_TICKET_IS_CLOSED = 8109;
-static int EAStates::CHECKING_TO_PLACE_ORDER = 8110;
+static int EAStates::RECORDING_ORDER_OPEN_DATA = 8105;
+static int EAStates::RECORDING_ORDER_CLOSE_DATA = 8106;
+static int EAStates::CHECKING_IF_TICKET_IS_ACTIVE = 8107;
+static int EAStates::CHECKING_IF_TICKET_IS_CLOSED = 8108;
+static int EAStates::CHECKING_TO_PLACE_ORDER = 8109;
 
 // 8200s Are For Setup Related States
 static int EAStates::CHECKING_FOR_SETUP = 8200;

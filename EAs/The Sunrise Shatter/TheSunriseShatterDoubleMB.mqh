@@ -10,7 +10,7 @@
 
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
-#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultTradeRecord.mqh>
+#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\SingleTimeFrameTradeRecord.mqh>
 #include <SummitCapital\Framework\EA\EA.mqh>
 
 #include <SummitCapital\Framework\Trackers\MBTracker.mqh>
@@ -19,7 +19,7 @@
 
 #include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 
-class TheSunriseShatterDoubleMB : public EA<DefaultTradeRecord>
+class TheSunriseShatterDoubleMB : public EA<SingleTimeFrameTradeRecord>
 {
 public:
     MinROCFromTimeStamp *mMRFTS;
@@ -30,8 +30,10 @@ public:
     int mFirstMBInSetupNumber;
     int mSecondMBInSetupNumber;
 
+    int mTimeFrame;
+
 public:
-    TheSunriseShatterDoubleMB(int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, double riskPercent, MinROCFromTimeStamp *&mrfts,
+    TheSunriseShatterDoubleMB(int timeFrame, int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, double riskPercent, MinROCFromTimeStamp *&mrfts,
                               MBTracker *&mbt);
     ~TheSunriseShatterDoubleMB();
 
@@ -52,8 +54,8 @@ public:
     virtual void Reset();
 };
 
-TheSunriseShatterDoubleMB::TheSunriseShatterDoubleMB(int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, double riskPercent, MinROCFromTimeStamp *&mrfts,
-                                                     MBTracker *&mbt) : EA(maxTradesPerStrategy, stopLossPaddingPips, maxSpreadPips, riskPercent)
+TheSunriseShatterDoubleMB::TheSunriseShatterDoubleMB(int timeFrame, int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, double riskPercent,
+                                                     MinROCFromTimeStamp *&mrfts, MBTracker *&mbt) : EA(maxTradesPerStrategy, stopLossPaddingPips, maxSpreadPips, riskPercent)
 {
     mDirectory = "/TheSunriseShatter/TheSunriseShatterDoubleMB/";
     mCSVFileName = "TheSunriseShatterDoubleMB.csv";
@@ -65,6 +67,8 @@ TheSunriseShatterDoubleMB::TheSunriseShatterDoubleMB(int maxTradesPerStrategy, i
     mSetupType = EMPTY;
     mFirstMBInSetupNumber = EMPTY;
     mSecondMBInSetupNumber = EMPTY;
+
+    mTimeFrame = timeFrame;
 
     EAHelper::FillSunriseShatterMagicNumbers<TheSunriseShatterDoubleMB>(this);
     EAHelper::SetSingleActiveTicket<TheSunriseShatterDoubleMB>(this);
@@ -79,7 +83,7 @@ TheSunriseShatterDoubleMB::~TheSunriseShatterDoubleMB()
 
 void TheSunriseShatterDoubleMB::Run()
 {
-    EAHelper::RunDrawMBTAndMRFTS<TheSunriseShatterDoubleMB>(this);
+    EAHelper::RunDrawMBTAndMRFTS<TheSunriseShatterDoubleMB>(this, mMBT);
 }
 
 bool TheSunriseShatterDoubleMB::AllowedToTrade()
@@ -89,7 +93,7 @@ bool TheSunriseShatterDoubleMB::AllowedToTrade()
 
 void TheSunriseShatterDoubleMB::CheckSetSetup()
 {
-    if (EAHelper::CheckSetDoubleMBAfterMinROCBreak<TheSunriseShatterDoubleMB>(this))
+    if (EAHelper::CheckSetDoubleMBAfterMinROCBreak<TheSunriseShatterDoubleMB>(this, mMBT, mFirstMBInSetupNumber, mSecondMBInSetupNumber))
     {
         mHasSetup = true;
     }
@@ -100,7 +104,7 @@ void TheSunriseShatterDoubleMB::CheckStopTrading()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
     // Want to try to close the pending order if we have a setup or not and we break the range start
-    if (EAHelper::CheckBrokeRangeStart<TheSunriseShatterDoubleMB>(this))
+    if (EAHelper::CheckBrokeMBRangeStart<TheSunriseShatterDoubleMB>(this, mMBT, mSecondMBInSetupNumber))
     {
         return;
     }
@@ -116,7 +120,7 @@ void TheSunriseShatterDoubleMB::CheckStopTrading()
         return;
     }
 
-    if (EAHelper::CheckBrokeDoubleMBRangeEnd<TheSunriseShatterDoubleMB>(this))
+    if (EAHelper::CheckBrokeMBRangeEnd<TheSunriseShatterDoubleMB>(this, mMBT, mSecondMBInSetupNumber))
     {
         return;
     }
@@ -129,25 +133,25 @@ void TheSunriseShatterDoubleMB::StopTrading(bool deletePendingOrder, int error =
 
 bool TheSunriseShatterDoubleMB::Confirmation()
 {
-    return EAHelper::SecondMBZoneIsHolding<TheSunriseShatterDoubleMB>(this);
+    return EAHelper::MostRecentMBZoneIsHolding<TheSunriseShatterDoubleMB>(this, mMBT, mSecondMBInSetupNumber);
 }
 
 void TheSunriseShatterDoubleMB::PlaceOrders()
 {
     if (EAHelper::PrePlaceOrderChecks<TheSunriseShatterDoubleMB>(this))
     {
-        EAHelper::PlaceOrderOnSecondMB<TheSunriseShatterDoubleMB>(this);
+        EAHelper::PlaceStopOrderForPendingMBValidation<TheSunriseShatterDoubleMB>(this, mMBT, mSecondMBInSetupNumber);
     }
 }
 
 void TheSunriseShatterDoubleMB::ManagePendingTicket()
 {
-    EAHelper::CheckEditPendingOrderStopLossOnValidationOfSecondMB<TheSunriseShatterDoubleMB>(this);
+    EAHelper::CheckEditStopLossForPendingMBValidation<TheSunriseShatterDoubleMB>(this, mMBT, mSecondMBInSetupNumber);
 }
 
 void TheSunriseShatterDoubleMB::ManageActiveTicket()
 {
-    EAHelper::CheckTrailStopLossWithMBs<TheSunriseShatterDoubleMB>(this);
+    EAHelper::CheckTrailStopLossWithMBs<TheSunriseShatterDoubleMB>(this, mMBT, mSecondMBInSetupNumber);
 }
 void TheSunriseShatterDoubleMB::CheckTicket()
 {
@@ -156,12 +160,12 @@ void TheSunriseShatterDoubleMB::CheckTicket()
 
 void TheSunriseShatterDoubleMB::RecordOrderOpenData()
 {
-    EAHelper::RecordOrderOpenData<TheSunriseShatterDoubleMB>(this);
+    EAHelper::RecordSingleTimeFrameRecordOpenData<TheSunriseShatterDoubleMB>(this, mTimeFrame);
 }
 
 void TheSunriseShatterDoubleMB::RecordOrderCloseData()
 {
-    EAHelper::RecordOrderCloseData<TheSunriseShatterDoubleMB>(this);
+    EAHelper::RecordSingleTimeFrameRecordCloseData<TheSunriseShatterDoubleMB>(this);
 }
 
 void TheSunriseShatterDoubleMB::Reset()

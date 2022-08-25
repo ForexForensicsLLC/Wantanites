@@ -107,6 +107,9 @@ public:
     bool MBIsMostRecent(int mbNumber);
     bool MBIsMostRecent(int mbNumber, MBState *&mbState);
 
+    int MBStartIsBroken(int mbNumber, bool &brokeRangeStart);
+    int MBEndIsBroken(int mbNumber, bool &brokeRangeEnd);
+
     string ToString(int mbsToPrint);
     string ToSingleLineString(int mbsToPrint);
 
@@ -906,6 +909,60 @@ bool MBTracker::MBIsMostRecent(int mbNumber, MBState *&mbState)
     }
 
     return false;
+}
+
+int MBTracker::MBStartIsBroken(int mbNumber, bool &brokeRangeStart)
+{
+    MBState *tempMBState;
+    if (!GetMB(mbNumber, tempMBState))
+    {
+        return TerminalErrors::MB_DOES_NOT_EXIST;
+    }
+
+    brokeRangeStart = tempMBState.StartIsBroken();
+    return ERR_NO_ERROR;
+}
+
+int MBTracker::MBEndIsBroken(int mbNumber, bool &brokeRangeEnd)
+{
+    if (mMBs[MostRecentMBIndex()].Number() <= mbNumber)
+    {
+        brokeRangeEnd = false;
+        return ERR_NO_ERROR;
+    }
+
+    MBState *tempMBState;
+    if (!GetMB(mbNumber, tempMBState))
+    {
+        return TerminalErrors::MB_DOES_NOT_EXIST;
+    }
+
+    if (!tempMBState.mEndIsBroken)
+    {
+        if (tempMBState.Type() == OP_BUY)
+        {
+            double high;
+            if (!MQLHelper::GetHighestHigh(mSymbol, mTimeFrame, tempMBState.HighIndex(), 0, false, high))
+            {
+                return ExecutionErrors::COULD_NOT_RETRIEVE_HIGH;
+            }
+
+            tempMBState.mEndIsBroken = high > iHigh(mSymbol, mTimeFrame, tempMBState.HighIndex());
+        }
+        else if (tempMBState.Type() == OP_SELL)
+        {
+            double low;
+            if (!MQLHelper::GetLowestLow(mSymbol, mTimeFrame, tempMBState.LowIndex(), 0, false, low))
+            {
+                return ExecutionErrors::COULD_NOT_RETRIEVE_LOW;
+            }
+
+            tempMBState.mEndIsBroken = low < iLow(mSymbol, mTimeFrame, tempMBState.LowIndex());
+        }
+    }
+
+    brokeRangeEnd = tempMBState.mEndIsBroken;
+    return ERR_NO_ERROR;
 }
 
 string MBTracker::ToString(int mbsToPrint = 3)

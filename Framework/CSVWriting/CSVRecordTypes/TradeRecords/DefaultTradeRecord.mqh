@@ -8,26 +8,24 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\CSVWriting\ICSVRecord.mqh>
+#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\ICSVRecord.mqh>
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
 
-class DefaultTradeRecord : ICSVRecord
+class DefaultTradeRecord : public ICSVRecord
 {
 public:
     string Symbol;
-    int TimeFrame;
+    int EntryTimeFrame;
     string OrderType;
     double AccountBalanceBefore;
     double AccountBalanceAfter;
     datetime EntryTime;
-    string EntryImage;
-    datetime ExitTime;
-    string ExitImage;
     double EntryPrice;
     double EntryStopLoss;
-    double Lots;
+    datetime ExitTime;
     double ExitPrice;
     double ExitStopLoss;
+    double Lots;
     int LastState;
     int Error;
     string ErrorImage;
@@ -56,13 +54,13 @@ double DefaultTradeRecord::TotalMovePips()
     double furthestPoint;
     if (OrderType == "Buy")
     {
-        int entryIndex = iBarShift(Symbol, TimeFrame, EntryTime, true);
+        int entryIndex = iBarShift(Symbol, EntryTimeFrame, EntryTime, true);
         if (entryIndex == EMPTY)
         {
             return 0.0;
         }
 
-        if (!MQLHelper::GetHighestHighBetween(Symbol, TimeFrame, entryIndex, 0, true, furthestPoint))
+        if (!MQLHelper::GetHighestHighBetween(Symbol, EntryTimeFrame, entryIndex, 0, true, furthestPoint))
         {
             return 0.0;
         }
@@ -71,13 +69,13 @@ double DefaultTradeRecord::TotalMovePips()
     }
     else if (OrderType == "Sell")
     {
-        int entryIndex = iBarShift(Symbol, TimeFrame, EntryTime, true);
+        int entryIndex = iBarShift(Symbol, EntryTimeFrame, EntryTime, true);
         if (entryIndex == EMPTY)
         {
             return 0.0;
         }
 
-        if (!MQLHelper::GetLowestLowBetween(Symbol, TimeFrame, entryIndex, 0, true, furthestPoint))
+        if (!MQLHelper::GetLowestLowBetween(Symbol, EntryTimeFrame, entryIndex, 0, true, furthestPoint))
         {
             return 0.0;
         }
@@ -111,30 +109,60 @@ double DefaultTradeRecord::PotentialRR()
 
 void DefaultTradeRecord::WriteHeaders(int fileHandle)
 {
-    FileWrite(fileHandle, "Symbol", "Time Frame", "Order Type", "Account Balance Before", "Account Balance After", "Entry Time", "Entry Image", "Exit Time", "Exit Image",
-              "Entry Price", "Entry Stop Loss", "Lots", "Exit Price", "Exit Stop Loss", "Total Move Pips", "Potential RR", "Last State", "Error", "Error Image", "Notes");
+    FileWrite(fileHandle,
+              "Symbol",
+              "Order Type",
+              "Account Balance Before",
+              "Account Balance After",
+              "Lots",
+              "Entry Time",
+              "Entry Price",
+              "Entry Stop Loss",
+              "Exit Time",
+              "Exit Price",
+              "Exit Stop Loss",
+              "Total Move Pips",
+              "Potential RR",
+              "Last State",
+              "Error",
+              "Error Image",
+              "Notes");
 }
 
 void DefaultTradeRecord::WriteRecord(int fileHandle)
 {
-    FileWrite(fileHandle, Symbol, TimeFrame, OrderType, AccountBalanceBefore, AccountBalanceAfter, EntryTime, EntryImage, ExitTime, ExitImage, EntryPrice,
-              EntryStopLoss, Lots, ExitPrice, ExitStopLoss, TotalMovePips(), PotentialRR(), LastState, Error, ErrorImage, Notes);
+    FileWrite(fileHandle,
+              Symbol,
+              OrderType,
+              AccountBalanceBefore,
+              AccountBalanceAfter,
+              Lots,
+              EntryTime,
+              EntryPrice,
+              EntryStopLoss,
+              ExitTime,
+              ExitPrice,
+              ExitStopLoss,
+              TotalMovePips(),
+              PotentialRR(),
+              LastState,
+              Error,
+              ErrorImage,
+              Notes);
 }
 
 void DefaultTradeRecord::Reset()
 {
     Symbol = "";
-    TimeFrame = 0;
+    EntryTimeFrame = 0;
     OrderType = "";
     AccountBalanceBefore = 0;
     AccountBalanceAfter = 0;
+    Lots = 0.0;
     EntryTime = 0;
-    EntryImage = "";
-    ExitTime = 0;
-    ExitImage = "";
     EntryPrice = 0.0;
     EntryStopLoss = 0.0;
-    Lots = 0.0;
+    ExitTime = 0;
     ExitPrice = 0.0;
     ExitStopLoss = 0.0;
     LastState = 0;

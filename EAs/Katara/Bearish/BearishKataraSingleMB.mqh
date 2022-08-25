@@ -93,7 +93,7 @@ void TheSunriseShatterSingleMBC::CheckSetSetup()
 
 void TheSunriseShatterSingleMBC::Confirmation()
 {
-    if (EAHelper::BreakOfMB<TheSunriseShatterSingleMBC>(this, mSetupMBT, mSetupType))
+    if (EAHelper::BreakOfMB<TheSunriseShatterSingleMBC>(this, mConfirmationMBT, mSetupType))
     {
         return true;
     }
