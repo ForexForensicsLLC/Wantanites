@@ -25,8 +25,8 @@ private:
 
     // --- MB Counting / Tracking---
     int mMBsToTrack;
-    int mCurrentMBs;
-    int mMBsCreated;
+    int mCurrentMBs; // Used for tracking when to start cleaning up MBs
+    int mMBsCreated; // Used for MBNumber
 
     int mCurrentBullishRetracementIndex;
     int mCurrentBearishRetracementIndex;
@@ -75,6 +75,7 @@ public:
     //  --- Getters ---
     string Symbol() { return mSymbol; }
     int TimeFrame() { return mTimeFrame; }
+    int CurrentMBs() { return mCurrentMBs; }
 
     // --- Constructors / Destructors ---
     MBTracker(string symbol, int timeFrame,

@@ -132,7 +132,7 @@ int CheckingIfBrokeRangeStart(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &act
 
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
 
-    TSSLMB.CheckStopTrading();
+    TSSLMB.CheckInvalidateSetup();
     actual = TSSLMB.GetLastState() == EAStates::CHECKING_IF_BROKE_RANGE_START && !TSSLMB.HasSetup();
 
     return Results::UNIT_TEST_RAN;
@@ -170,7 +170,7 @@ int CheckingIfBrokeRangeEnd(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actua
 
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
 
-    TSSLMB.CheckStopTrading();
+    TSSLMB.CheckInvalidateSetup();
     actual = TSSLMB.GetLastState() == EAStates::CHECKING_IF_BROKE_RANGE_END && !TSSLMB.HasSetup();
 
     return Results::UNIT_TEST_RAN;
@@ -185,7 +185,7 @@ int CheckingIfCrossingOpenPriceAfterMinROC(BoolUnitTest<DefaultUnitTestRecord> &
 
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
 
-    TSSLMB.CheckStopTrading();
+    TSSLMB.CheckInvalidateSetup();
     actual = TSSLMB.GetLastState() == EAStates::CHECKING_IF_CROSSED_OPEN_PRICE_AFTER_MIN_ROC && !TSSLMB.HasSetup();
 
     return Results::UNIT_TEST_RAN;

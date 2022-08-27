@@ -45,6 +45,8 @@ public:
     static int EAStates::CHECKING_IF_BROKE_RANGE_END;
     static int EAStates::CHECKING_GETTING_SECOND_MB_IN_SETUP;
     static int EAStates::CHECKING_GETTING_LIQUIDATION_MB_IN_SETUP;
+    static int EAStates::CHECKING_IF_PUSHED_FURTHER_INTO_ZONE;
+    static int EAStates::CHECKING_IF_RETAPPED_ZONE;
 
     // 8300s Are For Confirmation Related States
     static int EAStates::CHECKING_FOR_CONFIRMATION;
@@ -86,6 +88,8 @@ static int EAStates::GETTING_FIRST_MB_IN_SETUP = 8209;
 static int EAStates::CHECKING_IF_BROKE_RANGE_END = 8210;
 static int EAStates::CHECKING_GETTING_SECOND_MB_IN_SETUP = 8211;
 static int EAStates::CHECKING_GETTING_LIQUIDATION_MB_IN_SETUP = 8212;
+static int EAStates::CHECKING_IF_PUSHED_FURTHER_INTO_ZONE = 8213;
+static int EAStates::CHECKING_IF_RETAPPED_ZONE = 8214;
 
 // 8300s Are For Confirmation Related States
 static int EAStates::CHECKING_FOR_CONFIRMATION = 8300;

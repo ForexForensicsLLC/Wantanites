@@ -134,7 +134,7 @@ int InvalidateWhenBrokenSetupMB(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &a
 
     bool hasSetup = TSSSMB.HasSetup();
 
-    TSSSMB.CheckStopTrading();
+    TSSSMB.CheckInvalidateSetup();
 
     actual = hasSetup != TSSSMB.HasSetup() && !TSSSMB.HasSetup();
     return Results::UNIT_TEST_RAN;
@@ -161,9 +161,9 @@ int InvalidateAfterCrossedOpenPriceAfterMinROC(BoolUnitTest<DefaultUnitTestRecor
 
     bool hasSetup = TSSSMB.HasSetup();
 
-    TSSSMB.CheckStopTrading();
+    TSSSMB.CheckInvalidateSetup();
 
-    // has setup should have been reset if we called StopTrading()
+    // has setup should have been reset if we called InvalidateSetup()
     actual = TSSSMB.HasSetup() != hasSetup;
     return Results::UNIT_TEST_RAN;
 }
@@ -194,7 +194,7 @@ int ClosedPendingOrderWhenInvalidated(IntUnitTest<DefaultUnitTestRecord> &ut, in
 
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory());
 
-    TSSSMB.CheckStopTrading();
+    TSSSMB.CheckInvalidateSetup();
     actual = TSSSMB.TicketNumber() == EMPTY;
 
     return Results::UNIT_TEST_RAN;

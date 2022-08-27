@@ -82,8 +82,13 @@ public:
     template <typename TEA>
     static bool CheckSetLiquidationMBAfterBreak(TEA &ea, MBTracker *&mbt, int &firstMBNumber, int &secondMBNumber, int &liquidationMBNumber, int forcedType);
 
+    template <typename TEA>
+    static bool MBPushedFurtherIntoSetupZone(TEA &ea, MBTracker *&setupMBT, int setupMBNumber, MBTracker *&confirmationMBT);
+    template <typename TEA>
+    static bool MBRetappedSetupZone(TEA &ea, MBTracker *&setupMBT, int setupMBNumber, MBTracker *&confirmationMBT);
+
     // =========================================================================
-    // Check Stop Trading
+    // Check Invalidate Setup
     // =========================================================================
 public:
     template <typename TEA>
@@ -95,10 +100,10 @@ public:
     static bool CheckCrossedOpenPriceAfterMinROC(TEA &ea);
 
     // =========================================================================
-    // Stop Trading
+    // Invalidate Setup
     // =========================================================================
     template <typename TEA>
-    static void StopTrading(TEA &ea, bool deletePendingOrder, int error);
+    static void InvalidateSetup(TEA &ea, bool deletePendingOrder, bool stopTrading, int error);
 
     // =========================================================================
     // Confirmation
@@ -170,9 +175,18 @@ private:
 
 public:
     template <typename TEA>
-    static void ResetSingleMBEA(TEA &ea);
+    static void ResetSingleMBSetup(TEA &ea, bool baseReset);
     template <typename TEA>
-    static void ResetDoubleMBEA(TEA &ea);
+    static void ResetDoubleMBSetup(TEA &ea, bool baseReset);
+    template <typename TEA>
+    static void ResetLiquidationMBSetup(TEA &ea, bool baseReset);
+
+    template <typename TEA>
+    static void ResetSingleMBConfirmation(TEA &ea, bool baseReset);
+    template <typename TEA>
+    static void ResetDoubleMBConfirmation(TEA &ea, bool baseReset);
+    template <typename TEA>
+    static void ResetLiquidationMBConfirmation(TEA &ea, bool baseReset);
 };
 /*
 
@@ -260,7 +274,7 @@ static void EAHelper::Run(TEA &ea)
         int isActiveError = ea.mTicket.IsActive(isActive);
         if (TerminalErrors::IsTerminalError(isActiveError))
         {
-            ea.StopTrading(false, isActiveError);
+            ea.InvalidateSetup(false, isActiveError);
             return;
         }
 
@@ -274,7 +288,7 @@ static void EAHelper::Run(TEA &ea)
         }
     }
 
-    ea.CheckStopTrading();
+    ea.CheckInvalidateSetup();
 
     if (!ea.AllowedToTrade())
     {
@@ -309,7 +323,7 @@ static void EAHelper::Run(TEA &ea)
             int isActiveError = ea.mTicket.IsActive(isActive);
             if (TerminalErrors::IsTerminalError(isActiveError))
             {
-                ea.StopTrading(false, isActiveError);
+                ea.InvalidateSetup(false, isActiveError);
                 return;
             }
 
@@ -382,7 +396,7 @@ static bool EAHelper::CheckSetFirstMB(TEA &ea, MBTracker *&mbt, int &mbNumber, i
     MBState *mbOneTempState;
     if (!mbt.GetNthMostRecentMB(0, mbOneTempState))
     {
-        ea.StopTrading(false, TerminalErrors::MB_DOES_NOT_EXIST);
+        ea.InvalidateSetup(false, TerminalErrors::MB_DOES_NOT_EXIST);
         return false;
     }
 
@@ -417,7 +431,7 @@ static bool EAHelper::CheckSetSecondMB(TEA &ea, MBTracker *&mbt, int &firstMBNum
 
     if (mbTwoTempState.Type() != ea.mSetupType)
     {
-        ea.StopTrading(false);
+        ea.InvalidateSetup(false);
         return false;
     }
 
@@ -438,7 +452,7 @@ static bool EAHelper::CheckSetLiquidationMB(TEA &ea, MBTracker *&mbt, int &secon
 
     if (mbThreeTempState.Type() == ea.mSetupType)
     {
-        ea.StopTrading(false);
+        ea.InvalidateSetup(false);
         return false;
     }
 
@@ -455,7 +469,7 @@ static bool EAHelper::CheckBreakAfterMinROC(TEA &ea, MBTracker *&mbt)
     int setupError = SetupHelper::BreakAfterMinROC(ea.mMRFTS, mbt, isTrue);
     if (TerminalErrors::IsTerminalError(setupError))
     {
-        ea.StopTrading(false, setupError);
+        ea.InvalidateSetup(false, setupError);
         return false;
     }
 
@@ -518,7 +532,7 @@ static bool EAHelper::CheckSetLiquidationMBAfterMinROCBreak(TEA &ea, MBTracker *
         }
     }
 
-    return false;
+    return firstMBNumber != EMPTY && secondMBNumber != EMPTY && liquidationMBNumber != EMPTY;
 }
 
 template <typename TEA>
@@ -537,7 +551,7 @@ static bool EAHelper::CheckSetFirstMBAfterBreak(TEA &ea, MBTracker *&mbt, int &f
         }
     }
 
-    return false;
+    return firstMBNumber != EMPTY;
 }
 
 template <typename TEA>
@@ -551,13 +565,13 @@ static bool EAHelper::CheckSetSecondMBAfterBreak(TEA &ea, MBTracker *&mbt, int &
     }
     else if (secondMBNumber == EMPTY)
     {
-        if (CheckSetSecondMB(ea, mbt, firstMBNumber))
+        if (CheckSetSecondMB(ea, mbt, firstMBNumber, secondMBNumber))
         {
             return true;
         }
     }
 
-    return false;
+    return firstMBNumber != EMPTY && secondMBNumber != EMPTY;
 }
 
 template <typename TEA>
@@ -577,16 +591,46 @@ static bool EAHelper::CheckSetLiquidationMBAfterBreak(TEA &ea, MBTracker *&mbt, 
         }
     }
 
-    return false;
+    return firstMBNumber != EMPTY && secondMBNumber != EMPTY && liquidationMBNumber != EMPTY;
+}
+
+template <typename TEA>
+static bool EAHelper::MBPushedFurtherIntoSetupZone(TEA &ea, MBTracker *&setupMBT, int setupMBNumber, MBTracker *&confirmationMBT)
+{
+    ea.mLastState = EAStates::CHECKING_IF_PUSHED_FURTHER_INTO_ZONE;
+
+    bool pushedFurtherIntoZone = false;
+    int error = SetupHelper::MBPushedFurtherIntoSetupZone(setupMBNumber, setupMBT, confirmationMBT, pushedFurtherIntoZone);
+    if (error != ERR_NO_ERROR)
+    {
+        ea.InvalidateSetup(true, error);
+    }
+
+    return pushedFurtherIntoZone;
+}
+
+template <typename TEA>
+static bool EAHelper::MBRetappedSetupZone(TEA &ea, MBTracker *&setupMBT, int setupMBNumber, MBTracker *&confirmationMBT)
+{
+    ea.mLastState = EAStates::CHECKING_IF_RETAPPED_ZONE;
+
+    bool retappedZone = false;
+    int error = SetupHelper::MBRetappedSetupZone(setupMBNumber, setupMBT, confirmationMBT, retappedZone);
+    if (error != ERR_NO_ERROR)
+    {
+        ea.InvalidateSetup(true, error);
+    }
+
+    return retappedZone;
 }
 /*
 
-    ____ _               _      ____  _                _____              _ _
-   / ___| |__   ___  ___| | __ / ___|| |_ ___  _ __   |_   _| __ __ _  __| (_)_ __   __ _
-  | |   | '_ \ / _ \/ __| |/ / \___ \| __/ _ \| '_ \    | || '__/ _` |/ _` | | '_ \ / _` |
-  | |___| | | |  __/ (__|   <   ___) | || (_) | |_) |   | || | | (_| | (_| | | | | | (_| |
-   \____|_| |_|\___|\___|_|\_\ |____/ \__\___/| .__/    |_||_|  \__,_|\__,_|_|_| |_|\__, |
-                                              |_|                                   |___/
+    ____ _               _      ___                 _ _     _       _         ____       _
+   / ___| |__   ___  ___| | __ |_ _|_ ____   ____ _| (_) __| | __ _| |_ ___  / ___|  ___| |_ _   _ _ __
+  | |   | '_ \ / _ \/ __| |/ /  | || '_ \ \ / / _` | | |/ _` |/ _` | __/ _ \ \___ \ / _ \ __| | | | '_ \
+  | |___| | | |  __/ (__|   <   | || | | \ V / (_| | | | (_| | (_| | ||  __/  ___) |  __/ |_| |_| | |_) |
+   \____|_| |_|\___|\___|_|\_\ |___|_| |_|\_/ \__,_|_|_|\__,_|\__,_|\__\___| |____/ \___|\__|\__,_| .__/
+                                                                                                  |_|
 
 */
 template <typename TEA>
@@ -600,13 +644,13 @@ static bool EAHelper::CheckBrokeMBRangeStart(TEA &ea, MBTracker *&mbt, int mbNum
         int brokeRangeStartError = mbt.MBStartIsBroken(mbNumber, brokeRangeStart);
         if (TerminalErrors::IsTerminalError(brokeRangeStartError))
         {
-            ea.StopTrading(true, brokeRangeStartError);
+            ea.InvalidateSetup(true, brokeRangeStartError);
             return true;
         }
 
         if (brokeRangeStart)
         {
-            ea.StopTrading(cancelPendingOrder);
+            ea.InvalidateSetup(cancelPendingOrder);
             return true;
         }
     }
@@ -623,7 +667,7 @@ static bool EAHelper::CheckBrokeMBRangeEnd(TEA &ea, MBTracker *&mbt, int mbNumbe
     int error = mbt.MBEndIsBroken(mbNumber, brokeRangeEnd);
     if (TerminalErrors::IsTerminalError(error))
     {
-        ea.StopTrading(true, error);
+        ea.InvalidateSetup(true, error);
         return true;
     }
 
@@ -631,37 +675,12 @@ static bool EAHelper::CheckBrokeMBRangeEnd(TEA &ea, MBTracker *&mbt, int mbNumbe
     // will allow the ticket to be hit since there is spread calculated and it is above the mb
     if (brokeRangeEnd)
     {
-        ea.StopTrading(false);
+        ea.InvalidateSetup(false);
         return true;
     }
 
     return false;
 }
-
-/*
-template <typename TEA>
-static bool EAHelper::CheckBrokeLiquidationMBRangeEnd(TEA &ea, MBTracker *&mbt, int mSecondMBNumber)
-{
-    ea.mLastState = EAStates::CHECKING_IF_BROKE_RANGE_END;
-
-    bool brokeRangeEnd;
-    int brokeRangeEndError = SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(mSecondMBNumber, ea.mSetupType, mbt, brokeRangeEnd);
-    if (brokeRangeEndError != ERR_NO_ERROR)
-    {
-        return true;
-    }
-
-    // should invalide the setup no matter if we have a ticket or not. Just don't cancel the ticket if we do
-    // will allow the ticket to be hit since there is spread calculated and it is above the mb
-    if (brokeRangeEnd)
-    {
-        ea.StopTrading(false);
-        return true;
-    }
-
-    return false;
-}
-*/
 
 template <typename TEA>
 static bool EAHelper::CheckCrossedOpenPriceAfterMinROC(TEA &ea)
@@ -670,7 +689,7 @@ static bool EAHelper::CheckCrossedOpenPriceAfterMinROC(TEA &ea)
 
     if (ea.mMRFTS.CrossedOpenPriceAfterMinROC())
     {
-        ea.StopTrading(true);
+        ea.InvalidateSetup(true);
         return true;
     }
 
@@ -678,19 +697,19 @@ static bool EAHelper::CheckCrossedOpenPriceAfterMinROC(TEA &ea)
 }
 /*
 
-   ____  _                _____              _ _
-  / ___|| |_ ___  _ __   |_   _| __ __ _  __| (_)_ __   __ _
-  \___ \| __/ _ \| '_ \    | || '__/ _` |/ _` | | '_ \ / _` |
-   ___) | || (_) | |_) |   | || | | (_| | (_| | | | | | (_| |
-  |____/ \__\___/| .__/    |_||_|  \__,_|\__,_|_|_| |_|\__, |
-                 |_|                                   |___/
+   ___                 _ _     _       _         ____       _
+  |_ _|_ ____   ____ _| (_) __| | __ _| |_ ___  / ___|  ___| |_ _   _ _ __
+   | || '_ \ \ / / _` | | |/ _` |/ _` | __/ _ \ \___ \ / _ \ __| | | | '_ \
+   | || | | \ V / (_| | | | (_| | (_| | ||  __/  ___) |  __/ |_| |_| | |_) |
+  |___|_| |_|\_/ \__,_|_|_|\__,_|\__,_|\__\___| |____/ \___|\__|\__,_| .__/
+                                                                     |_|
 
 */
 template <typename TEA>
-static void EAHelper::StopTrading(TEA &ea, bool deletePendingOrder, int error = ERR_NO_ERROR)
+static void EAHelper::InvalidateSetup(TEA &ea, bool deletePendingOrder, bool stopTrading, int error = ERR_NO_ERROR)
 {
     ea.mHasSetup = false;
-    ea.mStopTrading = true;
+    ea.mStopTrading = stopTrading;
 
     if (error != ERR_NO_ERROR)
     {
@@ -742,7 +761,7 @@ static bool EAHelper::MostRecentMBZoneIsHolding(TEA &ea, MBTracker *&mbt, int mb
     int confirmationError = SetupHelper::MostRecentMBPlusHoldingZone(mbNumber, mbt, isTrue);
     if (confirmationError != ERR_NO_ERROR)
     {
-        ea.StopTrading(false, confirmationError);
+        ea.InvalidateSetup(false, confirmationError);
         return false;
     }
 
@@ -757,7 +776,7 @@ static bool EAHelper::LiquidationMBZoneIsHolding(TEA &ea, MBTracker *&mbt, int f
     int confirmationError = SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(firstMBNumber, secondMBNumber, mbt, hasConfirmation);
     if (confirmationError == ExecutionErrors::MB_IS_NOT_MOST_RECENT)
     {
-        ea.StopTrading(false, confirmationError);
+        ea.InvalidateSetup(false, confirmationError);
         return false;
     }
 
@@ -789,13 +808,13 @@ static bool EAHelper::PrePlaceOrderChecks(TEA &ea)
     int ordersError = OrderHelper::CountOtherEAOrders(true, ea.mStrategyMagicNumbers, orders);
     if (ordersError != ERR_NO_ERROR)
     {
-        ea.StopTrading(false, ordersError);
+        ea.InvalidateSetup(false, ordersError);
         return false;
     }
 
     if (orders >= ea.mMaxTradesPerStrategy)
     {
-        ea.StopTrading(false);
+        ea.InvalidateSetup(false);
         return false;
     }
 
@@ -810,11 +829,11 @@ static void EAHelper::PostPlaceOrderChecks(TEA &ea, int ticketNumber, int error)
         ea.PendingRecord.Reset();
         if (TerminalErrors::IsTerminalError(error))
         {
-            ea.StopTrading(false, error);
+            ea.InvalidateSetup(false, error);
         }
         else
         {
-            ea.StopTrading(false);
+            ea.InvalidateSetup(false);
         }
 
         return;
@@ -871,7 +890,7 @@ static void EAHelper::CheckEditStopLossForPendingMBValidation(TEA &ea, MBTracker
 
     if (TerminalErrors::IsTerminalError(editStopLossError))
     {
-        ea.StopTrading(true, editStopLossError);
+        ea.InvalidateSetup(true, editStopLossError);
         return;
     }
 }
@@ -892,7 +911,7 @@ static void EAHelper::CheckEditStopLossForBreakOfMB(TEA &ea, MBTracker *&mbt, in
 
     if (TerminalErrors::IsTerminalError(editStopLossError))
     {
-        ea.StopTrading(true, editStopLossError);
+        ea.InvalidateSetup(true, editStopLossError);
         return;
     }
 }
@@ -923,7 +942,7 @@ static void EAHelper::CheckTrailStopLossWithMBs(TEA &ea, MBTracker *&mbt, int la
 
     if (TerminalErrors::IsTerminalError(trailError))
     {
-        ea.StopTrading(false, trailError);
+        ea.InvalidateSetup(false, trailError);
         return;
     }
 }
@@ -958,7 +977,7 @@ void EAHelper::CheckTicket(TEA &ea)
     int activatedError = ea.mTicket.WasActivated(activated);
     if (TerminalErrors::IsTerminalError(activatedError))
     {
-        ea.StopTrading(false, activatedError);
+        ea.InvalidateSetup(false, activatedError);
         return;
     }
 
@@ -973,7 +992,7 @@ void EAHelper::CheckTicket(TEA &ea)
     int closeError = ea.mTicket.WasClosed(closed);
     if (TerminalErrors::IsTerminalError(closeError))
     {
-        ea.StopTrading(false, closeError);
+        ea.InvalidateSetup(false, closeError);
         return;
     }
 
@@ -982,7 +1001,7 @@ void EAHelper::CheckTicket(TEA &ea)
         ea.RecordOrderCloseData();
         ea.Write();
 
-        ea.StopTrading(false);
+        ea.InvalidateSetup(false);
         ea.mTicket.SetNewTicket(EMPTY);
     }
 }
@@ -1001,7 +1020,7 @@ static void EAHelper::RecordDefaultTradeRecordOpenData(TEA &ea, int entryTimeFra
 {
     ea.mLastState = EAStates::RECORDING_ORDER_OPEN_DATA;
 
-    ea.PendingRecord.Symbol = ea.mMBT.Symbol();
+    ea.PendingRecord.Symbol = Symbol();
     ea.PendingRecord.EntryTimeFrame = entryTimeFrame;
     ea.PendingRecord.OrderType = OrderType() == 0 ? "Buy" : "Sell";
     ea.PendingRecord.AccountBalanceBefore = AccountBalance();
@@ -1043,7 +1062,7 @@ static void EAHelper::RecordMultiTimeFrameRecordOpenData(TEA &ea, int lowerTimeF
     string lowerTimeFrameImage;
     string higherTimeFrameImage;
 
-    int error = ScreenShotHelper::TryTakeMultiTimeFrameImage(ea.Directory(), higherTimeFrame, lowerTimeFrameImage, higherTimeFrameImage);
+    int error = ScreenShotHelper::TryTakeMultiTimeFrameScreenShot(ea.Directory(), higherTimeFrame, lowerTimeFrameImage, higherTimeFrameImage);
     if (error != ERR_NO_ERROR)
     {
         ea.RecordError(error);
@@ -1062,7 +1081,7 @@ static void EAHelper::RecordMultiTimeFrameRecordCloseData(TEA &ea, int lowerTime
     string lowerTimeFrameImage;
     string higherTimeFrameImage;
 
-    int error = ScreenShotHelper::TryTakeMultiTimeFrameImage(ea.Directory(), higherTimeFrame, lowerTimeFrameImage, higherTimeFrameImage);
+    int error = ScreenShotHelper::TryTakeMultiTimeFrameScreenShot(ea.Directory(), higherTimeFrame, lowerTimeFrameImage, higherTimeFrameImage);
     if (error != ERR_NO_ERROR)
     {
         ea.RecordError(error);
@@ -1085,22 +1104,62 @@ static void EAHelper::RecordMultiTimeFrameRecordCloseData(TEA &ea, int lowerTime
 template <typename TEA>
 static void EAHelper::BaseReset(TEA &ea)
 {
-    ea.mLastState = EAStates::RESETING;
-
     ea.mStopTrading = false;
     ea.mHasSetup = false;
 
     ea.mSetupType = EMPTY;
 }
+
 template <typename TEA>
-static void EAHelper::ResetSingleMBEA(TEA &ea)
+static void EAHelper::ResetSingleMBSetup(TEA &ea, bool baseReset)
 {
-    BaseReset(ea);
+    ea.mLastState = EAStates::RESETING;
+
+    if (baseReset)
+    {
+        BaseReset(ea);
+    }
+
     ea.mFirstMBInSetupNumber = EMPTY;
 }
+
 template <typename TEA>
-static void EAHelper::ResetDoubleMBEA(TEA &ea)
+static void EAHelper::ResetDoubleMBSetup(TEA &ea, bool baseReset)
 {
-    ResetSingleMBEA(ea);
+    ResetSingleMBSetup(ea, baseReset);
     ea.mSecondMBInSetupNumber = EMPTY;
+}
+
+template <typename TEA>
+static void EAHelper::ResetLiquidationMBSetup(TEA &ea, bool baseReset)
+{
+    ResetDoubleMBSetup(ea, baseReset);
+    ea.mLiquidationMBInSetupNumber = EMPTY;
+}
+
+template <typename TEA>
+static void EAHelper::ResetSingleMBConfirmation(TEA &ea, bool baseReset)
+{
+    ea.mLastState = EAStates::RESETING;
+
+    if (baseReset)
+    {
+        BaseReset(ea);
+    }
+
+    ea.mFirstMBInConfirmationNumber = EMPTY;
+}
+
+template <typename TEA>
+static void EAHelper::ResetDoubleMBConfirmation(TEA &ea, bool baseReset)
+{
+    ResetSingleMBConfirmation(ea, baseReset);
+    ea.mSecondMBInConfirmationNumber = EMPTY;
+}
+
+template <typename TEA>
+static void EAHelper::ResetLiquidationMBConfirmation(TEA &ea, bool baseReset)
+{
+    ResetDoubleMBSetup(ea, baseReset);
+    ea.mLiquidationMBInConfirmationNumber = EMPTY;
 }

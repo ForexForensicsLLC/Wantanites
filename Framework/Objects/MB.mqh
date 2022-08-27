@@ -482,6 +482,8 @@ MB::MB(string symbol, int timeFrame, int number, int type, int startIndex, int e
     mStartIsBroken = false;
     mEndIsBroken = false;
 
+    mWasCheckedForRetapIntoHigherZone = false;
+
     mMaxZones = maxZones;
     mZoneCount = 0;
     mUnretrievedZoneCount = 0;

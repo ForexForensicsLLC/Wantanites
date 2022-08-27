@@ -35,6 +35,12 @@ public:
     // !Tested
     static int SameTypeSubsequentMB(int mbNumber, MBTracker *&mbt, out bool isTrue);
 
+    // !Tested
+    static int MBPushedFurtherIntoSetupZone(int setupMBNumber, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &pushedFurtherIntoZone, int &lowerStartIndex, int &lowerEndIndex, int &lowerValidatedIndex);
+
+    // !Tested
+    static int MBRetappedSetupZone(int setupMBNumber, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &retappedZone);
+
     // ==========================================================================
     // Min ROC. From Time Stamp Setup Methods
     // ==========================================================================
@@ -142,6 +148,181 @@ static int SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOne
 static int SetupHelper::SameTypeSubsequentMB(int mbNumber, MBTracker *&mbt, out bool isTrue)
 {
     isTrue = mbt.MBIsMostRecent(mbNumber + 1) && mbt.HasNMostRecentConsecutiveMBs(2);
+    return ERR_NO_ERROR;
+}
+
+static int SetupHelper::MBPushedFurtherIntoSetupZone(int setupMBNumber, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &pushedFurtherIntoZone,
+                                                     int &lowerStartIndex, int &lowerEndIndex, int &lowerValidatedIndex)
+{
+    pushedFurtherIntoZone = false;
+
+    MBState *tempSetupMB;
+    if (!setupMBT.GetMB(setupMBNumber, tempSetupMB))
+    {
+        return TerminalErrors::MB_DOES_NOT_EXIST;
+    }
+
+    ZoneState *tempSetupZone;
+    if (!tempSetupMB.GetClosestValidZone(tempSetupZone))
+    {
+        return ERR_NO_ERROR;
+    }
+
+    if (!tempSetupZone.IsHolding(tempSetupZone.StartIndex()))
+    {
+        return ERR_NO_ERROR;
+    }
+
+    MBState *tempConfirmationMB;
+    if (!confirmationMBT.GetNthMostRecentMB(0, tempConfirmationMB))
+    {
+        return TerminalErrors::MB_DOES_NOT_EXIST;
+    }
+
+    datetime zoneStartTime = iTime(tempSetupMB.Symbol(), tempSetupMB.TimeFrame(), tempSetupZone.StartIndex());
+
+    lowerStartIndex = iBarShift(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), zoneStartTime);
+
+    // multiply by 60 to turn minutes into seconds
+    lowerEndIndex = iBarShift(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), zoneStartTime + (tempSetupZone.TimeFrame() * 60));
+
+    lowerValidatedIndex = EMPTY;
+    if (tempSetupMB.Type() == OP_BUY)
+    {
+        for (int i = lowerStartIndex; i >= lowerEndIndex; i--)
+        {
+            if (iHigh(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), i) > iHigh(setupMBT.Symbol(), setupMBT.TimeFrame(), tempSetupMB.HighIndex()))
+            {
+                lowerValidatedIndex = i;
+                break;
+            }
+        }
+
+        int lowIndex;
+        if (!MQLHelper::GetLowest(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), MODE_LOW, lowerValidatedIndex, 0, false, lowIndex))
+        {
+            return ExecutionErrors::COULD_NOT_RETRIEVE_LOW;
+        }
+
+        pushedFurtherIntoZone = tempConfirmationMB.LowIndex() == lowIndex;
+    }
+    else if (tempSetupMB.Type() == OP_SELL)
+    {
+        for (int i = lowerStartIndex; i >= lowerEndIndex; i--)
+        {
+            if (iLow(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), i) < iLow(setupMBT.Symbol(), setupMBT.TimeFrame(), tempSetupMB.LowIndex()))
+            {
+                lowerValidatedIndex = i;
+            }
+        }
+
+        if (lowerValidatedIndex == EMPTY)
+        {
+            return ERR_NO_ERROR;
+        }
+
+        int highIndex;
+        if (!MQLHelper::GetHighest(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), MODE_HIGH, lowerValidatedIndex, 0, false, highIndex))
+        {
+            return ExecutionErrors::COULD_NOT_RETRIEVE_HIGH;
+        }
+
+        pushedFurtherIntoZone = tempConfirmationMB.HighIndex() == highIndex;
+    }
+
+    return ERR_NO_ERROR;
+}
+
+static int SetupHelper::MBRetappedSetupZone(int setupMBNumber, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &retappedZone)
+{
+    retappedZone = false;
+
+    MBState *tempSetupMB;
+    if (!setupMBT.GetMB(setupMBNumber, tempSetupMB))
+    {
+        return TerminalErrors::MB_DOES_NOT_EXIST;
+    }
+
+    ZoneState *tempSetupZone;
+    if (!tempSetupMB.GetClosestValidZone(tempSetupZone))
+    {
+        return ERR_NO_ERROR;
+    }
+
+    if (!tempSetupZone.IsHolding(tempSetupZone.StartIndex()))
+    {
+        return ERR_NO_ERROR;
+    }
+
+    MBState *tempConfirmationMB;
+    if (!confirmationMBT.GetNthMostRecentMB(0, tempConfirmationMB))
+    {
+        return TerminalErrors::MB_DOES_NOT_EXIST;
+    }
+
+    bool isInZone = false;
+    bool wasOutsideZone = false;
+    if (tempSetupMB.Type() == OP_BUY)
+    {
+        isInZone = iLow(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), tempConfirmationMB.LowIndex()) <= tempSetupZone.EntryPrice();
+        if (!isInZone)
+        {
+            return ERR_NO_ERROR;
+        }
+
+        for (int i = 0; i <= confirmationMBT.CurrentMBs(); i++)
+        {
+            MBState *tempMBState;
+            if (!confirmationMBT.GetNthMostRecentMB(i, tempMBState))
+            {
+                return TerminalErrors::MB_DOES_NOT_EXIST;
+            }
+
+            if (tempMBState.mWasCheckedForRetapIntoHigherZone)
+            {
+                break;
+            }
+
+            tempMBState.mWasCheckedForRetapIntoHigherZone = true;
+            if (iLow(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), tempMBState.LowIndex()) >= tempSetupZone.EntryPrice())
+            {
+                wasOutsideZone = true;
+                break;
+            }
+        }
+    }
+    else if (tempSetupMB.Type() == OP_SELL)
+    {
+        isInZone = iHigh(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), tempConfirmationMB.HighIndex()) >= tempSetupZone.EntryPrice();
+        if (!isInZone)
+        {
+            return ERR_NO_ERROR;
+        }
+
+        for (int i = 0; i <= confirmationMBT.CurrentMBs(); i++)
+        {
+            MBState *tempMBState;
+            if (!confirmationMBT.GetNthMostRecentMB(i, tempMBState))
+            {
+                return TerminalErrors::MB_DOES_NOT_EXIST;
+            }
+
+            if (tempMBState.mWasCheckedForRetapIntoHigherZone)
+            {
+                break;
+            }
+
+            tempMBState.mWasCheckedForRetapIntoHigherZone = true;
+
+            if (iHigh(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), tempMBState.HighIndex()) <= tempSetupZone.EntryPrice())
+            {
+                wasOutsideZone = true;
+                break;
+            }
+        }
+    }
+
+    retappedZone = isInZone && wasOutsideZone;
     return ERR_NO_ERROR;
 }
 /*

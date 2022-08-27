@@ -41,8 +41,8 @@ public:
     virtual void Run();
     virtual bool AllowedToTrade();
     virtual void CheckSetSetup();
-    virtual void CheckStopTrading();
-    virtual void StopTrading(bool deletePendingOrder, int error);
+    virtual void CheckInvalidateSetup();
+    virtual void InvalidateSetup(bool deletePendingOrder, int error);
     virtual bool Confirmation();
     virtual void PlaceOrders();
     virtual void ManagePendingTicket();
@@ -97,7 +97,7 @@ void TheSunriseShatterSingleMB::CheckSetSetup()
     }
 }
 
-void TheSunriseShatterSingleMB::CheckStopTrading()
+void TheSunriseShatterSingleMB::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
@@ -124,9 +124,9 @@ void TheSunriseShatterSingleMB::CheckStopTrading()
     }
 }
 
-void TheSunriseShatterSingleMB::StopTrading(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void TheSunriseShatterSingleMB::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
-    EAHelper::StopTrading<TheSunriseShatterSingleMB>(this, deletePendingOrder, error);
+    EAHelper::InvalidateSetup<TheSunriseShatterSingleMB>(this, deletePendingOrder, true, error);
 }
 
 bool TheSunriseShatterSingleMB::Confirmation()
@@ -169,5 +169,5 @@ void TheSunriseShatterSingleMB::RecordOrderCloseData()
 
 void TheSunriseShatterSingleMB::Reset()
 {
-    EAHelper::ResetSingleMBEA<TheSunriseShatterSingleMB>(this);
+    EAHelper::ResetSingleMBSetup<TheSunriseShatterSingleMB>(this, true);
 }

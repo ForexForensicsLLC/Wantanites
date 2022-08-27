@@ -46,7 +46,9 @@ public:
     int EndIndex() { return mEndIndex; }
     int HighIndex() { return mHighIndex; }
     int LowIndex() { return mLowIndex; }
+
     bool mEndIsBroken;
+    bool mWasCheckedForRetapIntoHigherZone;
 
     bool CanUseLowIndexForILow(int &lowIndex);
     bool CanUseHighIndexForIHigh(int &highIndex);

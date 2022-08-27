@@ -23,9 +23,6 @@ public:
     MultiTimeFrameTradeRecord();
     ~MultiTimeFrameTradeRecord();
 
-    double TotalMovePips();
-    double PotentialRR();
-
     virtual void WriteHeaders(int fileHandle);
     virtual void WriteRecord(int fileHandle);
     virtual void Reset();
