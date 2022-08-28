@@ -180,6 +180,7 @@ static double OrderHelper::GetLotSize(double stopLossPips, double riskPercent)
     double LotSize = (AccountBalance() * riskPercent / 100) / stopLossPips / MarketInfo(Symbol(), MODE_LOTSIZE);
     return MathMax(LotSize, MarketInfo(Symbol(), MODE_MINLOT));
 }
+
 /**
  * @brief Gets the entry price for a stop order that will trigger on the CONTINUTATION of the pending MB / Validation of MB
  *

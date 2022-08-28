@@ -11,6 +11,13 @@
 #include <SummitCapital\Framework\Objects\Zone.mqh>
 #include <SummitCapital\Framework\Helpers\MQLHelper.mqh>
 
+enum Status
+{
+    NOT_CHECKED,
+    IS_TRUE,
+    IS_FALSE
+};
+
 class MBState
 {
 protected:
@@ -19,10 +26,11 @@ protected:
 
     int mNumber;
     int mType;
-    int mStartIndex;
-    int mEndIndex;
-    int mHighIndex;
-    int mLowIndex;
+
+    datetime mStartDateTime;
+    datetime mEndDateTime;
+    datetime mHighDateTime;
+    datetime mLowDateTime;
 
     bool mStartIsBroken;
 
@@ -42,13 +50,19 @@ public:
     int TimeFrame() { return mTimeFrame; }
     int Number() { return mNumber; }
     int Type() { return mType; }
+    /*
     int StartIndex() { return mStartIndex; }
     int EndIndex() { return mEndIndex; }
     int HighIndex() { return mHighIndex; }
     int LowIndex() { return mLowIndex; }
+    */
+    int StartIndex() { return iBarShift(mSymbol, mTimeFrame, mStartDateTime); }
+    int EndIndex() { return iBarShift(mSymbol, mTimeFrame, mEndDateTime); }
+    int HighIndex() { return iBarShift(mSymbol, mTimeFrame, mHighDateTime); }
+    int LowIndex() { return iBarShift(mSymbol, mTimeFrame, mLowDateTime); }
 
     bool mEndIsBroken;
-    bool mWasCheckedForRetapIntoHigherZone;
+    Status mInsideSetupZone;
 
     bool CanUseLowIndexForILow(int &lowIndex);
     bool CanUseHighIndexForIHigh(int &highIndex);
@@ -81,22 +95,22 @@ bool MBState::StartIsBroken()
         if (mType == OP_BUY)
         {
             double low;
-            if (!MQLHelper::GetLowestLow(mSymbol, mTimeFrame, mLowIndex, 0, false, low))
+            if (!MQLHelper::GetLowestLow(mSymbol, mTimeFrame, LowIndex(), 0, false, low))
             {
                 return false;
             }
 
-            mStartIsBroken = low < iLow(mSymbol, mTimeFrame, mLowIndex);
+            mStartIsBroken = low < iLow(mSymbol, mTimeFrame, LowIndex());
         }
         else if (mType == OP_SELL)
         {
             double high;
-            if (!MQLHelper::GetHighestHigh(mSymbol, mTimeFrame, mHighIndex, 0, false, high))
+            if (!MQLHelper::GetHighestHigh(mSymbol, mTimeFrame, HighIndex(), 0, false, high))
             {
                 return false;
             }
 
-            mStartIsBroken = high > iHigh(mSymbol, mTimeFrame, mHighIndex);
+            mStartIsBroken = high > iHigh(mSymbol, mTimeFrame, HighIndex());
         }
     }
 
@@ -164,7 +178,7 @@ bool MBState::ClosestValidZoneIsHolding(int barIndex)
 {
     if (barIndex == -1)
     {
-        barIndex = mEndIndex;
+        barIndex = EndIndex();
     }
 
     ZoneState *tempZoneState;
@@ -187,20 +201,20 @@ string MBState::ToString()
 {
     return "MB - TF: " + IntegerToString(mTimeFrame) + "\n" +
            ", Type: " + IntegerToString(mType) + "\n" +
-           ", Start: " + IntegerToString(mStartIndex) + "\n" +
-           ", End: " + IntegerToString(mEndIndex) + "\n" +
-           ", High: " + IntegerToString(mHighIndex) + "\n" +
-           ", Low: " + IntegerToString(mLowIndex) + "\n";
+           ", Start: " + IntegerToString(StartIndex()) + "\n" +
+           ", End: " + IntegerToString(EndIndex()) + "\n" +
+           ", High: " + IntegerToString(HighIndex()) + "\n" +
+           ", Low: " + IntegerToString(LowIndex()) + "\n";
 }
 
 string MBState::ToSingleLineString()
 {
     string mbString = "MB - TF: " + IntegerToString(mTimeFrame) +
                       " Type: " + IntegerToString(mType) +
-                      " Start: " + IntegerToString(mStartIndex) +
-                      " End: " + IntegerToString(mEndIndex) +
-                      " High: " + IntegerToString(mHighIndex) +
-                      " Low: " + IntegerToString(mLowIndex);
+                      " Start: " + IntegerToString(StartIndex()) +
+                      " End: " + IntegerToString(EndIndex()) +
+                      " High: " + IntegerToString(HighIndex()) +
+                      " Low: " + IntegerToString(LowIndex());
 
     for (int i = 1; i <= ZoneCount(); i++)
     {
@@ -226,10 +240,10 @@ void MBState::Draw(bool printErrors)
     color clr = mType == OP_BUY ? clrLimeGreen : clrRed;
 
     if (!ObjectCreate(0, mName, OBJ_RECTANGLE, 0,
-                      iTime(mSymbol, mTimeFrame, mStartIndex), // Start
-                      iHigh(mSymbol, mTimeFrame, mHighIndex),  // High
-                      iTime(mSymbol, mTimeFrame, mEndIndex),   // End
-                      iLow(mSymbol, mTimeFrame, mLowIndex)))   // Low
+                      mStartDateTime,                          // Start
+                      iHigh(mSymbol, mTimeFrame, HighIndex()), // High
+                      mEndDateTime,                            // End
+                      iLow(mSymbol, mTimeFrame, LowIndex())))  // Low
     {
         if (printErrors)
         {

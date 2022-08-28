@@ -21,11 +21,13 @@ protected:
     int mType;
     string mDescription;
 
-    int mStartIndex;
-    int mEndIndex;
+    int mStartDateTime;
+    int mEndDateTime;
 
     double mEntryPrice;
     double mExitPrice;
+
+    int mEntryOffset;
 
     bool mAllowWickBreaks;
     bool mWasRetrieved;
@@ -42,19 +44,24 @@ public:
     int Type() { return mType; }
     string Description() { return mDescription; }
 
-    int StartIndex() { return mStartIndex; }
-    int EndIndex() { return mEndIndex; }
+    int StartIndex() { return iBarShift(mSymbol, mTimeFrame, mStartDateTime); }
+    int EndIndex() { return iBarShift(mSymbol, mTimeFrame, mEndDateTime); }
 
     double EntryPrice() { return mEntryPrice; }
     double ExitPrice() { return mExitPrice; }
+
+    int EntryOffset() { return mEntryOffset; }
 
     bool WasRetrieved() { return mWasRetrieved; }
 
     // --- Computed Properties ---
     double Range() { return MathAbs(mEntryPrice - mExitPrice); }
 
+    int mFurthestConfirmationMBWithin;
+
     // Tested
-    bool IsHolding(int barIndex);
+    bool
+    IsHolding(int barIndex);
 
     // Tested
     bool IsBroken();
@@ -114,7 +121,7 @@ bool ZoneState::IsBroken()
     if (mType == OP_BUY)
     {
         int lowestIndex;
-        if (!MQLHelper::GetLowest(mSymbol, mTimeFrame, MODE_LOW, mStartIndex, 0, false, lowestIndex))
+        if (!MQLHelper::GetLowest(mSymbol, mTimeFrame, MODE_LOW, StartIndex(), 0, false, lowestIndex))
         {
             return false;
         }
@@ -124,7 +131,7 @@ bool ZoneState::IsBroken()
     else if (mType == OP_SELL)
     {
         int highestIndex;
-        if (!MQLHelper::GetHighest(mSymbol, mTimeFrame, MODE_HIGH, mStartIndex, 0, false, highestIndex))
+        if (!MQLHelper::GetHighest(mSymbol, mTimeFrame, MODE_HIGH, StartIndex(), 0, false, highestIndex))
         {
             return false;
         }
@@ -140,8 +147,8 @@ bool ZoneState::IsBroken()
 string ZoneState::ToString()
 {
     return "Zone - TF: " + IntegerToString(mTimeFrame) +
-           ", Entry: " + IntegerToString(mStartIndex) +
-           ", Exit: " + IntegerToString(mEndIndex);
+           ", Entry: " + IntegerToString(StartIndex()) +
+           ", Exit: " + IntegerToString(EndIndex());
 }
 
 string ZoneState::ToSingleLineString()
@@ -149,8 +156,8 @@ string ZoneState::ToSingleLineString()
     double lowestAfter;
     double highestAfter;
 
-    MQLHelper::GetLowestLow(mSymbol, mTimeFrame, mStartIndex - 1, 0, false, lowestAfter);
-    MQLHelper::GetHighestHigh(mSymbol, mTimeFrame, mStartIndex - 1, 0, false, highestAfter);
+    MQLHelper::GetLowestLow(mSymbol, mTimeFrame, StartIndex() - 1, 0, false, lowestAfter);
+    MQLHelper::GetHighestHigh(mSymbol, mTimeFrame, StartIndex() - 1, 0, false, highestAfter);
 
     return " Zone: " + IntegerToString(Number()) +
            " Description: " + Description() +
@@ -172,10 +179,10 @@ void ZoneState::Draw(bool printErrors)
     color clr = mType == OP_BUY ? clrGold : clrMediumVioletRed;
 
     if (!ObjectCreate(0, mName, OBJ_RECTANGLE, 0,
-                      iTime(mSymbol, mTimeFrame, mStartIndex), // Start
-                      mEntryPrice,                             // Entry
-                      iTime(mSymbol, mTimeFrame, mEndIndex),   // End
-                      mExitPrice))                             // Exit
+                      mStartDateTime, // Start
+                      mEntryPrice,    // Entry
+                      mEndDateTime,   // End
+                      mExitPrice))    // Exit
     {
         if (printErrors)
         {

@@ -17,7 +17,7 @@ private:
     static string DateTimeToFilePathString(datetime dt);
 
 public:
-    static string TryTakeScreenShot(string directory, string suffix);
+    static string TryTakeScreenShot(string directory, string suffix, int width, int height);
 
     static string TryTakeBeforeScreenShot(string directory, string suffix);
     static string TryTakeAfterScreenShot(string directory, string suffix);
@@ -35,12 +35,12 @@ static string ScreenShotHelper::DateTimeToFilePathString(datetime dt)
            IntegerToString(TimeSeconds(dt));
 }
 
-static string ScreenShotHelper::TryTakeScreenShot(string directory, string suffix = "")
+static string ScreenShotHelper::TryTakeScreenShot(string directory, string suffix = "", int width = 2000, int height = 800)
 {
     string imageName = DateTimeToFilePathString(TimeCurrent()) + suffix + ".png";
     string filePath = directory + "Images/" + imageName;
 
-    if (!ChartScreenShot(ChartID(), filePath, 2000, 800, ALIGN_RIGHT))
+    if (!ChartScreenShot(ChartID(), filePath, width, height, ALIGN_RIGHT))
     {
         int error = GetLastError();
         imageName = "Error: " + IntegerToString(error);

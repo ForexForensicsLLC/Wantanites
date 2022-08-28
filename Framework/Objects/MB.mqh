@@ -28,7 +28,8 @@ private:
 
 public:
     // --- Constructors / Destructors ----------
-    MB(string symbol, int timeFrame, int number, int type, int startIndex, int endIndex, int highIndex, int lowIndex, int maxZones, bool allowZoneWickBreaks);
+    MB(string symbol, int timeFrame, int number, int type, datetime startDateTime, datetime endDateTime, datetime highDateTime, datetime lowDateTime,
+       int maxZones, bool allowZoneWickBreaks);
     ~MB();
 
     // --- Maintenance Methods ---
@@ -42,7 +43,7 @@ public:
     void CheckAddZonesAfterMBValidation(int barIndex, bool allowZoneMitigation);
 
     // Tested
-    void AddZone(string description, int startIndex, double entryPrice, int endIndex, double exitPrice);
+    void AddZone(string description, int startIndex, double entryPrice, int endIndex, double exitPrice, int entryOffset);
 };
 /*
 
@@ -190,7 +191,7 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
                 }
 
                 // Don't create zones that are higher than the MB
-                if (imbalanceExit > iHigh(mSymbol, mTimeFrame, mStartIndex))
+                if (imbalanceExit > iHigh(mSymbol, mTimeFrame, StartIndex()))
                 {
                     continue;
                 }
@@ -216,11 +217,12 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
                 }
 
                 // only allow zones that follow the mitigation parameter, that arenen't single ticks, and occur after the start of the MB
-                if ((allowZoneMitigation || !mitigatedZone) && imbalanceEntry != imbalanceExit && startIndex <= mStartIndex)
+                if ((allowZoneMitigation || !mitigatedZone) && imbalanceEntry != imbalanceExit && startIndex <= StartIndex())
                 {
                     // account for zones after the validaiton of an mb
-                    int endIndex = i >= mEndIndex ? mEndIndex : i;
-                    AddZone(description, startIndex, imbalanceEntry, endIndex, imbalanceExit);
+                    int endIndex = EndIndex();
+                    endIndex = endIndex <= i ? endIndex : i;
+                    AddZone(description, startIndex, imbalanceEntry, endIndex, imbalanceExit, entryOffset);
                 }
             }
         }
@@ -357,7 +359,7 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
                 }
 
                 // don't create zones that are lower than the MB
-                if (imbalanceExit < iLow(mSymbol, mTimeFrame, mStartIndex))
+                if (imbalanceExit < iLow(mSymbol, mTimeFrame, StartIndex()))
                 {
                     continue;
                 }
@@ -383,11 +385,12 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
                 }
 
                 // that follow the mitigation parameter, that arenen't single ticks, and occur after the start of the zone
-                if ((allowZoneMitigation || !mitigatedZone) && imbalanceEntry != imbalanceExit && startIndex <= mStartIndex)
+                if ((allowZoneMitigation || !mitigatedZone) && imbalanceEntry != imbalanceExit && startIndex <= StartIndex())
                 {
                     // Account for zones after the validation of the mb
-                    int endIndex = mEndIndex <= i ? mEndIndex : i;
-                    AddZone(description, startIndex, imbalanceEntry, endIndex, imbalanceExit);
+                    int endIndex = EndIndex();
+                    endIndex = endIndex <= i ? endIndex : i;
+                    AddZone(description, startIndex, imbalanceEntry, endIndex, imbalanceExit, entryOffset);
                 }
             }
         }
@@ -467,29 +470,37 @@ bool MB::PendingZoneIsOverlappingOtherZone(int type, int startIndex, double imba
 
 */
 // --------- Constructor / Destructor --------
-MB::MB(string symbol, int timeFrame, int number, int type, int startIndex, int endIndex, int highIndex, int lowIndex, int maxZones, bool allowZoneWickBreaks)
+MB::MB(string symbol, int timeFrame, int number, int type, datetime startDateTime, datetime endDateTime, datetime highDateTime, datetime lowDateTime,
+       int maxZones, bool allowZoneWickBreaks)
 {
     mSymbol = symbol;
     mTimeFrame = timeFrame;
 
     mNumber = number;
     mType = type;
+
+    /*
     mStartIndex = startIndex;
     mEndIndex = endIndex;
     mHighIndex = highIndex;
     mLowIndex = lowIndex;
+    */
+    mStartDateTime = startDateTime;
+    mEndDateTime = endDateTime;
+    mHighDateTime = highDateTime;
+    mLowDateTime = lowDateTime;
 
     mStartIsBroken = false;
     mEndIsBroken = false;
 
-    mWasCheckedForRetapIntoHigherZone = false;
+    mInsideSetupZone = Status::NOT_CHECKED;
 
     mMaxZones = maxZones;
     mZoneCount = 0;
     mUnretrievedZoneCount = 0;
     mAllowZoneWickBreaks = allowZoneWickBreaks;
 
-    mName = "MB: " + IntegerToString(number);
+    mName = "MB: " + IntegerToString(timeFrame) + "_" + IntegerToString(number);
     mDrawn = false;
 
     ArrayResize(mZones, maxZones);
@@ -509,47 +520,29 @@ MB::~MB()
         delete mZones[i];
     }
 }
-
-// ------------- Maintenance Methods ---------------
-void MB::UpdateIndexes(int barIndex)
-{
-    mStartIndex = mStartIndex + barIndex;
-    mEndIndex = mEndIndex + barIndex;
-    mHighIndex = mHighIndex + barIndex;
-    mLowIndex = mLowIndex + barIndex;
-
-    for (int i = mMaxZones - 1; i >= 0; i--)
-    {
-        if (CheckPointer(mZones[i]) == POINTER_INVALID)
-        {
-            break;
-        }
-
-        mZones[i].UpdateIndexes(barIndex);
-    }
-}
 // --------------- Adding Zones -------------------
 // Checks for zones that are within the MB
 void MB::CheckAddZones(bool allowZoneMitigation)
 {
-    int startIndex = mType == OP_BUY ? mLowIndex : mHighIndex;
-    InternalCheckAddZones(startIndex, mEndIndex, allowZoneMitigation, false);
+    int startIndex = mType == OP_BUY ? LowIndex() : HighIndex();
+    InternalCheckAddZones(startIndex, EndIndex(), allowZoneMitigation, false);
 }
 // Checks for  zones that occur after the MB
 void MB::CheckAddZonesAfterMBValidation(int barIndex, bool allowZoneMitigation)
 {
     // Add one to this so that imbalances on the candle before the end index can be found
-    InternalCheckAddZones(mEndIndex, barIndex, allowZoneMitigation, true);
+    InternalCheckAddZones(EndIndex(), barIndex, allowZoneMitigation, true);
 }
 
 // Add zones
-void MB::AddZone(string description, int startIndex, double entryPrice, int endIndex, double exitPrice)
+void MB::AddZone(string description, int startIndex, double entryPrice, int endIndex, double exitPrice, int entryOffset)
 {
     if (mZoneCount < mMaxZones)
     {
         // So Zone Numbers Match the order they are placed in the array, from back to front with the furthest in the back
         int zoneNumber = mMaxZones - mZoneCount - 1;
-        Zone *zone = new Zone(mSymbol, mTimeFrame, mNumber, zoneNumber, mType, description, startIndex, entryPrice, endIndex, exitPrice, mAllowZoneWickBreaks);
+        Zone *zone = new Zone(mSymbol, mTimeFrame, mNumber, zoneNumber, mType, description, iTime(mSymbol, mTimeFrame, startIndex), entryPrice,
+                              iTime(mSymbol, mTimeFrame, endIndex), exitPrice, entryOffset, mAllowZoneWickBreaks);
 
         mZones[zoneNumber] = zone;
 

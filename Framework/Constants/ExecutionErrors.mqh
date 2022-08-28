@@ -18,6 +18,7 @@ public:
     static int ExecutionErrors::NOT_EQUAL_MB_TYPES;
     static int ExecutionErrors::BULLISH_RETRACEMENT_IS_NOT_VALID;
     static int ExecutionErrors::BEARISH_RETRACEMENT_IS_NOT_VALID;
+    static int ExecutionErrors::NO_ZONES;
 
     // 6100s Are For Order Errors
     static int ExecutionErrors::NEW_STOPLOSS_EQUALS_OLD;
@@ -29,6 +30,11 @@ public:
 
     // 6300s Are for ScreenShot Errors
     static int ExecutionErrors::SECOND_CHART_NOT_FOUND;
+
+    // 6400s Are for Setup Errors
+    static int ExecutionErrors::SETUP_MB_VALIDATION_INDEX_ON_LOWER_TIMEFRAME_NOT_FOUND;
+    static int ExecutionErrors::ZONE_IS_NOT_HOLDING;
+    static int ExecutionErrors::MB_NOT_IN_ZONE;
 };
 
 // 6000s Are For Indicator Errors
@@ -38,6 +44,7 @@ static int ExecutionErrors::EQUAL_MB_TYPES = 6003;
 static int ExecutionErrors::NOT_EQUAL_MB_TYPES = 6004;
 static int ExecutionErrors::BULLISH_RETRACEMENT_IS_NOT_VALID = 6005;
 static int ExecutionErrors::BEARISH_RETRACEMENT_IS_NOT_VALID = 6006;
+static int ExecutionErrors::NO_ZONES = 6007;
 
 // 6100s Are For Order Errors
 static int ExecutionErrors::NEW_STOPLOSS_EQUALS_OLD = 6100;
@@ -49,3 +56,8 @@ static int ExecutionErrors::COULD_NOT_RETRIEVE_HIGH = 6201;
 
 // 6300s Are for ScreenShot Errors
 static int ExecutionErrors::SECOND_CHART_NOT_FOUND = 6300;
+
+// 6400s Are for Setup Errors
+static int ExecutionErrors::SETUP_MB_VALIDATION_INDEX_ON_LOWER_TIMEFRAME_NOT_FOUND = 6400;
+static int ExecutionErrors::ZONE_IS_NOT_HOLDING = 6401;
+static int ExecutionErrors::MB_NOT_IN_ZONE = 6402;

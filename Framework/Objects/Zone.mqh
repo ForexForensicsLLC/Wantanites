@@ -14,8 +14,8 @@ class Zone : public ZoneState
 {
 public:
     // --- Constructor / Destructor ---
-    Zone(string symbol, int timeFrame,
-         int mbNumber, int zoneNumber, int type, string description, int startIndex, double entryPrice, int endIndex, double exitPrice, bool allowWickBreaks);
+    Zone(string symbol, int timeFrame, int mbNumber, int zoneNumber, int type, string description, datetime startDateTime,
+         double entryPrice, datetime endDateTime, double exitPrice, int entryOffset, bool allowWickBreaks);
     ~Zone();
 
     // --- Setters ---
@@ -25,8 +25,8 @@ public:
     void UpdateIndexes(int barIndex);
 };
 
-Zone::Zone(string symbol, int timeFrame,
-           int mbNumber, int zoneNumber, int type, string description, int startIndex, double entryPrice, int endIndex, double exitPrice, bool allowWickBreaks)
+Zone::Zone(string symbol, int timeFrame, int mbNumber, int zoneNumber, int type, string description, datetime startDateTime,
+           double entryPrice, datetime endDateTime, double exitPrice, int entryOffset, bool allowWickBreaks)
 {
     mSymbol = symbol;
     mTimeFrame = timeFrame;
@@ -36,26 +36,24 @@ Zone::Zone(string symbol, int timeFrame,
     mType = type;
     mDescription = description;
 
-    mStartIndex = startIndex;
-    mEndIndex = endIndex;
+    mStartDateTime = startDateTime;
+    mEndDateTime = endDateTime;
 
     mEntryPrice = entryPrice;
     mExitPrice = exitPrice;
+
+    mEntryOffset = entryOffset;
 
     mAllowWickBreaks = allowWickBreaks;
     mDrawn = false;
     mWasRetrieved = false;
 
-    mName = "Zone: " + IntegerToString(mNumber) + ", MB: " + IntegerToString(mMBNumber);
+    mFurthestConfirmationMBWithin = EMPTY;
+
+    mName = "Zone: " + IntegerToString(timeFrame) + "_" + IntegerToString(mNumber) + ", MB: " + IntegerToString(mMBNumber);
 }
 
 Zone::~Zone()
 {
     ObjectsDeleteAll(ChartID(), mName, 0, OBJ_RECTANGLE);
-}
-// -------------- Maintenance Methods ---------------
-void Zone::UpdateIndexes(int barIndex)
-{
-    mStartIndex += barIndex;
-    mEndIndex += barIndex;
 }

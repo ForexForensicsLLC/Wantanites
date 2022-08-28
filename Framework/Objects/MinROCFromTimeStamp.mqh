@@ -142,8 +142,7 @@ bool MinROCFromTimeStamp::DuringTime()
     int startTime = (mServerHourStartTime * 59) + mServerMinuteStartTime;
     int endTime = (mServerHourEndTime * 59) + mServerMinuteEndTime;
 
-    // TODO: Add && DayOfWeek() < 6; back
-    return currentTime >= startTime && currentTime < endTime;
+    return currentTime >= startTime && currentTime < endTime && DayOfWeek() < 6;
 }
 
 void MinROCFromTimeStamp::Reset()

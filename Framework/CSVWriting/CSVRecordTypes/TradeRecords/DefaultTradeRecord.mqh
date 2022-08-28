@@ -36,6 +36,7 @@ public:
 
     double TotalMovePips();
     double PotentialRR();
+    string Psychology();
 
     virtual void WriteHeaders(int fileHandle);
     virtual void WriteRecord(int fileHandle);
@@ -88,13 +89,12 @@ double DefaultTradeRecord::TotalMovePips()
 
 double DefaultTradeRecord::PotentialRR()
 {
-    double totalMovePips = TotalMovePips();
-
     if (EntryPrice - EntryStopLoss == 0)
     {
         return 0.0;
     }
 
+    double totalMovePips = TotalMovePips();
     if (OrderType == "Buy")
     {
         return NormalizeDouble(totalMovePips / (EntryPrice - EntryStopLoss), 2);
@@ -105,6 +105,27 @@ double DefaultTradeRecord::PotentialRR()
     }
 
     return 0.0;
+}
+
+string DefaultTradeRecord::Psychology()
+{
+    MathSrand(1);
+
+    if (AccountBalanceAfter > AccountBalanceBefore)
+    {
+        string winStatements[3] = {"Ayyyyy", "Looks like I got lucky today", "Don't get too confident. You never know when a losing stread may start"};
+        return winStatements[(MathRand() % ArraySize(winStatements))];
+    }
+    else if (AccountBalanceAfter == AccountBalanceBefore)
+    {
+        string breakEvenStatements[3] = {"Good Practice", "Better than losing", "Staying alive baby"};
+        return breakEvenStatements[(MathRand() % ArraySize(breakEvenStatements))];
+    }
+    else
+    {
+        string loseStatments[3] = {"Perfect", "Losing is just a part of trading", "Just Unlucky *shrug*"};
+        return loseStatments[(MathRand() % ArraySize(loseStatments))];
+    }
 }
 
 void DefaultTradeRecord::WriteHeaders(int fileHandle)
@@ -123,6 +144,7 @@ void DefaultTradeRecord::WriteHeaders(int fileHandle)
               "Exit Stop Loss",
               "Total Move Pips",
               "Potential RR",
+              "Psychology",
               "Last State",
               "Error",
               "Error Image",
@@ -145,6 +167,7 @@ void DefaultTradeRecord::WriteRecord(int fileHandle)
               ExitStopLoss,
               TotalMovePips(),
               PotentialRR(),
+              Psychology(),
               LastState,
               Error,
               ErrorImage,

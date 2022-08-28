@@ -526,7 +526,6 @@ void MBTracker::CheckSetPendingMB(int startingIndex, int mbType)
             // Basically don't want the impulses that just broke and started the retacement to be considered
             int count = mCurrentBearishRetracementIndex - startingIndex;
 
-            // TODO: Only allow retracement candle to be the high if it it a bullish candle aka started lower than the one before it and then broke higher
             count = mCurrentMBs == 0 ||
                             (mCurrentMBs > 0 &&
                              startingIndex != mMBs[MostRecentMBIndex()].EndIndex() &&
@@ -597,13 +596,15 @@ void MBTracker::CreateMB(int mbType, int startIndex, int endIndex, int highIndex
         delete mMBs[mMBsToTrack - 1];
         ArrayCopy(mMBs, mMBs, 1, 0, mMBsToTrack - 1);
 
-        MB *mb = new MB(mSymbol, mTimeFrame, mMBsCreated, mbType, startIndex, endIndex, highIndex, lowIndex, mMaxZonesInMB, mAllowZoneWickBreaks);
+        MB *mb = new MB(mSymbol, mTimeFrame, mMBsCreated, mbType, iTime(mSymbol, mTimeFrame, startIndex), iTime(mSymbol, mTimeFrame, endIndex),
+                        iTime(mSymbol, mTimeFrame, highIndex), iTime(mSymbol, mTimeFrame, lowIndex), mMaxZonesInMB, mAllowZoneWickBreaks);
         mb.CheckAddZones(mAllowZoneMitigation);
         mMBs[0] = mb;
     }
     else
     {
-        MB *mb = new MB(mSymbol, mTimeFrame, mMBsCreated, mbType, startIndex, endIndex, highIndex, lowIndex, mMaxZonesInMB, mAllowZoneWickBreaks);
+        MB *mb = new MB(mSymbol, mTimeFrame, mMBsCreated, mbType, iTime(mSymbol, mTimeFrame, startIndex), iTime(mSymbol, mTimeFrame, endIndex),
+                        iTime(mSymbol, mTimeFrame, highIndex), iTime(mSymbol, mTimeFrame, lowIndex), mMaxZonesInMB, mAllowZoneWickBreaks);
         mb.CheckAddZones(mAllowZoneMitigation);
         mMBs[(mMBsToTrack - 1) - mCurrentMBs] = mb;
 
@@ -695,11 +696,6 @@ void MBTracker::UpdateIndexes(int barIndex)
 
     mPendingBullishMBLowIndex = mPendingBullishMBLowIndex > -1 ? mPendingBullishMBLowIndex + barIndex : -1;
     mPendingBearishMBHighIndex = mPendingBearishMBHighIndex > -1 ? mPendingBearishMBHighIndex + barIndex : -1;
-
-    for (int i = (mMBsToTrack - mCurrentMBs); i < mMBsToTrack; i++)
-    {
-        mMBs[i].UpdateIndexes(barIndex);
-    }
 }
 // ---------------- Computer Properties -----------------------
 bool MBTracker::CurrentBullishRetracementIndexIsValid(out int &currentBullishRetracementIndex, int barIndex = 0)
@@ -746,7 +742,7 @@ bool MBTracker::GetNthMostRecentMB(int nthMB, MBState *&mbState)
 {
     Update();
 
-    if (nthMB > mCurrentMBs)
+    if (nthMB >= mCurrentMBs)
     {
         Print("Nth MB, ", nthMB, ", is further than current MBs, ", mCurrentMBs);
         return false;
@@ -1066,7 +1062,6 @@ bool MBTracker::GetNthMostRecentMBsUnretrievedZones(int nthMB, ZoneState *&zoneS
 // the first 0 -> mMaxZonesInMB zones will be for the first MB,
 // then mMaxZonesInMB -> 2 * mMaxZonesInMB zones will be for the second MB,
 // so on and so on
-// TODO: Not usable right now and will probaly remove
 bool MBTracker::GetNMostRecentMBsUnretrievedZones(int nMBs, ZoneState *&zoneStates[])
 {
     Update();
