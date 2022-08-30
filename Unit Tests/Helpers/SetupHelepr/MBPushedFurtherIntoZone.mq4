@@ -30,7 +30,7 @@ input bool AllowMitigatedZones = false;
 input bool AllowZonesAfterMBValidation = true;
 input bool AllowWickBreaks = true;
 input bool PrintErrors = false;
-input bool CalculateOnTick = true;
+input bool CalculateOnTick = false;
 
 MBTracker *SetupMBT;
 MBTracker *ConfirmationMBT;
@@ -78,17 +78,17 @@ int BarsCalculated = 0;
 
 void OnTick()
 {
+    SetupMBT.DrawNMostRecentMBs(1);
+    SetupMBT.DrawZonesForNMostRecentMBs(1);
+
+    ConfirmationMBT.DrawNMostRecentMBs(1);
+    ConfirmationMBT.DrawZonesForNMostRecentMBs(1);
+
     int bars = iBars(ConfirmationMBT.Symbol(), ConfirmationMBT.TimeFrame());
     int limit = bars - BarsCalculated;
 
     if (limit > 0)
     {
-        SetupMBT.DrawNMostRecentMBs(1);
-        SetupMBT.DrawZonesForNMostRecentMBs(1);
-
-        ConfirmationMBT.DrawNMostRecentMBs(1);
-        ConfirmationMBT.DrawZonesForNMostRecentMBs(1);
-
         PushedFurtherIntoBullishZoneUnitTest.Assert();
         PushedFurtherIntoBearishZoneUnitTest.Assert();
 

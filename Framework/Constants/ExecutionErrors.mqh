@@ -32,9 +32,10 @@ public:
     static int ExecutionErrors::SECOND_CHART_NOT_FOUND;
 
     // 6400s Are for Setup Errors
-    static int ExecutionErrors::SETUP_MB_VALIDATION_INDEX_ON_LOWER_TIMEFRAME_NOT_FOUND;
+    static int ExecutionErrors::LOWER_EARLIEST_SETUP_ZONE_MITIGATION_NOT_FOUND;
     static int ExecutionErrors::ZONE_IS_NOT_HOLDING;
     static int ExecutionErrors::MB_NOT_IN_ZONE;
+    static int ExecutionErrors::NOT_AFTER_POSSIBLE_ZONE_MITIGATION;
 };
 
 // 6000s Are For Indicator Errors
@@ -58,6 +59,7 @@ static int ExecutionErrors::COULD_NOT_RETRIEVE_HIGH = 6201;
 static int ExecutionErrors::SECOND_CHART_NOT_FOUND = 6300;
 
 // 6400s Are for Setup Errors
-static int ExecutionErrors::SETUP_MB_VALIDATION_INDEX_ON_LOWER_TIMEFRAME_NOT_FOUND = 6400;
+static int ExecutionErrors::LOWER_EARLIEST_SETUP_ZONE_MITIGATION_NOT_FOUND = 6400;
 static int ExecutionErrors::ZONE_IS_NOT_HOLDING = 6401;
 static int ExecutionErrors::MB_NOT_IN_ZONE = 6402;
+static int ExecutionErrors::NOT_AFTER_POSSIBLE_ZONE_MITIGATION = 6403;

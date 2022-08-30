@@ -69,7 +69,8 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
 
         for (int i = startingIndex; i >= endingIndex; i--)
         {
-            bool currentImbalance = iHigh(mSymbol, mTimeFrame, i + 1) < iLow(mSymbol, mTimeFrame, i - 1);
+            // don't calculate if our next candle is the most recent bar since we don't know if the imabalance will still be there when the candle closes
+            bool currentImbalance = (i - 1) > 0 && iHigh(mSymbol, mTimeFrame, i + 1) < iLow(mSymbol, mTimeFrame, i - 1);
             if (currentImbalance)
             {
                 // Zone variables that get set depending on the zone
@@ -200,15 +201,15 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
                 bool mitigatedZone = false;
                 if (startIndex - entryOffset != endingIndex)
                 {
-
                     double lowestPriceAfterIndex = 0.0;
                     if (!MQLHelper::GetLowestLowBetween(mSymbol, mTimeFrame, startIndex - entryOffset, endingIndex, false, lowestPriceAfterIndex))
                     {
                         continue;
                     }
 
-                    // Check to make sure we haven't gone below the zone within the MB. This can happen in large MBs when price bounces around a lot
-                    if (lowestPriceAfterIndex < imbalanceExit)
+                    // Check to make sure we havne't gone below the zone. This can happen if we have large mbs and price bounces around a lot.
+                    // Also want to prevent huge zones that aren't technically mitigated but are basically the whole mb
+                    if (lowestPriceAfterIndex < imbalanceEntry)
                     {
                         continue;
                     }
@@ -237,8 +238,8 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
         // only go from high -> current so that we only grab imbalances that are in the impulse that broke sructure and not in the move up
         for (int i = startingIndex; i >= endingIndex; i--)
         {
-            bool currentImbalance = iLow(mSymbol, mTimeFrame, i + 1) > iHigh(mSymbol, mTimeFrame, i - 1);
-
+            // don't calculate if our next candle is the most recent bar since we don't know if the imabalance will still be there when the candle closes
+            bool currentImbalance = (i - 1) > 0 && iLow(mSymbol, mTimeFrame, i + 1) > iHigh(mSymbol, mTimeFrame, i - 1);
             if (currentImbalance)
             {
                 // Zone variables that get set depending on the zone
@@ -374,9 +375,9 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
                         continue;
                     }
 
-                    // Check to make sure we havne't gone above the zone while within the MB. This can happen in large MBs when price
-                    // bounces around a lot
-                    if (highestPriceAfterIndex > imbalanceExit)
+                    // Check to make sure we havne't gone above the zone. This can happen if we have large mbs and price bounces around a lot.
+                    // Also want to prevent huge zones that aren't technically mitigated but are basically the whole mb
+                    if (highestPriceAfterIndex > imbalanceEntry)
                     {
                         continue;
                     }
@@ -479,12 +480,6 @@ MB::MB(string symbol, int timeFrame, int number, int type, datetime startDateTim
     mNumber = number;
     mType = type;
 
-    /*
-    mStartIndex = startIndex;
-    mEndIndex = endIndex;
-    mHighIndex = highIndex;
-    mLowIndex = lowIndex;
-    */
     mStartDateTime = startDateTime;
     mEndDateTime = endDateTime;
     mHighDateTime = highDateTime;
@@ -530,7 +525,6 @@ void MB::CheckAddZones(bool allowZoneMitigation)
 // Checks for  zones that occur after the MB
 void MB::CheckAddZonesAfterMBValidation(int barIndex, bool allowZoneMitigation)
 {
-    // Add one to this so that imbalances on the candle before the end index can be found
     InternalCheckAddZones(EndIndex(), barIndex, allowZoneMitigation, true);
 }
 

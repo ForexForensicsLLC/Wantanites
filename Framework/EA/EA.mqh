@@ -46,7 +46,7 @@ public:
     virtual bool AllowedToTrade() = NULL;
     virtual void CheckSetSetup() = NULL;
     virtual void CheckInvalidateSetup() = NULL;
-    virtual void StopTrading(bool deletePendingOrder, int error) = NULL;
+    virtual void InvalidateSetup(bool deletePendingOrder, int error) = NULL;
     virtual bool Confirmation() = NULL;
     virtual void PlaceOrders() = NULL;
     virtual void ManagePendingTicket() = NULL;

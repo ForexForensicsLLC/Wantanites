@@ -181,16 +181,22 @@ void MBTracker::Update()
         mFirstBarTime = firstBarTime;
     }
 
-    if (mCalculateOnTick && limit == 0)
+    // Calcualte on every tick
+    if (!mInitialLoad && mCalculateOnTick)
     {
-        limit += 1;
+        CalculateMB(limit);
+    }
+    // only calculate when a new bar gets created. Will calcualte on the previous bar
+    else
+    {
+        for (int i = limit; i > 0; i--)
+        {
+            CalculateMB(i);
+        }
     }
 
     // Calcualte MBs for each bar we have left
-    for (int i = limit - 1; i >= 0; i--)
-    {
-        CalculateMB(i);
-    }
+    // removed -1 from limit here, i don't think it should be there
 
     mPrevCalculated = bars;
     mInitialLoad = false;

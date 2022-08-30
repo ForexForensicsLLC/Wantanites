@@ -16,7 +16,7 @@
 input double StopLossPaddingPips = 0;
 input double RiskPercent = 0.25;
 input int MaxTradesPerStrategy = 1;
-input int MaxSpreadPips = 7;
+input int MaxSpreadPips = 10;
 
 // -- MBTracker Inputs
 input int MBsToTrack = 10;

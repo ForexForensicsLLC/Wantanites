@@ -21,8 +21,8 @@ protected:
     int mType;
     string mDescription;
 
-    int mStartDateTime;
-    int mEndDateTime;
+    datetime mStartDateTime;
+    datetime mEndDateTime;
 
     double mEntryPrice;
     double mExitPrice;
@@ -60,8 +60,10 @@ public:
     int mFurthestConfirmationMBWithin;
 
     // Tested
-    bool
-    IsHolding(int barIndex);
+    bool IsHolding(int barIndex);
+
+    // Tested
+    bool IsHoldingFromStart();
 
     // Tested
     bool IsBroken();
@@ -112,6 +114,11 @@ bool ZoneState::IsHolding(int barIndex)
     }
 
     return false;
+}
+
+bool ZoneState::IsHoldingFromStart()
+{
+    return IsHolding(StartIndex() - EntryOffset());
 }
 
 // checks if a zone was broken from its entry index to the current bar
