@@ -296,7 +296,6 @@ static int SetupHelper::MBPushedFurtherIntoSetupZone(int setupMBNumber, MBTracke
 static int SetupHelper::MBRetappedSetupZone(int setupMBNumber, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &retappedZone, string &info)
 {
     retappedZone = false;
-    info = "";
 
     MBState *tempSetupMB;
     if (!setupMBT.GetMB(setupMBNumber, tempSetupMB))
@@ -316,6 +315,62 @@ static int SetupHelper::MBRetappedSetupZone(int setupMBNumber, MBTracker *&setup
         return ExecutionErrors::ZONE_IS_NOT_HOLDING;
     }
 
+    int lowerEarliestSetupZoneMitigationIndex = GetEarlierSetupZoneMitigationIndexForLowerTimeFrame(tempSetupZone, confirmationMBT);
+    if (lowerEarliestSetupZoneMitigationIndex == EMPTY)
+    {
+        return ExecutionErrors::LOWER_EARLIEST_SETUP_ZONE_MITIGATION_NOT_FOUND;
+    }
+
+    // Loop through all MBs that may not have been checked. Can happen when the current candle breaks the zone but doens't close below it. IsHolding() will return
+    // false for the temporary time that the candle is below the zone but will return True when it comes back before it
+    for (int i = 0; i < confirmationMBT.CurrentMBs(); i++)
+    {
+        MBState *tempConfirmationMBState;
+        if (!confirmationMBT.GetNthMostRecentMB(i, tempConfirmationMBState))
+        {
+            return TerminalErrors::MB_DOES_NOT_EXIST;
+        }
+
+        // All MBs Are Updated
+        if (tempConfirmationMBState.mInsideSetupZone > 0)
+        {
+            break;
+        }
+
+        // Don't need to worry about MBs before possible mitigation of setup zone
+        // don't want to consider MBs that are before the possible mitigation index. Setting them to IS_FALSE will lead to false positives and negatives. Just leave them as
+        // NOT_CHECKED
+        if (tempConfirmationMBState.StartIndex() > lowerEarliestSetupZoneMitigationIndex)
+        {
+            break;
+        }
+
+        if (tempSetupMB.Type() == OP_BUY)
+        {
+            bool isInZone = iLow(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), tempConfirmationMBState.LowIndex()) <= tempSetupZone.EntryPrice();
+            if (isInZone)
+            {
+                tempConfirmationMBState.mInsideSetupZone = Status::IS_TRUE;
+            }
+            else
+            {
+                tempConfirmationMBState.mInsideSetupZone = Status::IS_FALSE;
+            }
+        }
+        else if (tempSetupMB.Type() == OP_SELL)
+        {
+            bool isInZone = iHigh(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), tempConfirmationMBState.HighIndex()) >= tempSetupZone.EntryPrice();
+            if (isInZone)
+            {
+                tempConfirmationMBState.mInsideSetupZone = Status::IS_TRUE;
+            }
+            else
+            {
+                tempConfirmationMBState.mInsideSetupZone = Status::IS_FALSE;
+            }
+        }
+    }
+
     MBState *tempConfirmationMBs[];
     if (!confirmationMBT.GetNMostRecentMBs(2, tempConfirmationMBs))
     {
@@ -323,60 +378,12 @@ static int SetupHelper::MBRetappedSetupZone(int setupMBNumber, MBTracker *&setup
     }
 
     info += " Confirmation MB Number: " + tempConfirmationMBs[0].Number();
-
-    int lowerEarliestSetupZoneMitigationIndex = GetEarlierSetupZoneMitigationIndexForLowerTimeFrame(tempSetupZone, confirmationMBT);
-    if (lowerEarliestSetupZoneMitigationIndex == EMPTY)
-    {
-        return ExecutionErrors::LOWER_EARLIEST_SETUP_ZONE_MITIGATION_NOT_FOUND;
-    }
-
     info += " Lower Earliest Zone Mitigation: " + lowerEarliestSetupZoneMitigationIndex;
     info += " Zone Entry: " + tempSetupZone.EntryPrice();
     info += " Confirmation MB Start Index: " + tempConfirmationMBs[0].StartIndex();
     info += " Confirmation MB low: " + iLow(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), tempConfirmationMBs[0].LowIndex());
     info += " Confirmation MB High: " + iHigh(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), tempConfirmationMBs[0].HighIndex());
     info += " Current Status: " + tempConfirmationMBs[0].mInsideSetupZone;
-
-    // don't want to consider MBs that are before the possible mitigation index. Setting them to IS_FALSE will lead to false positives and negatives. Just leave them as
-    // NOT_CHECKED
-    if (tempConfirmationMBs[0].StartIndex() < lowerEarliestSetupZoneMitigationIndex)
-    {
-        return ExecutionErrors::NOT_AFTER_POSSIBLE_ZONE_MITIGATION;
-    }
-
-    bool isInZone = false;
-    if (tempConfirmationMBs[0].mInsideSetupZone == 0)
-    {
-        if (tempSetupMB.Type() == OP_BUY)
-        {
-            isInZone = iLow(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), tempConfirmationMBs[0].LowIndex()) <= tempSetupZone.EntryPrice();
-            info += " In Zone: " + isInZone;
-            if (isInZone)
-            {
-                tempConfirmationMBs[0].mInsideSetupZone = Status::IS_TRUE;
-            }
-            else
-            {
-                tempConfirmationMBs[0].mInsideSetupZone = Status::IS_FALSE;
-            }
-        }
-        else if (tempSetupMB.Type() == OP_SELL)
-        {
-            isInZone = iHigh(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), tempConfirmationMBs[0].HighIndex()) >= tempSetupZone.EntryPrice();
-
-            info += " In Zone: " + isInZone;
-
-            if (isInZone)
-            {
-                tempConfirmationMBs[0].mInsideSetupZone = Status::IS_TRUE;
-            }
-            else
-            {
-                tempConfirmationMBs[0].mInsideSetupZone = Status::IS_FALSE;
-            }
-        }
-    }
-
     info += " Previous Confirmation Status: " + tempConfirmationMBs[1].mInsideSetupZone;
 
     if (tempConfirmationMBs[1].mInsideSetupZone == 0)

@@ -76,6 +76,7 @@ public:
     string Symbol() { return mSymbol; }
     int TimeFrame() { return mTimeFrame; }
     int CurrentMBs() { return mCurrentMBs; }
+    int MBsCreated() { return mMBsCreated; }
 
     // --- Constructors / Destructors ---
     MBTracker(string symbol, int timeFrame,

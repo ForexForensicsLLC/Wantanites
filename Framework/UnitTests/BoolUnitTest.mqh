@@ -25,11 +25,8 @@ private:
     void Init(bool expected, TActualBoolFunc actualBoolFunc, TActualUnitTestBoolFunc actualUnitTestBoolFunc);
 
 public:
-    BoolUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordErrors,
-                 bool expected, TActualBoolFunc actual);
-
-    BoolUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordErrors,
-                 bool expected, TActualUnitTestBoolFunc actual);
+    BoolUnitTest(string directory, string testName, string description, int maxAsserts, bool expected, TActualBoolFunc actual);
+    BoolUnitTest(string directory, string testName, string description, int maxAsserts, bool expected, TActualUnitTestBoolFunc actual);
 
     ~BoolUnitTest();
 
@@ -46,17 +43,15 @@ void BoolUnitTest::Init(bool expected, TActualBoolFunc actualBoolFunc, TActualUn
 }
 
 template <typename TRecord>
-BoolUnitTest::BoolUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordErrors,
-                           bool expected, TActualBoolFunc actual)
-    : UnitTest(directory, testName, description, maxAsserts, assertCooldownMinutes, recordErrors)
+BoolUnitTest::BoolUnitTest(string directory, string testName, string description, int maxAsserts, bool expected, TActualBoolFunc actual)
+    : UnitTest(directory, testName, description, maxAsserts)
 {
     Init(expected, actual, NULL);
 }
 
 template <typename TRecord>
-BoolUnitTest::BoolUnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordErrors,
-                           bool expected, TActualUnitTestBoolFunc actual)
-    : UnitTest(directory, testName, description, maxAsserts, assertCooldownMinutes, recordErrors)
+BoolUnitTest::BoolUnitTest(string directory, string testName, string description, int maxAsserts, bool expected, TActualUnitTestBoolFunc actual)
+    : UnitTest(directory, testName, description, maxAsserts)
 {
     Init(expected, NULL, actual);
 }
