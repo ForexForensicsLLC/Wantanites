@@ -62,6 +62,8 @@ public:
     int LowIndex() { return iBarShift(mSymbol, mTimeFrame, mLowDateTime); }
 
     bool mEndIsBroken;
+
+    int mSetupZoneNumber;
     Status mInsideSetupZone;
 
     bool CanUseLowIndexForILow(int &lowIndex);
@@ -80,6 +82,7 @@ public:
 
     // Tested
     bool GetShallowestZone(ZoneState *&zoneState);
+    bool GetDeepestHoldingZone(ZoneState *&zoneState);
 
     // --------- Display Methods ---------
     string ToString();
@@ -165,6 +168,25 @@ bool MBState::GetClosestValidZone(ZoneState *&zoneState)
     for (int i = 0; i <= mMaxZones - 1; i++)
     {
         if (CheckPointer(mZones[i]) != POINTER_INVALID && !mZones[i].IsBroken())
+        {
+            zoneState = mZones[i];
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool MBState::GetDeepestHoldingZone(ZoneState *&zoneState)
+{
+    for (int i = mMaxZones - 1; i >= 0; i--)
+    {
+        if (CheckPointer(mZones[i]) == POINTER_INVALID)
+        {
+            break;
+        }
+
+        if (mZones[i].IsHoldingFromStart())
         {
             zoneState = mZones[i];
             return true;

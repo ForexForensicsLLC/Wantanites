@@ -42,13 +42,11 @@ int OnInit()
 {
     RetappedBullishZoneUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
         Directory, "Retapped Bullish Zone", "Should return true indicating the zone was retapped",
-        NumberOfAsserts, AssertCooldown, RecordErrors,
-        true, BullishZone);
+        NumberOfAsserts, true, BullishZone);
 
     RetappedBearishZoneUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
         Directory, "Retapped Bearish Zone", "Should return true indicating the zone was retapped",
-        NumberOfAsserts, AssertCooldown, RecordErrors,
-        true, BearishZone);
+        NumberOfAsserts, true, BearishZone);
 
     SetupMBT = new MBTracker(Symbol(), 60, MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
     ConfirmationMBT = new MBTracker(Symbol(), 1, 200, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
@@ -78,7 +76,7 @@ void OnTick()
     if (mbsCreated < ConfirmationMBT.MBsCreated())
     {
         RetappedBullishZoneUnitTest.Assert();
-        RetappedBearishZoneUnitTest.Assert();
+        // RetappedBearishZoneUnitTest.Assert();
 
         mbsCreated = ConfirmationMBT.MBsCreated();
     }
@@ -92,11 +90,6 @@ int BullishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     MBState *confirmationMBState;
     if (!ConfirmationMBT.GetNthMostRecentMB(0, confirmationMBState))
     {
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
-        count += 1;
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
-        count += 1;
-
         return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
@@ -105,43 +98,18 @@ int BullishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     MBState *tempMBState;
     if (!SetupMBT.GetNthMostRecentMB(0, tempMBState))
     {
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
-        count += 1;
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
-        count += 1;
-
         return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     if (tempMBState.Type() != OP_BUY)
     {
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
-        count += 1;
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
-        count += 1;
-
-        return -100;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     ZoneState *tempZoneState;
-    if (!tempMBState.GetClosestValidZone(tempZoneState))
+    if (!tempMBState.GetDeepestHoldingZone(tempZoneState))
     {
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
-        count += 1;
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
-        count += 1;
-
-        return ExecutionErrors::NO_ZONES;
-    }
-
-    if (!tempZoneState.IsHoldingFromStart())
-    {
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
-        count += 1;
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
-        count += 1;
-
-        return ExecutionErrors::ZONE_IS_NOT_HOLDING;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     bool retappedZone = false;
@@ -149,10 +117,6 @@ int BullishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     ut.PendingRecord.AdditionalInformation += info;
     if (error != ERR_NO_ERROR)
     {
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
-        count += 1;
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
-        count += 1;
         return error;
     }
 
@@ -173,11 +137,6 @@ int BearishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     MBState *confirmationMBState;
     if (!ConfirmationMBT.GetNthMostRecentMB(0, confirmationMBState))
     {
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
-        count += 1;
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
-        count += 1;
-
         return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
@@ -185,43 +144,18 @@ int BearishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     MBState *tempMBState;
     if (!SetupMBT.GetNthMostRecentMB(0, tempMBState))
     {
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
-        count += 1;
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
-        count += 1;
-
         return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     if (tempMBState.Type() != OP_SELL)
     {
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
-        count += 1;
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
-        count += 1;
-
-        return -100;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     ZoneState *tempZoneState;
-    if (!tempMBState.GetClosestValidZone(tempZoneState))
+    if (!tempMBState.GetDeepestHoldingZone(tempZoneState))
     {
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
-        count += 1;
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
-        count += 1;
-
-        return ExecutionErrors::NO_ZONES;
-    }
-
-    if (!tempZoneState.IsHoldingFromStart())
-    {
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
-        count += 1;
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
-        count += 1;
-
-        return ExecutionErrors::ZONE_IS_NOT_HOLDING;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     bool retappedZone = false;
@@ -229,11 +163,7 @@ int BearishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     ut.PendingRecord.AdditionalInformation = info;
     if (error != ERR_NO_ERROR)
     {
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
-        count += 1;
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
-        count += 1;
-        return error;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);

@@ -220,9 +220,17 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
                 // only allow zones that follow the mitigation parameter, that arenen't single ticks, and occur after the start of the MB
                 if ((allowZoneMitigation || !mitigatedZone) && imbalanceEntry != imbalanceExit && startIndex <= StartIndex())
                 {
-                    // account for zones after the validaiton of an mb
                     int endIndex = EndIndex();
-                    endIndex = endIndex <= i ? endIndex : i;
+                    if (startIndex == endIndex)
+                    {
+                        // move over 1 to the right if zone is right on the end or else I won't be able to see it
+                        endIndex = i - 1;
+                    }
+                    else
+                    {
+                        // Account for zones after the validation of the mb
+                        endIndex = endIndex <= i ? endIndex : i;
+                    }
                     AddZone(description, startIndex, imbalanceEntry, endIndex, imbalanceExit, entryOffset);
                 }
             }
@@ -388,9 +396,18 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
                 // that follow the mitigation parameter, that arenen't single ticks, and occur after the start of the zone
                 if ((allowZoneMitigation || !mitigatedZone) && imbalanceEntry != imbalanceExit && startIndex <= StartIndex())
                 {
-                    // Account for zones after the validation of the mb
                     int endIndex = EndIndex();
-                    endIndex = endIndex <= i ? endIndex : i;
+                    if (startIndex == endIndex)
+                    {
+                        // move over 1 to the right if zone is right on the end or else I won't be able to see it
+                        endIndex = i - 1;
+                    }
+                    else
+                    {
+                        // Account for zones after the validation of the mb
+                        endIndex = endIndex <= i ? endIndex : i;
+                    }
+
                     AddZone(description, startIndex, imbalanceEntry, endIndex, imbalanceExit, entryOffset);
                 }
             }
@@ -488,6 +505,7 @@ MB::MB(string symbol, int timeFrame, int number, int type, datetime startDateTim
     mStartIsBroken = false;
     mEndIsBroken = false;
 
+    mSetupZoneNumber = EMPTY;
     mInsideSetupZone = Status::NOT_CHECKED;
 
     mMaxZones = maxZones;

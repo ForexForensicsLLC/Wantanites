@@ -89,11 +89,6 @@ int PushedFurtherIntoBullishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &
     MBState *confirmationMBState;
     if (!ConfirmationMBT.GetNthMostRecentMB(0, confirmationMBState))
     {
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
-        count += 1;
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
-        count += 1;
-
         return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
@@ -102,11 +97,6 @@ int PushedFurtherIntoBullishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &
     MBState *tempMBState;
     if (!SetupMBT.GetNthMostRecentMB(0, tempMBState))
     {
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
-        count += 1;
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
-        count += 1;
-
         return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
@@ -116,24 +106,9 @@ int PushedFurtherIntoBullishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &
     }
 
     ZoneState *tempZoneState;
-    if (!tempMBState.GetClosestValidZone(tempZoneState))
+    if (!tempMBState.GetDeepestHoldingZone(tempZoneState))
     {
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
-        count += 1;
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
-        count += 1;
-
-        return ExecutionErrors::NO_ZONES;
-    }
-
-    if (!tempZoneState.IsHoldingFromStart())
-    {
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
-        count += 1;
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
-        count += 1;
-
-        return ExecutionErrors::ZONE_IS_NOT_HOLDING;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     bool pushedFurtherIntoZone = false;
@@ -144,12 +119,7 @@ int PushedFurtherIntoBullishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &
 
     if (error != ERR_NO_ERROR)
     {
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
-        count += 1;
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
-        count += 1;
-
-        return error;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
@@ -169,11 +139,6 @@ int PushedFurtherIntoBearishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &
     MBState *confirmationMBState;
     if (!ConfirmationMBT.GetNthMostRecentMB(0, confirmationMBState))
     {
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
-        count += 1;
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
-        count += 1;
-
         return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
@@ -182,11 +147,6 @@ int PushedFurtherIntoBearishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &
     MBState *tempMBState;
     if (!SetupMBT.GetNthMostRecentMB(0, tempMBState))
     {
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
-        count += 1;
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
-        count += 1;
-
         return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
@@ -196,24 +156,9 @@ int PushedFurtherIntoBearishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &
     }
 
     ZoneState *tempZoneState;
-    if (!tempMBState.GetClosestValidZone(tempZoneState))
+    if (!tempMBState.GetDeepestHoldingZone(tempZoneState))
     {
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
-        count += 1;
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
-        count += 1;
-
-        return ExecutionErrors::NO_ZONES;
-    }
-
-    if (!tempZoneState.IsHoldingFromStart())
-    {
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
-        count += 1;
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
-        count += 1;
-
-        return ExecutionErrors::ZONE_IS_NOT_HOLDING;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     bool pushedFurtherIntoZone = false;
@@ -224,11 +169,7 @@ int PushedFurtherIntoBearishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &
 
     if (error != ERR_NO_ERROR)
     {
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
-        count += 1;
-        ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
-        count += 1;
-        return error;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);

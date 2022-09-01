@@ -210,14 +210,9 @@ static int SetupHelper::MBPushedFurtherIntoSetupZone(int setupMBNumber, MBTracke
     }
 
     ZoneState *tempSetupZone;
-    if (!tempSetupMB.GetClosestValidZone(tempSetupZone))
+    if (!tempSetupMB.GetDeepestHoldingZone(tempSetupZone))
     {
         return ExecutionErrors::NO_ZONES;
-    }
-
-    if (!tempSetupZone.IsHoldingFromStart())
-    {
-        return ExecutionErrors::ZONE_IS_NOT_HOLDING;
     }
 
     MBState *tempConfirmationMB;
@@ -293,6 +288,7 @@ static int SetupHelper::MBPushedFurtherIntoSetupZone(int setupMBNumber, MBTracke
     return ERR_NO_ERROR;
 }
 
+// TODO Rename to MBRetappedDeepestHoldingSetupZone
 static int SetupHelper::MBRetappedSetupZone(int setupMBNumber, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &retappedZone, string &info)
 {
     retappedZone = false;
@@ -304,16 +300,11 @@ static int SetupHelper::MBRetappedSetupZone(int setupMBNumber, MBTracker *&setup
     }
 
     ZoneState *tempSetupZone;
-    if (!tempSetupMB.GetClosestValidZone(tempSetupZone))
+    if (!tempSetupMB.GetDeepestHoldingZone(tempSetupZone))
     {
         return ExecutionErrors::NO_ZONES;
     }
     info += "Zone: MB - " + tempSetupZone.MBNumber() + " Zone - " + tempSetupZone.Number();
-
-    if (!tempSetupZone.IsHoldingFromStart())
-    {
-        return ExecutionErrors::ZONE_IS_NOT_HOLDING;
-    }
 
     int lowerEarliestSetupZoneMitigationIndex = GetEarlierSetupZoneMitigationIndexForLowerTimeFrame(tempSetupZone, confirmationMBT);
     if (lowerEarliestSetupZoneMitigationIndex == EMPTY)
@@ -338,8 +329,7 @@ static int SetupHelper::MBRetappedSetupZone(int setupMBNumber, MBTracker *&setup
         }
 
         // Don't need to worry about MBs before possible mitigation of setup zone
-        // don't want to consider MBs that are before the possible mitigation index. Setting them to IS_FALSE will lead to false positives and negatives. Just leave them as
-        // NOT_CHECKED
+        // Setting them to IS_FALSE will lead to false positives and negatives. Just leave them as NOT_CHECKED
         if (tempConfirmationMBState.StartIndex() > lowerEarliestSetupZoneMitigationIndex)
         {
             break;
@@ -369,6 +359,8 @@ static int SetupHelper::MBRetappedSetupZone(int setupMBNumber, MBTracker *&setup
                 tempConfirmationMBState.mInsideSetupZone = Status::IS_FALSE;
             }
         }
+
+        tempConfirmationMBState.mSetupZoneNumber = tempSetupZone.Number();
     }
 
     MBState *tempConfirmationMBs[];
@@ -386,7 +378,8 @@ static int SetupHelper::MBRetappedSetupZone(int setupMBNumber, MBTracker *&setup
     info += " Current Status: " + tempConfirmationMBs[0].mInsideSetupZone;
     info += " Previous Confirmation Status: " + tempConfirmationMBs[1].mInsideSetupZone;
 
-    if (tempConfirmationMBs[1].mInsideSetupZone == 0)
+    // First tap into a zone
+    if (tempConfirmationMBs[1].mInsideSetupZone == 0 || tempConfirmationMBs[1].mSetupZoneNumber != tempConfirmationMBs[0].mSetupZoneNumber)
     {
         retappedZone = tempConfirmationMBs[0].mInsideSetupZone == Status::IS_TRUE;
     }
