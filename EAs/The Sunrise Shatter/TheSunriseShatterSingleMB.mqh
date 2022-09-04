@@ -8,32 +8,22 @@
 #property version "1.00"
 #property strict
 
+#include <SummitCapital\Framework\EA\EA.mqh>
+#include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
-#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\SingleTimeFrameTradeRecord.mqh>
-#include <SummitCapital\Framework\EA\EA.mqh>
-
-#include <SummitCapital\Framework\Trackers\MBTracker.mqh>
-#include <SummitCapital\Framework\Objects\MinROCFromTimeStamp.mqh>
-#include <SummitCapital\Framework\Objects\Ticket.mqh>
-
-#include <SummitCapital\Framework\Helpers\EAHelper.mqh>
-
-class TheSunriseShatterSingleMB : public EA<SingleTimeFrameTradeRecord>
+class TheSunriseShatterSingleMB : public EA
 {
 public:
-    Ticket *mTicket;
     MinROCFromTimeStamp *mMRFTS;
     MBTracker *mMBT;
 
-    int mSetupType;
     int mFirstMBInSetupNumber;
-
     int mTimeFrame;
 
 public:
-    TheSunriseShatterSingleMB(int timeFrame, int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, double riskPercent, MinROCFromTimeStamp *&mrfts,
-                              MBTracker *&mbt);
+    TheSunriseShatterSingleMB(int timeFrame, string directory, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+                              MinROCFromTimeStamp *&mrfts, MBTracker *&mbt);
     ~TheSunriseShatterSingleMB();
 
     virtual int MagicNumber() { return MagicNumbers::TheSunriseShatterSingleMB; }
@@ -45,23 +35,25 @@ public:
     virtual void InvalidateSetup(bool deletePendingOrder, int error);
     virtual bool Confirmation();
     virtual void PlaceOrders();
-    virtual void ManagePendingTicket();
-    virtual void ManageActiveTicket();
-    virtual void CheckTicket();
-    virtual void RecordOrderOpenData();
-    virtual void RecordOrderCloseData();
+    virtual void ManageCurrentPendingSetupTicket();
+    virtual void ManageCurrentActiveSetupTicket();
+    virtual bool MoveToPreviousSetupTickets(Ticket &ticket);
+    virtual void ManagePreviousSetupTicket(int ticketIndex);
+    virtual void CheckCurrentSetupTicket();
+    virtual void CheckPreviousSetupTicket(int ticketIndex);
+    virtual void RecordTicketOpenData();
+    virtual void RecordTicketPartialData(int oldTicketIndex, int newTicketNumber);
+    virtual void RecordTicketCloseData();
+    virtual void RecordError(int error);
     virtual void Reset();
 };
 
-TheSunriseShatterSingleMB::TheSunriseShatterSingleMB(int timeFrame, int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, double riskPercent,
-                                                     MinROCFromTimeStamp *&mrfts, MBTracker *&mbt) : EA(maxTradesPerStrategy, stopLossPaddingPips, maxSpreadPips, riskPercent)
+TheSunriseShatterSingleMB::TheSunriseShatterSingleMB(int timeFrame, string directory, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips,
+                                                     double riskPercent, MinROCFromTimeStamp *&mrfts, MBTracker *&mbt)
+    : EA(directory, maxTradesPerStrategy, stopLossPaddingPips, maxSpreadPips, riskPercent)
 {
-    mDirectory = "/TheSunriseShatter/TheSunriseShatterSingleMB/";
-    mCSVFileName = "TheSunriseShatterSingleMB.csv";
-
     mMBT = mbt;
     mMRFTS = mrfts;
-    mTicket = new Ticket();
 
     mSetupType = EMPTY;
     mFirstMBInSetupNumber = EMPTY;
@@ -69,14 +61,13 @@ TheSunriseShatterSingleMB::TheSunriseShatterSingleMB(int timeFrame, int maxTrade
     mTimeFrame = timeFrame;
 
     EAHelper::FillSunriseShatterMagicNumbers<TheSunriseShatterSingleMB>(this);
-    EAHelper::SetSingleActiveTicket<TheSunriseShatterSingleMB>(this);
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<TheSunriseShatterSingleMB>(this);
 }
 
 TheSunriseShatterSingleMB::~TheSunriseShatterSingleMB()
 {
     delete mMBT;
     delete mMRFTS;
-    delete mTicket;
 }
 
 void TheSunriseShatterSingleMB::Run()
@@ -142,29 +133,54 @@ void TheSunriseShatterSingleMB::PlaceOrders()
     }
 }
 
-void TheSunriseShatterSingleMB::ManagePendingTicket()
+void TheSunriseShatterSingleMB::ManageCurrentPendingSetupTicket()
 {
     EAHelper::CheckEditStopLossForPendingMBValidation<TheSunriseShatterSingleMB>(this, mMBT, mFirstMBInSetupNumber);
 }
 
-void TheSunriseShatterSingleMB::ManageActiveTicket()
+void TheSunriseShatterSingleMB::ManageCurrentActiveSetupTicket()
 {
     EAHelper::CheckTrailStopLossWithMBs<TheSunriseShatterSingleMB>(this, mMBT, mFirstMBInSetupNumber);
 }
 
-void TheSunriseShatterSingleMB::CheckTicket()
+bool TheSunriseShatterSingleMB::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    EAHelper::CheckTicket<TheSunriseShatterSingleMB>(this);
+    return EAHelper::TicketStopLossIsMovedToBreakEven<TheSunriseShatterSingleMB>(this, ticket);
 }
 
-void TheSunriseShatterSingleMB::RecordOrderOpenData()
+void TheSunriseShatterSingleMB::ManagePreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::RecordSingleTimeFrameRecordOpenData<TheSunriseShatterSingleMB>(this, mTimeFrame);
+    // This Strategy doesn't take any partials
 }
 
-void TheSunriseShatterSingleMB::RecordOrderCloseData()
+void TheSunriseShatterSingleMB::CheckCurrentSetupTicket()
 {
-    EAHelper::RecordSingleTimeFrameRecordCloseData<TheSunriseShatterSingleMB>(this);
+    EAHelper::CheckCurrentSetupTicket<TheSunriseShatterSingleMB>(this);
+}
+
+void TheSunriseShatterSingleMB::CheckPreviousSetupTicket(int ticketIndex)
+{
+    EAHelper::CheckPreviousSetupTicket<TheSunriseShatterSingleMB>(this, ticketIndex);
+}
+
+void TheSunriseShatterSingleMB::RecordTicketOpenData()
+{
+    EAHelper::RecordSingleTimeFrameTicketOpenData<TheSunriseShatterSingleMB>(this, mTimeFrame);
+}
+
+void TheSunriseShatterSingleMB::RecordTicketPartialData(int oldTicketIndex, int newTicketNumber)
+{
+    // This Strategy doesn't take any partials
+}
+
+void TheSunriseShatterSingleMB::RecordTicketCloseData()
+{
+    EAHelper::RecordSingleTimeTicketCloseData<TheSunriseShatterSingleMB>(this);
+}
+
+void TheSunriseShatterSingleMB::RecordError(int error)
+{
+    EAHelper::RecordDefaultErrorRecord<TheSunriseShatterSingleMB>(this, error);
 }
 
 void TheSunriseShatterSingleMB::Reset()

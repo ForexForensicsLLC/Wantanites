@@ -115,7 +115,7 @@ static int ScreenShotHelper::TryTakeMultiTimeFrameScreenShot(string directory, i
     currentChartImageName = directory + "Images/" + dateTime + "_Period " + IntegerToString(Period());
     secondChartImageName = directory + "Images/" + dateTime + "_Period " + IntegerToString(secondChartTimeFrame);
 
-    if (!ChartScreenShot(ChartID(), currentChartImageName, 2000, 800, ALIGN_RIGHT))
+    if (!ChartScreenShot(ChartID(), currentChartImageName, 8000, 4400, ALIGN_RIGHT))
     {
         return GetLastError();
     }

@@ -12,10 +12,8 @@
 #include <SummitCapital\Framework\Objects\MinROCFromTimeStamp.mqh>
 #include <SummitCapital\Framework\Constants\Index.mqh>
 
-// HasUntestedMethods
 class SetupHelper
 {
-private:
 public:
     // ==========================================================================
     // Range Broke Methods
@@ -38,13 +36,16 @@ public:
 private:
     static int GetSetupMBValidationOnLowerTimeFrame(MBState *setupMB, MBTracker *confirmationMBT);
 
+public:
+    // Tested
+    static int MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNumber, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &pushedFurtherIntoZone);
+
+private:
     static int GetEarlierSetupZoneMitigationIndexForLowerTimeFrame(ZoneState *setupZone, MBTracker *confirmationMBT);
 
 public:
-    static int MBPushedFurtherIntoSetupZone(int setupMBNumber, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &pushedFurtherIntoZone);
-
-    // !Tested
-    static int MBRetappedSetupZone(int setupMBNumber, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &retappedZone, string &info);
+    // Tested
+    static int MBRetappedDeepestHoldingSetupZone(int setupMBNumber, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &retappedZone);
 
     // ==========================================================================
     // Min ROC. From Time Stamp Setup Methods
@@ -199,7 +200,7 @@ static int SetupHelper::GetEarlierSetupZoneMitigationIndexForLowerTimeFrame(Zone
     return iBarShift(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), earliestZoneMitigationTime);
 }
 
-static int SetupHelper::MBPushedFurtherIntoSetupZone(int setupMBNumber, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &pushedFurtherIntoZone)
+static int SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNumber, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &pushedFurtherIntoZone)
 {
     pushedFurtherIntoZone = false;
 
@@ -288,8 +289,7 @@ static int SetupHelper::MBPushedFurtherIntoSetupZone(int setupMBNumber, MBTracke
     return ERR_NO_ERROR;
 }
 
-// TODO Rename to MBRetappedDeepestHoldingSetupZone
-static int SetupHelper::MBRetappedSetupZone(int setupMBNumber, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &retappedZone, string &info)
+static int SetupHelper::MBRetappedDeepestHoldingSetupZone(int setupMBNumber, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &retappedZone)
 {
     retappedZone = false;
 
@@ -304,7 +304,6 @@ static int SetupHelper::MBRetappedSetupZone(int setupMBNumber, MBTracker *&setup
     {
         return ExecutionErrors::NO_ZONES;
     }
-    info += "Zone: MB - " + tempSetupZone.MBNumber() + " Zone - " + tempSetupZone.Number();
 
     int lowerEarliestSetupZoneMitigationIndex = GetEarlierSetupZoneMitigationIndexForLowerTimeFrame(tempSetupZone, confirmationMBT);
     if (lowerEarliestSetupZoneMitigationIndex == EMPTY)
@@ -368,15 +367,6 @@ static int SetupHelper::MBRetappedSetupZone(int setupMBNumber, MBTracker *&setup
     {
         return TerminalErrors::MB_DOES_NOT_EXIST;
     }
-
-    info += " Confirmation MB Number: " + tempConfirmationMBs[0].Number();
-    info += " Lower Earliest Zone Mitigation: " + lowerEarliestSetupZoneMitigationIndex;
-    info += " Zone Entry: " + tempSetupZone.EntryPrice();
-    info += " Confirmation MB Start Index: " + tempConfirmationMBs[0].StartIndex();
-    info += " Confirmation MB low: " + iLow(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), tempConfirmationMBs[0].LowIndex());
-    info += " Confirmation MB High: " + iHigh(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), tempConfirmationMBs[0].HighIndex());
-    info += " Current Status: " + tempConfirmationMBs[0].mInsideSetupZone;
-    info += " Previous Confirmation Status: " + tempConfirmationMBs[1].mInsideSetupZone;
 
     // First tap into a zone
     if (tempConfirmationMBs[1].mInsideSetupZone == 0 || tempConfirmationMBs[1].mSetupZoneNumber != tempConfirmationMBs[0].mSetupZoneNumber)

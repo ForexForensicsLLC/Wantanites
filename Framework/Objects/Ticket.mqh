@@ -8,7 +8,10 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/Framework/Constants/TerminalErrors.mqh>
+#include <SummitCapital\Framework\Constants\TerminalErrors.mqh>
+
+#include <SummitCapital\Framework\Objects\List.mqh>
+#include <SummitCapital\Framework\Objects\PartialList.mqh>
 
 class Ticket
 {
@@ -17,6 +20,9 @@ private:
 
     bool mIsClosed;
     bool mIsActive;
+    bool mStopLossIsMovedToBreakEven;
+
+    PartialList *mPartials;
 
     int SelectTicket(string action);
     int InternalCheckActive(bool &active);
@@ -25,11 +31,13 @@ private:
 public:
     Ticket();
     Ticket(int ticket);
+    Ticket(Ticket &ticket);
     ~Ticket();
 
     void SetNewTicket(int ticket);
-    void Clear();
+    void UpdateTicketNumber(int newTicketNumber);
 
+    double mRRAcquired;
     int Number() { return mNumber; }
 
     // Tested
@@ -48,6 +56,10 @@ public:
 
     int SelectIfOpen(string action);
     int SelectIfClosed(string action);
+
+    int StopLossIsMovedToBreakEven(bool &stopLossIsMovedBreakEven);
+
+    void SetPartials(List<double> &partialRRs, List<double> &partialPercents);
 };
 
 Ticket::Ticket()
@@ -60,6 +72,17 @@ Ticket::Ticket(int ticket)
     SetNewTicket(ticket);
 }
 
+Ticket::Ticket(Ticket &ticket)
+{
+    mNumber = ticket.Number();
+    mRRAcquired = ticket.mRRAcquired;
+    mPartials = new PartialList(ticket.mPartials);
+
+    ticket.IsActive(mIsActive);
+    ticket.IsClosed(mIsClosed);
+    ticket.StopLossIsMovedToBreakEven(mStopLossIsMovedToBreakEven);
+}
+
 Ticket::~Ticket()
 {
 }
@@ -67,15 +90,17 @@ Ticket::~Ticket()
 void Ticket::SetNewTicket(int ticket)
 {
     mNumber = ticket;
+    mRRAcquired = 0;
+    mPartials.Clear();
+
     mIsActive = false;
     mIsClosed = false;
+    mStopLossIsMovedToBreakEven = false;
 }
 
-void Ticket::Clear()
+void Ticket::UpdateTicketNumber(int newTicketNumber)
 {
-    mNumber = EMPTY;
-    mIsActive = false;
-    mIsClosed = false;
+    mNumber = newTicketNumber;
 }
 
 int Ticket::SelectTicket(string action)
@@ -274,4 +299,30 @@ int Ticket::Close()
     }
 
     return ERR_NO_ERROR;
+}
+
+int Ticket::StopLossIsMovedToBreakEven(bool &stopLossIsMovedBreakEven)
+{
+    if (!mStopLossIsMovedToBreakEven)
+    {
+        int error = SelectIfOpen("Checking If Break Even");
+        if (error != ERR_NO_ERROR)
+        {
+            return error;
+        }
+
+        mStopLossIsMovedToBreakEven = OrderOpenPrice() == OrderStopLoss();
+    }
+
+    stopLossIsMovedBreakEven = mStopLossIsMovedToBreakEven;
+    return ERR_NO_ERROR;
+}
+
+void Ticket::SetPartials(List<double> &partialRRs, List<double> &partialPercents)
+{
+    for (int i = 0; i < partialRRs.Size(); i++)
+    {
+        Partial *partial = new Partial(partialRRs[i], partialPercents[i]);
+        mPartials.Add(partial);
+    }
 }

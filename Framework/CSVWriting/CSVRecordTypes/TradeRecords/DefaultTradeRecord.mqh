@@ -8,46 +8,50 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\ICSVRecord.mqh>
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
 
-class DefaultTradeRecord : public ICSVRecord
+class DefaultTradeRecord
 {
 public:
+    int TicketNumber;
+    int EntryTimeFrame; // Needed for TotalMovePips() and PotentialRR();
     string Symbol;
-    int EntryTimeFrame;
     string OrderType;
     double AccountBalanceBefore;
-    double AccountBalanceAfter;
+    double Lots;
     datetime EntryTime;
     double EntryPrice;
     double EntryStopLoss;
+
+    double AccountBalanceAfter;
     datetime ExitTime;
     double ExitPrice;
     double ExitStopLoss;
-    double Lots;
-    int LastState;
-    int Error;
-    string ErrorImage;
-    string Notes;
-
-    DefaultTradeRecord();
-    ~DefaultTradeRecord();
 
     double TotalMovePips();
     double PotentialRR();
     string Psychology();
 
-    virtual void WriteHeaders(int fileHandle);
-    virtual void WriteRecord(int fileHandle);
-    virtual void Reset();
+    DefaultTradeRecord();
+    ~DefaultTradeRecord();
+
+    virtual int TotalColumns() { return 15; }
+    virtual int PartialDataStartIndex() { return 0; }
+    virtual int CloseDataStartIndex() { return 8; }
+
+    static void WriteHeaders(int fileHandle);
+    static void WriteTicketOpenHeaders(int fileHandle);
+    static void WriteTicketCloseHeaders(int fileHandle);
+    static void WriteAdditionalTicketHeaders(int fileHandle);
+
+    void WriteEntireRecord(int fileHandle);
+    virtual void WriteTicketOpenData(int fileHandle);
+    virtual void WriteTicketPartialData(int fileHandle);
+    virtual void WriteTicketCloseData(int fileHandle);
+    virtual void WriteAdditionalTicketData(int fileHandle);
 };
 
-DefaultTradeRecord::DefaultTradeRecord()
-{
-    Reset();
-}
-
+DefaultTradeRecord::DefaultTradeRecord() {}
 DefaultTradeRecord::~DefaultTradeRecord() {}
 
 double DefaultTradeRecord::TotalMovePips()
@@ -128,68 +132,75 @@ string DefaultTradeRecord::Psychology()
     }
 }
 
-void DefaultTradeRecord::WriteHeaders(int fileHandle)
+static void DefaultTradeRecord::WriteHeaders(int fileHandle)
 {
-    FileWrite(fileHandle,
-              "Symbol",
-              "Order Type",
-              "Account Balance Before",
-              "Account Balance After",
-              "Lots",
-              "Entry Time",
-              "Entry Price",
-              "Entry Stop Loss",
-              "Exit Time",
-              "Exit Price",
-              "Exit Stop Loss",
-              "Total Move Pips",
-              "Potential RR",
-              "Psychology",
-              "Last State",
-              "Error",
-              "Error Image",
-              "Notes");
+    WriteTicketOpenHeaders(fileHandle);
+    WriteTicketCloseHeaders(fileHandle);
+    WriteAdditionalTicketHeaders(fileHandle);
 }
 
-void DefaultTradeRecord::WriteRecord(int fileHandle)
+static void DefaultTradeRecord::WriteTicketOpenHeaders(int fileHandle)
 {
-    FileWrite(fileHandle,
-              Symbol,
-              OrderType,
-              AccountBalanceBefore,
-              AccountBalanceAfter,
-              Lots,
-              EntryTime,
-              EntryPrice,
-              EntryStopLoss,
-              ExitTime,
-              ExitPrice,
-              ExitStopLoss,
-              TotalMovePips(),
-              PotentialRR(),
-              Psychology(),
-              LastState,
-              Error,
-              ErrorImage,
-              Notes);
+    FileWriteString(fileHandle, "Ticket Number");
+    FileWriteString(fileHandle, "Symbol");
+    FileWriteString(fileHandle, "Order Type");
+    FileWriteString(fileHandle, "Account Balance Before");
+    FileWriteString(fileHandle, "Lots");
+    FileWriteString(fileHandle, "Entry Time");
+    FileWriteString(fileHandle, "Entry Price");
+    FileWriteString(fileHandle, "Entry Stop Loss");
 }
 
-void DefaultTradeRecord::Reset()
+static void DefaultTradeRecord::WriteTicketCloseHeaders(int fileHandle)
 {
-    Symbol = "";
-    EntryTimeFrame = 0;
-    OrderType = "";
-    AccountBalanceBefore = 0;
-    AccountBalanceAfter = 0;
-    Lots = 0.0;
-    EntryTime = 0;
-    EntryPrice = 0.0;
-    EntryStopLoss = 0.0;
-    ExitTime = 0;
-    ExitPrice = 0.0;
-    ExitStopLoss = 0.0;
-    LastState = 0;
-    Error = 0;
-    ErrorImage = "";
-    Notes = "";
+    FileWriteString(fileHandle, "Account Balance After");
+    FileWriteString(fileHandle, "Exit Time");
+    FileWriteString(fileHandle, "Exit Price");
+    FileWriteString(fileHandle, "Exit Stop Loss");
+}
+
+static void DefaultTradeRecord::WriteAdditionalTicketHeaders(int fileHandle)
+{
+    FileWriteString(fileHandle, "Total Move Pips");
+    FileWriteString(fileHandle, "Potential RR");
+    FileWriteString(fileHandle, "Psychology");
+}
+
+void DefaultTradeRecord::WriteEntireRecord(int fileHandle)
+{
+    WriteTicketOpenData(fileHandle);
+    WriteTicketPartialData(fileHandle);
+    WriteTicketCloseData(fileHandle);
+    WriteAdditionalTicketData(fileHandle);
+}
+
+void DefaultTradeRecord::WriteTicketOpenData(int fileHandle)
+{
+    FileWriteInteger(fileHandle, TicketNumber);
+    FileWriteString(fileHandle, Symbol);
+    FileWriteString(fileHandle, OrderType);
+    FileWriteDouble(fileHandle, NormalizeDouble(AccountBalanceBefore, 2));
+    FileWriteDouble(fileHandle, NormalizeDouble(Lots, 2));
+    FileWriteString(fileHandle, TimeToString(EntryTime, TIME_DATE | TIME_MINUTES));
+    FileWriteDouble(fileHandle, NormalizeDouble(EntryPrice, Digits));
+    FileWriteDouble(fileHandle, NormalizeDouble(EntryStopLoss, Digits));
+}
+
+void DefaultTradeRecord::WriteTicketPartialData(int fileHandle)
+{
+}
+
+void DefaultTradeRecord::WriteTicketCloseData(int fileHandle)
+{
+    FileWriteDouble(fileHandle, NormalizeDouble(AccountBalanceAfter, 2));
+    FileWriteString(fileHandle, TimeToString(ExitTime, TIME_DATE | TIME_MINUTES));
+    FileWriteDouble(fileHandle, NormalizeDouble(ExitPrice, Digits));
+    FileWriteDouble(fileHandle, NormalizeDouble(ExitStopLoss, Digits));
+}
+
+void DefaultTradeRecord::WriteAdditionalTicketData(int fileHandle)
+{
+    FileWriteDouble(fileHandle, NormalizeDouble(TotalMovePips(), Digits));
+    FileWriteDouble(fileHandle, NormalizeDouble(PotentialRR(), 2));
+    FileWriteString(fileHandle, Psychology());
 }

@@ -20,72 +20,37 @@ public:
     SingleTimeFrameTradeRecord();
     ~SingleTimeFrameTradeRecord();
 
-    virtual void WriteHeaders(int fileHandle);
-    virtual void WriteRecord(int fileHandle);
-    virtual void Reset();
+    virtual int TotalColumns() { return 17; }
+    virtual int CloseDataStartIndex() { return 9; }
+
+    static void WriteHeaders(int fileHandle);
+
+    virtual void WriteTicketOpenData(int fileHandle);
+    virtual void WriteTicketCloseData(int fileHandle);
 };
 
-SingleTimeFrameTradeRecord::SingleTimeFrameTradeRecord()
-{
-    Reset();
-}
-
+SingleTimeFrameTradeRecord::SingleTimeFrameTradeRecord() {}
 SingleTimeFrameTradeRecord::~SingleTimeFrameTradeRecord() {}
 
 void SingleTimeFrameTradeRecord::WriteHeaders(int fileHandle)
 {
-    FileWrite(fileHandle,
-              "Symbol",
-              "Order Type",
-              "Account Balance Before",
-              "Account Balance After",
-              "Lots",
-              "Entry Time",
-              "Entry Price",
-              "Entry Stop Loss",
-              "Entry Image",
-              "Exit Time",
-              "Exit Price",
-              "Exit Stop Loss",
-              "Exit Image",
-              "Total Move Pips",
-              "Potential RR",
-              "Psychology",
-              "Last State",
-              "Error",
-              "Error Image",
-              "Notes");
+    DefaultTradeRecord::WriteTicketOpenHeaders(fileHandle);
+    FileWriteString(fileHandle, "Entry Image");
+
+    DefaultTradeRecord::WriteTicketCloseHeaders(fileHandle);
+    FileWriteString(fileHandle, "Exit Imaage");
+
+    DefaultTradeRecord::WriteAdditionalTicketHeaders(fileHandle);
 }
 
-void SingleTimeFrameTradeRecord::WriteRecord(int fileHandle)
+void SingleTimeFrameTradeRecord::WriteTicketOpenData(int fileHandle)
 {
-    FileWrite(fileHandle,
-              Symbol,
-              OrderType,
-              AccountBalanceBefore,
-              AccountBalanceAfter,
-              Lots,
-              EntryTime,
-              EntryPrice,
-              EntryStopLoss,
-              EntryImage,
-              ExitTime,
-              ExitPrice,
-              ExitStopLoss,
-              ExitImage,
-              TotalMovePips(),
-              PotentialRR(),
-              Psychology(),
-              LastState,
-              Error,
-              ErrorImage,
-              Notes);
+    DefaultTradeRecord::WriteTicketOpenData(fileHandle);
+    FileWriteString(fileHandle, EntryImage);
 }
 
-void SingleTimeFrameTradeRecord::Reset()
+void SingleTimeFrameTradeRecord::WriteTicketCloseData(int fileHandle)
 {
-    EntryImage = "";
-    ExitImage = "";
-
-    DefaultTradeRecord::Reset();
+    DefaultTradeRecord::WriteTicketCloseData(fileHandle);
+    FileWriteString(fileHandle, EntryImage);
 }

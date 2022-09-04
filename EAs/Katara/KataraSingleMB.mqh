@@ -8,19 +8,13 @@
 #property version "1.00"
 #property strict
 
+#include <SummitCapital\Framework\EA\EA.mqh>
+#include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
-#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\MultiTimeFrameTradeRecord.mqh>
-#include <SummitCapital\Framework\EA\EA.mqh>
-
-#include <SummitCapital\Framework\Trackers\MBTracker.mqh>
-#include <SummitCapital\Framework\Helpers\EAHelper.mqh>
-#include <SummitCapital\Framework\Objects\Ticket.mqh>
-
-class KataraSingleMB : public EA<MultiTimeFrameTradeRecord>
+class KataraSingleMB : public EA
 {
 public:
-    Ticket *mTicket;
     MBTracker *mSetupMBT;
     MBTracker *mConfirmationMBT;
 
@@ -30,10 +24,8 @@ public:
 
     int mFirstMBInConfirmationNumber;
 
-    int mSetupType;
-
 public:
-    KataraSingleMB(int setupType, int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, double riskPercent, MBTracker *&setupMBT,
+    KataraSingleMB(string directory, int setupType, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent, MBTracker *&setupMBT,
                    MBTracker *&confirmationMBT);
     ~KataraSingleMB();
 
@@ -46,25 +38,24 @@ public:
     virtual void InvalidateSetup(bool deletePendingOrder, int error);
     virtual bool Confirmation();
     virtual void PlaceOrders();
-    virtual void ManagePendingTicket();
-    virtual void ManageActiveTicket();
-    virtual void CheckTicket();
-    virtual void RecordOrderOpenData();
-    virtual void RecordOrderCloseData();
+    virtual void ManageCurrentPendingSetupTicket();
+    virtual void ManageCurrentActiveSetupTicket();
+    virtual bool MoveToPreviousSetupTickets(Ticket &ticket);
+    virtual void ManagePreviousSetupTicket(int ticketIndex);
+    virtual void CheckCurrentSetupTicket();
+    virtual void CheckPreviousSetupTicket(int ticketIndex);
+    virtual void RecordTicketOpenData();
+    virtual void RecordTicketPartialData(int oldTicketIndex, int newTicketNumber);
+    virtual void RecordTicketCloseData();
+    virtual void RecordError(int error);
     virtual void Reset();
 };
 
-KataraSingleMB::KataraSingleMB(int setupType, int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, double riskPercent, MBTracker *&setupMBT,
-                               MBTracker *&confirmationMBT) : EA(maxTradesPerStrategy, stopLossPaddingPips, maxSpreadPips, riskPercent)
+KataraSingleMB::KataraSingleMB(string directory, int setupType, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+                               MBTracker *&setupMBT, MBTracker *&confirmationMBT) : EA(directory, maxTradesPerStrategy, stopLossPaddingPips, maxSpreadPips, riskPercent)
 {
-    string prefix = mSetupType == OP_BUY ? "Bullish" : "Bearish";
-    mDirectory = "/Katara/" + prefix + "/SingleMB/";
-    mCSVFileName = prefix + "KataraSingleMB.csv";
-
     mSetupMBT = setupMBT;
     mConfirmationMBT = confirmationMBT;
-
-    mTicket = new Ticket();
 
     mFirstMBInSetupNumber = EMPTY;
     mSecondMBInSetupNumber = EMPTY;
@@ -74,20 +65,28 @@ KataraSingleMB::KataraSingleMB(int setupType, int maxTradesPerStrategy, int stop
 
     mSetupType = setupType;
 
-    EAHelper::FillBearishKataraMagicNumbers<KataraSingleMB>(this);
-    EAHelper::SetSingleActiveTicket<KataraSingleMB>(this);
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<KataraSingleMB>(this);
+    mTradeRecordRecorder.SearchSetRRAcquired<SinglePartialMultiTimeFrameTradeRecord>(mPreviousSetupTickets);
+
+    if (setupType == OP_BUY)
+    {
+        EAHelper::FillBullishKataraMagicNumbers<KataraSingleMB>(this);
+    }
+    else
+    {
+        EAHelper::FillBearishKataraMagicNumbers<KataraSingleMB>(this);
+    }
 }
 
 KataraSingleMB::~KataraSingleMB()
 {
     delete mSetupMBT;
     delete mConfirmationMBT;
-    delete mTicket;
 }
 
 void KataraSingleMB::Run()
 {
-    EAHelper::RunDrawMBT<KataraSingleMB>(this, mConfirmationMBT);
+    EAHelper::RunDrawMBTs<KataraSingleMB>(this, mSetupMBT, mConfirmationMBT);
 }
 
 bool KataraSingleMB::AllowedToTrade()
@@ -102,8 +101,8 @@ void KataraSingleMB::CheckSetSetup()
     {
         if (EAHelper::LiquidationMBZoneIsHolding<KataraSingleMB>(this, mSetupMBT, mFirstMBInSetupNumber, mSecondMBInSetupNumber))
         {
-            if (EAHelper::MBRetappedSetupZone<KataraSingleMB>(this, mSetupMBT, mFirstMBInSetupNumber, mConfirmationMBT) ||
-                EAHelper::MBPushedFurtherIntoSetupZone<KataraSingleMB>(this, mSetupMBT, mFirstMBInSetupNumber, mConfirmationMBT))
+            if (EAHelper::MBRetappedDeepestHoldingSetupZone<KataraSingleMB>(this, mSetupMBT, mFirstMBInSetupNumber, mConfirmationMBT) ||
+                EAHelper::MBPushedFurtherIntoDeepestHoldingSetupZone<KataraSingleMB>(this, mSetupMBT, mFirstMBInSetupNumber, mConfirmationMBT))
             {
                 if (EAHelper::CheckSetFirstMBAfterBreak<KataraSingleMB>(this, mConfirmationMBT, mFirstMBInConfirmationNumber, mSetupType))
                 {
@@ -117,7 +116,6 @@ void KataraSingleMB::CheckSetSetup()
 void KataraSingleMB::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
-
     // Start of Setup TF Liquidation
     if (EAHelper::CheckBrokeMBRangeStart<KataraSingleMB>(this, mSetupMBT, mFirstMBInSetupNumber))
     {
@@ -169,32 +167,57 @@ void KataraSingleMB::PlaceOrders()
     }
 }
 
-void KataraSingleMB::ManagePendingTicket()
+void KataraSingleMB::ManageCurrentPendingSetupTicket()
 {
     EAHelper::CheckEditStopLossForPendingMBValidation<KataraSingleMB>(this, mConfirmationMBT, mFirstMBInConfirmationNumber);
 }
 
-void KataraSingleMB::ManageActiveTicket()
+void KataraSingleMB::ManageCurrentActiveSetupTicket()
 {
     EAHelper::CheckTrailStopLossWithMBs<KataraSingleMB>(this, mConfirmationMBT, mFirstMBInConfirmationNumber);
 }
 
-void KataraSingleMB::CheckTicket()
+bool KataraSingleMB::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    EAHelper::CheckTicket<KataraSingleMB>(this);
+    return EAHelper::TicketStopLossIsMovedToBreakEven<KataraSingleMB>(this, ticket);
 }
 
-void KataraSingleMB::RecordOrderOpenData()
+void KataraSingleMB::ManagePreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::RecordMultiTimeFrameRecordOpenData<KataraSingleMB>(this, 1, 60);
+    EAHelper::CheckPartialPreviousSetupTicket<KataraSingleMB>(this, ticketIndex);
 }
 
-void KataraSingleMB::RecordOrderCloseData()
+void KataraSingleMB::CheckCurrentSetupTicket()
 {
-    EAHelper::RecordMultiTimeFrameRecordCloseData<KataraSingleMB>(this, 1, 60);
+    EAHelper::CheckCurrentSetupTicket<KataraSingleMB>(this);
+}
+
+void KataraSingleMB::CheckPreviousSetupTicket(int ticketIndex)
+{
+    EAHelper::CheckPreviousSetupTicket<KataraSingleMB>(this, ticketIndex);
+}
+
+void KataraSingleMB::RecordTicketOpenData()
+{
+    EAHelper::RecordSinglePartialMultiTimeFrameTicketOpenData<KataraSingleMB>(this, 1, 60);
+}
+
+void KataraSingleMB::RecordTicketPartialData(int oldTicketIndex, int newTicketNumber)
+{
+    EAHelper::RecordSinglePartialMultiTimeFrameTicketPartialData<KataraSingleMB>(this, oldTicketIndex, newTicketNumber);
+}
+
+void KataraSingleMB::RecordTicketCloseData()
+{
+    EAHelper::RecordSinglePartialMultiTimeFrameTicketCloseData<KataraSingleMB>(this, 1, 60);
+}
+
+void KataraSingleMB::RecordError(int error)
+{
+    EAHelper::RecordDefaultErrorRecord<KataraSingleMB>(this, error);
 }
 
 void KataraSingleMB::Reset()
 {
-    // this should never get called unless we have higher spread in which case we really don't need to do much
+    // this should never get called unless we have higher spread in which case we really don't need to do anything
 }

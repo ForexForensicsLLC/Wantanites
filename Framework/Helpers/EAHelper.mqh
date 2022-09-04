@@ -8,6 +8,9 @@
 #property version "1.00"
 #property strict
 
+#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\Index.mqh>
+#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\ErrorRecords\DefaultErrorRecord.mqh>
+
 #include <SummitCapital\Framework\Helpers\SetupHelper.mqh>
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
 #include <SummitCapital\Framework\Helpers\ScreenShotHelper.mqh>
@@ -34,15 +37,22 @@ public:
     // Set Active Ticket
     // =========================================================================
     template <typename TEA>
-    static void SetSingleActiveTicket(TEA &ea);
+    static void FindSetPreviousAndCurrentSetupTickets(TEA &ea);
 
     // =========================================================================
     // Run
     // =========================================================================
+private:
+    template <typename TEA>
+    static void ManagePreviousSetupTickets(TEA &ea);
+    template <typename TEA>
+    static void ManageCurrentSetupTicket(TEA &ea);
+
+public:
     template <typename TEA>
     static void Run(TEA &ea);
     template <typename TEA>
-    static void RunDrawMBT(TEA &ea, MBTracker *&mbt);
+    static void RunDrawMBTs(TEA &ea, MBTracker *&mbtOne, MBTracker *&mbtTwo);
     template <typename TEA>
     static void RunDrawMBTAndMRFTS(TEA &ea, MBTracker *&mbt);
 
@@ -83,9 +93,9 @@ public:
     static bool CheckSetLiquidationMBAfterBreak(TEA &ea, MBTracker *&mbt, int &firstMBNumber, int &secondMBNumber, int &liquidationMBNumber, int forcedType);
 
     template <typename TEA>
-    static bool MBPushedFurtherIntoSetupZone(TEA &ea, MBTracker *&setupMBT, int setupMBNumber, MBTracker *&confirmationMBT);
+    static bool MBPushedFurtherIntoDeepestHoldingSetupZone(TEA &ea, MBTracker *&setupMBT, int setupMBNumber, MBTracker *&confirmationMBT);
     template <typename TEA>
-    static bool MBRetappedSetupZone(TEA &ea, MBTracker *&setupMBT, int setupMBNumber, MBTracker *&confirmationMBT);
+    static bool MBRetappedDeepestHoldingSetupZone(TEA &ea, MBTracker *&setupMBT, int setupMBNumber, MBTracker *&confirmationMBT);
 
     // =========================================================================
     // Check Invalidate Setup
@@ -140,32 +150,48 @@ public:
     template <typename TEA>
     static void CheckTrailStopLossWithMBs(TEA &ea, MBTracker *&mbt, int lastMBNumberInSetup);
     template <typename TEA>
-    static void CheckPartial(TEA &ea);
+    static void CheckPartialPreviousSetupTicket(TEA &ea, int ticketIndex);
 
     // =========================================================================
-    // Check Ticket
+    // Checking Tickets
     // =========================================================================
     template <typename TEA>
-    static void CheckTicket(TEA &ea);
+    static void CheckCurrentSetupTicket(TEA &ea);
+    template <typename TEA>
+    static void CheckPreviousSetupTicket(TEA &ea, int ticketIndex);
+
+    template <typename TEA>
+    static bool TicketStopLossIsMovedToBreakEven(TEA &ea, Ticket &ticket);
 
     // =========================================================================
     // Record Data
     // =========================================================================
+private:
     template <typename TEA>
-    static void RecordDefaultTradeRecordOpenData(TEA &ea, int entryTimeFrame);
+    static void SetDefaultTicketOpenData(TEA &ea, DefaultTradeRecord &record, int entryTimeFrame);
     template <typename TEA>
-    static void EAHelper::RecordDefaultTradeRecordCloseData(TEA &ea);
+    static void SetDefaultTicketCloseData(TEA &ea, DefaultTradeRecord &record);
+
+public:
+    template <typename TEA>
+    static void RecordDefaultTicketOpenData(TEA &ea, int entryTimeFrame);
+    template <typename TEA>
+    static void RecordDefaultTicketCloseData(TEA &ea);
 
     template <typename TEA>
-    static void EAHelper::RecordSingleTimeFrameRecordOpenData(TEA &ea, int timeFrame);
+    static void RecordSingleTimeFrameTicketOpenData(TEA &ea, int entryTimeFrame);
     template <typename TEA>
-    static void EAHelper::RecordSingleTimeFrameRecordCloseData(TEA &ea);
+    static void RecordSingleTimeTicketCloseData(TEA &ea);
 
     template <typename TEA>
-    static void EAHelper::RecordMultiTimeFrameRecordOpenData(TEA &ea, int lowerTimeFrame, int higherTimeFrame);
+    static void RecordSinglePartialMultiTimeFrameTicketOpenData(TEA &ea, int lowerTimeFrame, int higherTimeFrame);
     template <typename TEA>
-    static void EAHelper::RecordMultiTimeFrameRecordCloseData(TEA &ea, int lowerTimeFrame, int higherTimeFrame);
+    static void RecordSinglePartialMultiTimeFrameTicketPartialData(TEA &ea, int oldTicketIndex, int newTicketNumber);
+    template <typename TEA>
+    static void RecordSinglePartialMultiTimeFrameTicketCloseData(TEA &ea, int lowerTimeFrame, int higherTimeFrame);
 
+    template <typename TEA>
+    static void RecordDefaultErrorRecord(TEA &ea, int error);
     // =========================================================================
     // Reset
     // =========================================================================
@@ -212,7 +238,12 @@ static void EAHelper::FillSunriseShatterMagicNumbers(TEA &ea)
 template <typename TEA>
 static void EAHelper::FillBullishKataraMagicNumbers(TEA &ea)
 {
-    // TDOD
+    ArrayFree(ea.mStrategyMagicNumbers);
+    ArrayResize(ea.mStrategyMagicNumbers, 3);
+
+    ea.mStrategyMagicNumbers[0] = MagicNumbers::BullishKataraSingleMB;
+    ea.mStrategyMagicNumbers[1] = MagicNumbers::BullishKataraDoubleMB;
+    ea.mStrategyMagicNumbers[2] = MagicNumbers::BullishKataraLiquidationMB;
 }
 
 template <typename TEA>
@@ -236,18 +267,37 @@ static void EAHelper::FillBearishKataraMagicNumbers(TEA &ea)
 
 */
 template <typename TEA>
-static void EAHelper::SetSingleActiveTicket(TEA &ea)
+static void EAHelper::FindSetPreviousAndCurrentSetupTickets(TEA &ea)
 {
+    ea.mLastState = EAStates::SETTING_ACTIVE_TICKETS;
+
     int tickets[];
-    int findTicketsError = OrderHelper::FindActiveTicketsByMagicNumber(true, ea.MagicNumber(), tickets);
+    int findTicketsError = OrderHelper::FindActiveTicketsByMagicNumber(false, ea.MagicNumber(), tickets);
     if (findTicketsError != ERR_NO_ERROR)
     {
         ea.RecordError(findTicketsError);
     }
 
-    if (ArraySize(tickets) > 0)
+    for (int i = 0; i < ArraySize(tickets); i++)
     {
-        ea.mTicket.SetNewTicket(tickets[0]);
+        Ticket *ticket = new Ticket(tickets[i]);
+        if (ea.MoveToPreviousSetupTickets(ticket))
+        {
+            ea.mPreviousSetupTickets.Add(ticket);
+        }
+        else if (CheckPointer(ea.mCurrentSetupTicket) == POINTER_INVALID)
+        {
+            ea.mCurrentSetupTicket = ticket;
+        }
+        // we should only ever have 1 ticket at most that needs to be managed. If we have more, the EA isn't following its trading constraints
+        else
+        {
+            ea.RecordError(TerminalErrors::MORE_THAN_ONE_UNMANAGED_TICKET);
+            SendMail("Move than 1 unfinished managed ticket",
+                     "Ticket 1: " + IntegerToString(ea.mCurrentSetupTicket.Number()) + "\n" +
+                         "Ticket 2: " + IntegerToString(ticket.Number()) + "\n" +
+                         "Check error records to make sure MoveToPreviousSetupTickets() didn't fail.");
+        }
     }
 }
 /*
@@ -261,17 +311,28 @@ static void EAHelper::SetSingleActiveTicket(TEA &ea)
 
 */
 template <typename TEA>
-static void EAHelper::Run(TEA &ea)
+static void EAHelper::ManagePreviousSetupTickets(TEA &ea)
 {
-    if (ea.mTicket.Number() != EMPTY)
+    for (int i = 0; i < ea.mPreviousSetupTickets.Size(); i++)
     {
-        ea.CheckTicket();
+        ea.CheckPreviousSetupTicket(i);
+        ea.ManagePreviousSetupTicket(i);
+    }
+}
+
+template <typename TEA>
+static void EAHelper::ManageCurrentSetupTicket(TEA &ea)
+{
+    if (ea.mCurrentSetupTicket.Number() != EMPTY)
+    {
+        ea.CheckCurrentSetupTicket();
     }
 
-    if (ea.mTicket.Number() != EMPTY)
+    // Re check since the ticket could have closed between the here and the last call.
+    if (ea.mCurrentSetupTicket.Number() != EMPTY)
     {
         bool isActive;
-        int isActiveError = ea.mTicket.IsActive(isActive);
+        int isActiveError = ea.mCurrentSetupTicket.IsActive(isActive);
         if (TerminalErrors::IsTerminalError(isActiveError))
         {
             ea.InvalidateSetup(false, isActiveError);
@@ -280,14 +341,31 @@ static void EAHelper::Run(TEA &ea)
 
         if (isActive)
         {
-            ea.ManageActiveTicket();
+            ea.ManageCurrentActiveSetupTicket();
         }
         else
         {
-            ea.ManagePendingTicket();
+            ea.ManageCurrentPendingSetupTicket();
         }
     }
+}
 
+template <typename TEA>
+static void EAHelper::Run(TEA &ea)
+{
+    if (ea.MoveToPreviousSetupTickets(ea.mCurrentSetupTicket))
+    {
+        Ticket *ticket = new Ticket(ea.mCurrentSetupTicket);
+
+        ea.mPreviousSetupTickets.Add(ticket);
+        ea.mCurrentSetupTicket.SetNewTicket(EMPTY);
+    }
+    else
+    {
+        ManageCurrentSetupTicket(ea);
+    }
+
+    ManagePreviousSetupTickets(ea);
     ea.CheckInvalidateSetup();
 
     if (!ea.AllowedToTrade())
@@ -308,7 +386,7 @@ static void EAHelper::Run(TEA &ea)
 
     if (ea.mHasSetup)
     {
-        if (ea.mTicket.Number() == EMPTY)
+        if (ea.mCurrentSetupTicket.Number() == EMPTY)
         {
             if (ea.Confirmation())
             {
@@ -320,7 +398,7 @@ static void EAHelper::Run(TEA &ea)
             ea.mLastState = EAStates::CHECKING_IF_CONFIRMATION_IS_STILL_VALID;
 
             bool isActive;
-            int isActiveError = ea.mTicket.IsActive(isActive);
+            int isActiveError = ea.mCurrentSetupTicket.IsActive(isActive);
             if (TerminalErrors::IsTerminalError(isActiveError))
             {
                 ea.InvalidateSetup(false, isActiveError);
@@ -329,8 +407,8 @@ static void EAHelper::Run(TEA &ea)
 
             if (!isActive && !ea.Confirmation())
             {
-                ea.mTicket.Close();
-                ea.mTicket.SetNewTicket(EMPTY);
+                ea.mCurrentSetupTicket.Close();
+                ea.mCurrentSetupTicket.SetNewTicket(EMPTY);
             }
         }
     }
@@ -341,10 +419,13 @@ static void EAHelper::Run(TEA &ea)
 }
 
 template <typename TEA>
-static void EAHelper::RunDrawMBT(TEA &ea, MBTracker *&mbt)
+static void EAHelper::RunDrawMBTs(TEA &ea, MBTracker *&mbtOne, MBTracker *&mbtTwo)
 {
-    mbt.DrawNMostRecentMBs(1);
-    mbt.DrawZonesForNMostRecentMBs(1);
+    mbtOne.DrawNMostRecentMBs(1);
+    mbtOne.DrawZonesForNMostRecentMBs(1);
+
+    mbtTwo.DrawNMostRecentMBs(1);
+    mbtTwo.DrawZonesForNMostRecentMBs(1);
 
     Run(ea);
 }
@@ -595,12 +676,12 @@ static bool EAHelper::CheckSetLiquidationMBAfterBreak(TEA &ea, MBTracker *&mbt, 
 }
 
 template <typename TEA>
-static bool EAHelper::MBPushedFurtherIntoSetupZone(TEA &ea, MBTracker *&setupMBT, int setupMBNumber, MBTracker *&confirmationMBT)
+static bool EAHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(TEA &ea, MBTracker *&setupMBT, int setupMBNumber, MBTracker *&confirmationMBT)
 {
     ea.mLastState = EAStates::CHECKING_IF_PUSHED_FURTHER_INTO_ZONE;
 
     bool pushedFurtherIntoZone = false;
-    int error = SetupHelper::MBPushedFurtherIntoSetupZone(setupMBNumber, setupMBT, confirmationMBT, pushedFurtherIntoZone);
+    int error = SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(setupMBNumber, setupMBT, confirmationMBT, pushedFurtherIntoZone);
     if (error != ERR_NO_ERROR)
     {
         ea.InvalidateSetup(true, error);
@@ -610,12 +691,12 @@ static bool EAHelper::MBPushedFurtherIntoSetupZone(TEA &ea, MBTracker *&setupMBT
 }
 
 template <typename TEA>
-static bool EAHelper::MBRetappedSetupZone(TEA &ea, MBTracker *&setupMBT, int setupMBNumber, MBTracker *&confirmationMBT)
+static bool EAHelper::MBRetappedDeepestHoldingSetupZone(TEA &ea, MBTracker *&setupMBT, int setupMBNumber, MBTracker *&confirmationMBT)
 {
     ea.mLastState = EAStates::CHECKING_IF_RETAPPED_ZONE;
 
     bool retappedZone = false;
-    int error = SetupHelper::MBRetappedSetupZone(setupMBNumber, setupMBT, confirmationMBT, retappedZone);
+    int error = SetupHelper::MBRetappedDeepestHoldingSetupZone(setupMBNumber, setupMBT, confirmationMBT, retappedZone);
     if (error != ERR_NO_ERROR)
     {
         ea.InvalidateSetup(true, error);
@@ -716,7 +797,7 @@ static void EAHelper::InvalidateSetup(TEA &ea, bool deletePendingOrder, bool sto
         ea.RecordError(error);
     }
 
-    if (ea.mTicket.Number() == EMPTY)
+    if (ea.mCurrentSetupTicket.Number() == EMPTY)
     {
         return;
     }
@@ -727,19 +808,19 @@ static void EAHelper::InvalidateSetup(TEA &ea, bool deletePendingOrder, bool sto
     }
 
     bool isActive = false;
-    int isActiveError = ea.mTicket.IsActive(isActive);
+    int isActiveError = ea.mCurrentSetupTicket.IsActive(isActive);
 
     // Only close the order if it is pending or else every active order would get closed
     // as soon as the setup is finished
     if (!isActive)
     {
-        int closeError = ea.mTicket.Close();
+        int closeError = ea.mCurrentSetupTicket.Close();
         if (TerminalErrors::IsTerminalError(closeError))
         {
             ea.RecordError(closeError);
         }
 
-        ea.mTicket.SetNewTicket(EMPTY);
+        ea.mCurrentSetupTicket.SetNewTicket(EMPTY);
     }
 }
 /*
@@ -797,7 +878,7 @@ static bool EAHelper::PrePlaceOrderChecks(TEA &ea)
 {
     ea.mLastState = EAStates::CHECKING_TO_PLACE_ORDER;
 
-    if (ea.mTicket.Number() != EMPTY)
+    if (ea.mCurrentSetupTicket.Number() != EMPTY)
     {
         return false;
     }
@@ -826,7 +907,6 @@ static void EAHelper::PostPlaceOrderChecks(TEA &ea, int ticketNumber, int error)
 {
     if (ticketNumber == EMPTY)
     {
-        ea.PendingRecord.Reset();
         if (TerminalErrors::IsTerminalError(error))
         {
             ea.InvalidateSetup(false, error);
@@ -839,7 +919,8 @@ static void EAHelper::PostPlaceOrderChecks(TEA &ea, int ticketNumber, int error)
         return;
     }
 
-    ea.mTicket.SetNewTicket(ticketNumber);
+    ea.mCurrentSetupTicket.SetNewTicket(ticketNumber);
+    ea.mCurrentSetupTicket.SetPartials(ea.mPartialRRs, ea.mPartialPercents);
 }
 
 template <typename TEA>
@@ -878,7 +959,7 @@ template <typename TEA>
 static void EAHelper::CheckEditStopLossForPendingMBValidation(TEA &ea, MBTracker *&mbt, int mbNumber)
 {
     ea.mLastState = EAStates::ATTEMPTING_TO_MANAGE_ORDER;
-    if (ea.mTicket.Number() == EMPTY)
+    if (ea.mCurrentSetupTicket.Number() == EMPTY)
     {
         return;
     }
@@ -886,7 +967,7 @@ static void EAHelper::CheckEditStopLossForPendingMBValidation(TEA &ea, MBTracker
     ea.mLastState = EAStates::CHECKING_TO_EDIT_STOP_LOSS;
 
     int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(
-        ea.mStopLossPaddingPips, ea.mMaxSpreadPips, ea.mRiskPercent, mbNumber, mbt, ea.mTicket);
+        ea.mStopLossPaddingPips, ea.mMaxSpreadPips, ea.mRiskPercent, mbNumber, mbt, ea.mCurrentSetupTicket);
 
     if (TerminalErrors::IsTerminalError(editStopLossError))
     {
@@ -899,7 +980,7 @@ template <typename TEA>
 static void EAHelper::CheckEditStopLossForBreakOfMB(TEA &ea, MBTracker *&mbt, int mbNumber)
 {
     ea.mLastState = EAStates::ATTEMPTING_TO_MANAGE_ORDER;
-    if (ea.mTicket.Number() == EMPTY)
+    if (ea.mCurrentSetupTicket.Number() == EMPTY)
     {
         return;
     }
@@ -907,7 +988,7 @@ static void EAHelper::CheckEditStopLossForBreakOfMB(TEA &ea, MBTracker *&mbt, in
     ea.mLastState = EAStates::CHECKING_TO_EDIT_STOP_LOSS;
 
     int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnBreakOfMB(
-        ea.mStopLossPaddingPips, ea.mMaxSpreadPips, ea.mRiskPercent, mbNumber, mbt, ea.mTicket);
+        ea.mStopLossPaddingPips, ea.mMaxSpreadPips, ea.mRiskPercent, mbNumber, mbt, ea.mCurrentSetupTicket);
 
     if (TerminalErrors::IsTerminalError(editStopLossError))
     {
@@ -929,7 +1010,21 @@ template <typename TEA>
 static void EAHelper::CheckTrailStopLossWithMBs(TEA &ea, MBTracker *&mbt, int lastMBNumberInSetup)
 {
     ea.mLastState = EAStates::ATTEMPTING_TO_MANAGE_ORDER;
-    if (ea.mTicket.Number() == EMPTY)
+
+    if (ea.mCurrentSetupTicket.Number() == EMPTY)
+    {
+        return;
+    }
+
+    bool stopLossIsMovedBreakEven;
+    int error = ea.mCurrentSetupTicket.StopLossIsMovedToBreakEven(stopLossIsMovedBreakEven);
+    if (error != ERR_NO_ERROR)
+    {
+        ea.RecordError(error);
+        return;
+    }
+
+    if (stopLossIsMovedBreakEven)
     {
         return;
     }
@@ -938,7 +1033,7 @@ static void EAHelper::CheckTrailStopLossWithMBs(TEA &ea, MBTracker *&mbt, int la
 
     bool succeeeded = false;
     int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(
-        ea.mStopLossPaddingPips, ea.mMaxSpreadPips, lastMBNumberInSetup, ea.mSetupType, mbt, ea.mTicket, succeeeded);
+        ea.mStopLossPaddingPips, ea.mMaxSpreadPips, lastMBNumberInSetup, ea.mSetupType, mbt, ea.mCurrentSetupTicket, succeeeded);
 
     if (TerminalErrors::IsTerminalError(trailError))
     {
@@ -948,8 +1043,58 @@ static void EAHelper::CheckTrailStopLossWithMBs(TEA &ea, MBTracker *&mbt, int la
 }
 
 template <typename TEA>
-static void EAHelper::CheckPartial(TEA &ea)
+static void EAHelper::CheckPartialPreviousSetupTicket(TEA &ea, int ticketIndex)
 {
+    int selectError = ticket.SelectIfOpen("Checking To Partial");
+    if (selectError != ERR_NO_ERROR)
+    {
+        ea.StopTrading(selectError);
+    }
+
+    // if we are in a buy, we look to sell which occurs at the bid. If we are in a sell, we look to buy which occurs at the ask
+    double currentPrice = ea.mSetupType == OP_BUY ? Bid : Ask;
+    double rr = MathAbs(currentPrice - OrderOPenPrice()) / MathAbs(OrderOpenPrice() - OrderStopLoss());
+
+    Ticket *tempTicket = ea.mPreviousSetupTicket[ticketIndex];
+
+    int nextPartial = EMPTY;
+    for (int i = 0; i < tempTicket.mPartials.Size(); i++)
+    {
+        if (rr > tempTicket.mPartials[i].mRR && !tempTicket.mPartials[i].mWasTaken)
+        {
+            nextPartial = i;
+            break;
+        }
+    }
+
+    if (nextPartial == EMPTY)
+    {
+        return;
+    }
+
+    int partialError = OrderHelper::PartialTicket(tempTicket.Number(), currentPrice, OrderLots(), tempTicket.mPartials[nextPartial].PercentAsDecimal());
+    if (partialError != ERR_NO_ERROR)
+    {
+        ea.RecordError(partialError);
+        return;
+    }
+
+    int newTicket = EMPTY;
+    int searchError = OrderHelper::FindNewTicketAfterPartial(ea.MagicNumber(), OrderOpenPrice(), OrderOpenTime(), newTicket);
+    if (searchError != ERR_NO_ERROR)
+    {
+        ea.RecordError(searchError);
+    }
+
+    if (newTicket == EMPTY)
+    {
+        ea.RecordError(TerminalErrors::UNABLE_TO_FIND_PARTIALED_TICKET);
+        return;
+    }
+
+    tempTicket.mRRAcquired += rr;
+    ea.RecordTicketPartialData(ticketIndex, newTicket);
+    tempTicket.UpdateTicketNumber(newTicket);
 }
 /*
 
@@ -962,11 +1107,11 @@ static void EAHelper::CheckPartial(TEA &ea)
 
 */
 template <typename TEA>
-void EAHelper::CheckTicket(TEA &ea)
+void EAHelper::CheckCurrentSetupTicket(TEA &ea)
 {
     ea.mLastState = EAStates::CHECKING_TICKET;
 
-    if (ea.mTicket.Number() == EMPTY)
+    if (ea.mCurrentSetupTicket.Number() == EMPTY)
     {
         return;
     }
@@ -974,7 +1119,7 @@ void EAHelper::CheckTicket(TEA &ea)
     ea.mLastState = EAStates::CHECKING_IF_TICKET_IS_ACTIVE;
 
     bool activated;
-    int activatedError = ea.mTicket.WasActivated(activated);
+    int activatedError = ea.mCurrentSetupTicket.WasActivated(activated);
     if (TerminalErrors::IsTerminalError(activatedError))
     {
         ea.InvalidateSetup(false, activatedError);
@@ -983,13 +1128,13 @@ void EAHelper::CheckTicket(TEA &ea)
 
     if (activated)
     {
-        ea.RecordOrderOpenData();
+        ea.RecordTicketOpenData();
     }
 
     ea.mLastState = EAStates::CHECKING_IF_TICKET_IS_CLOSED;
 
     bool closed;
-    int closeError = ea.mTicket.WasClosed(closed);
+    int closeError = ea.mCurrentSetupTicket.WasClosed(closed);
     if (TerminalErrors::IsTerminalError(closeError))
     {
         ea.InvalidateSetup(false, closeError);
@@ -998,12 +1143,41 @@ void EAHelper::CheckTicket(TEA &ea)
 
     if (closed)
     {
-        ea.RecordOrderCloseData();
-        ea.Write();
-
+        ea.RecordTicketCloseData();
         ea.InvalidateSetup(false);
-        ea.mTicket.SetNewTicket(EMPTY);
+        ea.mCurrentSetupTicket.SetNewTicket(EMPTY);
     }
+}
+
+template <typename TEA>
+static void EAHelper::CheckPreviousSetupTicket(TEA &ea, int ticketIndex)
+{
+    bool closed = false;
+    int closeError = ea.mPreviousSetupTickets[ticketIndex].WasClosed(closed);
+    if (TerminalErrors::IsTerminalError(closeError))
+    {
+        ea.RecordError(closeError);
+        return;
+    }
+
+    if (closed)
+    {
+        ea.RecordTicketCloseData();
+        ea.mPreviousSetupTickets.Remove(ticketIndex);
+    }
+}
+
+template <typename TEA>
+static bool EAHelper::TicketStopLossIsMovedToBreakEven(TEA &ea, Ticket &ticket)
+{
+    bool stopLossIsMovedToBreakEven = false;
+    int error = ticket.StopLossIsMovedToBreakEven(stopLossIsMovedToBreakEven);
+    if (error != ERR_NO_ERROR)
+    {
+        ea.RecordError(error);
+    }
+
+    return stopLossIsMovedToBreakEven;
 }
 /*
 
@@ -1016,80 +1190,135 @@ void EAHelper::CheckTicket(TEA &ea)
 
 */
 template <typename TEA>
-static void EAHelper::RecordDefaultTradeRecordOpenData(TEA &ea, int entryTimeFrame)
+static void EAHelper::SetDefaultTicketOpenData(TEA &ea, DefaultTradeRecord &record, int entryTimeFrame)
 {
     ea.mLastState = EAStates::RECORDING_ORDER_OPEN_DATA;
 
-    ea.PendingRecord.Symbol = Symbol();
-    ea.PendingRecord.EntryTimeFrame = entryTimeFrame;
-    ea.PendingRecord.OrderType = OrderType() == 0 ? "Buy" : "Sell";
-    ea.PendingRecord.AccountBalanceBefore = AccountBalance();
-    ea.PendingRecord.Lots = OrderLots();
-    ea.PendingRecord.EntryPrice = OrderOpenPrice();
-    ea.PendingRecord.EntryStopLoss = OrderStopLoss();
+    record.Symbol = Symbol();
+    record.EntryTimeFrame = entryTimeFrame;
+    record.OrderType = OrderType() == 0 ? "Buy" : "Sell";
+    record.AccountBalanceBefore = AccountBalance();
+    record.Lots = OrderLots();
+    record.EntryPrice = OrderOpenPrice();
+    record.EntryStopLoss = OrderStopLoss();
 }
 
 template <typename TEA>
-static void EAHelper::RecordDefaultTradeRecordCloseData(TEA &ea)
+static void EAHelper::SetDefaultTicketCloseData(TEA &ea, DefaultTradeRecord &record)
 {
     ea.mLastState = EAStates::RECORDING_ORDER_CLOSE_DATA;
 
-    ea.PendingRecord.AccountBalanceAfter = AccountBalance();
-    ea.PendingRecord.ExitTime = OrderCloseTime();
-    ea.PendingRecord.ExitPrice = OrderClosePrice();
-    ea.PendingRecord.ExitStopLoss = OrderStopLoss();
+    record.AccountBalanceAfter = AccountBalance();
+    record.ExitTime = OrderCloseTime();
+    record.ExitPrice = OrderClosePrice();
+    record.ExitStopLoss = OrderStopLoss();
 }
 
 template <typename TEA>
-static void EAHelper::RecordSingleTimeFrameRecordOpenData(TEA &ea, int timeFrame)
+static void EAHelper::RecordDefaultTicketOpenData(TEA &ea, int entryTimeFrame)
 {
-    RecordDefaultTradeRecordOpenData(ea, timeFrame);
-    ea.PendingRecord.EntryImage = ScreenShotHelper::TryTakeScreenShot(ea.Directory());
+    DefaultTradeRecord *record = new DefaultTradeRecord();
+    SetDefaultTicketOpenData(ea, record, entryTimeFrame);
+
+    ea.mTradeRecordRecorder.WriteTradeRecordOpenData<DefaultTradeRecord>(record);
 }
 
 template <typename TEA>
-static void EAHelper::RecordSingleTimeFrameRecordCloseData(TEA &ea)
+static void EAHelper::RecordDefaultTicketCloseData(TEA &ea)
 {
-    RecordDefaultTradeRecordCloseData(ea);
-    ea.PendingRecord.ExitImage = ScreenShotHelper::TryTakeScreenShot(ea.Directory());
+    DefaultTradeRecord *record = new DefaultTradeRecord();
+    SetDefaultTicketCloseData(ea, record);
+
+    ea.mTradeRecordRecorder.WriteTradeRecordCloseData<DefaultTradeRecord>(record);
 }
 
 template <typename TEA>
-static void EAHelper::RecordMultiTimeFrameRecordOpenData(TEA &ea, int lowerTimeFrame, int higherTimeFrame)
+static void EAHelper::RecordSingleTimeFrameTicketOpenData(TEA &ea, int entryTimeFrame)
 {
-    RecordDefaultTradeRecordOpenData(ea, lowerTimeFrame);
+    SingleTimeFrameTradeRecord *record = new SingleTimeFrameTradeRecord();
+    SetDefaultTicketOpenData(ea, record, entryTimeFrame);
+
+    record.EntryImage = ScreenShotHelper::TryTakeScreenShot(ea.mTradeRecordRecorder.Directory());
+    ea.mTradeRecordRecorder.WriteTradeRecordOpenData<SingleTimeFrameTradeRecord>(record);
+}
+
+template <typename TEA>
+static void EAHelper::RecordSingleTimeTicketCloseData(TEA &ea)
+{
+    SingleTimeFrameTradeRecord *record = new SingleTimeFrameTradeRecord();
+    SetDefaultTicketCloseData(ea, record);
+
+    record.ExitImage = ScreenShotHelper::TryTakeScreenShot(ea.mTradeRecordRecorder.Directory());
+    ea.mTradeRecordRecorder.WriteTradeRecordCloseData<SingleTimeFrameTradeRecord>(record);
+}
+
+template <typename TEA>
+static void EAHelper::RecordSinglePartialMultiTimeFrameTicketOpenData(TEA &ea, int lowerTimeFrame, int higherTimeFrame)
+{
+    SinglePartialMultiTimeFrameTradeRecord *record = new SinglePartialMultiTimeFrameTradeRecord();
+    SetDefaultTicketOpenData(ea, record, lowerTimeFrame);
 
     string lowerTimeFrameImage;
     string higherTimeFrameImage;
 
-    int error = ScreenShotHelper::TryTakeMultiTimeFrameScreenShot(ea.Directory(), higherTimeFrame, lowerTimeFrameImage, higherTimeFrameImage);
+    int error = ScreenShotHelper::TryTakeMultiTimeFrameScreenShot(ea.mTradeRecordRecorder.Directory(), higherTimeFrame, lowerTimeFrameImage, higherTimeFrameImage);
     if (error != ERR_NO_ERROR)
     {
         ea.RecordError(error);
         return;
     }
 
-    ea.PendingRecord.LowerTimeFrameEntryImage = lowerTimeFrameImage;
-    ea.PendingRecord.HigherTimeFrameEntryImage = higherTimeFrameImage;
+    record.LowerTimeFrameEntryImage = lowerTimeFrameImage;
+    record.HigherTimeFrameEntryImage = higherTimeFrameImage;
+
+    ea.mTradeRecordRecorder.WriteTradeRecordCloseData<SinglePartialMultiTimeFrameTradeRecord>(record);
 }
 
 template <typename TEA>
-static void EAHelper::RecordMultiTimeFrameRecordCloseData(TEA &ea, int lowerTimeFrame, int higherTimeFrame)
+static void EAHelper::RecordSinglePartialMultiTimeFrameTicketPartialData(TEA &ea, int oldTicketIndex, int newTicketNumber)
 {
-    RecordDefaultTradeRecordCloseData(ea);
+    ea.mLastState = EAStates::RECORDING_PARTIAL_DATA;
+    SinglePartialMultiTimeFrameTradeRecord *record = new SinglePartialMultiTimeFrameTradeRecord();
+
+    record.PartialedTicketNumber = newTicket;
+    record.PartialOneRR = ea.mPreviousSetupTickets[oldTicketIndex].mRRAcquired;
+
+    ea.mTradeRecordRecorder.WriteTradeRecordPartialData<SinglePartialMultiTimeFrameTradeRecord>(record);
+}
+
+template <typename TEA>
+static void EAHelper::RecordSinglePartialMultiTimeFrameTicketCloseData(TEA &ea, int lowerTimeFrame, int higherTimeFrame)
+{
+    SinglePartialMultiTimeFrameTradeRecord *record = new SinglePartialMultiTimeFrameTradeRecord();
+    SetDefaultTicketCloseData(ea, record);
 
     string lowerTimeFrameImage;
     string higherTimeFrameImage;
 
-    int error = ScreenShotHelper::TryTakeMultiTimeFrameScreenShot(ea.Directory(), higherTimeFrame, lowerTimeFrameImage, higherTimeFrameImage);
+    int error = ScreenShotHelper::TryTakeMultiTimeFrameScreenShot(ea.mTradeRecordRecorder.Directory(), higherTimeFrame, lowerTimeFrameImage, higherTimeFrameImage);
     if (error != ERR_NO_ERROR)
     {
         ea.RecordError(error);
         return;
     }
 
-    ea.PendingRecord.LowerTimeFrameExitImage = lowerTimeFrameImage;
-    ea.PendingRecord.HigherTimeFrameExitImage = higherTimeFrameImage;
+    record.LowerTimeFrameExitImage = lowerTimeFrameImage;
+    record.HigherTimeFrameExitImage = higherTimeFrameImage;
+
+    ea.mTradeRecordRecorder.WriteTradeRecordCloseData<SinglePartialMultiTimeFrameTradeRecord>(record);
+}
+
+template <typename TEA>
+static void EAHelper::RecordDefaultErrorRecord(TEA &ea, int error)
+{
+    DefaultErrorRecord *record = new DefaultErrorRecord();
+
+    record.ErrorTime = TimeCurrent();
+    record.Error = error;
+    record.LastState = ea.mLastState;
+    record.ErrorImage = ScreenShotHelper::TryTakeScreenShot(ea.mErrorRecordRecorder.Directory());
+
+    ea.mErrorRecordRecorder.WriteEntireRecord<DefaultErrorRecord>(record);
 }
 /*
 

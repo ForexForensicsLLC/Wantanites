@@ -17,6 +17,7 @@ public:
     static int EAStates::RESETING;
     static int EAStates::ATTEMPTING_TO_MANAGE_ORDER;
     static int EAStates::CHECKING_TICKET;
+    static int EAStates::SETTING_ACTIVE_TICKETS;
 
     // 8100s Are For Order Related States
     static int EAStates::CHECKING_IF_PENDING_ORDER;
@@ -30,6 +31,7 @@ public:
     static int EAStates::CHECKING_IF_TICKET_IS_ACTIVE;
     static int EAStates::CHECKING_IF_TICKET_IS_CLOSED;
     static int EAStates::CHECKING_TO_PLACE_ORDER;
+    static int EAStates::RECORDING_PARTIAL_DATA;
 
     // 8200s Are For Setup Related States
     static int EAStates::CHECKING_FOR_SETUP;
@@ -60,6 +62,7 @@ static int EAStates::FILLING_STRATEGY_MAGIC_NUMBERS = 8001;
 static int EAStates::RESETING = 8002;
 static int EAStates::ATTEMPTING_TO_MANAGE_ORDER = 8003;
 static int EAStates::CHECKING_TICKET = 8304;
+static int EAStates::SETTING_ACTIVE_TICKETS = 8305;
 
 // 8100s Are For Order Related States
 static int EAStates::CHECKING_IF_PENDING_ORDER = 8100;
@@ -73,6 +76,7 @@ static int EAStates::RECORDING_ORDER_CLOSE_DATA = 8106;
 static int EAStates::CHECKING_IF_TICKET_IS_ACTIVE = 8107;
 static int EAStates::CHECKING_IF_TICKET_IS_CLOSED = 8108;
 static int EAStates::CHECKING_TO_PLACE_ORDER = 8109;
+static int EAStates::RECORDING_PARTIAL_DATA = 8110;
 
 // 8200s Are For Setup Related States
 static int EAStates::CHECKING_FOR_SETUP = 8200;

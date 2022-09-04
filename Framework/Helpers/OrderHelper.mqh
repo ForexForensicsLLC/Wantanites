@@ -64,6 +64,8 @@ public:
     // !Tested
     static int FindActiveTicketsByMagicNumber(bool todayOnly, int magicNumber, int &tickets[]);
 
+    static int FindNewTicketAfterPartial(int magicNumber, double openPrice, datetime orderOpenTime, int &ticket);
+
     // ==========================================================================
     // Placing Limit Orders
     // ==========================================================================
@@ -82,17 +84,20 @@ public:
     // ==========================================================================
     // Tested
     // ResetsOutParam
-    static int PlaceStopOrderForPendingMBValidation(int paddingPips, int spreadPips, double riskPercent, int magicNumber, int setupMBNumber, MBTracker *&mbt, out int &ticket);
+    static int PlaceStopOrderForPendingMBValidation(double paddingPips, double spreadPips, double riskPercent, int magicNumber, int setupMBNumber,
+                                                    MBTracker *&mbt, out int &ticket);
 
     // Tested
     // ResetsOutParam
-    static int PlaceStopOrderForBreakOfMB(int paddingPips, int spreadPips, double riskPercent, int magicNumber, int mbNumber, MBTracker *&mbt, out int &ticket);
+    static int PlaceStopOrderForBreakOfMB(double paddingPips, double spreadPips, double riskPercent, int magicNumber, int mbNumber, MBTracker *&mbt, out int &ticket);
 
     // ==========================================================================
     // Editing Orders
     // ==========================================================================
     // !Tested
     // static bool EditStopLoss(double newStopLoss, double newLots, int magicNumber);
+
+    int PartialTicket(int ticketNumber, double price, double currentLots, double percentAsDecimal);
 
     // ==========================================================================
     // Editing Orders For MB Stop Orders
@@ -414,6 +419,49 @@ static int OrderHelper::FindActiveTicketsByMagicNumber(bool todayOnly, int magic
 
     return ERR_NO_ERROR;
 }
+
+static int OrderHelper::FindNewTicketAfterPartial(int magicNumber, double openPrice, datetime orderOpenTime, int &ticket)
+{
+    int error = ERR_NO_ERROR;
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+        {
+            error = GetLastError();
+            SendMail("Failed To Select Order",
+                     "Error: " + IntegerToString(error) + "\n" +
+                         "Position: " + IntegerToString(i) + "\n" +
+                         "Total Tickets: " + IntegerToString(OrdersTotal()));
+
+            continue;
+        }
+
+        if (OrderType() > 1)
+        {
+            continue;
+        }
+
+        if (OrderMagicNumber() != magicNumber)
+        {
+            continue;
+        }
+
+        if (OrderOpenPrice() != openPrice)
+        {
+            continue;
+        }
+
+        if (OrderOpenTime() != orderOpenTime)
+        {
+            continue;
+        }
+
+        ticket = OrderTicket();
+        break;
+    }
+
+    return error;
+}
 /*
 
    ____  _            _               _     _           _ _      ___          _
@@ -507,7 +555,8 @@ int OrderHelper::PlaceStopOrder(int orderType, double lots, double entryPrice, d
                               |___/                 |_|
 
 */
-int OrderHelper::PlaceStopOrderForPendingMBValidation(int paddingPips, int spreadPips, double riskPercent, int magicNumber, int setupMBNumber, MBTracker *&mbt, out int &ticket)
+int OrderHelper::PlaceStopOrderForPendingMBValidation(double paddingPips, double spreadPips, double riskPercent, int magicNumber, int setupMBNumber,
+                                                      MBTracker *&mbt, out int &ticket)
 {
     MBState *tempMBState;
     if (!mbt.MBIsMostRecent(setupMBNumber, tempMBState))
@@ -540,7 +589,7 @@ int OrderHelper::PlaceStopOrderForPendingMBValidation(int paddingPips, int sprea
     return error;
 }
 
-int OrderHelper::PlaceStopOrderForBreakOfMB(int paddingPips, int spreadPips, double riskPercent, int magicNumber, int mbNumber, MBTracker *&mbt, out int &ticket)
+int OrderHelper::PlaceStopOrderForBreakOfMB(double paddingPips, double spreadPips, double riskPercent, int magicNumber, int mbNumber, MBTracker *&mbt, out int &ticket)
 {
     MBState *tempMBState;
     if (!mbt.GetMB(mbNumber, tempMBState))
@@ -627,6 +676,29 @@ static bool OrderHelper::EditStopLoss(double newStopLoss, double newLots, int ma
    return true;
 }
 */
+
+int OrderHelper::PartialTicket(int ticketNumber, double price, double currentLots, double percentAsDecimal)
+{
+    double lots = NormalizeDouble(currentLots * percentAsDecimal, 2);
+    if (!OrderClose(ticketNumber, lots, price, 0, clrNONE))
+    {
+        int error = GetLastError();
+        SendMail("Failed To Partial",
+                 "Time: " + TimeToString(TimeCurrent()) + "\n" +
+                     "Errro: " + IntegerToString(error) + "\n" +
+                     "Ticket Number: " + IntegerToString(ticketNumber) + "\n" +
+                     "Price: " + DoubleToString(price, Digits) + "\n" +
+                     "Bid: " + DoubleToString(Bid, Digits) + "\n" +
+                     "Ask: " + DoubleToString(Ask, Digits) + "\n" +
+                     "Current Lots: " + DoubleToString(currentLots, 2) + "\n" +
+                     "New Lots: " + DoubleToString(lots, 2) + "\n" +
+                     "Percent:" + DoubleToString(percentAsDecimal, 3));
+
+        return error;
+    }
+
+    return ERR_NO_ERROR;
+}
 /*
 
    _____    _ _ _   _                ___          _                 _____            __  __ ____    ____  _                 ___          _
@@ -637,7 +709,8 @@ static bool OrderHelper::EditStopLoss(double newStopLoss, double newLots, int ma
                             |___/                                                                                 |_|
 
 */
-static int OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(double paddingPips, double spreadPips, double riskPercent, int setupMBNumber, MBTracker *&mbt, out Ticket *&ticket)
+static int OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(double paddingPips, double spreadPips, double riskPercent, int setupMBNumber,
+                                                                 MBTracker *&mbt, out Ticket *&ticket)
 {
     MBState *tempMBState;
     if (!mbt.GetMB(setupMBNumber, tempMBState))
@@ -839,7 +912,8 @@ static bool OrderHelper::MoveAllOrdersToBreakEvenByMagicNumber(int magicNumber)
                              |___/                                                                         |___/
 
 */
-static int OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(double paddingPips, double spreadPips, int setUpMB, int setUpType, MBTracker *&mbt, Ticket *&ticket, out bool &succeeded)
+static int OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(double paddingPips, double spreadPips, int setUpMB, int setUpType, MBTracker *&mbt,
+                                                              Ticket *&ticket, out bool &succeeded)
 {
     succeeded = false;
 

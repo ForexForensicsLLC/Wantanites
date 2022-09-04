@@ -19,22 +19,20 @@
 
 #include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 
-class TheSunriseShatterDoubleMB : public EA<SingleTimeFrameTradeRecord>
+class TheSunriseShatterDoubleMB : public EA
 {
 public:
     MinROCFromTimeStamp *mMRFTS;
     MBTracker *mMBT;
 
-    Ticket *mTicket;
-    int mSetupType;
     int mFirstMBInSetupNumber;
     int mSecondMBInSetupNumber;
 
     int mTimeFrame;
 
 public:
-    TheSunriseShatterDoubleMB(int timeFrame, int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, double riskPercent, MinROCFromTimeStamp *&mrfts,
-                              MBTracker *&mbt);
+    TheSunriseShatterDoubleMB(int timeFrame, string directory, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+                              MinROCFromTimeStamp *&mrfts, MBTracker *&mbt);
     ~TheSunriseShatterDoubleMB();
 
     virtual int MagicNumber() { return MagicNumbers::TheSunriseShatterDoubleMB; }
@@ -46,23 +44,25 @@ public:
     virtual void InvalidateSetup(bool deletePendingOrder, int error);
     virtual bool Confirmation();
     virtual void PlaceOrders();
-    virtual void ManagePendingTicket();
-    virtual void ManageActiveTicket();
-    virtual void CheckTicket();
-    virtual void RecordOrderOpenData();
-    virtual void RecordOrderCloseData();
+    virtual void ManageCurrentPendingSetupTicket();
+    virtual void ManageCurrentActiveSetupTicket();
+    virtual bool MoveToPreviousSetupTickets(Ticket &ticket);
+    virtual void ManagePreviousSetupTicket(int ticketIndex);
+    virtual void CheckCurrentSetupTicket();
+    virtual void CheckPreviousSetupTicket(int ticketIndex);
+    virtual void RecordTicketOpenData();
+    virtual void RecordTicketPartialData(int oldTicketIndex, int newTicketNumber);
+    virtual void RecordTicketCloseData();
+    virtual void RecordError(int error);
     virtual void Reset();
 };
 
-TheSunriseShatterDoubleMB::TheSunriseShatterDoubleMB(int timeFrame, int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, double riskPercent,
-                                                     MinROCFromTimeStamp *&mrfts, MBTracker *&mbt) : EA(maxTradesPerStrategy, stopLossPaddingPips, maxSpreadPips, riskPercent)
+TheSunriseShatterDoubleMB::TheSunriseShatterDoubleMB(int timeFrame, string directory, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips,
+                                                     double riskPercent, MinROCFromTimeStamp *&mrfts, MBTracker *&mbt)
+    : EA(directory, maxTradesPerStrategy, stopLossPaddingPips, maxSpreadPips, riskPercent)
 {
-    mDirectory = "/TheSunriseShatter/TheSunriseShatterDoubleMB/";
-    mCSVFileName = "TheSunriseShatterDoubleMB.csv";
-
     mMBT = mbt;
     mMRFTS = mrfts;
-    mTicket = new Ticket();
 
     mSetupType = EMPTY;
     mFirstMBInSetupNumber = EMPTY;
@@ -71,14 +71,13 @@ TheSunriseShatterDoubleMB::TheSunriseShatterDoubleMB(int timeFrame, int maxTrade
     mTimeFrame = timeFrame;
 
     EAHelper::FillSunriseShatterMagicNumbers<TheSunriseShatterDoubleMB>(this);
-    EAHelper::SetSingleActiveTicket<TheSunriseShatterDoubleMB>(this);
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<TheSunriseShatterDoubleMB>(this);
 }
 
 TheSunriseShatterDoubleMB::~TheSunriseShatterDoubleMB()
 {
     delete mMBT;
     delete mMRFTS;
-    delete mTicket;
 }
 
 void TheSunriseShatterDoubleMB::Run()
@@ -144,28 +143,54 @@ void TheSunriseShatterDoubleMB::PlaceOrders()
     }
 }
 
-void TheSunriseShatterDoubleMB::ManagePendingTicket()
+void TheSunriseShatterDoubleMB::ManageCurrentPendingSetupTicket()
 {
     EAHelper::CheckEditStopLossForPendingMBValidation<TheSunriseShatterDoubleMB>(this, mMBT, mSecondMBInSetupNumber);
 }
 
-void TheSunriseShatterDoubleMB::ManageActiveTicket()
+void TheSunriseShatterDoubleMB::ManageCurrentActiveSetupTicket()
 {
     EAHelper::CheckTrailStopLossWithMBs<TheSunriseShatterDoubleMB>(this, mMBT, mSecondMBInSetupNumber);
 }
-void TheSunriseShatterDoubleMB::CheckTicket()
+
+bool TheSunriseShatterDoubleMB::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    EAHelper::CheckTicket<TheSunriseShatterDoubleMB>(this);
+    return EAHelper::TicketStopLossIsMovedToBreakEven<TheSunriseShatterDoubleMB>(this, ticket);
 }
 
-void TheSunriseShatterDoubleMB::RecordOrderOpenData()
+void TheSunriseShatterDoubleMB::ManagePreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::RecordSingleTimeFrameRecordOpenData<TheSunriseShatterDoubleMB>(this, mTimeFrame);
+    // This Strategy doesn't take any partials
 }
 
-void TheSunriseShatterDoubleMB::RecordOrderCloseData()
+void TheSunriseShatterDoubleMB::CheckCurrentSetupTicket()
 {
-    EAHelper::RecordSingleTimeFrameRecordCloseData<TheSunriseShatterDoubleMB>(this);
+    EAHelper::CheckCurrentSetupTicket<TheSunriseShatterDoubleMB>(this);
+}
+
+void TheSunriseShatterDoubleMB::CheckPreviousSetupTicket(int ticketIndex)
+{
+    EAHelper::CheckPreviousSetupTicket<TheSunriseShatterDoubleMB>(this, ticketIndex);
+}
+
+void TheSunriseShatterDoubleMB::RecordTicketOpenData()
+{
+    EAHelper::RecordSingleTimeFrameTicketOpenData<TheSunriseShatterDoubleMB>(this, mTimeFrame);
+}
+
+void TheSunriseShatterDoubleMB::RecordTicketPartialData(int oldTicketIndex, int newTicketNumber)
+{
+    // This Strategy doesn't take any partials
+}
+
+void TheSunriseShatterDoubleMB::RecordTicketCloseData()
+{
+    EAHelper::RecordSingleTimeTicketCloseData<TheSunriseShatterDoubleMB>(this);
+}
+
+void TheSunriseShatterDoubleMB::RecordError(int error)
+{
+    EAHelper::RecordDefaultErrorRecord<TheSunriseShatterDoubleMB>(this, error);
 }
 
 void TheSunriseShatterDoubleMB::Reset()

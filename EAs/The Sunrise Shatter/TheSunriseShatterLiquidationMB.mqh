@@ -8,25 +8,15 @@
 #property version "1.00"
 #property strict
 
+#include <SummitCapital\Framework\EA\EA.mqh>
+#include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
-#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\SingleTimeFrameTradeRecord.mqh>
-#include <SummitCapital\Framework\EA\EA.mqh>
-
-#include <SummitCapital\Framework\Trackers\MBTracker.mqh>
-#include <SummitCapital\Framework\Objects\MinROCFromTimeStamp.mqh>
-#include <SummitCapital\Framework\Objects\Ticket.mqh>
-
-#include <SummitCapital\Framework\Helpers\EAHelper.mqh>
-
-class TheSunriseShatterLiquidationMB : public EA<SingleTimeFrameTradeRecord>
+class TheSunriseShatterLiquidationMB : public EA
 {
 public:
     MinROCFromTimeStamp *mMRFTS;
     MBTracker *mMBT;
-
-    Ticket *mTicket;
-    int mSetupType;
 
     int mFirstMBInSetupNumber;
     int mSecondMBInSetupNumber;
@@ -35,8 +25,8 @@ public:
     int mTimeFrame;
 
 public:
-    TheSunriseShatterLiquidationMB(int timeFrame, int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, double riskPercent, MinROCFromTimeStamp *&mrfts,
-                                   MBTracker *&mbt);
+    TheSunriseShatterLiquidationMB(int timeFrame, string directory, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+                                   MinROCFromTimeStamp *&mrfts, MBTracker *&mbt);
     ~TheSunriseShatterLiquidationMB();
 
     virtual int MagicNumber() { return MagicNumbers::TheSunriseShatterLiquidationMB; }
@@ -48,23 +38,25 @@ public:
     virtual void InvalidateSetup(bool deletePendingOrder, int error);
     virtual bool Confirmation();
     virtual void PlaceOrders();
-    virtual void ManagePendingTicket();
-    virtual void ManageActiveTicket();
-    virtual void CheckTicket();
-    virtual void RecordOrderOpenData();
-    virtual void RecordOrderCloseData();
+    virtual void ManageCurrentPendingSetupTicket();
+    virtual void ManageCurrentActiveSetupTicket();
+    virtual bool MoveToPreviousSetupTickets(Ticket &ticket);
+    virtual void ManagePreviousSetupTicket(int ticketIndex);
+    virtual void CheckCurrentSetupTicket();
+    virtual void CheckPreviousSetupTicket(int ticketIndex);
+    virtual void RecordTicketOpenData();
+    virtual void RecordTicketPartialData(int oldTicketIndex, int newTicketNumber);
+    virtual void RecordTicketCloseData();
+    virtual void RecordError(int error);
     virtual void Reset();
 };
 
-TheSunriseShatterLiquidationMB::TheSunriseShatterLiquidationMB(int timeFrame, int maxTradesPerStrategy, int stopLossPaddingPips, int maxSpreadPips, double riskPercent,
-                                                               MinROCFromTimeStamp *&mrfts, MBTracker *&mbt) : EA(maxTradesPerStrategy, stopLossPaddingPips, maxSpreadPips, riskPercent)
+TheSunriseShatterLiquidationMB::TheSunriseShatterLiquidationMB(int timeFrame, string directory, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips,
+                                                               double riskPercent, MinROCFromTimeStamp *&mrfts, MBTracker *&mbt)
+    : EA(directory, maxTradesPerStrategy, stopLossPaddingPips, maxSpreadPips, riskPercent)
 {
-    mDirectory = "/TheSunriseShatter/TheSunriseShatterLiquidationMB/";
-    mCSVFileName = "TheSunriseShatterLiquidationMB.csv";
-
     mMRFTS = mrfts;
     mMBT = mbt;
-    mTicket = new Ticket();
 
     mSetupType = EMPTY;
     mFirstMBInSetupNumber = EMPTY;
@@ -74,14 +66,13 @@ TheSunriseShatterLiquidationMB::TheSunriseShatterLiquidationMB(int timeFrame, in
     mTimeFrame = timeFrame;
 
     EAHelper::FillSunriseShatterMagicNumbers<TheSunriseShatterLiquidationMB>(this);
-    EAHelper::SetSingleActiveTicket<TheSunriseShatterLiquidationMB>(this);
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<TheSunriseShatterLiquidationMB>(this);
 }
 
 TheSunriseShatterLiquidationMB::~TheSunriseShatterLiquidationMB()
 {
     delete mMBT;
     delete mMRFTS;
-    delete mTicket;
 }
 
 void TheSunriseShatterLiquidationMB::Run()
@@ -147,29 +138,54 @@ void TheSunriseShatterLiquidationMB::PlaceOrders()
     }
 }
 
-void TheSunriseShatterLiquidationMB::ManagePendingTicket()
+void TheSunriseShatterLiquidationMB::ManageCurrentPendingSetupTicket()
 {
     EAHelper::CheckEditStopLossForBreakOfMB<TheSunriseShatterLiquidationMB>(this, mMBT, mLiquidationMBInSetupNumber);
 }
 
-void TheSunriseShatterLiquidationMB::ManageActiveTicket()
+void TheSunriseShatterLiquidationMB::ManageCurrentActiveSetupTicket()
 {
     EAHelper::CheckTrailStopLossWithMBs<TheSunriseShatterLiquidationMB>(this, mMBT, mSecondMBInSetupNumber);
 }
 
-void TheSunriseShatterLiquidationMB::CheckTicket()
+bool TheSunriseShatterLiquidationMB::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    EAHelper::CheckTicket<TheSunriseShatterLiquidationMB>(this);
+    return EAHelper::TicketStopLossIsMovedToBreakEven<TheSunriseShatterLiquidationMB>(this, ticket);
 }
 
-void TheSunriseShatterLiquidationMB::RecordOrderOpenData()
+void TheSunriseShatterLiquidationMB::ManagePreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::RecordSingleTimeFrameRecordOpenData<TheSunriseShatterLiquidationMB>(this, mTimeFrame);
+    // This Strategy doesn't take any partials
 }
 
-void TheSunriseShatterLiquidationMB::RecordOrderCloseData()
+void TheSunriseShatterLiquidationMB::CheckCurrentSetupTicket()
 {
-    EAHelper::RecordSingleTimeFrameRecordCloseData<TheSunriseShatterLiquidationMB>(this);
+    EAHelper::CheckCurrentSetupTicket<TheSunriseShatterLiquidationMB>(this);
+}
+
+void TheSunriseShatterLiquidationMB::CheckPreviousSetupTicket(int ticketIndex)
+{
+    EAHelper::CheckPreviousSetupTicket<TheSunriseShatterLiquidationMB>(this, ticketIndex);
+}
+
+void TheSunriseShatterLiquidationMB::RecordTicketOpenData()
+{
+    EAHelper::RecordSingleTimeFrameTicketOpenData<TheSunriseShatterLiquidationMB>(this, mTimeFrame);
+}
+
+void TheSunriseShatterLiquidationMB::RecordTicketPartialData(int oldTicketIndex, int newTicketNumber)
+{
+    // This Strategy doesn't take any partials
+}
+
+void TheSunriseShatterLiquidationMB::RecordTicketCloseData()
+{
+    EAHelper::RecordSingleTimeTicketCloseData<TheSunriseShatterLiquidationMB>(this);
+}
+
+void TheSunriseShatterLiquidationMB::RecordError(int error)
+{
+    EAHelper::RecordDefaultErrorRecord<TheSunriseShatterLiquidationMB>(this, error);
 }
 
 void TheSunriseShatterLiquidationMB::Reset()

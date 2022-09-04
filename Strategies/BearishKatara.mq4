@@ -41,9 +41,9 @@ int OnInit()
     SetupMBT = new MBTracker(Symbol(), 60, MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
     ConfirmationMBT = new MBTracker(Symbol(), 1, MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
 
-    KSMB = new KataraSingleMB(SetupType, MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, SetupMBT, ConfirmationMBT);
-    KDMB = new KataraDoubleMB(SetupType, MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, SetupMBT, ConfirmationMBT);
-    KLMB = new KataraLiquidationMB(SetupType, MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, SetupMBT, ConfirmationMBT);
+    KSMB = new KataraSingleMB("Katara/BearishKataraSingleMB/", SetupType, MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, SetupMBT, ConfirmationMBT);
+    KDMB = new KataraDoubleMB("Katara/BearishKataraDoubleMB/", SetupType, MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, SetupMBT, ConfirmationMBT);
+    KLMB = new KataraLiquidationMB("Katara/BearishKataraLiquidationMB/", SetupType, MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, SetupMBT, ConfirmationMBT);
 
     return (INIT_SUCCEEDED);
 }
