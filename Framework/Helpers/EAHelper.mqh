@@ -38,6 +38,8 @@ public:
     // =========================================================================
     template <typename TEA>
     static void FindSetPreviousAndCurrentSetupTickets(TEA &ea);
+    template <typename TEA>
+    static void SetPreviousSetupTicketsRRAcquired(TEA &ea);
 
     // =========================================================================
     // Run
@@ -167,28 +169,29 @@ public:
     // Record Data
     // =========================================================================
 private:
-    template <typename TEA>
-    static void SetDefaultTicketOpenData(TEA &ea, DefaultTradeRecord &record, int entryTimeFrame);
-    template <typename TEA>
-    static void SetDefaultTicketCloseData(TEA &ea, DefaultTradeRecord &record);
+    template <typename TEA, typename TRecord>
+    static void SetDefaultEntryTradeData(TEA &ea, TRecord &record, int entryTimeFrame);
+    template <typename TEA, typename TRecord>
+    static void SetDefaultCloseTradeData(TEA &ea, TRecord &record, int ticketNumber);
 
 public:
     template <typename TEA>
-    static void RecordDefaultTicketOpenData(TEA &ea, int entryTimeFrame);
+    static void RecordDefaultEntryTradeRecord(TEA &ea, int entryTimeFrame);
     template <typename TEA>
-    static void RecordDefaultTicketCloseData(TEA &ea);
+    static void RecordDefaultExitTradeRecord(TEA &ea, int ticketNumber);
 
     template <typename TEA>
-    static void RecordSingleTimeFrameTicketOpenData(TEA &ea, int entryTimeFrame);
+    static void RecordSingleTimeFrameEntryTradeRecord(TEA &ea, int entryTimeFrame);
     template <typename TEA>
-    static void RecordSingleTimeTicketCloseData(TEA &ea);
+    static void RecordSingleTimeFrameExitTradeRecord(TEA &ea, int ticketNumber);
 
     template <typename TEA>
-    static void RecordSinglePartialMultiTimeFrameTicketOpenData(TEA &ea, int lowerTimeFrame, int higherTimeFrame);
+    static void RecordMultiTimeFrameEntryTradeRecord(TEA &ea, int lowerTimeFrame, int higherTimeFrame);
     template <typename TEA>
-    static void RecordSinglePartialMultiTimeFrameTicketPartialData(TEA &ea, int oldTicketIndex, int newTicketNumber);
+    static void RecordMultiTimeFrameExitTradeRecord(TEA &ea, int ticketNumber, int lowerTimeFrame, int higherTimeFrame);
+
     template <typename TEA>
-    static void RecordSinglePartialMultiTimeFrameTicketCloseData(TEA &ea, int lowerTimeFrame, int higherTimeFrame);
+    static void RecordPartialTradeRecord(TEA &ea, int oldTicketIndex, int newTicketNumber);
 
     template <typename TEA>
     static void RecordDefaultErrorRecord(TEA &ea, int error);
@@ -281,6 +284,8 @@ static void EAHelper::FindSetPreviousAndCurrentSetupTickets(TEA &ea)
     for (int i = 0; i < ArraySize(tickets); i++)
     {
         Ticket *ticket = new Ticket(tickets[i]);
+        ticket.SetPartials(ea.mPartialRRs, ea.mPartialPercents);
+
         if (ea.MoveToPreviousSetupTickets(ticket))
         {
             ea.mPreviousSetupTickets.Add(ticket);
@@ -297,6 +302,38 @@ static void EAHelper::FindSetPreviousAndCurrentSetupTickets(TEA &ea)
                      "Ticket 1: " + IntegerToString(ea.mCurrentSetupTicket.Number()) + "\n" +
                          "Ticket 2: " + IntegerToString(ticket.Number()) + "\n" +
                          "Check error records to make sure MoveToPreviousSetupTickets() didn't fail.");
+        }
+    }
+}
+
+template <typename TEA>
+static void EAHelper::SetPreviousSetupTicketsRRAcquired(TEA &ea)
+{
+    ea.mEntryCSVRecordWriter.SeekToStart();
+
+    while (!FileIsEnding(ea.mEntryCSVRecordWriter.FileHandle()))
+    {
+        // might as well read in all columns right away since I have to anyways to get to the next row
+        int magicNumber = StrToInteger(FileReadString(ea.mEntryCSVRecordWriter.FileHandle()));
+        int ticketNumber = StrToInteger(FileReadString(ea.mEntryCSVRecordWriter.FileHandle()));
+        int partialTicketNumber = StrToInteger(FileReadString(ea.mEntryCSVRecordWriter.FileHandle()));
+        double expectedRR = StrToDouble(FileReadString(ea.mEntryCSVRecordWriter.FileHandle()));
+        double rrAcquired = StrToDouble(FileReadString(ea.mEntryCSVRecordWriter.FileHandle()));
+
+        if (magicNumber != ea.MagicNumber())
+        {
+            continue;
+        }
+
+        for (int i = 0; i < ea.mPreviousSetupTickets.Size(); i++)
+        {
+            // check for both in case the ticket was partialed more than once
+            // only works with up to 2 partials
+            if (ticketNumber == ea.mPreviousSetupTickets[i].Number() || partialTicketNumber == ea.mPreviousSetupTickets[i].Number())
+            {
+                ea.mPreviousSetupTickets[i].mPartials.RemovePartialRR(expectedRR);
+                break;
+            }
         }
     }
 }
@@ -1045,34 +1082,26 @@ static void EAHelper::CheckTrailStopLossWithMBs(TEA &ea, MBTracker *&mbt, int la
 template <typename TEA>
 static void EAHelper::CheckPartialPreviousSetupTicket(TEA &ea, int ticketIndex)
 {
-    int selectError = ticket.SelectIfOpen("Checking To Partial");
+    Ticket *tempTicket = ea.mPreviousSetupTickets[ticketIndex];
+
+    int selectError = tempTicket.SelectIfOpen("Checking To Partial");
     if (selectError != ERR_NO_ERROR)
     {
-        ea.StopTrading(selectError);
+        // this error occured on a non current setup ticket. Best thing I can do is record the error and manually manage it
+        ea.RecordError(selectError);
+        return;
     }
 
     // if we are in a buy, we look to sell which occurs at the bid. If we are in a sell, we look to buy which occurs at the ask
     double currentPrice = ea.mSetupType == OP_BUY ? Bid : Ask;
-    double rr = MathAbs(currentPrice - OrderOPenPrice()) / MathAbs(OrderOpenPrice() - OrderStopLoss());
+    double rr = MathAbs(currentPrice - OrderOpenPrice()) / MathAbs(OrderOpenPrice() - OrderStopLoss());
 
-    Ticket *tempTicket = ea.mPreviousSetupTicket[ticketIndex];
-
-    int nextPartial = EMPTY;
-    for (int i = 0; i < tempTicket.mPartials.Size(); i++)
-    {
-        if (rr > tempTicket.mPartials[i].mRR && !tempTicket.mPartials[i].mWasTaken)
-        {
-            nextPartial = i;
-            break;
-        }
-    }
-
-    if (nextPartial == EMPTY)
+    if (rr < tempTicket.mPartials[0].mRR)
     {
         return;
     }
 
-    int partialError = OrderHelper::PartialTicket(tempTicket.Number(), currentPrice, OrderLots(), tempTicket.mPartials[nextPartial].PercentAsDecimal());
+    int partialError = OrderHelper::PartialTicket(tempTicket.Number(), currentPrice, OrderLots(), tempTicket.mPartials[0].PercentAsDecimal());
     if (partialError != ERR_NO_ERROR)
     {
         ea.RecordError(partialError);
@@ -1092,8 +1121,11 @@ static void EAHelper::CheckPartialPreviousSetupTicket(TEA &ea, int ticketIndex)
         return;
     }
 
-    tempTicket.mRRAcquired += rr;
+    tempTicket.mRRAcquired = rr;
+
     ea.RecordTicketPartialData(ticketIndex, newTicket);
+    tempTicket.mPartials.Remove(0);
+
     tempTicket.UpdateTicketNumber(newTicket);
 }
 /*
@@ -1143,7 +1175,7 @@ void EAHelper::CheckCurrentSetupTicket(TEA &ea)
 
     if (closed)
     {
-        ea.RecordTicketCloseData();
+        ea.RecordTicketCloseData(ea.mCurrentSetupTicket.Number());
         ea.InvalidateSetup(false);
         ea.mCurrentSetupTicket.SetNewTicket(EMPTY);
     }
@@ -1162,7 +1194,7 @@ static void EAHelper::CheckPreviousSetupTicket(TEA &ea, int ticketIndex)
 
     if (closed)
     {
-        ea.RecordTicketCloseData();
+        ea.RecordTicketCloseData(ea.mPreviousSetupTickets[ticketIndex].Number());
         ea.mPreviousSetupTickets.Remove(ticketIndex);
     }
 }
@@ -1189,25 +1221,29 @@ static bool EAHelper::TicketStopLossIsMovedToBreakEven(TEA &ea, Ticket &ticket)
 
 
 */
-template <typename TEA>
-static void EAHelper::SetDefaultTicketOpenData(TEA &ea, DefaultTradeRecord &record, int entryTimeFrame)
+template <typename TEA, typename TRecord>
+static void EAHelper::SetDefaultEntryTradeData(TEA &ea, TRecord &record, int entryTimeFrame)
 {
     ea.mLastState = EAStates::RECORDING_ORDER_OPEN_DATA;
 
+    record.MagicNumber = ea.MagicNumber();
+    record.TicketNumber = ea.mCurrentSetupTicket.Number();
     record.Symbol = Symbol();
-    record.EntryTimeFrame = entryTimeFrame;
     record.OrderType = OrderType() == 0 ? "Buy" : "Sell";
     record.AccountBalanceBefore = AccountBalance();
     record.Lots = OrderLots();
+    record.EntryTime = OrderOpenTime();
     record.EntryPrice = OrderOpenPrice();
     record.EntryStopLoss = OrderStopLoss();
 }
 
-template <typename TEA>
-static void EAHelper::SetDefaultTicketCloseData(TEA &ea, DefaultTradeRecord &record)
+template <typename TEA, typename TRecord>
+static void EAHelper::SetDefaultCloseTradeData(TEA &ea, TRecord &record, int ticketNumber)
 {
     ea.mLastState = EAStates::RECORDING_ORDER_CLOSE_DATA;
 
+    record.MagicNumber = ea.MagicNumber();
+    record.TicketNumber = ticketNumber;
     record.AccountBalanceAfter = AccountBalance();
     record.ExitTime = OrderCloseTime();
     record.ExitPrice = OrderClosePrice();
@@ -1215,53 +1251,53 @@ static void EAHelper::SetDefaultTicketCloseData(TEA &ea, DefaultTradeRecord &rec
 }
 
 template <typename TEA>
-static void EAHelper::RecordDefaultTicketOpenData(TEA &ea, int entryTimeFrame)
+static void EAHelper::RecordDefaultEntryTradeRecord(TEA &ea, int entryTimeFrame)
 {
-    DefaultTradeRecord *record = new DefaultTradeRecord();
-    SetDefaultTicketOpenData(ea, record, entryTimeFrame);
+    DefaultEntryTradeRecord *record = new DefaultEntryTradeRecord();
+    SetDefaultEntryTradeData<TEA, DefaultEntryTradeRecord>(ea, record, entryTimeFrame);
 
-    ea.mTradeRecordRecorder.WriteTradeRecordOpenData<DefaultTradeRecord>(record);
+    ea.mEntryCSVRecordWriter.WriteRecord(record);
 }
 
 template <typename TEA>
-static void EAHelper::RecordDefaultTicketCloseData(TEA &ea)
+static void EAHelper::RecordDefaultExitTradeRecord(TEA &ea, int ticketNumber)
 {
-    DefaultTradeRecord *record = new DefaultTradeRecord();
-    SetDefaultTicketCloseData(ea, record);
+    DefaultExitTradeRecord *record = new DefaultExitTradeRecord();
+    SetDefaultCloseTradeData<TEA, DefaultExitTradeRecord>(ea, record, ticketNumber);
 
-    ea.mTradeRecordRecorder.WriteTradeRecordCloseData<DefaultTradeRecord>(record);
+    ea.mExitCSVRecordWriter.WriteRecord(record);
 }
 
 template <typename TEA>
-static void EAHelper::RecordSingleTimeFrameTicketOpenData(TEA &ea, int entryTimeFrame)
+static void EAHelper::RecordSingleTimeFrameEntryTradeRecord(TEA &ea, int entryTimeFrame)
 {
-    SingleTimeFrameTradeRecord *record = new SingleTimeFrameTradeRecord();
-    SetDefaultTicketOpenData(ea, record, entryTimeFrame);
+    SingleTimeFrameEntryTradeRecord *record = new SingleTimeFrameEntryTradeRecord();
+    SetDefaultEntryTradeData<TEA, SingleTimeFrameEntryTradeRecord>(ea, record, entryTimeFrame);
 
-    record.EntryImage = ScreenShotHelper::TryTakeScreenShot(ea.mTradeRecordRecorder.Directory());
-    ea.mTradeRecordRecorder.WriteTradeRecordOpenData<SingleTimeFrameTradeRecord>(record);
+    record.EntryImage = ScreenShotHelper::TryTakeScreenShot(ea.mEntryCSVRecordWriter.Directory());
+    ea.mEntryCSVRecordWriter.WriteRecord(record);
 }
 
 template <typename TEA>
-static void EAHelper::RecordSingleTimeTicketCloseData(TEA &ea)
+static void EAHelper::RecordSingleTimeFrameExitTradeRecord(TEA &ea, int ticketNumber)
 {
-    SingleTimeFrameTradeRecord *record = new SingleTimeFrameTradeRecord();
-    SetDefaultTicketCloseData(ea, record);
+    SingleTimeFrameExitTradeRecord *record = new SingleTimeFrameExitTradeRecord();
+    SetDefaultCloseTradeData<TEA, SingleTimeFrameExitTradeRecord>(ea, record, ticketNumber);
 
-    record.ExitImage = ScreenShotHelper::TryTakeScreenShot(ea.mTradeRecordRecorder.Directory());
-    ea.mTradeRecordRecorder.WriteTradeRecordCloseData<SingleTimeFrameTradeRecord>(record);
+    record.ExitImage = ScreenShotHelper::TryTakeScreenShot(ea.mExitCSVRecordWriter.Directory());
+    ea.mExitCSVRecordWriter.WriteRecord(record);
 }
 
 template <typename TEA>
-static void EAHelper::RecordSinglePartialMultiTimeFrameTicketOpenData(TEA &ea, int lowerTimeFrame, int higherTimeFrame)
+static void EAHelper::RecordMultiTimeFrameEntryTradeRecord(TEA &ea, int lowerTimeFrame, int higherTimeFrame)
 {
-    SinglePartialMultiTimeFrameTradeRecord *record = new SinglePartialMultiTimeFrameTradeRecord();
-    SetDefaultTicketOpenData(ea, record, lowerTimeFrame);
+    MultiTimeFrameEntryTradeRecord *record = new MultiTimeFrameEntryTradeRecord();
+    SetDefaultEntryTradeData<TEA, MultiTimeFrameEntryTradeRecord>(ea, record, lowerTimeFrame);
 
     string lowerTimeFrameImage;
     string higherTimeFrameImage;
 
-    int error = ScreenShotHelper::TryTakeMultiTimeFrameScreenShot(ea.mTradeRecordRecorder.Directory(), higherTimeFrame, lowerTimeFrameImage, higherTimeFrameImage);
+    int error = ScreenShotHelper::TryTakeMultiTimeFrameScreenShot(ea.mEntryCSVRecordWriter.Directory(), higherTimeFrame, lowerTimeFrameImage, higherTimeFrameImage);
     if (error != ERR_NO_ERROR)
     {
         ea.RecordError(error);
@@ -1271,31 +1307,19 @@ static void EAHelper::RecordSinglePartialMultiTimeFrameTicketOpenData(TEA &ea, i
     record.LowerTimeFrameEntryImage = lowerTimeFrameImage;
     record.HigherTimeFrameEntryImage = higherTimeFrameImage;
 
-    ea.mTradeRecordRecorder.WriteTradeRecordCloseData<SinglePartialMultiTimeFrameTradeRecord>(record);
+    ea.mEntryCSVRecordWriter.WriteRecord(record);
 }
 
 template <typename TEA>
-static void EAHelper::RecordSinglePartialMultiTimeFrameTicketPartialData(TEA &ea, int oldTicketIndex, int newTicketNumber)
+static void EAHelper::RecordMultiTimeFrameExitTradeRecord(TEA &ea, int ticketNumber, int lowerTimeFrame, int higherTimeFrame)
 {
-    ea.mLastState = EAStates::RECORDING_PARTIAL_DATA;
-    SinglePartialMultiTimeFrameTradeRecord *record = new SinglePartialMultiTimeFrameTradeRecord();
-
-    record.PartialedTicketNumber = newTicket;
-    record.PartialOneRR = ea.mPreviousSetupTickets[oldTicketIndex].mRRAcquired;
-
-    ea.mTradeRecordRecorder.WriteTradeRecordPartialData<SinglePartialMultiTimeFrameTradeRecord>(record);
-}
-
-template <typename TEA>
-static void EAHelper::RecordSinglePartialMultiTimeFrameTicketCloseData(TEA &ea, int lowerTimeFrame, int higherTimeFrame)
-{
-    SinglePartialMultiTimeFrameTradeRecord *record = new SinglePartialMultiTimeFrameTradeRecord();
-    SetDefaultTicketCloseData(ea, record);
+    MultiTimeFrameExitTradeRecord *record = new MultiTimeFrameExitTradeRecord();
+    SetDefaultCloseTradeData<TEA, MultiTimeFrameExitTradeRecord>(ea, record, ticketNumber);
 
     string lowerTimeFrameImage;
     string higherTimeFrameImage;
 
-    int error = ScreenShotHelper::TryTakeMultiTimeFrameScreenShot(ea.mTradeRecordRecorder.Directory(), higherTimeFrame, lowerTimeFrameImage, higherTimeFrameImage);
+    int error = ScreenShotHelper::TryTakeMultiTimeFrameScreenShot(ea.mExitCSVRecordWriter.Directory(), higherTimeFrame, lowerTimeFrameImage, higherTimeFrameImage);
     if (error != ERR_NO_ERROR)
     {
         ea.RecordError(error);
@@ -1305,7 +1329,23 @@ static void EAHelper::RecordSinglePartialMultiTimeFrameTicketCloseData(TEA &ea, 
     record.LowerTimeFrameExitImage = lowerTimeFrameImage;
     record.HigherTimeFrameExitImage = higherTimeFrameImage;
 
-    ea.mTradeRecordRecorder.WriteTradeRecordCloseData<SinglePartialMultiTimeFrameTradeRecord>(record);
+    ea.mExitCSVRecordWriter.WriteRecord(record);
+}
+
+template <typename TEA>
+static void EAHelper::RecordPartialTradeRecord(TEA &ea, int oldTicketIndex, int newTicketNumber)
+{
+    ea.mLastState = EAStates::RECORDING_PARTIAL_DATA;
+
+    PartialTradeRecord *record = new PartialTradeRecord();
+
+    record.MagicNumber = ea.MagicNumber();
+    record.TicketNumber = ea.mPreviousSetupTickets[oldTicketIndex].Number();
+    record.NewTicketNumber = newTicketNumber;
+    record.ExpectedPartialRR = ea.mPreviousSetupTickets[oldTicketIndex].mPartials[0].mRR;
+    record.ActualPartialRR = ea.mPreviousSetupTickets[oldTicketIndex].mRRAcquired;
+
+    ea.mPartialCSVRecordWriter.WriteRecord(record);
 }
 
 template <typename TEA>
@@ -1313,12 +1353,13 @@ static void EAHelper::RecordDefaultErrorRecord(TEA &ea, int error)
 {
     DefaultErrorRecord *record = new DefaultErrorRecord();
 
+    record.MagicNumber = ea.MagicNumber();
     record.ErrorTime = TimeCurrent();
     record.Error = error;
     record.LastState = ea.mLastState;
-    record.ErrorImage = ScreenShotHelper::TryTakeScreenShot(ea.mErrorRecordRecorder.Directory());
+    record.ErrorImage = ScreenShotHelper::TryTakeScreenShot(ea.mErrorCSVRecordWriter.Directory());
 
-    ea.mErrorRecordRecorder.WriteEntireRecord<DefaultErrorRecord>(record);
+    ea.mErrorCSVRecordWriter.WriteRecord(record);
 }
 /*
 

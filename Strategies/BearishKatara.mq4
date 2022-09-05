@@ -29,6 +29,11 @@ input bool CalculateOnTick = true;
 
 int SetupType = OP_SELL;
 
+CSVRecordWriter<MultiTimeFrameEntryTradeRecord> *entryWriter = new CSVRecordWriter<MultiTimeFrameEntryTradeRecord>("Katara/Bearish/", "Entries.csv");
+CSVRecordWriter<PartialTradeRecord> *partialWriter = new CSVRecordWriter<PartialTradeRecord>("Katara/Bearish/", "Partials.csv");
+CSVRecordWriter<MultiTimeFrameExitTradeRecord> *exitWriter = new CSVRecordWriter<MultiTimeFrameExitTradeRecord>("Katara/Bearish/", "Exits.csv");
+CSVRecordWriter<DefaultErrorRecord> *errorWriter = new CSVRecordWriter<DefaultErrorRecord>("Katara/Bearish/", "Errors.csv");
+
 MBTracker *SetupMBT;
 MBTracker *ConfirmationMBT;
 
@@ -41,9 +46,23 @@ int OnInit()
     SetupMBT = new MBTracker(Symbol(), 60, MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
     ConfirmationMBT = new MBTracker(Symbol(), 1, MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
 
-    KSMB = new KataraSingleMB("Katara/BearishKataraSingleMB/", SetupType, MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, SetupMBT, ConfirmationMBT);
-    KDMB = new KataraDoubleMB("Katara/BearishKataraDoubleMB/", SetupType, MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, SetupMBT, ConfirmationMBT);
-    KLMB = new KataraLiquidationMB("Katara/BearishKataraLiquidationMB/", SetupType, MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, SetupMBT, ConfirmationMBT);
+    KSMB = new KataraSingleMB(SetupType, MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, SetupMBT, ConfirmationMBT);
+    KSMB.SetEntryCSVRecordWriter(entryWriter);
+    KSMB.SetPartialCSVRecordWriter(partialWriter);
+    KSMB.SetExitCSVRecordWriter(exitWriter);
+    KSMB.SetErrorCSVRecordWriter(errorWriter);
+
+    KDMB = new KataraDoubleMB(SetupType, MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, SetupMBT, ConfirmationMBT);
+    KDMB.SetEntryCSVRecordWriter(entryWriter);
+    KDMB.SetPartialCSVRecordWriter(partialWriter);
+    KDMB.SetExitCSVRecordWriter(exitWriter);
+    KDMB.SetErrorCSVRecordWriter(errorWriter);
+
+    KLMB = new KataraLiquidationMB(SetupType, MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, SetupMBT, ConfirmationMBT);
+    KLMB.SetEntryCSVRecordWriter(entryWriter);
+    KLMB.SetPartialCSVRecordWriter(partialWriter);
+    KLMB.SetExitCSVRecordWriter(exitWriter);
+    KLMB.SetErrorCSVRecordWriter(errorWriter);
 
     return (INIT_SUCCEEDED);
 }
@@ -53,6 +72,14 @@ void OnDeinit(const int reason)
     delete KSMB;
     delete KDMB;
     delete KLMB;
+
+    delete SetupMBT;
+    delete ConfirmationMBT;
+
+    delete entryWriter;
+    delete partialWriter;
+    delete exitWriter;
+    delete errorWriter;
 }
 
 void OnTick()

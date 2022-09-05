@@ -8,9 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\ICSVRecord.mqh>
-
-class DefaultUnitTestRecord : ICSVRecord
+class DefaultUnitTestRecord
 {
 public:
     string Name;
@@ -27,7 +25,7 @@ public:
     DefaultUnitTestRecord();
     ~DefaultUnitTestRecord();
 
-    virtual void WriteHeaders(int fileHandle);
+    static void WriteHeaders(int fileHandle);
     virtual void WriteRecord(int fileHandle);
     virtual void Reset();
 };
@@ -48,7 +46,7 @@ DefaultUnitTestRecord::DefaultUnitTestRecord()
 
 DefaultUnitTestRecord::~DefaultUnitTestRecord() {}
 
-void DefaultUnitTestRecord::WriteHeaders(int fileHandle)
+static void DefaultUnitTestRecord::WriteHeaders(int fileHandle)
 {
     FileWrite(fileHandle, "Name", "Description", "Assert Time", "Result", "Message", "Additional Information", "Assert Number", "Max Asserts", "Image", "Notes");
 }

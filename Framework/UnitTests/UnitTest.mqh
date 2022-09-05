@@ -14,11 +14,10 @@
 #include <SummitCapital\Framework\CSVWriting\CSVRecordWriter.mqh>
 
 template <typename TUnitTest, typename TRecord>
-class UnitTest : public CSVRecordWriter<TRecord>
+class UnitTest
 {
 private:
     bool mDone;
-
     bool mUseAssertCooldown;
     int mAssertCooldownMinutes;
 
@@ -39,6 +38,9 @@ public:
     UnitTest(string directory, string testName, string description, int maxAsserts);
     ~UnitTest();
 
+    CSVRecordWriter<TRecord> *mRecordWriter;
+    TRecord *mPendingRecord;
+
     void AssertCooldown(int minutes);
     void RecordErrors(bool recordErrors) { mRecordErrors = recordErrors; }
 
@@ -51,20 +53,27 @@ public:
 template <typename TUnitTest, typename TRecord>
 UnitTest::UnitTest(string directory, string testName, string description, int maxAsserts)
 {
-    mDirectory = directory + testName + "/";
-    mCSVFileName = testName + ".csv";
+    string testDirectory = directory + testName + "/";
+    string csvFileName = testName + ".csv";
+
+    mRecordWriter = new CSVRecordWriter<TRecord>(testDirectory, csvFileName);
+
     mRecordErrors = true;
     mLastAssertTime = 0;
     mUseAssertCooldown = false;
 
-    PendingRecord.Name = testName;
-    PendingRecord.Description = description;
-    PendingRecord.MaxAsserts = maxAsserts;
+    mPendingRecord = new TRecord();
+
+    mPendingRecord.Name = testName;
+    mPendingRecord.Description = description;
+    mPendingRecord.MaxAsserts = maxAsserts;
 }
 
 template <typename TUnitTest, typename TRecord>
 UnitTest::~UnitTest(void)
 {
+    delete mPendingRecord;
+    delete mRecordWriter;
 }
 
 template <typename TUnitTest, typename TRecord>
@@ -77,19 +86,21 @@ void UnitTest::AssertCooldown(int minutes)
 template <typename TUnitTest, typename TRecord>
 void UnitTest::SetAssertResult(string result, string message)
 {
-    PendingRecord.AssertTime = TimeCurrent();
-    PendingRecord.Result = result;
-    PendingRecord.Asserts += 1;
-    PendingRecord.Message = message;
+    mPendingRecord.AssertTime = TimeCurrent();
+    mPendingRecord.Result = result;
+    mPendingRecord.Asserts += 1;
+    mPendingRecord.Message = message;
     mLastAssertTime = TimeCurrent();
 
-    CSVRecordWriter<TRecord>::Write();
+    mRecordWriter.WriteRecord(mPendingRecord);
 
-    if (PendingRecord.Asserts >= PendingRecord.MaxAsserts)
+    if (mPendingRecord.Asserts >= mPendingRecord.MaxAsserts)
     {
         mDone = true;
         SendEmail();
     }
+
+    mPendingRecord.Reset();
 }
 
 template <typename TUnitTest, typename TRecord>
@@ -133,7 +144,7 @@ bool UnitTest::PastAssertCooldown()
 template <typename TUnitTest, typename TRecord>
 void UnitTest::SendEmail()
 {
-    SendMail("Unit Test " + PendingRecord.Name + " Completed", "");
+    SendMail("Unit Test " + mPendingRecord.Name + " Completed", "");
 }
 
 template <typename TUnitTest, typename TRecord>
@@ -157,8 +168,9 @@ void UnitTest::AssertNotEquals(TUnitTest expected, TUnitTest actual)
 template <typename TUnitTest, typename TRecord>
 void UnitTest::RecordError(int error)
 {
-    PendingRecord.Result = "Error";
-    PendingRecord.Message = IntegerToString(error);
+    mPendingRecord.Result = "Error";
+    mPendingRecord.Message = IntegerToString(error);
 
-    CSVRecordWriter<TRecord>::Write();
+    mRecordWriter.WriteRecord(mPendingRecord);
+    mPendingRecord.Reset();
 }

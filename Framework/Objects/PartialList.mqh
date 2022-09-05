@@ -20,6 +20,8 @@ public:
     ~PartialList();
 
     void Clear();
+    void Remove(int index);
+    void RemovePartialRR(double rr);
 };
 
 PartialList::PartialList()
@@ -51,4 +53,36 @@ void PartialList::Clear()
     }
 
     ArrayResize(mItems, 0);
+}
+
+void PartialList::Remove(int index)
+{
+    delete mItems[index];
+
+    Partial *tempPartialList[];
+    ArrayResize(tempPartialList, ArraySize(mItems) - 1);
+
+    int count = 0;
+    for (int i = 0; i < ArraySize(mItems); i++)
+    {
+        if (CheckPointer(mItems[i]) != POINTER_INVALID)
+        {
+            tempPartialList[count] = mItems[i];
+            count += 1;
+        }
+    }
+
+    this = tempPartialList;
+}
+
+void PartialList::RemovePartialRR(double rr)
+{
+    for (int i = 0; i < Size(); i++)
+    {
+        if (mItems[i].mRR == rr)
+        {
+            Remove(i);
+            return;
+        }
+    }
 }

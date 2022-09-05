@@ -22,8 +22,6 @@ private:
     bool mIsActive;
     bool mStopLossIsMovedToBreakEven;
 
-    PartialList *mPartials;
-
     int SelectTicket(string action);
     int InternalCheckActive(bool &active);
     int InternalCheckClosed(bool &closed);
@@ -37,6 +35,7 @@ public:
     void SetNewTicket(int ticket);
     void UpdateTicketNumber(int newTicketNumber);
 
+    PartialList *mPartials;
     double mRRAcquired;
     int Number() { return mNumber; }
 

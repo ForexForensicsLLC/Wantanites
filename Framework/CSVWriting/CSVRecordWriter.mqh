@@ -8,6 +8,7 @@
 #property version "1.00"
 #property strict
 
+template <typename TRecord>
 class CSVRecordWriter
 {
 protected:
@@ -17,11 +18,7 @@ protected:
     bool mFileIsOpen;
     int mFileHandle;
 
-    bool SeekToStart();
-    bool SeekToEnd();
-
-    template <typename TRecord>
-    void CheckWriteHeaders();
+    void CheckWriteHeaders(TRecord &record);
 
 public:
     CSVRecordWriter(string directory, string csvFileName);
@@ -29,14 +26,16 @@ public:
 
     string Directory() { return mDirectory; }
     string CSVFileName() { return mCSVFileName; }
+    int FileHandle() { return mFileHandle; }
 
-    template <typename TRecord>
+    bool SeekToStart();
+    bool SeekToEnd();
+
     void Open();
-
-    template <typename TRecord>
-    void WriteEntireRecord(TRecord &record);
+    void WriteRecord(TRecord &record);
 };
 
+template <typename TRecord>
 CSVRecordWriter::CSVRecordWriter(string directory, string csvFileName)
 {
     mDirectory = directory;
@@ -44,15 +43,24 @@ CSVRecordWriter::CSVRecordWriter(string directory, string csvFileName)
 
     mFileIsOpen = false;
     mFileHandle = INVALID_HANDLE;
+
+    Open();
 }
 
+template <typename TRecord>
 CSVRecordWriter::~CSVRecordWriter()
 {
     FileClose(mFileHandle);
 }
 
+template <typename TRecord>
 bool CSVRecordWriter::SeekToStart()
 {
+    if (!mFileIsOpen)
+    {
+        Open();
+    }
+
     if (mFileHandle == INVALID_HANDLE)
     {
         return false;
@@ -69,8 +77,14 @@ bool CSVRecordWriter::SeekToStart()
     return true;
 }
 
+template <typename TRecord>
 bool CSVRecordWriter::SeekToEnd()
 {
+    if (!mFileIsOpen)
+    {
+        Open();
+    }
+
     if (mFileHandle == INVALID_HANDLE)
     {
         return false;
@@ -88,11 +102,11 @@ bool CSVRecordWriter::SeekToEnd()
 }
 
 template <typename TRecord>
-void CSVRecordWriter::CheckWriteHeaders()
+void CSVRecordWriter::CheckWriteHeaders(TRecord &record)
 {
     if (FileTell(mFileHandle) == 0)
     {
-        TRecord::WriteHeaders(mFileHandle);
+        record.WriteHeaders(mFileHandle);
     }
 }
 
@@ -105,21 +119,19 @@ void CSVRecordWriter::Open()
         return;
     }
 
+    mFileIsOpen = true;
     if (!SeekToEnd())
     {
         return;
     }
-
-    CheckWriteHeaders<TRecord>();
-    mFileIsOpen = true;
 }
 
 template <typename TRecord>
-void CSVRecordWriter::WriteEntireRecord(TRecord &record)
+void CSVRecordWriter::WriteRecord(TRecord &record)
 {
     if (!mFileIsOpen)
     {
-        Open<TRecord>();
+        Open();
     }
 
     if (mFileHandle == INVALID_HANDLE)
@@ -127,5 +139,13 @@ void CSVRecordWriter::WriteEntireRecord(TRecord &record)
         return;
     }
 
-    record.WriteEntireRecord(mFileHandle);
+    if (!SeekToEnd())
+    {
+        return;
+    }
+
+    CheckWriteHeaders(record);
+    FileWriteString(mFileHandle, "\n");
+
+    record.WriteRecord(mFileHandle);
 }

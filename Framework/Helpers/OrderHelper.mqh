@@ -97,7 +97,7 @@ public:
     // !Tested
     // static bool EditStopLoss(double newStopLoss, double newLots, int magicNumber);
 
-    int PartialTicket(int ticketNumber, double price, double currentLots, double percentAsDecimal);
+    static int PartialTicket(int ticketNumber, double price, double currentLots, double percentAsDecimal);
 
     // ==========================================================================
     // Editing Orders For MB Stop Orders
@@ -677,7 +677,7 @@ static bool OrderHelper::EditStopLoss(double newStopLoss, double newLots, int ma
 }
 */
 
-int OrderHelper::PartialTicket(int ticketNumber, double price, double currentLots, double percentAsDecimal)
+static int OrderHelper::PartialTicket(int ticketNumber, double price, double currentLots, double percentAsDecimal)
 {
     double lots = NormalizeDouble(currentLots * percentAsDecimal, 2);
     if (!OrderClose(ticketNumber, lots, price, 0, clrNONE))

@@ -41,18 +41,29 @@ TheSunriseShatterSingleMB *TSSSMB;
 TheSunriseShatterDoubleMB *TSSDMB;
 TheSunriseShatterLiquidationMB *TSSLMB;
 
-const string SingleMBDirectory = "TheSunriseShatter/TheSunriseShatterSingleMB/";
-const string DoubleMBDirectory = "TheSunriseShatter/TheSunriseShatterDoubleMB/";
-const string LiquidationMBDirectory = "TheSunriseShatter/TheSunriseShatterLiquidationMB/";
+CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *entryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>("TheSunriseShatter/", "Entries.csv");
+CSVRecordWriter<SingleTimeFrameExitTradeRecord> *exitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>("TheSunriseShatter/", "Exits.csv");
+CSVRecordWriter<DefaultErrorRecord> *errorWriter = new CSVRecordWriter<DefaultErrorRecord>("TheSunriseShatter/", "Errors.csv");
 
 int OnInit()
 {
     MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
     MRFTS = new MinROCFromTimeStamp(Symbol(), Period(), ServerHourStartTime, ServerHourEndTime, ServerMinuteStartTime, ServerMinuteEndTime, MinROCPercent);
 
-    TSSSMB = new TheSunriseShatterSingleMB(Period(), SingleMBDirectory, MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, MRFTS, MBT);
-    TSSDMB = new TheSunriseShatterDoubleMB(Period(), DoubleMBDirectory, MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, MRFTS, MBT);
-    TSSLMB = new TheSunriseShatterLiquidationMB(Period(), LiquidationMBDirectory, MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, MRFTS, MBT);
+    TSSSMB = new TheSunriseShatterSingleMB(Period(), MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, MRFTS, MBT);
+    TSSSMB.SetEntryCSVRecordWriter(entryWriter);
+    TSSSMB.SetExitCSVRecordWriter(exitWriter);
+    TSSSMB.SetErrorCSVRecordWriter(errorWriter);
+
+    TSSDMB = new TheSunriseShatterDoubleMB(Period(), MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, MRFTS, MBT);
+    TSSDMB.SetEntryCSVRecordWriter(entryWriter);
+    TSSDMB.SetExitCSVRecordWriter(exitWriter);
+    TSSDMB.SetErrorCSVRecordWriter(errorWriter);
+
+    TSSLMB = new TheSunriseShatterLiquidationMB(Period(), MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, MRFTS, MBT);
+    TSSLMB.SetEntryCSVRecordWriter(entryWriter);
+    TSSLMB.SetExitCSVRecordWriter(exitWriter);
+    TSSLMB.SetErrorCSVRecordWriter(errorWriter);
 
     return (INIT_SUCCEEDED);
 }

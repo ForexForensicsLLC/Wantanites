@@ -8,22 +8,23 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Constants\EAStates.mqh>
+#include <SummitCapital\Framework\Objects\List.mqh>
+#include <SummitCapital\Framework\Objects\TicketList.mqh>
 #include <SummitCapital\Framework\Constants\Index.mqh>
-
-#include <SummitCapital\Framework\CSVWriting\CSVTradeRecordWriter.mqh>
+#include <SummitCapital\Framework\Constants\EAStates.mqh>
 #include <SummitCapital\Framework\CSVWriting\CSVRecordWriter.mqh>
 
-#include <SummitCapital\Framework\Objects\List.mqh>
-
+template <typename TEntryRecord, typename TPartialRecord, typename TCloseRecord, typename TErrorRecord>
 class EA
 {
 public:
     Ticket *mCurrentSetupTicket;
     TicketList *mPreviousSetupTickets;
 
-    CSVTradeRecordWriter *mTradeRecordRecorder;
-    CSVRecordWriter *mErrorRecordRecorder;
+    CSVRecordWriter<TEntryRecord> *mEntryCSVRecordWriter;
+    CSVRecordWriter<TPartialRecord> *mPartialCSVRecordWriter;
+    CSVRecordWriter<TCloseRecord> *mExitCSVRecordWriter;
+    CSVRecordWriter<TErrorRecord> *mErrorCSVRecordWriter;
 
     bool mStopTrading;
     bool mHasSetup;
@@ -43,13 +44,10 @@ public:
     int mLastState;
 
 public:
-    EA(string directory, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent);
+    EA(int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent);
     ~EA();
 
-    virtual void SetRRPartial(double rr, double percent);
-
     virtual int MagicNumber() = NULL;
-
     virtual void Run() = NULL;
     virtual bool AllowedToTrade() = NULL;
     virtual void CheckSetSetup() = NULL;
@@ -65,16 +63,21 @@ public:
     virtual void CheckPreviousSetupTicket(int ticketIndex) = NULL;
     virtual void RecordTicketOpenData() = NULL;
     virtual void RecordTicketPartialData(int oldTicketIndex, int newTicketNumber) = NULL;
-    virtual void RecordTicketCloseData() = NULL;
+    virtual void RecordTicketCloseData(int ticketNumber) = NULL;
     virtual void RecordError(int error) = NULL;
     virtual void Reset() = NULL;
+
+    void SetRRPartial(double rr, double percent);
+
+    void SetEntryCSVRecordWriter(CSVRecordWriter<TEntryRecord> &writer) { mEntryCSVRecordWriter = writer; }
+    void SetPartialCSVRecordWriter(CSVRecordWriter<TPartialRecord> &writer) { mPartialCSVRecordWriter = writer; }
+    void SetExitCSVRecordWriter(CSVRecordWriter<TCloseRecord> &writer) { mExitCSVRecordWriter = writer; }
+    void SetErrorCSVRecordWriter(CSVRecordWriter<TErrorRecord> &writer) { mErrorCSVRecordWriter = writer; }
 };
 
-EA::EA(string directory, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent)
+template <typename TEntryRecord, typename TPartialRecord, typename TCloseRecord, typename TErrorRecord>
+EA::EA(int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent)
 {
-    mTradeRecordRecorder = new CSVTradeRecordWriter(directory + "Trades/", "Trades.csv");
-    mErrorRecordRecorder = new CSVRecordWriter(directory + "Errors/", "Errors.csv");
-
     mStopTrading = false;
     mHasSetup = false;
     mWasReset = false;
@@ -89,15 +92,14 @@ EA::EA(string directory, int maxTradesPerStrategy, double stopLossPaddingPips, d
     mPartialPercents = new List<double>;
 }
 
+template <typename TEntryRecord, typename TPartialRecord, typename TCloseRecord, typename TErrorRecord>
 EA::~EA()
 {
     delete mCurrentSetupTicket;
     delete mPreviousSetupTickets;
-
-    delete mTradeRecordRecorder;
-    delete mErrorRecordRecorder;
 }
 
+template <typename TEntryRecord, typename TPartialRecord, typename TCloseRecord, typename TErrorRecord>
 void EA::SetRRPartial(double rr, double percent)
 {
     int partials = mPartialRRs.Size();
