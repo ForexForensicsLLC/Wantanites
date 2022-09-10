@@ -18,9 +18,17 @@ class Ticket
 private:
     int mNumber;
 
+    bool mLastCloseCheck;
+    bool mLastActiveCheck;
+
     bool mIsClosed;
     bool mIsActive;
+
     bool mStopLossIsMovedToBreakEven;
+
+    double mOpenPrice;
+    datetime mOpenTime;
+    double mLots;
 
     int SelectTicket(string action);
     int InternalCheckActive(bool &active);
@@ -36,20 +44,25 @@ public:
     void UpdateTicketNumber(int newTicketNumber);
 
     PartialList *mPartials;
+
     double mRRAcquired;
+    double mOriginalStopLoss;
+
     int Number() { return mNumber; }
 
-    // Tested
-    int WasActivated(bool &active);
+    double OpenPrice();
+    void OpenPrice(double openPrice) { mOpenPrice = openPrice; }
 
-    // Tested
-    int IsActive(bool &active);
+    datetime OpenTime();
+    void OpenTime(datetime openTime) { mOpenTime = openTime; }
 
-    // Tested
-    int WasClosed(bool &closed);
+    double Lots();
+    void Lots(double lots) { mLots = lots; }
 
-    // Tested
-    int IsClosed(bool &closed);
+    int WasActivatedSinceLastCheck(bool &active); // Tested
+    int IsActive(bool &active);                   // Tested
+    int WasClosedSinceLastCheck(bool &closed);    // Tested
+    int IsClosed(bool &closed);                   // Tested
 
     int Close();
 
@@ -63,11 +76,13 @@ public:
 
 Ticket::Ticket()
 {
+    mPartials = new PartialList();
     SetNewTicket(EMPTY);
 }
 
 Ticket::Ticket(int ticket)
 {
+    mPartials = new PartialList();
     SetNewTicket(ticket);
 }
 
@@ -77,6 +92,11 @@ Ticket::Ticket(Ticket &ticket)
     mRRAcquired = ticket.mRRAcquired;
     mPartials = new PartialList(ticket.mPartials);
 
+    mOpenPrice = ticket.OpenPrice();
+    mOpenTime = ticket.OpenTime();
+    mOriginalStopLoss = ticket.mOriginalStopLoss;
+    mLots = ticket.Lots();
+
     ticket.IsActive(mIsActive);
     ticket.IsClosed(mIsClosed);
     ticket.StopLossIsMovedToBreakEven(mStopLossIsMovedToBreakEven);
@@ -84,22 +104,99 @@ Ticket::Ticket(Ticket &ticket)
 
 Ticket::~Ticket()
 {
+    delete mPartials;
 }
 
 void Ticket::SetNewTicket(int ticket)
 {
     mNumber = ticket;
-    mRRAcquired = 0;
-    mPartials.Clear();
+
+    mLastCloseCheck = false;
+    mLastActiveCheck = false;
 
     mIsActive = false;
     mIsClosed = false;
+
+    mRRAcquired = 0;
     mStopLossIsMovedToBreakEven = false;
+
+    mOpenPrice = 0.0;
+    mOpenTime = 0;
+    mOriginalStopLoss = 0.0;
+    mLots = 0.0;
+
+    mPartials.Clear();
+}
+
+double Ticket::OpenPrice()
+{
+    if (mOpenPrice != 0.0)
+    {
+        return mOpenPrice;
+    }
+
+    int selectError = SelectIfOpen("Retrieving Open Price");
+    if (selectError != ERR_NO_ERROR)
+    {
+        SendMail("Unable To Retrieve Open Price",
+                 "Error: " + IntegerToString(selectError) + "\n" +
+                     "Ticket Number: " + IntegerToString(mNumber));
+
+        return 0.0;
+    }
+
+    mOpenPrice = OrderOpenPrice();
+    return mOpenPrice;
+}
+
+datetime Ticket::OpenTime()
+{
+    if (mOpenTime != 0)
+    {
+        return mOpenTime;
+    }
+
+    int selectError = SelectIfOpen("Retrieving Open Time");
+    if (selectError != ERR_NO_ERROR)
+    {
+        SendMail("Unable To Retrieve Open Time",
+                 "Error: " + IntegerToString(selectError) + "\n" +
+                     "Ticket Number: " + IntegerToString(mNumber));
+
+        return 0;
+    }
+
+    mOpenTime = OrderOpenTime();
+    return mOpenTime;
+}
+
+double Ticket::Lots()
+{
+    if (mLots != 0.0)
+    {
+        return mLots;
+    }
+
+    int selectError = SelectIfOpen("Retrieving Lots");
+    if (selectError != ERR_NO_ERROR)
+    {
+        SendMail("Unable To Retrieve Lots",
+                 "Error: " + IntegerToString(selectError) + "\n" +
+                     "Ticket Number: " + IntegerToString(mNumber));
+
+        return 0;
+    }
+
+    mLots = OrderLots();
+    return mLots;
 }
 
 void Ticket::UpdateTicketNumber(int newTicketNumber)
 {
     mNumber = newTicketNumber;
+    mIsClosed = false;
+    mIsActive = false;
+    mStopLossIsMovedToBreakEven = false;
 }
 
 int Ticket::SelectTicket(string action)
@@ -211,15 +308,20 @@ int Ticket::InternalCheckClosed(bool &closed)
  * @param activated
  * @return int
  */
-int Ticket::WasActivated(bool &activated)
+int Ticket::WasActivatedSinceLastCheck(bool &activated)
 {
     if (mIsActive)
     {
-        activated = false;
+        activated = !mLastActiveCheck;
+        mLastActiveCheck = true;
+
         return ERR_NO_ERROR;
     }
 
-    return InternalCheckActive(activated);
+    int error = InternalCheckActive(mLastActiveCheck);
+
+    activated = mLastActiveCheck;
+    return error;
 }
 
 /**
@@ -245,15 +347,20 @@ int Ticket::IsActive(bool &active)
  * @param closed
  * @return int
  */
-int Ticket::WasClosed(bool &closed)
+int Ticket::WasClosedSinceLastCheck(bool &closed)
 {
     if (mIsClosed)
     {
-        closed = false;
+        closed = !mLastCloseCheck;
+        mLastCloseCheck = true;
+
         return ERR_NO_ERROR;
     }
 
-    return InternalCheckClosed(closed);
+    int error = InternalCheckClosed(mLastCloseCheck);
+    closed = mLastCloseCheck;
+
+    return error;
 }
 
 /**

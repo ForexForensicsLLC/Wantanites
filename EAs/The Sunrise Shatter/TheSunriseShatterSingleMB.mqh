@@ -12,7 +12,7 @@
 #include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
-class TheSunriseShatterSingleMB : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, DefaultErrorRecord>
+class TheSunriseShatterSingleMB : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     MinROCFromTimeStamp *mMRFTS;
@@ -23,7 +23,8 @@ public:
 
 public:
     TheSunriseShatterSingleMB(int timeFrame, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                              MinROCFromTimeStamp *&mrfts, MBTracker *&mbt);
+                              CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                              CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MinROCFromTimeStamp *&mrfts, MBTracker *&mbt);
     ~TheSunriseShatterSingleMB();
 
     virtual int MagicNumber() { return MagicNumbers::TheSunriseShatterSingleMB; }
@@ -43,14 +44,16 @@ public:
     virtual void CheckPreviousSetupTicket(int ticketIndex);
     virtual void RecordTicketOpenData();
     virtual void RecordTicketPartialData(int oldTicketIndex, int newTicketNumber);
-    virtual void RecordTicketCloseData(int ticketNumber);
-    virtual void RecordError(int error);
+    virtual void RecordTicketCloseData(Ticket &ticket);
+    virtual void RecordError(int error, string additionalInformation);
     virtual void Reset();
 };
 
 TheSunriseShatterSingleMB::TheSunriseShatterSingleMB(int timeFrame, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips,
-                                                     double riskPercent, MinROCFromTimeStamp *&mrfts, MBTracker *&mbt)
-    : EA(maxTradesPerStrategy, stopLossPaddingPips, maxSpreadPips, riskPercent)
+                                                     double riskPercent, CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter,
+                                                     CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                                                     CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MinROCFromTimeStamp *&mrfts, MBTracker *&mbt)
+    : EA(maxTradesPerStrategy, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mMBT = mbt;
     mMRFTS = mrfts;
@@ -62,12 +65,11 @@ TheSunriseShatterSingleMB::TheSunriseShatterSingleMB(int timeFrame, int maxTrade
 
     EAHelper::FillSunriseShatterMagicNumbers<TheSunriseShatterSingleMB>(this);
     EAHelper::FindSetPreviousAndCurrentSetupTickets<TheSunriseShatterSingleMB>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<TheSunriseShatterSingleMB, SingleTimeFrameEntryTradeRecord>(this);
 }
 
 TheSunriseShatterSingleMB::~TheSunriseShatterSingleMB()
 {
-    delete mMBT;
-    delete mMRFTS;
 }
 
 void TheSunriseShatterSingleMB::Run()
@@ -165,7 +167,7 @@ void TheSunriseShatterSingleMB::CheckPreviousSetupTicket(int ticketIndex)
 
 void TheSunriseShatterSingleMB::RecordTicketOpenData()
 {
-    EAHelper::RecordSingleTimeFrameEntryTradeRecord<TheSunriseShatterSingleMB>(this, mTimeFrame);
+    EAHelper::RecordSingleTimeFrameEntryTradeRecord<TheSunriseShatterSingleMB>(this);
 }
 
 void TheSunriseShatterSingleMB::RecordTicketPartialData(int oldTicketIndex, int newTicketNumber)
@@ -173,14 +175,14 @@ void TheSunriseShatterSingleMB::RecordTicketPartialData(int oldTicketIndex, int 
     // This Strategy doesn't take any partials
 }
 
-void TheSunriseShatterSingleMB::RecordTicketCloseData(int ticketNumber)
+void TheSunriseShatterSingleMB::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameExitTradeRecord<TheSunriseShatterSingleMB>(this, ticketNumber);
+    EAHelper::RecordSingleTimeFrameExitTradeRecord<TheSunriseShatterSingleMB>(this, ticket, mTimeFrame);
 }
 
-void TheSunriseShatterSingleMB::RecordError(int error)
+void TheSunriseShatterSingleMB::RecordError(int error, string additionalInformation = "")
 {
-    EAHelper::RecordDefaultErrorRecord<TheSunriseShatterSingleMB>(this, error);
+    EAHelper::RecordSingleTimeFrameErrorRecord<TheSunriseShatterSingleMB>(this, error, additionalInformation);
 }
 
 void TheSunriseShatterSingleMB::Reset()

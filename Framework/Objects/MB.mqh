@@ -507,6 +507,7 @@ MB::MB(string symbol, int timeFrame, int number, int type, datetime startDateTim
 
     mSetupZoneNumber = EMPTY;
     mInsideSetupZone = Status::NOT_CHECKED;
+    mPushedFurtherIntoSetupZone = Status::NOT_CHECKED;
 
     mMaxZones = maxZones;
     mZoneCount = 0;

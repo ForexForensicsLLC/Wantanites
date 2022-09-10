@@ -8,6 +8,8 @@
 #property version "1.00"
 #property strict
 
+#include <SummitCapital\Framework\Helpers\FileHelper.mqh>
+
 class DefaultUnitTestRecord
 {
 public:
@@ -48,12 +50,30 @@ DefaultUnitTestRecord::~DefaultUnitTestRecord() {}
 
 static void DefaultUnitTestRecord::WriteHeaders(int fileHandle)
 {
-    FileWrite(fileHandle, "Name", "Description", "Assert Time", "Result", "Message", "Additional Information", "Assert Number", "Max Asserts", "Image", "Notes");
+    FileHelper::WriteString(fileHandle, "Name");
+    FileHelper::WriteString(fileHandle, "Description");
+    FileHelper::WriteString(fileHandle, "Assert Time");
+    FileHelper::WriteString(fileHandle, "Result");
+    FileHelper::WriteString(fileHandle, "Message");
+    FileHelper::WriteString(fileHandle, "Additional Information");
+    FileHelper::WriteString(fileHandle, "Assert Number");
+    FileHelper::WriteString(fileHandle, "Max Asserts");
+    FileHelper::WriteString(fileHandle, "Image");
+    FileHelper::WriteString(fileHandle, "Notes", false);
 }
 
 void DefaultUnitTestRecord::WriteRecord(int fileHandle)
 {
-    FileWrite(fileHandle, Name, Description, AssertTime, Result, Message, AdditionalInformation, Asserts, MaxAsserts, Image, Notes);
+    FileHelper::WriteString(fileHandle, Name);
+    FileHelper::WriteString(fileHandle, Description);
+    FileHelper::WriteDateTime(fileHandle, AssertTime);
+    FileHelper::WriteString(fileHandle, Result);
+    FileHelper::WriteString(fileHandle, Message);
+    FileHelper::WriteString(fileHandle, AdditionalInformation);
+    FileHelper::WriteInteger(fileHandle, Asserts);
+    FileHelper::WriteInteger(fileHandle, MaxAsserts);
+    FileHelper::WriteString(fileHandle, Image);
+    FileHelper::WriteString(fileHandle, Notes, false);
 }
 
 void DefaultUnitTestRecord::Reset()

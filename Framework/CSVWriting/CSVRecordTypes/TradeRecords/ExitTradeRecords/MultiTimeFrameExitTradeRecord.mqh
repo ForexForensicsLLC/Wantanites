@@ -26,8 +26,8 @@ MultiTimeFrameExitTradeRecord::~MultiTimeFrameExitTradeRecord() {}
 void MultiTimeFrameExitTradeRecord::WriteHeaders(int fileHandle, bool writeDelimiter = false)
 {
     DefaultExitTradeRecord::WriteCloseHeaders(fileHandle);
-    FileHelper::WriteString(fileHandle, "High TF Entry Image");
-    FileHelper::WriteString(fileHandle, "Lower TF Entry Imaage");
+    FileHelper::WriteString(fileHandle, "High TF Exit Image");
+    FileHelper::WriteString(fileHandle, "Lower TF Exit Imaage");
 
     DefaultExitTradeRecord::WriteAdditionalHeaders(fileHandle, writeDelimiter);
 }
@@ -35,8 +35,8 @@ void MultiTimeFrameExitTradeRecord::WriteHeaders(int fileHandle, bool writeDelim
 void MultiTimeFrameExitTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = false)
 {
     DefaultExitTradeRecord::WriteCloseRecord(fileHandle);
-    FileHelper::WriteString(fileHandle, HigherTimeFrameEntryImage);
-    FileHelper::WriteString(fileHandle, LowerTimeFrameEntryImage);
+    FileHelper::WriteString(fileHandle, HigherTimeFrameExitImage);
+    FileHelper::WriteString(fileHandle, LowerTimeFrameExitImage);
 
     DefaultExitTradeRecord::WriteAdditionalRecord(fileHandle, writeDelimiter);
 }

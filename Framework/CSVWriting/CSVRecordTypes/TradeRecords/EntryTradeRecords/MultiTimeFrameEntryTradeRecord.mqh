@@ -18,6 +18,8 @@ public:
 
     virtual void WriteHeaders(int fileHandle, bool writeDelimiter);
     virtual void WriteRecord(int fileHandle, bool writeDelimiter);
+
+    void ReadRow(int fileHandle);
 };
 
 MultiTimeFrameEntryTradeRecord::MultiTimeFrameEntryTradeRecord() : DefaultEntryTradeRecord() {}
@@ -35,4 +37,11 @@ void MultiTimeFrameEntryTradeRecord::WriteRecord(int fileHandle, bool writeDelim
     DefaultEntryTradeRecord::WriteRecord(fileHandle, true);
     FileHelper::WriteString(fileHandle, HigherTimeFrameEntryImage);
     FileHelper::WriteString(fileHandle, LowerTimeFrameEntryImage, writeDelimiter);
+}
+
+void MultiTimeFrameEntryTradeRecord::ReadRow(int fileHandle)
+{
+    DefaultEntryTradeRecord::ReadRow(fileHandle);
+    HigherTimeFrameEntryImage = FileReadString(fileHandle);
+    LowerTimeFrameEntryImage = FileReadString(fileHandle);
 }

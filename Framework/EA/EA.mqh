@@ -14,7 +14,7 @@
 #include <SummitCapital\Framework\Constants\EAStates.mqh>
 #include <SummitCapital\Framework\CSVWriting\CSVRecordWriter.mqh>
 
-template <typename TEntryRecord, typename TPartialRecord, typename TCloseRecord, typename TErrorRecord>
+template <typename TEntryRecord, typename TPartialRecord, typename TExitRecord, typename TErrorRecord>
 class EA
 {
 public:
@@ -23,7 +23,7 @@ public:
 
     CSVRecordWriter<TEntryRecord> *mEntryCSVRecordWriter;
     CSVRecordWriter<TPartialRecord> *mPartialCSVRecordWriter;
-    CSVRecordWriter<TCloseRecord> *mExitCSVRecordWriter;
+    CSVRecordWriter<TExitRecord> *mExitCSVRecordWriter;
     CSVRecordWriter<TErrorRecord> *mErrorCSVRecordWriter;
 
     bool mStopTrading;
@@ -38,13 +38,14 @@ public:
     int mSetupType;
     int mStrategyMagicNumbers[];
 
-    List<double> mPartialRRs;
-    List<double> mPartialPercents;
+    List<double> *mPartialRRs;
+    List<double> *mPartialPercents;
 
     int mLastState;
 
 public:
-    EA(int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent);
+    EA(int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+       CSVRecordWriter<TEntryRecord> *&entryCSVRecordWriter, CSVRecordWriter<TExitRecord> *&exitCSVRecordWriter, CSVRecordWriter<TErrorRecord> *&errorCSVRecordWriter);
     ~EA();
 
     virtual int MagicNumber() = NULL;
@@ -63,20 +64,17 @@ public:
     virtual void CheckPreviousSetupTicket(int ticketIndex) = NULL;
     virtual void RecordTicketOpenData() = NULL;
     virtual void RecordTicketPartialData(int oldTicketIndex, int newTicketNumber) = NULL;
-    virtual void RecordTicketCloseData(int ticketNumber) = NULL;
-    virtual void RecordError(int error) = NULL;
+    virtual void RecordTicketCloseData(Ticket &ticket) = NULL;
+    virtual void RecordError(int error, string additionalInformation) = NULL;
     virtual void Reset() = NULL;
 
-    void SetRRPartial(double rr, double percent);
-
-    void SetEntryCSVRecordWriter(CSVRecordWriter<TEntryRecord> &writer) { mEntryCSVRecordWriter = writer; }
-    void SetPartialCSVRecordWriter(CSVRecordWriter<TPartialRecord> &writer) { mPartialCSVRecordWriter = writer; }
-    void SetExitCSVRecordWriter(CSVRecordWriter<TCloseRecord> &writer) { mExitCSVRecordWriter = writer; }
-    void SetErrorCSVRecordWriter(CSVRecordWriter<TErrorRecord> &writer) { mErrorCSVRecordWriter = writer; }
+    void AddPartial(double rr, double percent);
+    void SetPartialCSVRecordWriter(CSVRecordWriter<TPartialRecord> *&writer) { mPartialCSVRecordWriter = writer; }
 };
 
-template <typename TEntryRecord, typename TPartialRecord, typename TCloseRecord, typename TErrorRecord>
-EA::EA(int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent)
+template <typename TEntryRecord, typename TPartialRecord, typename TExitRecord, typename TErrorRecord>
+EA::EA(int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+       CSVRecordWriter<TEntryRecord> *&entryCSVRecordWriter, CSVRecordWriter<TExitRecord> *&exitCSVRecordWriter, CSVRecordWriter<TErrorRecord> *&errorCSVRecordWriter)
 {
     mStopTrading = false;
     mHasSetup = false;
@@ -87,20 +85,29 @@ EA::EA(int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPip
     mMaxSpreadPips = maxSpreadPips;
     mRiskPercent = riskPercent;
 
+    mEntryCSVRecordWriter = entryCSVRecordWriter;
+    mExitCSVRecordWriter = exitCSVRecordWriter;
+    mErrorCSVRecordWriter = errorCSVRecordWriter;
+
     mCurrentSetupTicket = new Ticket();
+    mPreviousSetupTickets = new TicketList();
+
     mPartialRRs = new List<double>;
     mPartialPercents = new List<double>;
 }
 
-template <typename TEntryRecord, typename TPartialRecord, typename TCloseRecord, typename TErrorRecord>
+template <typename TEntryRecord, typename TPartialRecord, typename TExitRecord, typename TErrorRecord>
 EA::~EA()
 {
     delete mCurrentSetupTicket;
     delete mPreviousSetupTickets;
+
+    delete mPartialRRs;
+    delete mPartialPercents;
 }
 
-template <typename TEntryRecord, typename TPartialRecord, typename TCloseRecord, typename TErrorRecord>
-void EA::SetRRPartial(double rr, double percent)
+template <typename TEntryRecord, typename TPartialRecord, typename TExitRecord, typename TErrorRecord>
+void EA::AddPartial(double rr, double percent)
 {
     int partials = mPartialRRs.Size();
 

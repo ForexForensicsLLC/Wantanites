@@ -762,7 +762,7 @@ static int OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(double paddingP
         return placeOrderError;
     }
 
-    ticket.SetNewTicket(newTicket);
+    ticket.UpdateTicketNumber(newTicket);
     return ERR_NO_ERROR;
 }
 
@@ -818,7 +818,7 @@ static int OrderHelper::CheckEditStopLossForStopOrderOnBreakOfMB(double paddingP
         return placeOrderError;
     }
 
-    ticket.SetNewTicket(newTicket);
+    ticket.UpdateTicketNumber(newTicket);
     return ERR_NO_ERROR;
 }
 /*

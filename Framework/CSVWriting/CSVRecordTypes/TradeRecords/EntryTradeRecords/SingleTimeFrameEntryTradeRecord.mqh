@@ -18,6 +18,8 @@ public:
 
     virtual void WriteHeaders(int fileHandle, bool writeDelimiter);
     virtual void WriteRecord(int fileHandle, bool writeDelimiter);
+
+    void ReadRow(int fileHandle);
 };
 
 SingleTimeFrameEntryTradeRecord::SingleTimeFrameEntryTradeRecord() : DefaultEntryTradeRecord() {}
@@ -33,4 +35,10 @@ void SingleTimeFrameEntryTradeRecord::WriteRecord(int fileHandle, bool writeDeli
 {
     DefaultEntryTradeRecord::WriteRecord(fileHandle, true);
     FileHelper::WriteString(fileHandle, EntryImage, writeDelimiter);
+}
+
+void SingleTimeFrameEntryTradeRecord::ReadRow(int fileHandle)
+{
+    DefaultEntryTradeRecord::ReadRow(fileHandle);
+    EntryImage = FileReadString(fileHandle);
 }

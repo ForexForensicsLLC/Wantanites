@@ -18,6 +18,8 @@ public:
 
     void WriteHeaders(int fileHandle, bool writeDelimiter);
     void WriteRecord(int fileHandle, bool writeDelimiter);
+
+    void ReadRow(int fileHandle);
 };
 
 DefaultEntryTradeRecord::DefaultEntryTradeRecord() : RecordColumns() {}
@@ -46,4 +48,17 @@ void DefaultEntryTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = 
     FileHelper::WriteDateTime(fileHandle, EntryTime);
     FileHelper::WriteDouble(fileHandle, EntryPrice, Digits);
     FileHelper::WriteDouble(fileHandle, EntryStopLoss, Digits, writeDelimiter);
+}
+
+void DefaultEntryTradeRecord::ReadRow(int fileHandle)
+{
+    MagicNumber = StrToInteger(FileReadString(fileHandle));
+    TicketNumber = StrToInteger(FileReadString(fileHandle));
+    Symbol = FileReadString(fileHandle);
+    OrderType = FileReadString(fileHandle);
+    AccountBalanceBefore = StrToDouble(FileReadString(fileHandle));
+    Lots = StrToDouble(FileReadString(fileHandle));
+    EntryTime = FileReadDatetime(fileHandle);
+    EntryPrice = StrToDouble(FileReadString(fileHandle));
+    EntryStopLoss = StrToDouble(FileReadString(fileHandle));
 }

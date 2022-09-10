@@ -18,6 +18,8 @@ public:
 
     virtual void WriteHeaders(int fileHandle, bool writeDelimiter);
     virtual void WriteRecord(int fileHandle, bool writeDelimiter);
+
+    void ReadRow(int fileHandle);
 };
 
 PartialTradeRecord::PartialTradeRecord() : RecordColumns() {}
@@ -39,4 +41,13 @@ void PartialTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = false
     FileHelper::WriteInteger(fileHandle, NewTicketNumber);
     FileHelper::WriteDouble(fileHandle, ExpectedPartialRR, 2);
     FileHelper::WriteDouble(fileHandle, ActualPartialRR, 2, writeDelimiter);
+}
+
+void PartialTradeRecord::ReadRow(int fileHandle)
+{
+    MagicNumber = StrToInteger(FileReadString(fileHandle));
+    TicketNumber = StrToInteger(FileReadString(fileHandle));
+    NewTicketNumber = StrToInteger(FileReadString(fileHandle));
+    ExpectedPartialRR = StrToDouble(FileReadString(fileHandle));
+    ActualPartialRR = StrToDouble(FileReadString(fileHandle));
 }

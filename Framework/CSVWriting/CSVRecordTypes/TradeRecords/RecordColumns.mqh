@@ -130,11 +130,11 @@ double RecordColumns::PotentialRR()
     double totalMovePips = TotalMovePips();
     if (OrderType == "Buy")
     {
-        return NormalizeDouble(totalMovePips / (EntryPrice - EntryStopLoss), 2);
+        return NormalizeDouble(totalMovePips / (OrderHelper::RangeToPips(EntryPrice - EntryStopLoss)), 2);
     }
     else if (OrderType == "Sell")
     {
-        return NormalizeDouble(totalMovePips / (EntryStopLoss - EntryPrice), 2);
+        return NormalizeDouble(totalMovePips / (OrderHelper::RangeToPips(EntryStopLoss - EntryPrice)), 2);
     }
 
     return 0.0;

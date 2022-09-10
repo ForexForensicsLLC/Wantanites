@@ -13,7 +13,6 @@
 
 class PartialList : public ObjectList<Partial *>
 {
-private:
 public:
     PartialList();
     PartialList(PartialList &partials);
@@ -33,7 +32,7 @@ PartialList::PartialList(PartialList &partials)
     for (int i = 0; i < partials.Size(); i++)
     {
         Partial *partial = new Partial(partials[i]);
-        mItems[i] = partial;
+        Add(partial);
     }
 }
 

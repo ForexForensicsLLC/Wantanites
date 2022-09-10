@@ -14,6 +14,7 @@
 enum Status
 {
     NOT_CHECKED,
+    WAS_CHECKED,
     IS_TRUE,
     IS_FALSE
 };
@@ -50,12 +51,7 @@ public:
     int TimeFrame() { return mTimeFrame; }
     int Number() { return mNumber; }
     int Type() { return mType; }
-    /*
-    int StartIndex() { return mStartIndex; }
-    int EndIndex() { return mEndIndex; }
-    int HighIndex() { return mHighIndex; }
-    int LowIndex() { return mLowIndex; }
-    */
+
     int StartIndex() { return iBarShift(mSymbol, mTimeFrame, mStartDateTime); }
     int EndIndex() { return iBarShift(mSymbol, mTimeFrame, mEndDateTime); }
     int HighIndex() { return iBarShift(mSymbol, mTimeFrame, mHighDateTime); }
@@ -65,6 +61,7 @@ public:
 
     int mSetupZoneNumber;
     Status mInsideSetupZone;
+    Status mPushedFurtherIntoSetupZone;
 
     bool CanUseLowIndexForILow(int &lowIndex);
     bool CanUseHighIndexForIHigh(int &highIndex);

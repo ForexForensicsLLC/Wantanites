@@ -25,14 +25,14 @@ input bool AllowMitigatedZones = false;
 input bool AllowZonesAfterMBValidation = true;
 input bool AllowWickBreaks = true;
 input bool PrintErrors = false;
-input bool CalculateOnTick = true;
+input bool CalculateOnTick = false;
 
 int SetupType = OP_SELL;
 
-CSVRecordWriter<MultiTimeFrameEntryTradeRecord> *entryWriter = new CSVRecordWriter<MultiTimeFrameEntryTradeRecord>("Katara/Bearish/", "Entries.csv");
-CSVRecordWriter<PartialTradeRecord> *partialWriter = new CSVRecordWriter<PartialTradeRecord>("Katara/Bearish/", "Partials.csv");
-CSVRecordWriter<MultiTimeFrameExitTradeRecord> *exitWriter = new CSVRecordWriter<MultiTimeFrameExitTradeRecord>("Katara/Bearish/", "Exits.csv");
-CSVRecordWriter<DefaultErrorRecord> *errorWriter = new CSVRecordWriter<DefaultErrorRecord>("Katara/Bearish/", "Errors.csv");
+CSVRecordWriter<MultiTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<MultiTimeFrameEntryTradeRecord>("Katara/Bearish/Entries/", "Entries.csv");
+CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>("Katara/Bearish/Partials/", "Partials.csv");
+CSVRecordWriter<MultiTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<MultiTimeFrameExitTradeRecord>("Katara/Bearish/Exits/", "Exits.csv");
+CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>("Katara/Bearish/Errors/", "Errors.csv");
 
 MBTracker *SetupMBT;
 MBTracker *ConfirmationMBT;
@@ -46,23 +46,20 @@ int OnInit()
     SetupMBT = new MBTracker(Symbol(), 60, MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
     ConfirmationMBT = new MBTracker(Symbol(), 1, MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
 
-    KSMB = new KataraSingleMB(SetupType, MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, SetupMBT, ConfirmationMBT);
-    KSMB.SetEntryCSVRecordWriter(entryWriter);
-    KSMB.SetPartialCSVRecordWriter(partialWriter);
-    KSMB.SetExitCSVRecordWriter(exitWriter);
-    KSMB.SetErrorCSVRecordWriter(errorWriter);
+    KSMB = new KataraSingleMB(SetupType, MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, SetupMBT, ConfirmationMBT);
+    KSMB.SetPartialCSVRecordWriter(PartialWriter);
+    KSMB.AddPartial(13, 50);
+    KSMB.AddPartial(30, 100);
 
-    KDMB = new KataraDoubleMB(SetupType, MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, SetupMBT, ConfirmationMBT);
-    KDMB.SetEntryCSVRecordWriter(entryWriter);
-    KDMB.SetPartialCSVRecordWriter(partialWriter);
-    KDMB.SetExitCSVRecordWriter(exitWriter);
-    KDMB.SetErrorCSVRecordWriter(errorWriter);
+    KDMB = new KataraDoubleMB(SetupType, MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, SetupMBT, ConfirmationMBT);
+    KDMB.SetPartialCSVRecordWriter(PartialWriter);
+    KDMB.AddPartial(13, 50);
+    KDMB.AddPartial(30, 100);
 
-    KLMB = new KataraLiquidationMB(SetupType, MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, SetupMBT, ConfirmationMBT);
-    KLMB.SetEntryCSVRecordWriter(entryWriter);
-    KLMB.SetPartialCSVRecordWriter(partialWriter);
-    KLMB.SetExitCSVRecordWriter(exitWriter);
-    KLMB.SetErrorCSVRecordWriter(errorWriter);
+    KLMB = new KataraLiquidationMB(SetupType, MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, SetupMBT, ConfirmationMBT);
+    KLMB.SetPartialCSVRecordWriter(PartialWriter);
+    KLMB.AddPartial(13, 50);
+    KLMB.AddPartial(30, 100);
 
     return (INIT_SUCCEEDED);
 }
@@ -76,10 +73,10 @@ void OnDeinit(const int reason)
     delete SetupMBT;
     delete ConfirmationMBT;
 
-    delete entryWriter;
-    delete partialWriter;
-    delete exitWriter;
-    delete errorWriter;
+    delete EntryWriter;
+    delete PartialWriter;
+    delete ExitWriter;
+    delete ErrorWriter;
 }
 
 void OnTick()

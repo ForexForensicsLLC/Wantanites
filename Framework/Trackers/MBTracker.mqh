@@ -27,6 +27,7 @@ private:
     int mMBsToTrack;
     int mCurrentMBs; // Used for tracking when to start cleaning up MBs
     int mMBsCreated; // Used for MBNumber
+    bool mHasNewData;
 
     int mCurrentBullishRetracementIndex;
     int mCurrentBearishRetracementIndex;
@@ -77,6 +78,7 @@ public:
     int TimeFrame() { return mTimeFrame; }
     int CurrentMBs() { return mCurrentMBs; }
     int MBsCreated() { return mMBsCreated; }
+    bool HasNewData();
 
     // --- Constructors / Destructors ---
     MBTracker(string symbol, int timeFrame,
@@ -146,6 +148,7 @@ void MBTracker::init(string symbol, int timeFrame,
     mInitialLoad = true;
     mPrintErrors = printErrors;
     mCalculateOnTick = calculateOnTick;
+    mHasNewData = true;
 
     mMBsToTrack = mbsToTrack;
     mMaxZonesInMB = maxZonesInMB;
@@ -206,6 +209,8 @@ void MBTracker::Update()
 //----------------------- MB Creation Methods ----------------------------
 void MBTracker::CalculateMB(int barIndex)
 {
+    mHasNewData = true;
+
     if (CheckPointer(mMBs[mMBsToTrack - 1]) == POINTER_INVALID)
     {
         CheckSetRetracement(barIndex, OP_BUY, -1);
@@ -693,6 +698,14 @@ MBTracker::~MBTracker()
     {
         delete mMBs[i];
     }
+}
+
+bool MBTracker::HasNewData()
+{
+    bool tempHasNewData = mHasNewData;
+    mHasNewData = false;
+
+    return tempHasNewData;
 }
 
 // -------------- Maintenance Methods --------------------------

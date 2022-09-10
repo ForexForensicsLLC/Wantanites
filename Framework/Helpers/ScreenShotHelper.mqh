@@ -88,13 +88,13 @@ static int ScreenShotHelper::TryTakeMultiTimeFrameScreenShot(string directory, i
 
     while (i < limit)
     {
-        secondChart = ChartNext(prevChart);
-
         // Have reached the end of the chart list
         if (secondChart < 0)
         {
             break;
         }
+
+        Print("Chart Symbol: ", ChartSymbol(secondChart), ", Chart Period: ", ChartPeriod(secondChart));
 
         if (ChartSymbol(secondChart) == Symbol() && ChartPeriod(secondChart) == secondChartTimeFrame)
         {
@@ -103,6 +103,8 @@ static int ScreenShotHelper::TryTakeMultiTimeFrameScreenShot(string directory, i
         }
 
         prevChart = secondChart;
+        secondChart = ChartNext(prevChart);
+
         i++;
     }
 
@@ -112,8 +114,8 @@ static int ScreenShotHelper::TryTakeMultiTimeFrameScreenShot(string directory, i
     }
 
     string dateTime = DateTimeToFilePathString(TimeCurrent());
-    currentChartImageName = directory + "Images/" + dateTime + "_Period " + IntegerToString(Period());
-    secondChartImageName = directory + "Images/" + dateTime + "_Period " + IntegerToString(secondChartTimeFrame);
+    currentChartImageName = directory + "Images/" + dateTime + "_Period " + IntegerToString(Period()) + ".png";
+    secondChartImageName = directory + "Images/" + dateTime + "_Period " + IntegerToString(secondChartTimeFrame) + ".png";
 
     if (!ChartScreenShot(ChartID(), currentChartImageName, 8000, 4400, ALIGN_RIGHT))
     {

@@ -18,12 +18,18 @@ public:
     ObjectList();
     ~ObjectList();
 
-    T operator[](int index) { return mItems[index]; }
+    T operator[](int index);
     void operator=(T &items[]); // doesn't create new objects. Only use when you won't be editing the same object in different places
 
     void Add(T &item);
     int Size() { return ArraySize(mItems); }
 };
+
+template <typename T>
+T ObjectList::operator[](int index)
+{
+    return mItems[index];
+}
 
 template <typename T>
 ObjectList::ObjectList()

@@ -12,7 +12,7 @@
 #include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
-class KataraDoubleMB : public EA<MultiTimeFrameEntryTradeRecord, PartialTradeRecord, MultiTimeFrameExitTradeRecord, DefaultErrorRecord>
+class KataraDoubleMB : public EA<MultiTimeFrameEntryTradeRecord, PartialTradeRecord, MultiTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     MBTracker *mSetupMBT;
@@ -26,8 +26,9 @@ public:
     int mSecondMBInConfirmationNumber;
 
 public:
-    KataraDoubleMB(int setupType, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent, MBTracker *&setupMBT,
-                   MBTracker *&confirmationMBT);
+    KataraDoubleMB(int setupType, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+                   CSVRecordWriter<MultiTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<MultiTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                   CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT, MBTracker *&confirmationMBT);
     ~KataraDoubleMB();
 
     virtual int MagicNumber() { return mSetupType == OP_BUY ? MagicNumbers::BullishKataraDoubleMB : MagicNumbers::BearishKataraDoubleMB; }
@@ -47,13 +48,15 @@ public:
     virtual void CheckPreviousSetupTicket(int ticketIndex);
     virtual void RecordTicketOpenData();
     virtual void RecordTicketPartialData(int oldTicketIndex, int newTicketNumber);
-    virtual void RecordTicketCloseData(int ticketNumber);
-    virtual void RecordError(int error);
+    virtual void RecordTicketCloseData(Ticket &ticket);
+    virtual void RecordError(int error, string additionalInformation);
     virtual void Reset();
 };
 
 KataraDoubleMB::KataraDoubleMB(int setupType, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                               MBTracker *&setupMBT, MBTracker *&confirmationMBT) : EA(maxTradesPerStrategy, stopLossPaddingPips, maxSpreadPips, riskPercent)
+                               CSVRecordWriter<MultiTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<MultiTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                               CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT, MBTracker *&confirmationMBT)
+    : EA(maxTradesPerStrategy, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mSetupMBT = setupMBT;
     mConfirmationMBT = confirmationMBT;
@@ -68,7 +71,8 @@ KataraDoubleMB::KataraDoubleMB(int setupType, int maxTradesPerStrategy, double s
     mSetupType = setupType;
 
     EAHelper::FindSetPreviousAndCurrentSetupTickets<KataraDoubleMB>(this);
-    EAHelper::SetPreviousSetupTicketsRRAcquired<KataraDoubleMB>(this);
+    EAHelper::UpdatePreviousSetupTicketsRRAcquried<KataraDoubleMB, PartialTradeRecord>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<KataraDoubleMB, MultiTimeFrameEntryTradeRecord>(this);
 
     if (setupType == OP_BUY)
     {
@@ -96,17 +100,21 @@ bool KataraDoubleMB::AllowedToTrade()
 
 void KataraDoubleMB::CheckSetSetup()
 {
-    if (EAHelper::CheckSetLiquidationMBAfterBreak<KataraDoubleMB>(this, mSetupMBT,
-                                                                  mFirstMBInSetupNumber, mSecondMBInSetupNumber, mLiquidationMBInSetupNumber, mSetupType))
+    if (EAHelper::CheckSetLiquidationMBSetup<KataraDoubleMB>(this, mSetupMBT,
+                                                             mFirstMBInSetupNumber, mSecondMBInSetupNumber, mLiquidationMBInSetupNumber, mSetupType, true))
     {
+
         if (EAHelper::LiquidationMBZoneIsHolding<KataraDoubleMB>(this, mSetupMBT, mFirstMBInSetupNumber, mSecondMBInSetupNumber))
         {
-            if (EAHelper::MBRetappedDeepestHoldingSetupZone<KataraDoubleMB>(this, mSetupMBT, mFirstMBInSetupNumber, mConfirmationMBT) ||
-                EAHelper::MBPushedFurtherIntoDeepestHoldingSetupZone<KataraDoubleMB>(this, mSetupMBT, mFirstMBInSetupNumber, mConfirmationMBT))
+
+            string additionalInformation = "";
+            if (EAHelper::MBRetappedDeepestHoldingSetupZone<KataraDoubleMB>(this, mFirstMBInSetupNumber, 1, mSetupMBT, mConfirmationMBT, additionalInformation) ||
+                EAHelper::MBPushedFurtherIntoDeepestHoldingSetupZone<KataraDoubleMB>(this, mFirstMBInSetupNumber, 1, mSetupMBT, mConfirmationMBT, additionalInformation))
             {
-                if (EAHelper::CheckSetSecondMBAfterBreak<KataraDoubleMB>(this, mConfirmationMBT, mFirstMBInConfirmationNumber,
-                                                                         mSecondMBInConfirmationNumber, mSetupType))
+                if (EAHelper::CheckSetDoubleMBSetup<KataraDoubleMB>(this, mConfirmationMBT, mFirstMBInConfirmationNumber,
+                                                                    mSecondMBInConfirmationNumber, mSetupType, true))
                 {
+                    RecordError(-300, additionalInformation);
                     mHasSetup = true;
                 }
             }
@@ -201,7 +209,7 @@ void KataraDoubleMB::CheckPreviousSetupTicket(int ticketIndex)
 
 void KataraDoubleMB::RecordTicketOpenData()
 {
-    EAHelper::RecordMultiTimeFrameEntryTradeRecord<KataraDoubleMB>(this, 1, 60);
+    EAHelper::RecordMultiTimeFrameEntryTradeRecord<KataraDoubleMB>(this, 60);
 }
 
 void KataraDoubleMB::RecordTicketPartialData(int oldTicketIndex, int newTicketNumber)
@@ -209,14 +217,14 @@ void KataraDoubleMB::RecordTicketPartialData(int oldTicketIndex, int newTicketNu
     EAHelper::RecordPartialTradeRecord<KataraDoubleMB>(this, oldTicketIndex, newTicketNumber);
 }
 
-void KataraDoubleMB::RecordTicketCloseData(int ticketNumber)
+void KataraDoubleMB::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordMultiTimeFrameExitTradeRecord<KataraDoubleMB>(this, ticketNumber, 1, 60);
+    EAHelper::RecordMultiTimeFrameExitTradeRecord<KataraDoubleMB>(this, ticket, 1, 60);
 }
 
-void KataraDoubleMB::RecordError(int error)
+void KataraDoubleMB::RecordError(int error, string additionalInformation = "")
 {
-    EAHelper::RecordDefaultErrorRecord<KataraDoubleMB>(this, error);
+    EAHelper::RecordSingleTimeFrameErrorRecord<KataraDoubleMB>(this, error, additionalInformation);
 }
 
 void KataraDoubleMB::Reset()

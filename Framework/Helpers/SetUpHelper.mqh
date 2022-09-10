@@ -38,14 +38,16 @@ private:
 
 public:
     // Tested
-    static int MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNumber, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &pushedFurtherIntoZone);
+    static int MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNumber, int nthConfirmationMB, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &pushedFurtherIntoZone,
+                                                          string &additionaInformation);
 
 private:
     static int GetEarlierSetupZoneMitigationIndexForLowerTimeFrame(ZoneState *setupZone, MBTracker *confirmationMBT);
 
 public:
     // Tested
-    static int MBRetappedDeepestHoldingSetupZone(int setupMBNumber, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &retappedZone);
+    static int MBRetappedDeepestHoldingSetupZone(int setupMBNumber, int nthConfirmationMB, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &retappedZone,
+                                                 string &additionalInformation);
 
     // ==========================================================================
     // Min ROC. From Time Stamp Setup Methods
@@ -189,7 +191,7 @@ static int SetupHelper::GetSetupMBValidationOnLowerTimeFrame(MBState *setupMB, M
 
 static int SetupHelper::GetEarlierSetupZoneMitigationIndexForLowerTimeFrame(ZoneState *setupZone, MBTracker *confirmationMBT)
 {
-    // check from zoneState.StartIndex() - EntryOffset - 2 to get us 2 candles past the imbalance, aka the first candle that can mitigated the zone.
+    // check from zoneState.StartIndex() - EntryOffset - 2 to get us 2 candles past the imbalance, aka the first candle that can mitigate the zone.
     datetime earliestZoneMitigationTime = iTime(setupZone.Symbol(), setupZone.TimeFrame(), setupZone.StartIndex() - setupZone.EntryOffset() - 2);
 
     if (earliestZoneMitigationTime > TimeCurrent())
@@ -200,7 +202,8 @@ static int SetupHelper::GetEarlierSetupZoneMitigationIndexForLowerTimeFrame(Zone
     return iBarShift(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), earliestZoneMitigationTime);
 }
 
-static int SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNumber, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &pushedFurtherIntoZone)
+static int SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNumber, int nthConfirmationMB, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &pushedFurtherIntoZone,
+                                                                   string &additionaInformation)
 {
     pushedFurtherIntoZone = false;
 
@@ -216,80 +219,123 @@ static int SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNu
         return ExecutionErrors::NO_ZONES;
     }
 
-    MBState *tempConfirmationMB;
-    if (!confirmationMBT.GetNthMostRecentMB(0, tempConfirmationMB))
+    additionaInformation += " Zone Entry: " + tempSetupZone.EntryPrice();
+
+    int lowerEarliestSetupZoneMitigationIndex = GetEarlierSetupZoneMitigationIndexForLowerTimeFrame(tempSetupZone, confirmationMBT);
+    if (lowerEarliestSetupZoneMitigationIndex == EMPTY)
+    {
+        return ExecutionErrors::LOWER_EARLIEST_SETUP_ZONE_MITIGATION_NOT_FOUND;
+    }
+
+    MBState *furthestMB;
+    bool foundFurthest = false;
+
+    // find our most recent furthest mb to compare to subsequent mbs
+    // start from 0 instead of nthConfirmationMB so that all mbs get updated correctly.
+    // If we start from nthConfirmationMB then the foundFurthest check would be inconsistent as well as
+    // if we don't happen to check the 0th, and it is the furthest, then that mb just wouldn't get checked and the next one would be considered the
+    // furhest, even if it isn't
+    for (int j = 0; j < confirmationMBT.CurrentMBs(); j++)
+    {
+        if (!confirmationMBT.GetNthMostRecentMB(j, furthestMB))
+        {
+            return TerminalErrors::MB_DOES_NOT_EXIST;
+        }
+
+        if (furthestMB.mPushedFurtherIntoSetupZone == Status::IS_TRUE)
+        {
+            foundFurthest = true;
+            break;
+        }
+    }
+
+    MBState *mostRecentMB;
+    if (!confirmationMBT.GetNthMostRecentMB(0, mostRecentMB))
     {
         return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
-    if (tempSetupZone.mFurthestConfirmationMBWithin == tempConfirmationMB.Number())
+    // if our most recent mb is updated, then all are updated
+    if (foundFurthest && mostRecentMB.mPushedFurtherIntoSetupZone == 0)
     {
-        pushedFurtherIntoZone = true;
-        return ERR_NO_ERROR;
-    }
 
-    if (tempSetupZone.mFurthestConfirmationMBWithin != EMPTY)
-    {
-        if (confirmationMBT.MBExists(tempSetupZone.mFurthestConfirmationMBWithin))
+        // update all mbs that haven't been checked yet
+        // need to go from left to right so that they are updated correctly in the order that they were created
+        for (int i = confirmationMBT.CurrentMBs() - 1; i >= 0; i--)
         {
-            MBState *furthestMBState;
-            if (!confirmationMBT.GetMB(tempSetupZone.mFurthestConfirmationMBWithin, furthestMBState))
+            MBState *tempConfirmationMB;
+            if (!confirmationMBT.GetNthMostRecentMB(i, tempConfirmationMB))
             {
                 return TerminalErrors::MB_DOES_NOT_EXIST;
+            }
+
+            // Already updated this MB, can continue to next
+            if (tempConfirmationMB.mPushedFurtherIntoSetupZone > 0)
+            {
+                continue;
+            }
+
+            // Don't need to worry about MBs before possible mitigation of setup zone
+            // Setting them to IS_FALSE will lead to false positives and negatives. Just leave them as NOT_CHECKED
+            if (tempConfirmationMB.StartIndex() > lowerEarliestSetupZoneMitigationIndex)
+            {
+                continue;
             }
 
             if (tempSetupMB.Type() == OP_BUY)
             {
                 if (iLow(tempConfirmationMB.Symbol(), tempConfirmationMB.TimeFrame(), tempConfirmationMB.LowIndex()) <
-                    iLow(furthestMBState.Symbol(), furthestMBState.TimeFrame(), furthestMBState.LowIndex()))
+                    iLow(furthestMB.Symbol(), furthestMB.TimeFrame(), furthestMB.LowIndex()))
                 {
-                    tempSetupZone.mFurthestConfirmationMBWithin = tempConfirmationMB.Number();
-                    pushedFurtherIntoZone = true;
+                    tempConfirmationMB.mPushedFurtherIntoSetupZone = Status::IS_TRUE;
+
+                    // need to update furthest so that subsequent MBs are calculated correctly
+                    furthestMB = tempConfirmationMB;
                 }
                 else
                 {
-                    pushedFurtherIntoZone = false;
+                    tempConfirmationMB.mPushedFurtherIntoSetupZone = Status::IS_FALSE;
                 }
             }
             else if (tempSetupMB.Type() == OP_SELL)
             {
                 if (iHigh(tempConfirmationMB.Symbol(), tempConfirmationMB.TimeFrame(), tempConfirmationMB.HighIndex()) >
-                    iHigh(furthestMBState.Symbol(), furthestMBState.TimeFrame(), furthestMBState.HighIndex()))
+                    iHigh(furthestMB.Symbol(), furthestMB.TimeFrame(), furthestMB.HighIndex()))
                 {
-                    tempSetupZone.mFurthestConfirmationMBWithin = tempConfirmationMB.Number();
-                    pushedFurtherIntoZone = true;
+                    tempConfirmationMB.mPushedFurtherIntoSetupZone = Status::IS_TRUE;
+
+                    // need to update furthest so that subsequent MBs are calculated correctly
+                    furthestMB = tempConfirmationMB;
                 }
                 else
                 {
-                    pushedFurtherIntoZone = false;
+                    tempConfirmationMB.mPushedFurtherIntoSetupZone = Status::IS_FALSE;
                 }
             }
         }
-        else
-        {
-            pushedFurtherIntoZone = false;
-        }
     }
-    // first mb within zone
-    else
+    // first MB In Zone
+    else if (!foundFurthest)
     {
-        int lowerValidatedIndex = GetSetupMBValidationOnLowerTimeFrame(tempSetupMB, confirmationMBT);
-        if (lowerValidatedIndex == EMPTY)
+        if (mostRecentMB.mPushedFurtherIntoSetupZone == Status::NOT_CHECKED)
         {
-            return ExecutionErrors::LOWER_EARLIEST_SETUP_ZONE_MITIGATION_NOT_FOUND;
-        }
-
-        if (tempConfirmationMB.StartIndex() < lowerValidatedIndex)
-        {
-            tempSetupZone.mFurthestConfirmationMBWithin = tempConfirmationMB.Number();
-            pushedFurtherIntoZone = true;
+            mostRecentMB.mPushedFurtherIntoSetupZone = Status::IS_TRUE;
         }
     }
 
+    // check to see if our nth mb was further
+    MBState *nthMB;
+    if (!confirmationMBT.GetNthMostRecentMB(nthConfirmationMB, nthMB))
+    {
+        return TerminalErrors::MB_DOES_NOT_EXIST;
+    }
+
+    pushedFurtherIntoZone = nthMB.mPushedFurtherIntoSetupZone == Status::IS_TRUE;
     return ERR_NO_ERROR;
 }
 
-static int SetupHelper::MBRetappedDeepestHoldingSetupZone(int setupMBNumber, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &retappedZone)
+static int SetupHelper::MBRetappedDeepestHoldingSetupZone(int setupMBNumber, int nthConfirmationMB, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &retappedZone,
+                                                          string &additionalInformation)
 {
     retappedZone = false;
 
@@ -305,77 +351,96 @@ static int SetupHelper::MBRetappedDeepestHoldingSetupZone(int setupMBNumber, MBT
         return ExecutionErrors::NO_ZONES;
     }
 
+    additionalInformation += " Zone Entry: " + tempSetupZone.EntryPrice();
+
     int lowerEarliestSetupZoneMitigationIndex = GetEarlierSetupZoneMitigationIndexForLowerTimeFrame(tempSetupZone, confirmationMBT);
     if (lowerEarliestSetupZoneMitigationIndex == EMPTY)
     {
         return ExecutionErrors::LOWER_EARLIEST_SETUP_ZONE_MITIGATION_NOT_FOUND;
     }
 
-    // Loop through all MBs that may not have been checked. Can happen when the current candle breaks the zone but doens't close below it. IsHolding() will return
-    // false for the temporary time that the candle is below the zone but will return True when it comes back before it
-    for (int i = 0; i < confirmationMBT.CurrentMBs(); i++)
+    MBState *mostRecentMB;
+    if (!confirmationMBT.GetNthMostRecentMB(0, mostRecentMB))
     {
-        MBState *tempConfirmationMBState;
-        if (!confirmationMBT.GetNthMostRecentMB(i, tempConfirmationMBState))
-        {
-            return TerminalErrors::MB_DOES_NOT_EXIST;
-        }
-
-        // All MBs Are Updated
-        if (tempConfirmationMBState.mInsideSetupZone > 0)
-        {
-            break;
-        }
-
-        // Don't need to worry about MBs before possible mitigation of setup zone
-        // Setting them to IS_FALSE will lead to false positives and negatives. Just leave them as NOT_CHECKED
-        if (tempConfirmationMBState.StartIndex() > lowerEarliestSetupZoneMitigationIndex)
-        {
-            break;
-        }
-
-        if (tempSetupMB.Type() == OP_BUY)
-        {
-            bool isInZone = iLow(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), tempConfirmationMBState.LowIndex()) <= tempSetupZone.EntryPrice();
-            if (isInZone)
-            {
-                tempConfirmationMBState.mInsideSetupZone = Status::IS_TRUE;
-            }
-            else
-            {
-                tempConfirmationMBState.mInsideSetupZone = Status::IS_FALSE;
-            }
-        }
-        else if (tempSetupMB.Type() == OP_SELL)
-        {
-            bool isInZone = iHigh(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), tempConfirmationMBState.HighIndex()) >= tempSetupZone.EntryPrice();
-            if (isInZone)
-            {
-                tempConfirmationMBState.mInsideSetupZone = Status::IS_TRUE;
-            }
-            else
-            {
-                tempConfirmationMBState.mInsideSetupZone = Status::IS_FALSE;
-            }
-        }
-
-        tempConfirmationMBState.mSetupZoneNumber = tempSetupZone.Number();
+        return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
-    MBState *tempConfirmationMBs[];
-    if (!confirmationMBT.GetNMostRecentMBs(2, tempConfirmationMBs))
+    // only update if our most recent mb hasn't been calcualted
+    if (mostRecentMB.mInsideSetupZone == 0)
+    {
+        // Loop through all MBs that may not have been checked. Can happen when the current candle breaks the zone but doens't close below it. IsHolding() will return
+        // false for the temporary time that the candle is below the zone but will return True when it comes back before it
+        // don't have to go from oldest to newest since they don't depend on each other
+        for (int i = 0; i < confirmationMBT.CurrentMBs(); i++)
+        {
+            MBState *tempConfirmationMBState;
+            if (!confirmationMBT.GetNthMostRecentMB(i, tempConfirmationMBState))
+            {
+                return TerminalErrors::MB_DOES_NOT_EXIST;
+            }
+
+            // All MBs Are Updated
+            if (tempConfirmationMBState.mInsideSetupZone > 0)
+            {
+                break;
+            }
+
+            // Don't need to worry about MBs before possible mitigation of setup zone
+            // Setting them to IS_FALSE will lead to false positives and negatives. Just leave them as NOT_CHECKED
+            if (tempConfirmationMBState.StartIndex() > lowerEarliestSetupZoneMitigationIndex)
+            {
+                break;
+            }
+
+            if (tempSetupMB.Type() == OP_BUY)
+            {
+                bool isInZone = iLow(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), tempConfirmationMBState.LowIndex()) <= tempSetupZone.EntryPrice();
+                if (isInZone)
+                {
+                    tempConfirmationMBState.mInsideSetupZone = Status::IS_TRUE;
+                }
+                else
+                {
+                    tempConfirmationMBState.mInsideSetupZone = Status::IS_FALSE;
+                }
+            }
+            else if (tempSetupMB.Type() == OP_SELL)
+            {
+                bool isInZone = iHigh(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), tempConfirmationMBState.HighIndex()) >= tempSetupZone.EntryPrice();
+                if (isInZone)
+                {
+                    tempConfirmationMBState.mInsideSetupZone = Status::IS_TRUE;
+                }
+                else
+                {
+                    tempConfirmationMBState.mInsideSetupZone = Status::IS_FALSE;
+                }
+            }
+
+            tempConfirmationMBState.mSetupZoneNumber = tempSetupZone.Number();
+        }
+    }
+
+    MBState *nthMB;
+    if (!confirmationMBT.GetNthMostRecentMB(nthConfirmationMB, nthMB))
+    {
+        return TerminalErrors::MB_DOES_NOT_EXIST;
+    }
+
+    MBState *previousMB;
+    if (!confirmationMBT.GetPreviousMB(nthMB.Number(), previousMB))
     {
         return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
     // First tap into a zone
-    if (tempConfirmationMBs[1].mInsideSetupZone == 0 || tempConfirmationMBs[1].mSetupZoneNumber != tempConfirmationMBs[0].mSetupZoneNumber)
+    if (previousMB.mInsideSetupZone == Status::NOT_CHECKED || previousMB.mSetupZoneNumber != nthMB.mSetupZoneNumber)
     {
-        retappedZone = tempConfirmationMBs[0].mInsideSetupZone == Status::IS_TRUE;
+        retappedZone = nthMB.mInsideSetupZone == Status::IS_TRUE;
     }
     else
     {
-        retappedZone = tempConfirmationMBs[0].mInsideSetupZone == Status::IS_TRUE && tempConfirmationMBs[1].mInsideSetupZone == Status::IS_FALSE;
+        retappedZone = nthMB.mInsideSetupZone == Status::IS_TRUE && previousMB.mInsideSetupZone == Status::IS_FALSE;
     }
 
     return ERR_NO_ERROR;
