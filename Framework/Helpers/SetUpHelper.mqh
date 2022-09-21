@@ -34,26 +34,29 @@ public:
     static int SameTypeSubsequentMB(int mbNumber, MBTracker *&mbt, out bool isTrue);
 
 private:
-    static int GetSetupMBValidationOnLowerTimeFrame(MBState *setupMB, MBTracker *confirmationMBT);
-
-public:
-    // Tested
+    static int GetEarlierSetupZoneMitigationIndexForLowerTimeFrame(ZoneState *setupZone, MBTracker *confirmationMBT);
     static int MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNumber, int nthConfirmationMB, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &pushedFurtherIntoZone,
                                                           string &additionaInformation);
-
-private:
-    static int GetEarlierSetupZoneMitigationIndexForLowerTimeFrame(ZoneState *setupZone, MBTracker *confirmationMBT);
-
-public:
-    // Tested
     static int MBRetappedDeepestHoldingSetupZone(int setupMBNumber, int nthConfirmationMB, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &retappedZone,
                                                  string &additionalInformation);
+
+public:
+    static int SetupZoneIsValidForConfirmation(int setupMBNumber, int nthConfirmationMB, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &isTrue, string &additionalInformation);
 
     // ==========================================================================
     // Min ROC. From Time Stamp Setup Methods
     // ==========================================================================
     // Tested
     static int BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker *&mbt, out bool &isTrue);
+
+    static bool HammerCandleStickPattern(string symbol, int timeFrame, int startingCandle);
+    static bool HammerCandleStickPatternBreak(string symbol, int timeFrame, bool useBody);
+
+    static bool ShootingStarCandleStickPattern(string symbol, int timeFrame, int startingCandle);
+    static bool ShootingStarCandleStickPatternBreak(string symbol, int timeFrame, bool useBody);
+
+    static bool BullishEngulfing(string symbol, int timeFrame, int startingCandle);
+    static bool BearishEngulfing(string symbol, int timeFrame, int startingCandle);
 };
 /*
 
@@ -138,7 +141,9 @@ static int SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOne
             return ExecutionErrors::SUBSEQUENT_MB_DOES_NOT_EXIST;
         }
 
-        isTrue = mbt.MBsClosestValidZoneIsHolding(mbOneNumber, thirdMBTempState.EndIndex());
+        // add one so that this can return true if the endindex is also tapping into a zone
+        // should be safe to do since the mb has already been calculated and printed
+        isTrue = mbt.MBsClosestValidZoneIsHolding(mbOneNumber, thirdMBTempState.EndIndex() + 1);
     }
     else if (secondMBTempMBState.Type() == OP_SELL)
     {
@@ -147,7 +152,9 @@ static int SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOne
             return ExecutionErrors::SUBSEQUENT_MB_DOES_NOT_EXIST;
         }
 
-        isTrue = mbt.MBsClosestValidZoneIsHolding(mbOneNumber, thirdMBTempState.EndIndex());
+        // add one so that this can return true if the endindex is also tapping into a zone
+        // should be safe to do since the mb has already been calculated and printed
+        isTrue = mbt.MBsClosestValidZoneIsHolding(mbOneNumber, thirdMBTempState.EndIndex() + 1);
     }
 
     return ERR_NO_ERROR;
@@ -157,36 +164,6 @@ static int SetupHelper::SameTypeSubsequentMB(int mbNumber, MBTracker *&mbt, out 
 {
     isTrue = mbt.MBIsMostRecent(mbNumber + 1) && mbt.HasNMostRecentConsecutiveMBs(2);
     return ERR_NO_ERROR;
-}
-
-static int SetupHelper::GetSetupMBValidationOnLowerTimeFrame(MBState *setupMB, MBTracker *confirmationMBT)
-{
-    datetime mbEndIndexTime = iTime(setupMB.Symbol(), setupMB.TimeFrame(), setupMB.EndIndex());
-    int lowerStartMBEndIndex = iBarShift(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), mbEndIndexTime);
-    int lowerEndMBEndIndex = lowerStartMBEndIndex - (confirmationMBT.TimeFrame() * 60);
-
-    if (setupMB.Type() == OP_BUY)
-    {
-        for (int i = lowerStartMBEndIndex; i >= lowerEndMBEndIndex; i--)
-        {
-            if (iHigh(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), i) > iHigh(setupMB.Symbol(), setupMB.TimeFrame(), setupMB.HighIndex()))
-            {
-                return i;
-            }
-        }
-    }
-    else if (setupMB.Type() == OP_SELL)
-    {
-        for (int i = lowerStartMBEndIndex; i >= lowerEndMBEndIndex; i--)
-        {
-            if (iLow(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), i) < iLow(setupMB.Symbol(), setupMB.TimeFrame(), setupMB.LowIndex()))
-            {
-                return i;
-            }
-        }
-    }
-
-    return EMPTY;
 }
 
 static int SetupHelper::GetEarlierSetupZoneMitigationIndexForLowerTimeFrame(ZoneState *setupZone, MBTracker *confirmationMBT)
@@ -227,41 +204,35 @@ static int SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNu
         return ExecutionErrors::LOWER_EARLIEST_SETUP_ZONE_MITIGATION_NOT_FOUND;
     }
 
-    MBState *furthestMB;
-    bool foundFurthest = false;
-
-    // find our most recent furthest mb to compare to subsequent mbs
-    // start from 0 instead of nthConfirmationMB so that all mbs get updated correctly.
-    // If we start from nthConfirmationMB then the foundFurthest check would be inconsistent as well as
-    // if we don't happen to check the 0th, and it is the furthest, then that mb just wouldn't get checked and the next one would be considered the
-    // furhest, even if it isn't
-    for (int j = 0; j < confirmationMBT.CurrentMBs(); j++)
-    {
-        if (!confirmationMBT.GetNthMostRecentMB(j, furthestMB))
-        {
-            return TerminalErrors::MB_DOES_NOT_EXIST;
-        }
-
-        if (furthestMB.mPushedFurtherIntoSetupZone == Status::IS_TRUE)
-        {
-            foundFurthest = true;
-            break;
-        }
-    }
-
     MBState *mostRecentMB;
     if (!confirmationMBT.GetNthMostRecentMB(0, mostRecentMB))
     {
         return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
-    // if our most recent mb is updated, then all are updated
-    if (foundFurthest && mostRecentMB.mPushedFurtherIntoSetupZone == 0)
+    int startIndex = 0;
+    for (int i = 0; i < confirmationMBT.CurrentMBs(); i++)
     {
+        MBState *tempMBState;
+        if (!confirmationMBT.GetNthMostRecentMB(i, tempMBState))
+        {
+            return TerminalErrors::MB_DOES_NOT_EXIST;
+        }
 
+        if (tempMBState.mInsideSetupZone == Status::IS_FALSE || tempMBState.mInsideSetupZone == Status::NOT_CHECKED)
+        {
+            startIndex = i;
+            break;
+        }
+    }
+
+    additionaInformation += " Furthest Point Was Set: " + tempSetupZone.mFurthestPointWasSet + " Lowest Low: " + tempSetupZone.mLowestConfirmationMBLowWithin;
+    // if our most recent mb is updated, then all are updated
+    if (tempSetupZone.mFurthestPointWasSet && mostRecentMB.mPushedFurtherIntoSetupZone == 0)
+    {
         // update all mbs that haven't been checked yet
         // need to go from left to right so that they are updated correctly in the order that they were created
-        for (int i = confirmationMBT.CurrentMBs() - 1; i >= 0; i--)
+        for (int i = startIndex; i >= 0; i--)
         {
             MBState *tempConfirmationMB;
             if (!confirmationMBT.GetNthMostRecentMB(i, tempConfirmationMB))
@@ -284,13 +255,20 @@ static int SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNu
 
             if (tempSetupMB.Type() == OP_BUY)
             {
-                if (iLow(tempConfirmationMB.Symbol(), tempConfirmationMB.TimeFrame(), tempConfirmationMB.LowIndex()) <
-                    iLow(furthestMB.Symbol(), furthestMB.TimeFrame(), furthestMB.LowIndex()))
+                double currentMBLow = iLow(tempConfirmationMB.Symbol(), tempConfirmationMB.TimeFrame(), tempConfirmationMB.LowIndex());
+                if (currentMBLow > tempSetupZone.EntryPrice())
+                {
+                    tempConfirmationMB.mPushedFurtherIntoSetupZone = Status::IS_FALSE;
+                    continue;
+                }
+
+                if (currentMBLow < tempSetupZone.mLowestConfirmationMBLowWithin)
                 {
                     tempConfirmationMB.mPushedFurtherIntoSetupZone = Status::IS_TRUE;
-
+                    additionaInformation += " This MB Low: " + currentMBLow +
+                                            " Furthest MB low: " + tempSetupZone.mLowestConfirmationMBLowWithin;
                     // need to update furthest so that subsequent MBs are calculated correctly
-                    furthestMB = tempConfirmationMB;
+                    tempSetupZone.mLowestConfirmationMBLowWithin = currentMBLow;
                 }
                 else
                 {
@@ -299,13 +277,19 @@ static int SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNu
             }
             else if (tempSetupMB.Type() == OP_SELL)
             {
-                if (iHigh(tempConfirmationMB.Symbol(), tempConfirmationMB.TimeFrame(), tempConfirmationMB.HighIndex()) >
-                    iHigh(furthestMB.Symbol(), furthestMB.TimeFrame(), furthestMB.HighIndex()))
+                double currentMBHigh = iHigh(tempConfirmationMB.Symbol(), tempConfirmationMB.TimeFrame(), tempConfirmationMB.HighIndex());
+                if (currentMBHigh < tempSetupZone.EntryPrice())
+                {
+                    tempConfirmationMB.mPushedFurtherIntoSetupZone = Status::IS_FALSE;
+                    continue;
+                }
+
+                if (currentMBHigh > tempSetupZone.mHighestConfirmationMBHighWithin)
                 {
                     tempConfirmationMB.mPushedFurtherIntoSetupZone = Status::IS_TRUE;
 
                     // need to update furthest so that subsequent MBs are calculated correctly
-                    furthestMB = tempConfirmationMB;
+                    tempSetupZone.mHighestConfirmationMBHighWithin = currentMBHigh;
                 }
                 else
                 {
@@ -315,12 +299,35 @@ static int SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNu
         }
     }
     // first MB In Zone
-    else if (!foundFurthest)
+    else if (!tempSetupZone.mFurthestPointWasSet)
     {
-        if (mostRecentMB.mPushedFurtherIntoSetupZone == Status::NOT_CHECKED)
+        additionaInformation += " First MB In Zone: " + mostRecentMB.Number();
+
+        if (tempSetupMB.Type() == OP_BUY)
         {
-            mostRecentMB.mPushedFurtherIntoSetupZone = Status::IS_TRUE;
+            double currentMBLow = iLow(mostRecentMB.Symbol(), mostRecentMB.TimeFrame(), mostRecentMB.LowIndex());
+            if (currentMBLow > tempSetupZone.EntryPrice())
+            {
+                mostRecentMB.mPushedFurtherIntoSetupZone = Status::IS_FALSE;
+                return ExecutionErrors::MB_NOT_IN_ZONE;
+            }
+
+            tempSetupZone.mLowestConfirmationMBLowWithin = currentMBLow;
         }
+        else if (tempSetupMB.Type() == OP_SELL)
+        {
+            double currentMBHigh = iHigh(mostRecentMB.Symbol(), mostRecentMB.TimeFrame(), mostRecentMB.HighIndex());
+            if (currentMBHigh < tempSetupZone.EntryPrice())
+            {
+                mostRecentMB.mPushedFurtherIntoSetupZone = Status::IS_FALSE;
+                return ExecutionErrors::MB_NOT_IN_ZONE;
+            }
+
+            tempSetupZone.mHighestConfirmationMBHighWithin = currentMBHigh;
+        }
+
+        mostRecentMB.mPushedFurtherIntoSetupZone = Status::IS_TRUE;
+        tempSetupZone.mFurthestPointWasSet = true;
     }
 
     // check to see if our nth mb was further
@@ -330,6 +337,7 @@ static int SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNu
         return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
+    additionaInformation += " Nth MB is Further: " + nthMB.mPushedFurtherIntoSetupZone;
     pushedFurtherIntoZone = nthMB.mPushedFurtherIntoSetupZone == Status::IS_TRUE;
     return ERR_NO_ERROR;
 }
@@ -401,6 +409,7 @@ static int SetupHelper::MBRetappedDeepestHoldingSetupZone(int setupMBNumber, int
                 }
                 else
                 {
+                    tempSetupZone.mFurthestPointWasSet = false;
                     tempConfirmationMBState.mInsideSetupZone = Status::IS_FALSE;
                 }
             }
@@ -413,6 +422,7 @@ static int SetupHelper::MBRetappedDeepestHoldingSetupZone(int setupMBNumber, int
                 }
                 else
                 {
+                    tempSetupZone.mFurthestPointWasSet = false;
                     tempConfirmationMBState.mInsideSetupZone = Status::IS_FALSE;
                 }
             }
@@ -443,6 +453,35 @@ static int SetupHelper::MBRetappedDeepestHoldingSetupZone(int setupMBNumber, int
         retappedZone = nthMB.mInsideSetupZone == Status::IS_TRUE && previousMB.mInsideSetupZone == Status::IS_FALSE;
     }
 
+    return ERR_NO_ERROR;
+}
+
+static int SetupHelper::SetupZoneIsValidForConfirmation(int setupMBNumber, int nthConfirmationMB, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &isTrue, string &additionalInformation)
+{
+    isTrue = false;
+
+    string info = "";
+    // Have to call retapped zone first since it can reset pushed further
+    bool retappedZone = false;
+    int retappedError = MBRetappedDeepestHoldingSetupZone(setupMBNumber, nthConfirmationMB, setupMBT, confirmationMBT, retappedZone, info);
+
+    additionalInformation += " Retapped Zone: " + retappedZone + " Error: " + retappedError + " Info: " + info;
+    if (retappedError != ERR_NO_ERROR)
+    {
+        return retappedError;
+    }
+
+    info = "";
+    bool pushedFurtherIntoZone = false;
+    int pushedFurtherError = MBPushedFurtherIntoDeepestHoldingSetupZone(setupMBNumber, nthConfirmationMB, setupMBT, confirmationMBT, pushedFurtherIntoZone, info);
+
+    additionalInformation += " Pushed Further: " + pushedFurtherIntoZone + " Error: " + pushedFurtherError + " Info: " + info;
+    if (pushedFurtherError != ERR_NO_ERROR)
+    {
+        return pushedFurtherError;
+    }
+
+    isTrue = retappedZone || pushedFurtherIntoZone;
     return ERR_NO_ERROR;
 }
 /*
@@ -498,4 +537,66 @@ static int SetupHelper::BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker 
 
     isTrue = breakingUp || breakingDown;
     return ERR_NO_ERROR;
+}
+
+// bullish candlestick pattern where a candle wick liquidates the candle low before it
+// hopint to see price break up after
+static bool SetupHelper::HammerCandleStickPattern(string symbol, int timeFrame, int startingCandle)
+{
+    bool HighNotAbovePreviuos = iHigh(symbol, timeFrame, startingCandle) < iHigh(symbol, timeFrame, startingCandle + 1);
+    bool bodyNotBelowPrevious = MathMin(iOpen(symbol, timeFrame, startingCandle), iClose(symbol, timeFrame, startingCandle)) > iLow(symbol, timeFrame, startingCandle + 1);
+    bool wickBelowPreviuos = iLow(symbol, timeFrame, startingCandle) < iLow(symbol, timeFrame, startingCandle + 1);
+
+    return HighNotAbovePreviuos && bodyNotBelowPrevious && wickBelowPreviuos;
+}
+
+static bool SetupHelper::HammerCandleStickPatternBreak(string symbol, int timeFrame, bool useBody = true)
+{
+    bool HighNotAbovePreviuos = iHigh(symbol, timeFrame, 2) < iHigh(symbol, timeFrame, 3);
+    bool bodyNotBelowPrevious = MathMin(iOpen(symbol, timeFrame, 2), iClose(symbol, timeFrame, 2)) > iLow(symbol, timeFrame, 3);
+    bool wickBelowPreviuos = iLow(symbol, timeFrame, 2) < iLow(symbol, timeFrame, 3);
+    bool breakHigher = (useBody && MathMax(iOpen(symbol, timeFrame, 1), iClose(symbol, timeFrame, 1)) > iHigh(symbol, timeFrame, 2)) ||
+                       (!useBody && iHigh(symbol, timeFrame, 1) > iHigh(symbol, timeFrame, 2));
+
+    return HighNotAbovePreviuos && bodyNotBelowPrevious && wickBelowPreviuos && breakHigher;
+}
+
+// bearish candlestick pattern where a candle wick liqudiates the candle high before it
+// hopint to see price break down after
+static bool SetupHelper::ShootingStarCandleStickPattern(string symbol, int timeFrame, int startingCandle)
+{
+    bool lowNotBelowPrevious = iLow(symbol, timeFrame, startingCandle) > iLow(symbol, timeFrame, startingCandle + 1);
+    bool bodyNotAbovePrevious = MathMax(iOpen(symbol, timeFrame, startingCandle), iClose(symbol, timeFrame, startingCandle)) < iHigh(symbol, timeFrame, startingCandle + 1);
+    bool wickAbovePrevious = iHigh(symbol, timeFrame, startingCandle) > iHigh(symbol, timeFrame, startingCandle + 1);
+
+    return lowNotBelowPrevious && bodyNotAbovePrevious && wickAbovePrevious;
+}
+
+static bool SetupHelper::ShootingStarCandleStickPatternBreak(string symbol, int timeFrame, bool useBody = true)
+{
+    bool lowNotBelowPrevious = iLow(symbol, timeFrame, 2) > iLow(symbol, timeFrame, 3);
+    bool bodyNotAbovePrevious = MathMax(iOpen(symbol, timeFrame, 2), iClose(symbol, timeFrame, 2)) < iHigh(symbol, timeFrame, 3);
+    bool wickAbovePrevious = iHigh(symbol, timeFrame, 2) > iHigh(symbol, timeFrame, 3);
+    bool breakLower = (useBody && MathMin(iOpen(symbol, timeFrame, 1), iClose(symbol, timeFrame, 1)) < iLow(symbol, timeFrame, 2)) ||
+                      (!useBody && iLow(symbol, timeFrame, 1) < iLow(symbol, timeFrame, 2));
+
+    return lowNotBelowPrevious && bodyNotAbovePrevious && wickAbovePrevious && breakLower;
+}
+
+static bool SetupHelper::BullishEngulfing(string symbol, int timeFrame, int startingCandle)
+{
+    bool isBullish = iOpen(symbol, timeFrame, startingCandle) < iClose(symbol, timeFrame, startingCandle);
+    bool belowPreviousBody = MathMin(iOpen(symbol, timeFrame, startingCandle + 1), iClose(symbol, timeFrame, startingCandle + 1)) >= iOpen(symbol, timeFrame, startingCandle);
+    bool bodyAbovePreviousHigh = iHigh(symbol, timeFrame, startingCandle + 1) < iClose(symbol, timeFrame, startingCandle);
+
+    return isBullish && belowPreviousBody && bodyAbovePreviousHigh;
+}
+
+static bool SetupHelper::BearishEngulfing(string symbol, int timeFrame, int startingCandle)
+{
+    bool isBearish = iOpen(symbol, timeFrame, startingCandle) > iClose(symbol, timeFrame, startingCandle);
+    bool abovePreviousBody = MathMax(iOpen(symbol, timeFrame, startingCandle + 1), iClose(symbol, timeFrame, startingCandle + 1)) <= iOpen(symbol, timeFrame, startingCandle);
+    bool bodyBelowPreviousLow = iLow(symbol, timeFrame, startingCandle + 1) > iClose(symbol, timeFrame, startingCandle);
+
+    return isBearish && abovePreviousBody && bodyBelowPreviousLow;
 }

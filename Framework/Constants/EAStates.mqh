@@ -35,6 +35,7 @@ public:
     static int EAStates::CHECKING_IF_MOVED_TO_BREAK_EVEN;
     static int EAStates::CHECKING_PREVIOUS_SETUP_TICKET;
     static int EAStates::SETTING_OPEN_DATA_ON_TICKET;
+    static int EAStates::CHECKING_TO_PARTIAL;
 
     // 8200s Are For Setup Related States
     static int EAStates::CHECKING_FOR_SETUP;
@@ -50,8 +51,10 @@ public:
     static int EAStates::CHECKING_IF_BROKE_RANGE_END;
     static int EAStates::CHECKING_GETTING_SECOND_MB_IN_SETUP;
     static int EAStates::CHECKING_GETTING_LIQUIDATION_MB_IN_SETUP;
-    static int EAStates::CHECKING_IF_PUSHED_FURTHER_INTO_ZONE;
-    static int EAStates::CHECKING_IF_RETAPPED_ZONE;
+    static int EAStates::CHECKING_IF_SETUP_ZONE_IS_VALID_FOR_CONFIRMATION;
+    static int EAStates::CHECKING_FOR_SINGLE_MB_SETUP;
+    static int EAStates::CHECKING_FOR_DOUBLE_MB_SETUP;
+    static int EAStates::CHECKING_FOR_LIQUIDATION_MB_SETUP;
 
     // 8300s Are For Confirmation Related States
     static int EAStates::CHECKING_FOR_CONFIRMATION;
@@ -83,6 +86,7 @@ static int EAStates::RECORDING_PARTIAL_DATA = 8110;
 static int EAStates::CHECKING_IF_MOVED_TO_BREAK_EVEN = 8111;
 static int EAStates::CHECKING_PREVIOUS_SETUP_TICKET = 8112;
 static int EAStates::SETTING_OPEN_DATA_ON_TICKET = 8113;
+static int EAStates::CHECKING_TO_PARTIAL = 8114;
 
 // 8200s Are For Setup Related States
 static int EAStates::CHECKING_FOR_SETUP = 8200;
@@ -98,8 +102,10 @@ static int EAStates::GETTING_FIRST_MB_IN_SETUP = 8209;
 static int EAStates::CHECKING_IF_BROKE_RANGE_END = 8210;
 static int EAStates::CHECKING_GETTING_SECOND_MB_IN_SETUP = 8211;
 static int EAStates::CHECKING_GETTING_LIQUIDATION_MB_IN_SETUP = 8212;
-static int EAStates::CHECKING_IF_PUSHED_FURTHER_INTO_ZONE = 8213;
-static int EAStates::CHECKING_IF_RETAPPED_ZONE = 8214;
+static int EAStates::CHECKING_IF_SETUP_ZONE_IS_VALID_FOR_CONFIRMATION = 8213;
+static int EAStates::CHECKING_FOR_SINGLE_MB_SETUP = 8214;
+static int EAStates::CHECKING_FOR_DOUBLE_MB_SETUP = 8215;
+static int EAStates::CHECKING_FOR_LIQUIDATION_MB_SETUP = 8216;
 
 // 8300s Are For Confirmation Related States
 static int EAStates::CHECKING_FOR_CONFIRMATION = 8300;

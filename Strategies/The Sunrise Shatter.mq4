@@ -15,7 +15,8 @@
 // --- EA Inputs ---
 input double StopLossPaddingPips = 0;
 input double RiskPercent = 0.25;
-input int MaxTradesPerStrategy = 1;
+input int MaxCurrentSetupTradesAtOnce = 1;
+input int MaxTradesPerDay = 5;
 input int MaxSpreadPips = 10;
 
 // -- MBTracker Inputs
@@ -50,9 +51,12 @@ int OnInit()
     MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
     MRFTS = new MinROCFromTimeStamp(Symbol(), Period(), ServerHourStartTime, ServerHourEndTime, ServerMinuteStartTime, ServerMinuteEndTime, MinROCPercent);
 
-    TSSSMB = new TheSunriseShatterSingleMB(Period(), MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, MRFTS, MBT);
-    TSSDMB = new TheSunriseShatterDoubleMB(Period(), MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, MRFTS, MBT);
-    TSSLMB = new TheSunriseShatterLiquidationMB(Period(), MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, MRFTS, MBT);
+    TSSSMB = new TheSunriseShatterSingleMB(Period(), MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
+                                           ErrorWriter, MRFTS, MBT);
+    TSSDMB = new TheSunriseShatterDoubleMB(Period(), MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
+                                           ErrorWriter, MRFTS, MBT);
+    TSSLMB = new TheSunriseShatterLiquidationMB(Period(), MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                                ExitWriter, ErrorWriter, MRFTS, MBT);
 
     return (INIT_SUCCEEDED);
 }

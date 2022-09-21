@@ -48,7 +48,9 @@ Zone::Zone(string symbol, int timeFrame, int mbNumber, int zoneNumber, int type,
     mDrawn = false;
     mWasRetrieved = false;
 
-    mFurthestConfirmationMBWithin = EMPTY;
+    mFurthestPointWasSet = false;
+    mLowestConfirmationMBLowWithin = 0.0;
+    mHighestConfirmationMBHighWithin = 0.0;
 
     mName = "Zone: " + IntegerToString(timeFrame) + "_" + IntegerToString(mNumber) + ", MB: " + IntegerToString(mMBNumber);
 }

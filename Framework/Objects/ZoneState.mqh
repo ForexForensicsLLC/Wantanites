@@ -9,7 +9,6 @@
 #property strict
 
 #include <SummitCapital\Framework\Helpers\MQLHelper.mqh>
-
 class ZoneState
 {
 protected:
@@ -57,7 +56,9 @@ public:
     // --- Computed Properties ---
     double Range() { return MathAbs(mEntryPrice - mExitPrice); }
 
-    int mFurthestConfirmationMBWithin;
+    bool mFurthestPointWasSet;
+    double mLowestConfirmationMBLowWithin;
+    double mHighestConfirmationMBHighWithin;
 
     // Tested
     bool IsHolding(int barIndex);

@@ -30,7 +30,7 @@ private:
     datetime mOpenTime;
     double mLots;
 
-    int SelectTicket(string action);
+    int SelectTicket(string action, bool fallbackSearchOpen);
     int InternalCheckActive(bool &active);
     int InternalCheckClosed(bool &closed);
 
@@ -199,14 +199,18 @@ void Ticket::UpdateTicketNumber(int newTicketNumber)
     mStopLossIsMovedToBreakEven = false;
 }
 
-int Ticket::SelectTicket(string action)
+int Ticket::SelectTicket(string action, bool fallbackSearchOpen)
 {
     if (!OrderSelect(mNumber, SELECT_BY_TICKET))
     {
         bool found = false;
-        for (int i = 0; i < OrdersTotal(); i++)
+
+        int count = fallbackSearchOpen ? OrdersTotal() : OrdersHistoryTotal();
+        int pool = fallbackSearchOpen ? MODE_TRADES : MODE_HISTORY;
+
+        for (int i = 0; i < count; i++)
         {
-            if (!OrderSelect(i, SELECT_BY_POS))
+            if (!OrderSelect(i, SELECT_BY_POS, pool))
             {
                 int error = GetLastError();
                 SendMail("Failed To Select Order By Ticket When " + action,
@@ -236,7 +240,7 @@ int Ticket::SelectTicket(string action)
 
 int Ticket::SelectIfOpen(string action)
 {
-    int selectOrderError = SelectTicket(action);
+    int selectOrderError = SelectTicket(action, true);
     if (selectOrderError != ERR_NO_ERROR)
     {
         return selectOrderError;
@@ -252,7 +256,7 @@ int Ticket::SelectIfOpen(string action)
 
 int Ticket::SelectIfClosed(string action)
 {
-    int selectOrderError = SelectTicket(action);
+    int selectOrderError = SelectTicket(action, false);
     if (selectOrderError != ERR_NO_ERROR)
     {
         return selectOrderError;

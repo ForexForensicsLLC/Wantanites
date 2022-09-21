@@ -25,12 +25,12 @@ public:
     int mTimeFrame;
 
 public:
-    TheSunriseShatterLiquidationMB(int timeFrame, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+    TheSunriseShatterLiquidationMB(int timeFrame, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                                    CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
                                    CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MinROCFromTimeStamp *&mrfts, MBTracker *&mbt);
     ~TheSunriseShatterLiquidationMB();
 
-    virtual int MagicNumber() { return MagicNumbers::TheSunriseShatterLiquidationMB; }
+    virtual int MagicNumber() { return mMBT.SetupType() == OP_BUY ? MagicNumbers::TheSunriseShatterBullishLiquidationMB : MagicNumbers::TheSunriseShatterBearishLiquidationMB; }
 
     virtual void Run();
     virtual bool AllowedToTrade();
@@ -52,11 +52,11 @@ public:
     virtual void Reset();
 };
 
-TheSunriseShatterLiquidationMB::TheSunriseShatterLiquidationMB(int timeFrame, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips,
+TheSunriseShatterLiquidationMB::TheSunriseShatterLiquidationMB(int timeFrame, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips,
                                                                double riskPercent, CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter,
                                                                CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
                                                                CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MinROCFromTimeStamp *&mrfts, MBTracker *&mbt)
-    : EA(maxTradesPerStrategy, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
+    : EA(maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mMRFTS = mrfts;
     mMBT = mbt;
@@ -68,9 +68,17 @@ TheSunriseShatterLiquidationMB::TheSunriseShatterLiquidationMB(int timeFrame, in
 
     mTimeFrame = timeFrame;
 
-    EAHelper::FillSunriseShatterMagicNumbers<TheSunriseShatterLiquidationMB>(this);
     EAHelper::FindSetPreviousAndCurrentSetupTickets<TheSunriseShatterLiquidationMB>(this);
     EAHelper::SetPreviousSetupTicketsOpenData<TheSunriseShatterLiquidationMB, SingleTimeFrameEntryTradeRecord>(this);
+
+    if (mMBT.SetupType() == OP_BUY)
+    {
+        EAHelper::FillSunriseShatterBullishMagicNumbers<TheSunriseShatterLiquidationMB>(this);
+    }
+    else
+    {
+        EAHelper::FillSunriseShatterBearishMagicNumbers<TheSunriseShatterLiquidationMB>(this);
+    }
 }
 
 TheSunriseShatterLiquidationMB::~TheSunriseShatterLiquidationMB()
@@ -102,12 +110,16 @@ void TheSunriseShatterLiquidationMB::CheckInvalidateSetup()
     // Want to try to close the pending order if we have a setup or not and we break the range start
     if (EAHelper::CheckBrokeMBRangeStart<TheSunriseShatterLiquidationMB>(this, mMBT, mFirstMBInSetupNumber))
     {
+        // delete any pending orders and stop trading
+        EAHelper::InvalidateSetup<TheSunriseShatterLiquidationMB>(this, true, true);
         return;
     }
 
     // should be checked before checking if we broke the range end so that it can cancel the pending order
     if (EAHelper::CheckCrossedOpenPriceAfterMinROC<TheSunriseShatterLiquidationMB>(this))
     {
+        // delete any pending orders and stop trading
+        EAHelper::InvalidateSetup<TheSunriseShatterLiquidationMB>(this, true, true);
         return;
     }
 
@@ -116,8 +128,11 @@ void TheSunriseShatterLiquidationMB::CheckInvalidateSetup()
         return;
     }
 
-    if (EAHelper::CheckBrokeMBRangeStart<TheSunriseShatterLiquidationMB>(this, mMBT, mLiquidationMBInSetupNumber, false))
+    // Broke Confirmation range end
+    if (EAHelper::CheckBrokeMBRangeStart<TheSunriseShatterLiquidationMB>(this, mMBT, mLiquidationMBInSetupNumber))
     {
+        // don't delete the pending order since the setup held and continued
+        EAHelper::InvalidateSetup<TheSunriseShatterLiquidationMB>(this, false, true);
         return;
     }
 }
@@ -136,13 +151,13 @@ void TheSunriseShatterLiquidationMB::PlaceOrders()
 {
     if (EAHelper::PrePlaceOrderChecks<TheSunriseShatterLiquidationMB>(this))
     {
-        EAHelper::PlaceStopOrderForBreakOfMB<TheSunriseShatterLiquidationMB>(this, mMBT, mLiquidationMBInSetupNumber);
+        EAHelper::PlaceStopOrderForPendingLiquidationSetupValidation<TheSunriseShatterLiquidationMB>(this, mMBT, mLiquidationMBInSetupNumber);
     }
 }
 
 void TheSunriseShatterLiquidationMB::ManageCurrentPendingSetupTicket()
 {
-    EAHelper::CheckEditStopLossForBreakOfMB<TheSunriseShatterLiquidationMB>(this, mMBT, mLiquidationMBInSetupNumber);
+    EAHelper::CheckEditStopLossForLiquidationMBSetup<TheSunriseShatterLiquidationMB>(this, mMBT, mLiquidationMBInSetupNumber);
 }
 
 void TheSunriseShatterLiquidationMB::ManageCurrentActiveSetupTicket()

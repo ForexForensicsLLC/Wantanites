@@ -44,6 +44,8 @@ BoolUnitTest<DefaultUnitTestRecord> *SecondthMBRetappedBullishZoneUnitTest;
 BoolUnitTest<DefaultUnitTestRecord> *ZerothIsTrueUnitTest;
 BoolUnitTest<DefaultUnitTestRecord> *OnethIsTrueUnitTest;
 
+BoolUnitTest<DefaultUnitTestRecord> *RetappedLiquidationZoneSetupUnitTest;
+
 int OnInit()
 {
     RetappedBullishZoneUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
@@ -70,6 +72,10 @@ int OnInit()
         Directory, "1th is true", "Should return true indicating the zone was retapped",
         NumberOfAsserts, true, OnethIsTrue);
 
+    RetappedLiquidationZoneSetupUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
+        Directory, "Retapped Liquidation Zone Setup", "Should return true indicating the zone was retapped",
+        NumberOfAsserts, true, RetappedLiquidationZoneSetup);
+
     SetupMBT = new MBTracker(Symbol(), 60, MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
     ConfirmationMBT = new MBTracker(Symbol(), 1, 200, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
 
@@ -89,6 +95,8 @@ void OnDeinit(const int reason)
 
     delete ZerothIsTrueUnitTest;
     delete OnethIsTrueUnitTest;
+
+    delete RetappedLiquidationZoneSetupUnitTest;
 }
 
 void OnTick()
@@ -103,14 +111,16 @@ void OnTick()
 
     if (mbsCreated < ConfirmationMBT.MBsCreated())
     {
-        RetappedBullishZoneUnitTest.Assert();
-        //  RetappedBearishZoneUnitTest.Assert();
+        // RetappedBullishZoneUnitTest.Assert();
+        //   RetappedBearishZoneUnitTest.Assert();
 
-        FirstnthMBRetappedBullishZoneUnitTest.Assert();
-        SecondthMBRetappedBullishZoneUnitTest.Assert();
+        // FirstnthMBRetappedBullishZoneUnitTest.Assert();
+        // SecondthMBRetappedBullishZoneUnitTest.Assert();
 
         // ZerothIsTrueUnitTest.Assert();
         // OnethIsTrueUnitTest.Assert();
+
+        RetappedLiquidationZoneSetupUnitTest.Assert();
 
         mbsCreated = ConfirmationMBT.MBsCreated();
     }
@@ -145,8 +155,9 @@ int BullishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 
     ut.PendingRecord.AdditionalInformation = "Previous Inside: " + confirmationMBState.mInsideSetupZone + " Confirmation MB : " + confirmationMBState.Number();
 
+    string additionalInformation;
     bool retappedZone = false;
-    int error = SetupHelper::MBRetappedDeepestHoldingSetupZone(tempMBState.Number(), 0, SetupMBT, ConfirmationMBT, retappedZone);
+    int error = SetupHelper::MBRetappedDeepestHoldingSetupZone(tempMBState.Number(), 0, SetupMBT, ConfirmationMBT, retappedZone, additionalInformation);
     if (error != ERR_NO_ERROR)
     {
         return error;
@@ -190,8 +201,9 @@ int BearishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
+    string additionalInformation;
     bool retappedZone = false;
-    int error = SetupHelper::MBRetappedDeepestHoldingSetupZone(tempMBState.Number(), 0, SetupMBT, ConfirmationMBT, retappedZone);
+    int error = SetupHelper::MBRetappedDeepestHoldingSetupZone(tempMBState.Number(), 0, SetupMBT, ConfirmationMBT, retappedZone, additionalInformation);
     if (error != ERR_NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
@@ -235,8 +247,9 @@ int FirstnthMBRetappedBullishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool 
 
     ut.PendingRecord.AdditionalInformation = "Previous Inside: " + confirmationMBState.mInsideSetupZone + " Confirmation MB : " + confirmationMBState.Number();
 
+    string additionalInformation;
     bool retappedZone = false;
-    int error = SetupHelper::MBRetappedDeepestHoldingSetupZone(tempMBState.Number(), 1, SetupMBT, ConfirmationMBT, retappedZone);
+    int error = SetupHelper::MBRetappedDeepestHoldingSetupZone(tempMBState.Number(), 1, SetupMBT, ConfirmationMBT, retappedZone, additionalInformation);
     if (error != ERR_NO_ERROR)
     {
         return error;
@@ -280,8 +293,9 @@ int SecondthMBRetappedBullishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool 
 
     ut.PendingRecord.AdditionalInformation = "Previous Inside: " + confirmationMBState.mInsideSetupZone + " Confirmation MB : " + confirmationMBState.Number();
 
+    string additionalInformation;
     bool retappedZone = false;
-    int error = SetupHelper::MBRetappedDeepestHoldingSetupZone(tempMBState.Number(), 2, SetupMBT, ConfirmationMBT, retappedZone);
+    int error = SetupHelper::MBRetappedDeepestHoldingSetupZone(tempMBState.Number(), 2, SetupMBT, ConfirmationMBT, retappedZone, additionalInformation);
     if (error != ERR_NO_ERROR)
     {
         return error;
@@ -325,8 +339,9 @@ int ZerothIsTrue(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 
     ut.PendingRecord.AdditionalInformation = "Inside: " + confirmationMBState.mInsideSetupZone + " Confirmation MB : " + confirmationMBState.Number();
 
+    string additionalInformation;
     bool retappedZone = false;
-    int error = SetupHelper::MBRetappedDeepestHoldingSetupZone(tempMBState.Number(), 0, SetupMBT, ConfirmationMBT, retappedZone);
+    int error = SetupHelper::MBRetappedDeepestHoldingSetupZone(tempMBState.Number(), 0, SetupMBT, ConfirmationMBT, retappedZone, additionalInformation);
     if (error != ERR_NO_ERROR)
     {
         return error;
@@ -375,8 +390,9 @@ int OnethIsTrue(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 
     ut.PendingRecord.AdditionalInformation = "Previous Inside: " + confirmationMBState.mInsideSetupZone + " Confirmation MB : " + confirmationMBState.Number();
 
+    string additionalInformation;
     bool retappedZone = false;
-    int error = SetupHelper::MBRetappedDeepestHoldingSetupZone(tempMBState.Number(), 1, SetupMBT, ConfirmationMBT, retappedZone);
+    int error = SetupHelper::MBRetappedDeepestHoldingSetupZone(tempMBState.Number(), 1, SetupMBT, ConfirmationMBT, retappedZone, additionalInformation);
     if (error != ERR_NO_ERROR)
     {
         return error;
@@ -387,6 +403,104 @@ int OnethIsTrue(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
+    ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
+    count += 1;
+    ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);
+    count += 1;
+    actual = retappedZone;
+
+    return Results::UNIT_TEST_RAN;
+}
+
+int RetappedLiquidationZoneSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
+{
+    static int count = 0;
+    static int MBOneNumber = EMPTY;
+    static int MBTwoNumber = EMPTY;
+    static int LiquidationMBNumber = EMPTY;
+
+    if (MBOneNumber == EMPTY)
+    {
+        MBState *mostRecentMB;
+        if (!SetupMBT.GetNthMostRecentMB(0, mostRecentMB))
+        {
+            return Results::UNIT_TEST_DID_NOT_RUN;
+        }
+
+        if (mostRecentMB.Type() != OP_BUY)
+        {
+            return Results::UNIT_TEST_DID_NOT_RUN;
+        }
+
+        MBOneNumber = mostRecentMB.Number();
+    }
+
+    if (MBOneNumber != EMPTY && MBTwoNumber == EMPTY)
+    {
+        MBState *subsequentMB;
+        if (!SetupMBT.GetSubsequentMB(MBOneNumber, subsequentMB))
+        {
+            return Results::UNIT_TEST_DID_NOT_RUN;
+        }
+
+        if (subsequentMB.Type() != OP_BUY)
+        {
+            MBOneNumber = EMPTY;
+            return Results::UNIT_TEST_DID_NOT_RUN;
+        }
+
+        MBTwoNumber = subsequentMB.Number();
+    }
+
+    if (MBOneNumber != EMPTY && MBTwoNumber != EMPTY && LiquidationMBNumber == EMPTY)
+    {
+        MBState *liquidationMB;
+        if (!SetupMBT.GetSubsequentMB(MBTwoNumber, liquidationMB))
+        {
+            return Results::UNIT_TEST_DID_NOT_RUN;
+        }
+
+        if (liquidationMB.Type() != OP_SELL)
+        {
+            MBOneNumber = EMPTY;
+            MBTwoNumber = EMPTY;
+
+            return Results::UNIT_TEST_DID_NOT_RUN;
+        }
+
+        LiquidationMBNumber = liquidationMB.Number();
+    }
+
+    if (MBOneNumber == EMPTY || MBTwoNumber == EMPTY || LiquidationMBNumber == EMPTY)
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    MBState *tempMBState;
+    if (!SetupMBT.GetMB(MBOneNumber, tempMBState))
+    {
+        MBOneNumber = EMPTY;
+        MBTwoNumber = EMPTY;
+        LiquidationMBNumber = EMPTY;
+
+        return TerminalErrors::MB_DOES_NOT_EXIST;
+    }
+
+    ZoneState *tempZoneState;
+    if (!tempMBState.GetDeepestHoldingZone(tempZoneState))
+    {
+        return Results::UNIT_TEST_DID_NOT_RUN;
+    }
+
+    bool retappedZone = false;
+    string additionalInformation;
+    int error = SetupHelper::MBRetappedDeepestHoldingSetupZone(tempMBState.Number(), 0, SetupMBT, ConfirmationMBT, retappedZone, additionalInformation);
+    if (error != ERR_NO_ERROR)
+    {
+        return error;
+    }
+
+    ut.PendingRecord.AdditionalInformation = additionalInformation;
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count);
     count += 1;
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + count, 8000, 4400);

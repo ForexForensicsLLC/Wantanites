@@ -13,8 +13,9 @@
 class DefaultErrorRecord
 {
 public:
-    int MagicNumber;
     datetime ErrorTime;
+    int MagicNumber;
+    string Symbol;
     int Error;
     int LastState;
     string AdditionalInformation;
@@ -29,8 +30,9 @@ public:
 
 DefaultErrorRecord::DefaultErrorRecord()
 {
-    MagicNumber = EMPTY;
     ErrorTime = 0;
+    MagicNumber = EMPTY;
+    Symbol = "EMPTY";
     Error = ERR_NO_ERROR;
     LastState = EMPTY;
     AdditionalInformation = "EMPTY";
@@ -40,8 +42,9 @@ DefaultErrorRecord::~DefaultErrorRecord() {}
 
 void DefaultErrorRecord::WriteHeaders(int fileHandle, bool writeDelimiter = false)
 {
-    FileHelper::WriteString(fileHandle, "Magic Number");
     FileHelper::WriteString(fileHandle, "Error Time");
+    FileHelper::WriteString(fileHandle, "Magic Number");
+    FileHelper::WriteString(fileHandle, "Symbol");
     FileHelper::WriteString(fileHandle, "Error");
     FileHelper::WriteString(fileHandle, "Last State");
     FileHelper::WriteString(fileHandle, "Additional Information", writeDelimiter);
@@ -49,8 +52,9 @@ void DefaultErrorRecord::WriteHeaders(int fileHandle, bool writeDelimiter = fals
 
 void DefaultErrorRecord::WriteRecord(int fileHandle, bool writeDelimiter = false)
 {
-    FileHelper::WriteInteger(fileHandle, MagicNumber);
     FileHelper::WriteDateTime(fileHandle, ErrorTime);
+    FileHelper::WriteInteger(fileHandle, MagicNumber);
+    FileHelper::WriteString(fileHandle, Symbol);
     FileHelper::WriteInteger(fileHandle, Error);
     FileHelper::WriteInteger(fileHandle, LastState);
     FileHelper::WriteString(fileHandle, AdditionalInformation, writeDelimiter);

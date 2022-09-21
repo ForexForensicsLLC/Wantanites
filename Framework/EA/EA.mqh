@@ -30,7 +30,8 @@ public:
     bool mHasSetup;
     bool mWasReset;
 
-    int mMaxTradesPerStrategy;
+    int mMaxCurrentSetupTradesAtOnce;
+    int mMaxTradesPerDay;
     double mStopLossPaddingPips;
     double mMaxSpreadPips;
     double mRiskPercent;
@@ -44,7 +45,7 @@ public:
     int mLastState;
 
 public:
-    EA(int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+    EA(int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
        CSVRecordWriter<TEntryRecord> *&entryCSVRecordWriter, CSVRecordWriter<TExitRecord> *&exitCSVRecordWriter, CSVRecordWriter<TErrorRecord> *&errorCSVRecordWriter);
     ~EA();
 
@@ -73,14 +74,15 @@ public:
 };
 
 template <typename TEntryRecord, typename TPartialRecord, typename TExitRecord, typename TErrorRecord>
-EA::EA(int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+EA::EA(int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
        CSVRecordWriter<TEntryRecord> *&entryCSVRecordWriter, CSVRecordWriter<TExitRecord> *&exitCSVRecordWriter, CSVRecordWriter<TErrorRecord> *&errorCSVRecordWriter)
 {
     mStopTrading = false;
     mHasSetup = false;
     mWasReset = false;
 
-    mMaxTradesPerStrategy = maxTradesPerStrategy;
+    mMaxCurrentSetupTradesAtOnce = maxCurrentSetupTradesAtOnce;
+    mMaxTradesPerDay = maxTradesPerDay;
     mStopLossPaddingPips = stopLossPaddingPips;
     mMaxSpreadPips = maxSpreadPips;
     mRiskPercent = riskPercent;

@@ -24,12 +24,12 @@ public:
     int mTimeFrame;
 
 public:
-    TheSunriseShatterDoubleMB(int timeFrame, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+    TheSunriseShatterDoubleMB(int timeFrame, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                               CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&closeCSVRecordWriter,
                               CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MinROCFromTimeStamp *&mrfts, MBTracker *&mbt);
     ~TheSunriseShatterDoubleMB();
 
-    virtual int MagicNumber() { return MagicNumbers::TheSunriseShatterDoubleMB; }
+    virtual int MagicNumber() { return mMBT.SetupType() == OP_BUY ? MagicNumbers::TheSunriseShatterBullishDoubleMB : MagicNumbers::TheSunriseShatterBearishDoubleMB; }
 
     virtual void Run();
     virtual bool AllowedToTrade();
@@ -51,11 +51,11 @@ public:
     virtual void Reset();
 };
 
-TheSunriseShatterDoubleMB::TheSunriseShatterDoubleMB(int timeFrame, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips,
+TheSunriseShatterDoubleMB::TheSunriseShatterDoubleMB(int timeFrame, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips,
                                                      double riskPercent, CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter,
                                                      CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
                                                      CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MinROCFromTimeStamp *&mrfts, MBTracker *&mbt)
-    : EA(maxTradesPerStrategy, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
+    : EA(maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mMBT = mbt;
     mMRFTS = mrfts;
@@ -66,9 +66,17 @@ TheSunriseShatterDoubleMB::TheSunriseShatterDoubleMB(int timeFrame, int maxTrade
 
     mTimeFrame = timeFrame;
 
-    EAHelper::FillSunriseShatterMagicNumbers<TheSunriseShatterDoubleMB>(this);
     EAHelper::FindSetPreviousAndCurrentSetupTickets<TheSunriseShatterDoubleMB>(this);
     EAHelper::SetPreviousSetupTicketsOpenData<TheSunriseShatterDoubleMB, SingleTimeFrameEntryTradeRecord>(this);
+
+    if (mMBT.SetupType() == OP_BUY)
+    {
+        EAHelper::FillSunriseShatterBullishMagicNumbers<TheSunriseShatterDoubleMB>(this);
+    }
+    else
+    {
+        EAHelper::FillSunriseShatterBearishMagicNumbers<TheSunriseShatterDoubleMB>(this);
+    }
 }
 
 TheSunriseShatterDoubleMB::~TheSunriseShatterDoubleMB()
@@ -100,12 +108,16 @@ void TheSunriseShatterDoubleMB::CheckInvalidateSetup()
     // Want to try to close the pending order if we have a setup or not and we break the range start
     if (EAHelper::CheckBrokeMBRangeStart<TheSunriseShatterDoubleMB>(this, mMBT, mSecondMBInSetupNumber))
     {
+        // delete any pending orders and stop trading
+        EAHelper::InvalidateSetup<TheSunriseShatterDoubleMB>(this, true, true);
         return;
     }
 
     // should be checked before checking if we broke the range end so that it can cancel the pending order
     if (EAHelper::CheckCrossedOpenPriceAfterMinROC<TheSunriseShatterDoubleMB>(this))
     {
+        // delete any pending orders and stop trading
+        EAHelper::InvalidateSetup<TheSunriseShatterDoubleMB>(this, true, true);
         return;
     }
 
@@ -114,8 +126,11 @@ void TheSunriseShatterDoubleMB::CheckInvalidateSetup()
         return;
     }
 
+    // broke confirmation range end
     if (EAHelper::CheckBrokeMBRangeEnd<TheSunriseShatterDoubleMB>(this, mMBT, mSecondMBInSetupNumber))
     {
+        // don't delete the pending order since the setup held and continued
+        EAHelper::InvalidateSetup<TheSunriseShatterDoubleMB>(this, false, true);
         return;
     }
 }

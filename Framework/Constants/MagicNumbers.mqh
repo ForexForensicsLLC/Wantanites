@@ -11,9 +11,13 @@
 class MagicNumbers
 {
 public:
-    static int TheSunriseShatterSingleMB;
-    static int TheSunriseShatterDoubleMB;
-    static int TheSunriseShatterLiquidationMB;
+    static int TheSunriseShatterBearishSingleMB;
+    static int TheSunriseShatterBearishDoubleMB;
+    static int TheSunriseShatterBearishLiquidationMB;
+
+    static int TheSunriseShatterBullishSingleMB;
+    static int TheSunriseShatterBullishDoubleMB;
+    static int TheSunriseShatterBullishLiquidationMB;
 
     static int BearishKataraSingleMB;
     static int BearishKataraDoubleMB;
@@ -22,11 +26,18 @@ public:
     static int BullishKataraSingleMB;
     static int BullishKataraDoubleMB;
     static int BullishKataraLiquidationMB;
+
+    static int BearishSinji;
+    static int BullishSingji;
 };
 
-static int MagicNumbers::TheSunriseShatterSingleMB = 10003;
-static int MagicNumbers::TheSunriseShatterDoubleMB = 10004;
-static int MagicNumbers::TheSunriseShatterLiquidationMB = 10005;
+static int MagicNumbers::TheSunriseShatterBearishSingleMB = 10003;
+static int MagicNumbers::TheSunriseShatterBearishDoubleMB = 10004;
+static int MagicNumbers::TheSunriseShatterBearishLiquidationMB = 10005;
+
+static int MagicNumbers::TheSunriseShatterBullishSingleMB = 10012;
+static int MagicNumbers::TheSunriseShatterBullishDoubleMB = 10013;
+static int MagicNumbers::TheSunriseShatterBullishLiquidationMB = 10014;
 
 static int MagicNumbers::BearishKataraSingleMB = 10006;
 static int MagicNumbers::BearishKataraDoubleMB = 10007;
@@ -35,3 +46,6 @@ static int MagicNumbers::BearishKataraLiquidationMB = 10008;
 static int MagicNumbers::BullishKataraSingleMB = 10009;
 static int MagicNumbers::BullishKataraDoubleMB = 10010;
 static int MagicNumbers::BullishKataraLiquidationMB = 10011;
+
+static int MagicNumbers::BearishSinji = 10015;
+static int MagicNumbers::BullishSingji = 10016;

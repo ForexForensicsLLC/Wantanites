@@ -70,6 +70,7 @@ public:
     int UnretrievedZoneCount() { return mUnretrievedZoneCount; }
 
     // Tested
+    bool IsBrokenFromBarIndex(int barIndex);
     bool StartIsBroken();
     bool EndIsBroken();
 
@@ -87,6 +88,32 @@ public:
     void Draw(bool printErrors);
     void DrawZones(bool printErrors);
 };
+
+bool MBState::IsBrokenFromBarIndex(int barIndex)
+{
+    if (mType == OP_BUY)
+    {
+        double low;
+        if (!MQLHelper::GetLowestLowBetween(mSymbol, mTimeFrame, LowIndex(), barIndex, false, low))
+        {
+            return false;
+        }
+
+        return low < iLow(mSymbol, mTimeFrame, LowIndex());
+    }
+    else if (mType == OP_SELL)
+    {
+        double high;
+        if (!MQLHelper::GetHighestHighBetween(mSymbol, mTimeFrame, HighIndex(), barIndex, false, high))
+        {
+            return false;
+        }
+
+        return high > iHigh(mSymbol, mTimeFrame, HighIndex());
+    }
+
+    return false;
+}
 
 bool MBState::StartIsBroken()
 {

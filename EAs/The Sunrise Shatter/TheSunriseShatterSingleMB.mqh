@@ -22,12 +22,12 @@ public:
     int mTimeFrame;
 
 public:
-    TheSunriseShatterSingleMB(int timeFrame, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+    TheSunriseShatterSingleMB(int timeFrame, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                               CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
                               CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MinROCFromTimeStamp *&mrfts, MBTracker *&mbt);
     ~TheSunriseShatterSingleMB();
 
-    virtual int MagicNumber() { return MagicNumbers::TheSunriseShatterSingleMB; }
+    virtual int MagicNumber() { return mMBT.SetupType() == OP_BUY ? MagicNumbers::TheSunriseShatterBullishSingleMB : MagicNumbers::TheSunriseShatterBearishSingleMB; }
 
     virtual void Run();
     virtual bool AllowedToTrade();
@@ -49,11 +49,11 @@ public:
     virtual void Reset();
 };
 
-TheSunriseShatterSingleMB::TheSunriseShatterSingleMB(int timeFrame, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips,
+TheSunriseShatterSingleMB::TheSunriseShatterSingleMB(int timeFrame, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips,
                                                      double riskPercent, CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter,
                                                      CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
                                                      CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MinROCFromTimeStamp *&mrfts, MBTracker *&mbt)
-    : EA(maxTradesPerStrategy, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
+    : EA(maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mMBT = mbt;
     mMRFTS = mrfts;
@@ -63,9 +63,17 @@ TheSunriseShatterSingleMB::TheSunriseShatterSingleMB(int timeFrame, int maxTrade
 
     mTimeFrame = timeFrame;
 
-    EAHelper::FillSunriseShatterMagicNumbers<TheSunriseShatterSingleMB>(this);
     EAHelper::FindSetPreviousAndCurrentSetupTickets<TheSunriseShatterSingleMB>(this);
     EAHelper::SetPreviousSetupTicketsOpenData<TheSunriseShatterSingleMB, SingleTimeFrameEntryTradeRecord>(this);
+
+    if (mMBT.SetupType() == OP_BUY)
+    {
+        EAHelper::FillSunriseShatterBullishMagicNumbers<TheSunriseShatterSingleMB>(this);
+    }
+    else
+    {
+        EAHelper::FillSunriseShatterBearishMagicNumbers<TheSunriseShatterSingleMB>(this);
+    }
 }
 
 TheSunriseShatterSingleMB::~TheSunriseShatterSingleMB()
@@ -97,12 +105,16 @@ void TheSunriseShatterSingleMB::CheckInvalidateSetup()
     // Want to try to close the pending order if we have a setup or not and we break the range start
     if (EAHelper::CheckBrokeMBRangeStart<TheSunriseShatterSingleMB>(this, mMBT, mFirstMBInSetupNumber))
     {
+        // delete any pending orders and stop trading
+        EAHelper::InvalidateSetup<TheSunriseShatterSingleMB>(this, true, true);
         return;
     }
 
     // should be checked before checking if we broke the range end so that it can cancel the pending order
     if (EAHelper::CheckCrossedOpenPriceAfterMinROC<TheSunriseShatterSingleMB>(this))
     {
+        // delete any pending orders and stop trading
+        EAHelper::InvalidateSetup<TheSunriseShatterSingleMB>(this, true, true);
         return;
     }
 
@@ -113,6 +125,8 @@ void TheSunriseShatterSingleMB::CheckInvalidateSetup()
 
     if (EAHelper::CheckBrokeMBRangeEnd<TheSunriseShatterSingleMB>(this, mMBT, mFirstMBInSetupNumber))
     {
+        // don't delete the pending order since the setup held and continued
+        EAHelper::InvalidateSetup<TheSunriseShatterSingleMB>(this, false, true);
         return;
     }
 }

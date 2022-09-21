@@ -18,6 +18,12 @@ public:
     MBTracker *mSetupMBT;
     MBTracker *mConfirmationMBT;
 
+    LiquidationSetupTracker *mSetupLST;
+    LiquidationSetupTracker *mConfirmationLST;
+
+    int mLastCheckedSetupMB;
+    int mLastCheckedConfirmationMB;
+
     int mFirstMBInSetupNumber;
     int mSecondMBInSetupNumber;
     int mLiquidationMBInSetupNumber;
@@ -26,10 +32,16 @@ public:
     int mSecondMBInConfirmationNumber;
     int mLiquidationMBInConfirmationNumber;
 
+    int mSetupMBsCreated;
+    int mCheckInvalidateSetupMBsCreated;
+    int mInvalidateSetupMBsCreated;
+    int mConfirmationMBsCreated;
+
 public:
-    KataraLiquidationMB(int setupType, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+    KataraLiquidationMB(int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                         CSVRecordWriter<MultiTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<MultiTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                        CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT, MBTracker *&confirmationMBT);
+                        CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT, MBTracker *&confirmationMBT, LiquidationSetupTracker *&setupLST,
+                        LiquidationSetupTracker *&confirmationLST);
     ~KataraLiquidationMB();
 
     virtual int MagicNumber() { return mSetupType == OP_BUY ? MagicNumbers::BullishKataraLiquidationMB : MagicNumbers::BearishKataraLiquidationMB; }
@@ -54,13 +66,19 @@ public:
     virtual void Reset();
 };
 
-KataraLiquidationMB::KataraLiquidationMB(int setupType, int maxTradesPerStrategy, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+KataraLiquidationMB::KataraLiquidationMB(int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                                          CSVRecordWriter<MultiTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<MultiTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                                         CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT, MBTracker *&confirmationMBT)
-    : EA(maxTradesPerStrategy, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
+                                         CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT, MBTracker *&confirmationMBT,
+                                         LiquidationSetupTracker *&setupLST, LiquidationSetupTracker *&confirmationLST)
+    : EA(maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mSetupMBT = setupMBT;
     mConfirmationMBT = confirmationMBT;
+
+    mSetupLST = setupLST;
+    mConfirmationLST = confirmationLST;
+
+    mSetupType = setupType;
 
     mFirstMBInSetupNumber = EMPTY;
     mSecondMBInSetupNumber = EMPTY;
@@ -69,8 +87,6 @@ KataraLiquidationMB::KataraLiquidationMB(int setupType, int maxTradesPerStrategy
     mFirstMBInConfirmationNumber = EMPTY;
     mSecondMBInConfirmationNumber = EMPTY;
     mLiquidationMBInConfirmationNumber = EMPTY;
-
-    mSetupType = setupType;
 
     EAHelper::FindSetPreviousAndCurrentSetupTickets<KataraLiquidationMB>(this);
     EAHelper::UpdatePreviousSetupTicketsRRAcquried<KataraLiquidationMB, PartialTradeRecord>(this);
@@ -84,6 +100,11 @@ KataraLiquidationMB::KataraLiquidationMB(int setupType, int maxTradesPerStrategy
     {
         EAHelper::FillBearishKataraMagicNumbers<KataraLiquidationMB>(this);
     }
+
+    mSetupMBsCreated = 0;
+    mCheckInvalidateSetupMBsCreated = 0;
+    mInvalidateSetupMBsCreated = 0;
+    mConfirmationMBsCreated = 0;
 }
 
 KataraLiquidationMB::~KataraLiquidationMB()
@@ -102,85 +123,233 @@ bool KataraLiquidationMB::AllowedToTrade()
 
 void KataraLiquidationMB::CheckSetSetup()
 {
-    if (EAHelper::CheckSetLiquidationMBSetup<KataraLiquidationMB>(this, mSetupMBT,
-                                                                  mFirstMBInSetupNumber, mSecondMBInSetupNumber, mLiquidationMBInSetupNumber, mSetupType, true))
-    {
-        if (EAHelper::LiquidationMBZoneIsHolding<KataraLiquidationMB>(this, mSetupMBT, mFirstMBInSetupNumber, mSecondMBInSetupNumber))
-        {
+    // if (mSetupMBsCreated < mConfirmationMBT.MBsCreated())
+    // {
+    //     string info = "Total MBs: " + mConfirmationMBT.MBsCreated() +
+    //                   " First MB In setup: " + mFirstMBInSetupNumber +
+    //                   " Second MB In Setup: " + mSecondMBInSetupNumber +
+    //                   " Liquidation MB In Setup: " + mLiquidationMBInSetupNumber +
+    //                   " First MB In Conf. " + mFirstMBInConfirmationNumber +
+    //                   " Second MB in Conf. " + mSecondMBInConfirmationNumber +
+    //                   " Liq. MB In Cof. " + mLiquidationMBInConfirmationNumber +
+    //                   " Has Setup: " + mHasSetup;
+    //     RecordError(-900, info);
+    // }
 
+    if (EAHelper::CheckSetLiquidationMBSetup<KataraLiquidationMB>(this, mSetupLST, mFirstMBInSetupNumber, mSecondMBInSetupNumber, mLiquidationMBInSetupNumber))
+    {
+        bool isTrue = false;
+        int error = EAHelper::LiquidationMBZoneIsHolding<KataraLiquidationMB>(this, mSetupMBT, mFirstMBInSetupNumber, mSecondMBInSetupNumber, isTrue);
+        if (error != ERR_NO_ERROR)
+        {
+            EAHelper::InvalidateSetup<KataraLiquidationMB>(this, true, false);
+            EAHelper::ResetLiquidationMBSetup<KataraLiquidationMB>(this, false);
+            EAHelper::ResetLiquidationMBConfirmation<KataraLiquidationMB>(this, false);
+        }
+        else if (isTrue)
+        {
             string additionalInformation = "";
-            if (EAHelper::MBRetappedDeepestHoldingSetupZone<KataraLiquidationMB>(this, mFirstMBInSetupNumber, 2, mSetupMBT, mConfirmationMBT, additionalInformation) ||
-                EAHelper::MBPushedFurtherIntoDeepestHoldingSetupZone<KataraLiquidationMB>(this, mFirstMBInSetupNumber, 2, mSetupMBT, mConfirmationMBT, additionalInformation))
+            if (EAHelper::SetupZoneIsValidForConfirmation<KataraLiquidationMB>(this, mFirstMBInSetupNumber, 2, additionalInformation))
             {
-                if (EAHelper::CheckSetLiquidationMBSetup<KataraLiquidationMB>(this, mConfirmationMBT, mFirstMBInConfirmationNumber,
-                                                                              mSecondMBInConfirmationNumber, mLiquidationMBInConfirmationNumber, mSetupType, true))
+                if (EAHelper::CheckSetLiquidationMBSetup<KataraLiquidationMB>(this, mConfirmationLST, mFirstMBInConfirmationNumber, mSecondMBInConfirmationNumber,
+                                                                              mLiquidationMBInConfirmationNumber))
                 {
-                    RecordError(-300, additionalInformation);
                     mHasSetup = true;
                 }
+
+                // string info = "Has Setup: " + mHasSetup + " First MB In Confirmation: " + mFirstMBInConfirmationNumber +
+                //               " Second MB In Confirmation: " + mSecondMBInConfirmationNumber + " Liquidation MB In Confirmation: " + mLiquidationMBInConfirmationNumber;
+
+                // additionalInformation += info;
             }
+
+            // if (mSetupMBsCreated < mConfirmationMBT.MBsCreated())
+            // {
+            //     RecordError(-300, additionalInformation);
+            // }
         }
     }
+
+    // mSetupMBsCreated = mConfirmationMBT.MBsCreated();
 }
 
 void KataraLiquidationMB::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
+    // if (mCheckInvalidateSetupMBsCreated < mConfirmationMBT.MBsCreated())
+    // {
+    //     string info = "Total MBs: " + mConfirmationMBT.MBsCreated() +
+    //                   " First MB In setup: " + mFirstMBInSetupNumber +
+    //                   " Second MB In Setup: " + mSecondMBInSetupNumber +
+    //                   " Liquidation MB In Setup: " + mLiquidationMBInSetupNumber +
+    //                   " First MB In Conf. " + mFirstMBInConfirmationNumber +
+    //                   " Second MB in Conf. " + mSecondMBInConfirmationNumber +
+    //                   " Liq. MB In Cof. " + mLiquidationMBInConfirmationNumber +
+    //                   " Has Setup: " + mHasSetup;
+    //     RecordError(-2000, info);
+    // }
+
     // Start of Setup TF Liquidation
     if (EAHelper::CheckBrokeMBRangeStart<KataraLiquidationMB>(this, mSetupMBT, mFirstMBInSetupNumber))
     {
+        // if (mCheckInvalidateSetupMBsCreated < mConfirmationMBT.MBsCreated())
+        // {
+        //     string info = "Total MBs: " + mConfirmationMBT.MBsCreated() +
+        //                   " First MB In setup: " + mFirstMBInSetupNumber +
+        //                   " Second MB In Setup: " + mSecondMBInSetupNumber +
+        //                   " Liquidation MB In Setup: " + mLiquidationMBInSetupNumber +
+        //                   " First MB In Conf. " + mFirstMBInConfirmationNumber +
+        //                   " Second MB in Conf. " + mSecondMBInConfirmationNumber +
+        //                   " Liq. MB In Cof. " + mLiquidationMBInConfirmationNumber +
+        //                   " Has Setup: " + mHasSetup;
+        //     RecordError(-1200, info);
+
+        //     mCheckInvalidateSetupMBsCreated = mConfirmationMBT.MBsCreated();
+        // }
+        // Cancel any pending orders since the setup didn't hold
+        EAHelper::InvalidateSetup<KataraLiquidationMB>(this, true, false);
+        EAHelper::ResetLiquidationMBSetup<KataraLiquidationMB>(this, false);
+        EAHelper::ResetLiquidationMBConfirmation<KataraLiquidationMB>(this, false);
+
         return;
     }
 
     // End of Setup TF Liquidation
-    if (EAHelper::CheckBrokeMBRangeStart<KataraLiquidationMB>(this, mSetupMBT, mLiquidationMBInSetupNumber, false))
+    if (EAHelper::CheckBrokeMBRangeStart<KataraLiquidationMB>(this, mSetupMBT, mLiquidationMBInSetupNumber))
     {
+        // if (mCheckInvalidateSetupMBsCreated < mConfirmationMBT.MBsCreated())
+        // {
+        //     string info = "Total MBs: " + mConfirmationMBT.MBsCreated() +
+        //                   " First MB In setup: " + mFirstMBInSetupNumber +
+        //                   " Second MB In Setup: " + mSecondMBInSetupNumber +
+        //                   " Liquidation MB In Setup: " + mLiquidationMBInSetupNumber +
+        //                   " First MB In Conf. " + mFirstMBInConfirmationNumber +
+        //                   " Second MB in Conf. " + mSecondMBInConfirmationNumber +
+        //                   " Liq. MB In Cof. " + mLiquidationMBInConfirmationNumber +
+        //                   " Has Setup: " + mHasSetup;
+        //     RecordError(-1300, info);
+
+        //     mCheckInvalidateSetupMBsCreated = mConfirmationMBT.MBsCreated();
+        // }
+        // don't cancel any pending orders since the setup held and continued
+        EAHelper::InvalidateSetup<KataraLiquidationMB>(this, false, false);
+        EAHelper::ResetLiquidationMBSetup<KataraLiquidationMB>(this, false);
+        EAHelper::ResetLiquidationMBConfirmation<KataraLiquidationMB>(this, false);
+
         return;
     }
 
     // Start of Confirmation TF First MB
+    // This will always cancel any pending orders
     if (EAHelper::CheckBrokeMBRangeStart<KataraLiquidationMB>(this, mConfirmationMBT, mFirstMBInConfirmationNumber))
     {
+        // if (mCheckInvalidateSetupMBsCreated < mConfirmationMBT.MBsCreated())
+        // {
+        //     string info = "Total MBs: " + mConfirmationMBT.MBsCreated() +
+        //                   " First MB In setup: " + mFirstMBInSetupNumber +
+        //                   " Second MB In Setup: " + mSecondMBInSetupNumber +
+        //                   " Liquidation MB In Setup: " + mLiquidationMBInSetupNumber +
+        //                   " First MB In Conf. " + mFirstMBInConfirmationNumber +
+        //                   " Second MB in Conf. " + mSecondMBInConfirmationNumber +
+        //                   " Liq. MB In Cof. " + mLiquidationMBInConfirmationNumber +
+        //                   " Has Setup: " + mHasSetup;
+        //     RecordError(-1400, info);
+
+        //     mCheckInvalidateSetupMBsCreated = mConfirmationMBT.MBsCreated();
+        // }
+        // Cancel any pending orders since the setup didn't hold
+        EAHelper::InvalidateSetup<KataraLiquidationMB>(this, true, false);
+        EAHelper::ResetLiquidationMBConfirmation<KataraLiquidationMB>(this, false);
+
         return;
     }
 
     if (!mHasSetup)
     {
+        // mCheckInvalidateSetupMBsCreated = mConfirmationMBT.MBsCreated();
+
         return;
     }
 
     // End of Confirmation TF Liqudiation MB
-    if (EAHelper::CheckBrokeMBRangeStart<KataraLiquidationMB>(this, mConfirmationMBT, mLiquidationMBInConfirmationNumber, false))
+    if (EAHelper::CheckBrokeMBRangeStart<KataraLiquidationMB>(this, mConfirmationMBT, mLiquidationMBInConfirmationNumber))
     {
+        // if (mCheckInvalidateSetupMBsCreated < mConfirmationMBT.MBsCreated())
+        // {
+        //     string info = "Total MBs: " + mConfirmationMBT.MBsCreated() +
+        //                   " First MB In setup: " + mFirstMBInSetupNumber +
+        //                   " Second MB In Setup: " + mSecondMBInSetupNumber +
+        //                   " Liquidation MB In Setup: " + mLiquidationMBInSetupNumber +
+        //                   " First MB In Conf. " + mFirstMBInConfirmationNumber +
+        //                   " Second MB in Conf. " + mSecondMBInConfirmationNumber +
+        //                   " Liq. MB In Cof. " + mLiquidationMBInConfirmationNumber +
+        //                   " Has Setup: " + mHasSetup;
+        //     RecordError(-1500, info);
+
+        //     mCheckInvalidateSetupMBsCreated = mConfirmationMBT.MBsCreated();
+        // }
+        // don't cancel any pending orders since the setup held and continued
+        EAHelper::InvalidateSetup<KataraLiquidationMB>(this, false, false);
+        EAHelper::ResetLiquidationMBConfirmation<KataraLiquidationMB>(this, false);
+
         return;
     }
+
+    // mCheckInvalidateSetupMBsCreated = mConfirmationMBT.MBsCreated();
 }
 
 void KataraLiquidationMB::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
-    EAHelper::InvalidateSetup<KataraLiquidationMB>(this, deletePendingOrder, error);
+    // if (mInvalidateSetupMBsCreated < mConfirmationMBT.MBsCreated())
+    // {
+    //     RecordError(-1100);
+    //     mInvalidateSetupMBsCreated = mConfirmationMBT.MBsCreated();
+    // }
 
-    EAHelper::ResetLiquidationMBSetup<KataraLiquidationMB>(this, false);
-    EAHelper::ResetLiquidationMBConfirmation<KataraLiquidationMB>(this, false);
+    EAHelper::InvalidateSetup<KataraLiquidationMB>(this, deletePendingOrder, error);
 }
 
 bool KataraLiquidationMB::Confirmation()
 {
-    return EAHelper::LiquidationMBZoneIsHolding<KataraLiquidationMB>(this, mConfirmationMBT, mFirstMBInConfirmationNumber, mSecondMBInConfirmationNumber);
+    // if (mConfirmationMBsCreated < mConfirmationMBT.MBsCreated())
+    // {
+    //     string info = "Total MBs: " + mConfirmationMBT.MBsCreated() +
+    //                   " First MB In setup: " + mFirstMBInSetupNumber +
+    //                   " Second MB In Setup: " + mSecondMBInSetupNumber +
+    //                   " Liquidation MB In Setup: " + mLiquidationMBInSetupNumber +
+    //                   " First MB In Conf. " + mFirstMBInConfirmationNumber +
+    //                   " Second MB in Conf. " + mSecondMBInConfirmationNumber +
+    //                   " Liq. MB In Cof. " + mLiquidationMBInConfirmationNumber +
+    //                   " Has Setup: " + mHasSetup;
+
+    //     RecordError(-1800, info);
+    //     mConfirmationMBsCreated = mConfirmationMBT.MBsCreated();
+    // }
+    bool hasConfirmation = false;
+    int error = EAHelper::LiquidationMBZoneIsHolding<KataraLiquidationMB>(this, mConfirmationMBT, mFirstMBInConfirmationNumber, mSecondMBInConfirmationNumber, hasConfirmation);
+    if (error != ERR_NO_ERROR)
+    {
+        EAHelper::InvalidateSetup<KataraLiquidationMB>(this, true, false);
+        EAHelper::ResetLiquidationMBConfirmation<KataraLiquidationMB>(this, false);
+
+        return false;
+    }
+
+    return hasConfirmation;
 }
 
 void KataraLiquidationMB::PlaceOrders()
 {
     if (EAHelper::PrePlaceOrderChecks<KataraLiquidationMB>(this))
     {
-        EAHelper::PlaceStopOrderForBreakOfMB<KataraLiquidationMB>(this, mConfirmationMBT, mLiquidationMBInConfirmationNumber);
+        EAHelper::PlaceStopOrderForPendingLiquidationSetupValidation<KataraLiquidationMB>(this, mConfirmationMBT, mLiquidationMBInConfirmationNumber);
     }
 }
 
 void KataraLiquidationMB::ManageCurrentPendingSetupTicket()
 {
-    EAHelper::CheckEditStopLossForBreakOfMB<KataraLiquidationMB>(this, mConfirmationMBT, mLiquidationMBInConfirmationNumber);
+    EAHelper::CheckEditStopLossForLiquidationMBSetup<KataraLiquidationMB>(this, mConfirmationMBT, mLiquidationMBInConfirmationNumber);
 }
 
 void KataraLiquidationMB::ManageCurrentActiveSetupTicket()

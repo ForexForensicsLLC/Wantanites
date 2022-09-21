@@ -544,7 +544,10 @@ void MB::CheckAddZones(bool allowZoneMitigation)
 // Checks for  zones that occur after the MB
 void MB::CheckAddZonesAfterMBValidation(int barIndex, bool allowZoneMitigation)
 {
-    InternalCheckAddZones(EndIndex(), barIndex, allowZoneMitigation, true);
+    // add one to this after the updates to allow an MB to break on tick since we can't calaculate the zone during that candel anymore, since the
+    // imbalance might not be there when the candle closes.
+    // Adding one to this allows us to safely check it after it has closed
+    InternalCheckAddZones(EndIndex() + 1, barIndex, allowZoneMitigation, true);
 }
 
 // Add zones
