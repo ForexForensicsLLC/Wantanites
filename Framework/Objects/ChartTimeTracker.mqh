@@ -72,8 +72,10 @@ void ChartTimeTracker::Calculate(int barIndex)
         {
             string name = "Time" + TimeToString(barTime);
 
+            color clr = i == 0 ? clrLimeGreen : clrRed;
+
             ObjectCreate(ChartID(), name, OBJ_VLINE, 0, barTime, Ask);
-            ObjectSetInteger(ChartID(), name, OBJPROP_COLOR, clrBlack);
+            ObjectSetInteger(ChartID(), name, OBJPROP_COLOR, clr);
         }
     }
 }

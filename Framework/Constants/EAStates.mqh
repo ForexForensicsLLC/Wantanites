@@ -75,7 +75,6 @@ static int EAStates::CHECKING_IF_PENDING_ORDER = 8100;
 static int EAStates::CLOSING_PENDING_ORDER = 8101;
 static int EAStates::CHECKING_TO_EDIT_STOP_LOSS = 8102;
 static int EAStates::CHECKING_TO_TRAIL_STOP_LOSS = 8103;
-static int EAStates::COUNTING_OTHER_EA_ORDERS = 8103;
 static int EAStates::PLACING_ORDER = 8104;
 static int EAStates::RECORDING_ORDER_OPEN_DATA = 8105;
 static int EAStates::RECORDING_ORDER_CLOSE_DATA = 8106;
@@ -87,6 +86,7 @@ static int EAStates::CHECKING_IF_MOVED_TO_BREAK_EVEN = 8111;
 static int EAStates::CHECKING_PREVIOUS_SETUP_TICKET = 8112;
 static int EAStates::SETTING_OPEN_DATA_ON_TICKET = 8113;
 static int EAStates::CHECKING_TO_PARTIAL = 8114;
+static int EAStates::COUNTING_OTHER_EA_ORDERS = 8115;
 
 // 8200s Are For Setup Related States
 static int EAStates::CHECKING_FOR_SETUP = 8200;

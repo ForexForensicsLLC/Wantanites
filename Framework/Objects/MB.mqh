@@ -502,8 +502,8 @@ MB::MB(string symbol, int timeFrame, int number, int type, datetime startDateTim
     mHighDateTime = highDateTime;
     mLowDateTime = lowDateTime;
 
-    mStartIsBroken = false;
-    mEndIsBroken = false;
+    mGlobalStartIsBroken = false;
+    // mEndIsBroken = false;
 
     mSetupZoneNumber = EMPTY;
     mInsideSetupZone = Status::NOT_CHECKED;
@@ -517,12 +517,15 @@ MB::MB(string symbol, int timeFrame, int number, int type, datetime startDateTim
     mName = "MB: " + IntegerToString(timeFrame) + "_" + IntegerToString(number);
     mDrawn = false;
 
+    mHasImpulseValidation = Status::NOT_CHECKED;
+
     ArrayResize(mZones, maxZones);
 }
 
 MB::~MB()
 {
     ObjectsDeleteAll(ChartID(), mName, 0, OBJ_RECTANGLE);
+    ObjectsDeleteAll(ChartID(), mName + "imp");
 
     for (int i = mMaxZones - 1; i >= 0; i--)
     {

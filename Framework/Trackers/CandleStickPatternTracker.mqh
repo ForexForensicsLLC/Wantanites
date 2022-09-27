@@ -41,6 +41,13 @@ private:
     int mDistributionUpThrustCount;
     bool mDistributionHasLPSY;
 
+    bool mTrackAccumulation;
+    datetime mAccumulationAutomaticRally;
+    datetime mAccumulationSignOfStrengthStart;
+    datetime mAccumulationSignOfStrengthEnd;
+    int mAccumulationUpThrustCount;
+    bool mAccumulationHasLPS;
+
     void
     Calculate(int &barIndex);
     void Draw(int barIndex, color clr);
@@ -70,8 +77,14 @@ public:
 
     void TrackDistribution(bool track);
     void ResetDistribution();
+    bool DistributionHasLPSY();
+    datetime DistributionSignOfWeaknessStart();
 
-    void Update();
+    void TrackAccumulation(bool track);
+    void ResetAccumulation();
+
+    void
+    Update();
 };
 
 CandleStickPatternTracker::CandleStickPatternTracker(bool draw)
@@ -103,6 +116,13 @@ CandleStickPatternTracker::CandleStickPatternTracker(bool draw)
     mDistributionSignOfWeaknessEnd = EMPTY;
     mDistributionUpThrustCount = 0;
     mDistributionHasLPSY = false;
+
+    mTrackAccumulation = false;
+    mAccumulationAutomaticRally = EMPTY;
+    mAccumulationSignOfStrengthStart = EMPTY;
+    mAccumulationSignOfStrengthEnd = EMPTY;
+    mAccumulationUpThrustCount = 0;
+    mAccumulationHasLPS = false;
 }
 
 CandleStickPatternTracker::~CandleStickPatternTracker()
@@ -113,14 +133,14 @@ CandleStickPatternTracker::~CandleStickPatternTracker()
 void CandleStickPatternTracker::Update()
 {
     int currentBars = iBars(Symbol(), Period());
-    int barIndex = currentBars - mBarsCalculated - 4;
+    int barIndex = currentBars - mBarsCalculated;
 
     if (barIndex <= 0)
     {
         return;
     }
 
-    while (barIndex >= 0)
+    while (barIndex > 0)
     {
         Calculate(barIndex);
 
@@ -128,7 +148,6 @@ void CandleStickPatternTracker::Update()
     }
 
     mBarsCalculated = currentBars;
-    Print("Done");
 }
 
 void CandleStickPatternTracker::Calculate(int &barIndex)
@@ -318,17 +337,6 @@ void CandleStickPatternTracker::Calculate(int &barIndex)
 
     if (mTrackDistribution)
     {
-        // need to set a first bearish candle if we dont' have one
-        // then we need some sort of bullish push (1+ bullish candles)
-        // then we need to break below the first bearish candle
-        // then we need some sort of retracement into the furthest bearish candle
-        // thats it?
-        // if we invalidte it half way thorugh, we need to retrace like we do for liquidation setups since the middle of one setup could
-        // be the start of another
-        // lastly, we should need a bullish candle after the sow end / break of the ar, and then another break of the sow end to signify the schematic
-        // the SOW should continue as long as we keep putting candles lower, up until we break the ar
-
-        // Print(barIndex);
         if (mDistributionAutomaticRally == EMPTY)
         {
             if (/*iOpen(Symbol(), Period(), barIndex + 1) < iClose(Symbol(), Period(), barIndex + 1) &&*/
@@ -389,50 +397,101 @@ void CandleStickPatternTracker::Calculate(int &barIndex)
                     }
                     else if (!mDistributionHasLPSY && iLow(Symbol(), Period(), barIndex) > iLow(Symbol(), Period(), iBarShift(Symbol(), Period(), mDistributionSignOfWeaknessEnd)))
                     {
-                        Draw(barIndex, clrBlue);
+                        // Draw(barIndex, clrBlue);
                         mDistributionHasLPSY = true;
                     }
                     else if (mDistributionHasLPSY && iLow(Symbol(), Period(), barIndex) < iLow(Symbol(), Period(), iBarShift(Symbol(), Period(), mDistributionAutomaticRally)))
                     {
-                        Draw(barIndex, clrLimeGreen);
+                        Draw(barIndex, clrPurple);
                         ResetDistribution();
                     }
                 }
             }
-
-            // if (mDistributionSignOfWeakness == EMPTY)
-            // {
-            //     if (iLow(Symbol(), Period(), barIndex) < iLow(Symbol(), Period(), iBarShift(Symbol(), Period(), mDistributionAutomaticRally)))
-            //     {
-            //         if (mDistributionUpThrustCount <= 0)
-            //         {
-            //             ResetDistribution();
-            //         }
-            //         else
-            //         {
-            //             mDistributionSignOfWeakness = iTime(Symbol(), Period(), barIndex);
-            //             Print("BarIndex: ", barIndex, ", AR: ", iBarShift(Symbol(), Period(), mDistributionAutomaticRally), ", UT Count: ", mDistributionUpThrustCount, ", SOW: ", iBarShift(Symbol(), Period(), mDistributionSignOfWeakness));
-            //             Draw(barIndex, clrPurple);
-            //         }
-            //     }
-            //     else
-            //     {
-            //         if (iOpen(Symbol(), Period(), barIndex) < iClose(Symbol(), Period(), barIndex) &&
-            //             iHigh(Symbol(), Period(), barIndex) > iHigh(Symbol(), Period(), mDistributionAutomaticRally))
-            //         {
-            //             mDistributionUpThrustCount += 1;
-            //         }
-            //     }
-            // }
-            // else
-            // {
-            //     if (iLow(Symbol(), Period(), barIndex) < iLow(Symbol(), Period(), iBarShift(Symbol(), Period(), mDistributionSignOfWeakness)))
-            //     {
-            //         ResetDistribution();
-            //     }
-            // }
         }
     }
+
+    if (mTrackAccumulation)
+    {
+        if (mAccumulationAutomaticRally == EMPTY)
+        {
+            if (/*iOpen(Symbol(), Period(), barIndex + 1) < iClose(Symbol(), Period(), barIndex + 1) &&*/
+                iOpen(Symbol(), Period(), barIndex) < iClose(Symbol(), Period(), barIndex))
+            {
+                // Draw(barIndex, clrRed);
+                mAccumulationAutomaticRally = iTime(Symbol(), Period(), barIndex);
+            }
+        }
+        else
+        {
+            if (mAccumulationSignOfStrengthStart == EMPTY)
+            {
+                if (iOpen(Symbol(), Period(), barIndex) < iClose(Symbol(), Period(), barIndex) && mAccumulationUpThrustCount > 0)
+                {
+                    // Draw(barIndex, clrYellow);
+                    mAccumulationSignOfStrengthStart = iTime(Symbol(), Period(), barIndex);
+                }
+                else if (iOpen(Symbol(), Period(), barIndex) < iClose(Symbol(), Period(), barIndex) && mAccumulationUpThrustCount <= 0)
+                {
+                    ResetAccumulation();
+                    barIndex += 1;
+                }
+                else if (iOpen(Symbol(), Period(), barIndex) > iClose(Symbol(), Period(), barIndex) &&
+                         iLow(Symbol(), Period(), barIndex) < iLow(Symbol(), Period(), iBarShift(Symbol(), Period(), mAccumulationAutomaticRally)))
+                {
+                    mAccumulationUpThrustCount += 1;
+                }
+            }
+            else
+            {
+                if (iLow(Symbol(), Period(), barIndex) < iLow(Symbol(), Period(), iBarShift(Symbol(), Period(), mAccumulationSignOfStrengthStart)))
+                {
+                    // Print("+BarIndex: ", barIndex, ", AR: ", iBarShift(Symbol(), Period(), mAccumulationAutomaticRally), ", UT Count: ", mAccumulationUpThrustCount, ", SOWS: ", iBarShift(Symbol(), Period(), mAccumulationSignOfStrengthStart));
+                    barIndex += (iBarShift(Symbol(), Period(), mAccumulationSignOfStrengthStart) - barIndex + 1);
+                    ResetAccumulation();
+
+                    return;
+                }
+
+                if (mAccumulationSignOfStrengthEnd == EMPTY)
+                {
+                    mAccumulationSignOfStrengthEnd = iTime(Symbol(), Period(), barIndex);
+                }
+                else
+                {
+                    if (!mAccumulationHasLPS && iHigh(Symbol(), Period(), barIndex) > iHigh(Symbol(), Period(), iBarShift(Symbol(), Period(), mAccumulationSignOfStrengthEnd)))
+                    {
+                        // barIndex += (iBarShift(Symbol(), Period(), mAccumulationSignOfStrengthStart) - barIndex + 1);
+                        // ResetAccumulation();
+                        mAccumulationSignOfStrengthEnd = iTime(Symbol(), Period(), barIndex);
+                        // Draw(barIndex, clrBlue);
+                    }
+                    else if (!mAccumulationHasLPS && iHigh(Symbol(), Period(), barIndex) > iHigh(Symbol(), Period(), iBarShift(Symbol(), Period(), mAccumulationAutomaticRally)))
+                    {
+                        barIndex += (iBarShift(Symbol(), Period(), mAccumulationSignOfStrengthStart) - barIndex + 1);
+                        ResetAccumulation();
+                    }
+                    else if (!mAccumulationHasLPS && iHigh(Symbol(), Period(), barIndex) < iHigh(Symbol(), Period(), iBarShift(Symbol(), Period(), mAccumulationSignOfStrengthEnd)))
+                    {
+                        // Draw(barIndex, clrBlue);
+                        mAccumulationHasLPS = true;
+                    }
+                    else if (mAccumulationHasLPS && iHigh(Symbol(), Period(), barIndex) > iHigh(Symbol(), Period(), iBarShift(Symbol(), Period(), mAccumulationAutomaticRally)))
+                    {
+                        Draw(barIndex, clrYellow);
+                        ResetAccumulation();
+                    }
+                }
+            }
+        }
+    }
+
+    // if (mTrackBullishRange)
+    // {
+    // }
+
+    // if (mTrackBearishRange)
+    // {
+    // }
 
     mHasSetup = false;
 }
@@ -444,6 +503,15 @@ void CandleStickPatternTracker::ResetDistribution()
     mDistributionSignOfWeaknessStart = EMPTY;
     mDistributionSignOfWeaknessEnd = EMPTY;
     mDistributionHasLPSY = false;
+}
+
+void CandleStickPatternTracker::ResetAccumulation()
+{
+    mAccumulationAutomaticRally = EMPTY;
+    mAccumulationSignOfStrengthStart = EMPTY;
+    mAccumulationSignOfStrengthEnd = EMPTY;
+    mAccumulationUpThrustCount = 0;
+    mAccumulationHasLPS = false;
 }
 
 bool CandleStickPatternTracker::HasSetup()
@@ -567,4 +635,27 @@ void CandleStickPatternTracker::TrackDistribution(bool track)
         mBarsCalculated = 0;
         mTrackDistribution = track;
     }
+}
+
+void CandleStickPatternTracker::TrackAccumulation(bool track)
+{
+    if (mTrackAccumulation != track)
+    {
+        mBarsCalculated = 0;
+        mTrackAccumulation = track;
+    }
+}
+
+bool CandleStickPatternTracker::DistributionHasLPSY()
+{
+    Update();
+
+    return mDistributionHasLPSY;
+}
+
+datetime CandleStickPatternTracker::DistributionSignOfWeaknessStart()
+{
+    Update();
+
+    return mDistributionSignOfWeaknessStart;
 }

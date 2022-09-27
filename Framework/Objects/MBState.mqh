@@ -33,7 +33,8 @@ protected:
     datetime mHighDateTime;
     datetime mLowDateTime;
 
-    bool mStartIsBroken;
+    bool mGlobalStartIsBroken;
+    // bool mGlobalEndIsBroken;
 
     bool mDrawn;
 
@@ -44,6 +45,8 @@ protected:
     bool mAllowZoneWickBreaks;
 
     string mName;
+
+    Status mHasImpulseValidation;
 
 public:
     // ------------- Getters --------------
@@ -70,17 +73,21 @@ public:
     int UnretrievedZoneCount() { return mUnretrievedZoneCount; }
 
     // Tested
-    bool IsBrokenFromBarIndex(int barIndex);
-    bool StartIsBroken();
-    bool EndIsBroken();
+    bool StartIsBrokenFromBarIndex(int barIndex);
+    bool GlobalStartIsBroken();
+
+    // bool EndIsBrokenFromBarIndex(int barIndex);
+    // bool GlobalEndIsBroken();
 
     bool GetUnretrievedZones(ZoneState *&zoneStates[]);
-    bool GetClosestValidZone(ZoneState *&zoneStates);
+    bool GetClosestValidZone(ZoneState *&zoneState);
     bool ClosestValidZoneIsHolding(int barIndex);
 
     // Tested
     bool GetShallowestZone(ZoneState *&zoneState);
     bool GetDeepestHoldingZone(ZoneState *&zoneState);
+
+    bool HasImpulseValidation();
 
     // --------- Display Methods ---------
     string ToString();
@@ -89,59 +96,58 @@ public:
     void DrawZones(bool printErrors);
 };
 
-bool MBState::IsBrokenFromBarIndex(int barIndex)
+bool MBState::StartIsBrokenFromBarIndex(int barIndex)
 {
     if (mType == OP_BUY)
     {
-        double low;
-        if (!MQLHelper::GetLowestLowBetween(mSymbol, mTimeFrame, LowIndex(), barIndex, false, low))
+        // This is for wick breaks
+        // double low;
+        // if (!MQLHelper::GetLowestLowBetween(mSymbol, mTimeFrame, LowIndex(), barIndex, false, low))
+        // {
+        //     return false;
+        // }
+
+        // return low < iLow(mSymbol, mTimeFrame, LowIndex());
+
+        double lowestBody;
+        if (!MQLHelper::GetLowestBodyBetween(mSymbol, mTimeFrame, LowIndex(), barIndex, false, lowestBody))
         {
             return false;
         }
 
-        return low < iLow(mSymbol, mTimeFrame, LowIndex());
+        return lowestBody < iLow(mSymbol, mTimeFrame, LowIndex());
     }
     else if (mType == OP_SELL)
     {
-        double high;
-        if (!MQLHelper::GetHighestHighBetween(mSymbol, mTimeFrame, HighIndex(), barIndex, false, high))
+        // This is for wick breaks
+        // double high;
+        // if (!MQLHelper::GetHighestHighBetween(mSymbol, mTimeFrame, HighIndex(), barIndex, false, high))
+        // {
+        //     return false;
+        // }
+
+        // return high > iHigh(mSymbol, mTimeFrame, HighIndex());
+
+        double highestBody;
+        if (!MQLHelper::GetHighestBodyBetween(mSymbol, mTimeFrame, HighIndex(), barIndex, false, highestBody))
         {
             return false;
         }
 
-        return high > iHigh(mSymbol, mTimeFrame, HighIndex());
+        return highestBody > iHigh(mSymbol, mTimeFrame, HighIndex());
     }
 
     return false;
 }
 
-bool MBState::StartIsBroken()
+bool MBState::GlobalStartIsBroken()
 {
-    if (!mStartIsBroken)
+    if (!mGlobalStartIsBroken)
     {
-        if (mType == OP_BUY)
-        {
-            double low;
-            if (!MQLHelper::GetLowestLow(mSymbol, mTimeFrame, LowIndex(), 0, false, low))
-            {
-                return false;
-            }
-
-            mStartIsBroken = low < iLow(mSymbol, mTimeFrame, LowIndex());
-        }
-        else if (mType == OP_SELL)
-        {
-            double high;
-            if (!MQLHelper::GetHighestHigh(mSymbol, mTimeFrame, HighIndex(), 0, false, high))
-            {
-                return false;
-            }
-
-            mStartIsBroken = high > iHigh(mSymbol, mTimeFrame, HighIndex());
-        }
+        mGlobalStartIsBroken = StartIsBrokenFromBarIndex(0);
     }
 
-    return mStartIsBroken;
+    return mGlobalStartIsBroken;
 }
 
 bool MBState::GetUnretrievedZones(ZoneState *&zoneStates[])
@@ -220,6 +226,149 @@ bool MBState::GetDeepestHoldingZone(ZoneState *&zoneState)
     return false;
 }
 
+bool MBState::HasImpulseValidation()
+{
+    double minPercentChange = 0.1;
+
+    if (mHasImpulseValidation == Status::NOT_CHECKED)
+    {
+        // don't know if we have an imbalance yet
+        if (EndIndex() < 2)
+        {
+            return false;
+        }
+
+        if (mType == OP_BUY)
+        {
+            // don't have an imbalance break, don't need to check anything else
+            if (iHigh(mSymbol, mTimeFrame, EndIndex() + 1) > iLow(mSymbol, mTimeFrame, EndIndex() - 1))
+            {
+                mHasImpulseValidation = Status::IS_FALSE;
+            }
+            else
+            {
+                double percentChange = MathAbs((iOpen(Symbol(), Period(), EndIndex()) - iClose(Symbol(), Period(), EndIndex())) / iOpen(Symbol(), Period(), EndIndex()));
+                if (percentChange > (minPercentChange / 100))
+                {
+                    mHasImpulseValidation = Status::IS_TRUE;
+                    ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, Ask);
+                    ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
+                }
+                else
+                {
+                    // go backwards checking for imbalances and adding percent change if true
+                    for (int i = EndIndex() + 1; i < LowIndex(); i++)
+                    {
+                        // end of impulse chain
+                        if (iHigh(mSymbol, mTimeFrame, i + 1) > iLow(mSymbol, mTimeFrame, i - 1) || iClose(mSymbol, mTimeFrame, i) < iOpen(mSymbol, mTimeFrame, i))
+                        {
+                            break;
+                        }
+
+                        percentChange += MathAbs((iOpen(Symbol(), Period(), i) - iClose(Symbol(), Period(), i)) / iOpen(Symbol(), Period(), i));
+                    }
+
+                    if (percentChange > (minPercentChange / 100))
+                    {
+                        mHasImpulseValidation = Status::IS_TRUE;
+                        ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, Ask);
+                        ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
+                    }
+                    else
+                    {
+                        // go forwards checking for imbalances and adding percent change if true
+                        for (int i = EndIndex() - 1; i > 1; i--)
+                        {
+                            if (iHigh(mSymbol, mTimeFrame, i + 1) > iLow(mSymbol, mTimeFrame, i - 1) || iClose(mSymbol, mTimeFrame, i) < iOpen(mSymbol, mTimeFrame, i))
+                            {
+                                break;
+                            }
+
+                            percentChange += MathAbs((iOpen(Symbol(), Period(), i) - iClose(Symbol(), Period(), i)) / iOpen(Symbol(), Period(), i));
+                        }
+
+                        if (percentChange > (minPercentChange / 100))
+                        {
+                            mHasImpulseValidation = Status::IS_TRUE;
+                            ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, Ask);
+                            ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
+                        }
+                        else
+                        {
+                            mHasImpulseValidation = Status::IS_FALSE;
+                        }
+                    }
+                }
+            }
+        }
+        else if (mType == OP_SELL)
+        {
+            // don't have an imbalance break, don't need to check anything else
+            if (iLow(mSymbol, mTimeFrame, EndIndex() + 1) < iHigh(mSymbol, mTimeFrame, EndIndex() - 1))
+            {
+                mHasImpulseValidation = Status::IS_FALSE;
+            }
+            else
+            {
+                double percentChange = MathAbs((iOpen(Symbol(), Period(), EndIndex()) - iClose(Symbol(), Period(), EndIndex())) / iOpen(Symbol(), Period(), EndIndex()));
+                if (percentChange > (minPercentChange / 100))
+                {
+                    mHasImpulseValidation = Status::IS_TRUE;
+                    ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, Ask);
+                    ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
+                }
+                else
+                {
+                    // go backwards checking for imbalances and adding percent change if true
+                    for (int i = EndIndex() + 1; i < LowIndex(); i++)
+                    {
+                        // end of impulse chain
+                        if (iLow(mSymbol, mTimeFrame, i + 1) < iHigh(mSymbol, mTimeFrame, i - 1) || iClose(mSymbol, mTimeFrame, i) > iOpen(mSymbol, mTimeFrame, i))
+                        {
+                            break;
+                        }
+
+                        percentChange += MathAbs((iOpen(Symbol(), Period(), i) - iClose(Symbol(), Period(), i)) / iOpen(Symbol(), Period(), i));
+                    }
+
+                    if (percentChange > (minPercentChange / 100))
+                    {
+                        mHasImpulseValidation = Status::IS_TRUE;
+                        ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, Ask);
+                        ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
+                    }
+                    else
+                    {
+                        // go forwards checking for imbalances and adding percent change if true
+                        for (int i = EndIndex() - 1; i > 1; i--)
+                        {
+                            if (iLow(mSymbol, mTimeFrame, i + 1) > iHigh(mSymbol, mTimeFrame, i - 1) || iClose(mSymbol, mTimeFrame, i) > iOpen(mSymbol, mTimeFrame, i))
+                            {
+                                break;
+                            }
+
+                            percentChange += MathAbs((iOpen(Symbol(), Period(), i) - iClose(Symbol(), Period(), i)) / iOpen(Symbol(), Period(), i));
+                        }
+
+                        if (percentChange > (minPercentChange / 100))
+                        {
+                            mHasImpulseValidation = Status::IS_TRUE;
+                            ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, Ask);
+                            ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
+                        }
+                        else
+                        {
+                            mHasImpulseValidation = Status::IS_FALSE;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return mHasImpulseValidation == Status::IS_TRUE;
+}
+
 bool MBState::ClosestValidZoneIsHolding(int barIndex)
 {
     if (barIndex == -1)
@@ -284,6 +433,28 @@ void MBState::Draw(bool printErrors)
     }
 
     color clr = mType == OP_BUY ? clrLimeGreen : clrRed;
+    // if (mType == OP_BUY)
+    // {
+    //     if (iHigh(mSymbol, mTimeFrame, EndIndex() + 1) < iLow(mSymbol, mTimeFrame, EndIndex() - 1))
+    //     {
+    //         clr = clrLimeGreen;
+    //     }
+    //     else
+    //     {
+    //         clr = clrBlack;
+    //     }
+    // }
+    // else if (mType == OP_SELL)
+    // {
+    //     if (iLow(mSymbol, mTimeFrame, EndIndex() + 1) > iHigh(mSymbol, mTimeFrame, EndIndex() - 1))
+    //     {
+    //         clr = clrRed;
+    //     }
+    //     else
+    //     {
+    //         clr = clrBlack;
+    //     }
+    // }
 
     if (!ObjectCreate(0, mName, OBJ_RECTANGLE, 0,
                       mStartDateTime,                          // Start
@@ -305,6 +476,30 @@ void MBState::Draw(bool printErrors)
     ObjectSetInteger(0, mName, OBJPROP_FILL, false);
     ObjectSetInteger(0, mName, OBJPROP_SELECTED, false);
     ObjectSetInteger(0, mName, OBJPROP_SELECTABLE, false);
+
+    // double hlinePrice = 0.0;
+    // if (mType == OP_BUY)
+    // {
+    //     hlinePrice = iHigh(mSymbol, mTimeFrame, HighIndex()) - ((iHigh(mSymbol, mTimeFrame, HighIndex()) - iLow(mSymbol, mTimeFrame, LowIndex())) * 0.3);
+    //     ObjectCreate(0, "Threshold" + Number(), OBJ_RECTANGLE, 0,
+    //                  mStartDateTime,
+    //                  iHigh(mSymbol, mTimeFrame, HighIndex()),
+    //                  mEndDateTime,
+    //                  hlinePrice);
+    //     ObjectSetInteger(0, "Threshold" + Number(), OBJPROP_FILL, true);
+    // }
+    // else if (mType == OP_SELL)
+    // {
+    //     hlinePrice = iHigh(mSymbol, mTimeFrame, HighIndex()) - ((iHigh(mSymbol, mTimeFrame, HighIndex()) - iLow(mSymbol, mTimeFrame, LowIndex())) * 0.7);
+    //     ObjectCreate(0, "Threshold" + Number(), OBJ_RECTANGLE, 0,
+    //                  mStartDateTime,
+    //                  iLow(mSymbol, mTimeFrame, LowIndex()),
+    //                  mEndDateTime,
+    //                  hlinePrice);
+    //     ObjectSetInteger(0, "Threshold" + Number(), OBJPROP_FILL, true);
+    // }
+
+    // ObjectSetInteger(0, "Threshold" + Number(), OBJPROP_COLOR, clr);
 
     mDrawn = true;
 }

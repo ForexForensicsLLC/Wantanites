@@ -11,6 +11,7 @@
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\EntryTradeRecords\DefaultEntryTradeRecord.mqh>
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\EntryTradeRecords\SingleTimeFrameEntryTradeRecord.mqh>
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\EntryTradeRecords\MultiTimeFrameEntryTradeRecord.mqh>
+#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\EntryTradeRecords\MBEntryTradeRecord.mqh>
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\ExitTradeRecords\DefaultExitTradeRecord.mqh>
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\ExitTradeRecords\SingleTimeFrameExitTradeRecord.mqh>

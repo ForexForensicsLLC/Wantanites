@@ -185,6 +185,8 @@ void TestEA::CheckInvalidateSetup()
         EAHelper::ResetLiquidationMBSetup<TestEA>(this, false);
         EAHelper::ResetSingleMBConfirmation<TestEA>(this, false);
 
+        mHasSetup = false;
+
         return;
     }
 
@@ -196,6 +198,8 @@ void TestEA::CheckInvalidateSetup()
         EAHelper::ResetLiquidationMBSetup<TestEA>(this, false);
         EAHelper::ResetSingleMBConfirmation<TestEA>(this, false);
 
+        mHasSetup = false;
+
         return;
     }
 
@@ -206,6 +210,8 @@ void TestEA::CheckInvalidateSetup()
         // Cancel any pending orders since the setup didn't hold
         EAHelper::InvalidateSetup<TestEA>(this, true, false);
         EAHelper::ResetSingleMBConfirmation<TestEA>(this, false);
+
+        mHasSetup = false;
 
         return;
     }
@@ -229,9 +235,10 @@ void TestEA::CheckInvalidateSetup()
 
 void TestEA::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
-    // RecordError(-22);
+    RecordError(-22);
 
     EAHelper::InvalidateSetup<TestEA>(this, deletePendingOrder, false, error);
+    mHasSetup = true;
     mEntryCandleTime = 0;
 }
 
@@ -345,6 +352,10 @@ bool TestEA::Confirmation()
 
         return true;
     }
+    else if (mCurrentSetupTicket.Number() == EMPTY)
+    {
+        RecordError(-123);
+    }
 
     return mCurrentSetupTicket.Number() != EMPTY;
 
@@ -416,30 +427,35 @@ void TestEA::PlaceOrders()
         // {
         //     EAHelper::PlaceStopOrderForBreakOfMB<TestEA>(this, mConfirmationMBT, tempMBState.Number());
         // }
-
-        if (mSetupType == OP_BUY)
-        {
-            double entry = iHigh(Symbol(), 1, 1) + OrderHelper::PipsToRange(mMaxSpreadPips);
-            double stopLoss = iLow(Symbol(), 1, 0) - OrderHelper::PipsToRange(mStopLossPaddingPips);
-
-            GetLastError();
-            int ticket = OrderSend(Symbol(), OP_BUYSTOP, 0.1, entry, 0, stopLoss, 0, NULL, MagicNumber(), 0, clrNONE);
-            EAHelper::PostPlaceOrderChecks<TestEA>(this, ticket, GetLastError());
-        }
-        else if (mSetupType == OP_SELL)
-        {
-            double entry = iLow(Symbol(), 1, 1);
-            double stopLoss = iHigh(Symbol(), 1, 0) + OrderHelper::PipsToRange(mMaxSpreadPips + mStopLossPaddingPips);
-
-            GetLastError();
-            int ticket = OrderSend(Symbol(), OP_SELLSTOP, 0.1, entry, 0, stopLoss, 0, NULL, MagicNumber(), 0, clrNONE);
-            EAHelper::PostPlaceOrderChecks<TestEA>(this, ticket, GetLastError());
-        }
-
-        RecordError(-600);
-
-        mEntryCandleTime = iTime(Symbol(), 1, 1);
     }
+
+    if (mCurrentSetupTicket.Number() != EMPTY)
+    {
+        return;
+    }
+
+    if (mSetupType == OP_BUY)
+    {
+        double entry = iHigh(Symbol(), 1, 1) + OrderHelper::PipsToRange(mMaxSpreadPips);
+        double stopLoss = iLow(Symbol(), 1, 0) - OrderHelper::PipsToRange(mStopLossPaddingPips);
+
+        GetLastError();
+        int ticket = OrderSend(Symbol(), OP_BUYSTOP, 0.1, entry, 0, stopLoss, 0, NULL, MagicNumber(), 0, clrNONE);
+        EAHelper::PostPlaceOrderChecks<TestEA>(this, ticket, GetLastError());
+    }
+    else if (mSetupType == OP_SELL)
+    {
+        double entry = iLow(Symbol(), 1, 1);
+        double stopLoss = iHigh(Symbol(), 1, 0) + OrderHelper::PipsToRange(mMaxSpreadPips + mStopLossPaddingPips);
+
+        GetLastError();
+        int ticket = OrderSend(Symbol(), OP_SELLSTOP, 0.1, entry, 0, stopLoss, 0, NULL, MagicNumber(), 0, clrNONE);
+        EAHelper::PostPlaceOrderChecks<TestEA>(this, ticket, GetLastError());
+    }
+
+    RecordError(-600);
+
+    mEntryCandleTime = iTime(Symbol(), 1, 1);
 }
 
 void TestEA::ManageCurrentPendingSetupTicket()

@@ -71,8 +71,8 @@ public:
     // =========================================================================
     // Placing Market Orders
     // =========================================================================
-    static int PlaceMarketOrderForDojiBreakSetup(double paddingPips, double spreadPips, double riskPercent, int magicNumber, int type,
-                                                 string symbol, int timeFrame, int &ticketNumber);
+    static int PlaceMarketOrderForCandleSetup(double paddingPips, double spreadPips, double riskPercent, int magicNumber, int type,
+                                              string symbol, int timeFrame, int stopLossCandleIndex, int &ticketNumber);
 
     static int PlaceMarketOrderForMostRecentMB(double paddingPips, double spreadPips, double riskPercent, int magicNumber, int type,
                                                int mbNumber, MBTracker *&mbt, int &ticketNumber);
@@ -91,7 +91,10 @@ public:
     static int PlaceStopOrder(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber, int &ticket);
 
     static int PlaceStopOrderForCandleBreak(double paddingPips, double spreadPips, double riskPercent, int magicNumber,
-                                            int type, string symbol, int timeFrame, int candleIndex, int &ticketNumber);
+                                            int type, string symbol, int timeFrame, int entryCandleIndex, int stopLossCandleIndex, int &ticketNumber);
+
+    static int PlaceStopOrderForTheLittleDipper(double paddingPips, double spreadPips, double riskPercent, int magicNumber, int type, string symbol, int timeFrame,
+                                                int &ticketNumber);
 
     // ==========================================================================
     // Placing Stop Orders on MBs
@@ -119,6 +122,8 @@ public:
     static int MoveTicketToBreakEven(Ticket *&ticket);
 
     static int MoveToBreakEvenWithCandleFurtherThanEntry(string symbol, int timeFrame, Ticket *&ticket);
+
+    static int CheckEditStopLossForTheLittleDipper(double stopLossPaddingPips, double spreadPips, string symbol, int timeFrame, Ticket &ticket);
 
     // ==========================================================================
     // Editing Orders For MB Stop Orders
@@ -504,8 +509,8 @@ static int OrderHelper::FindNewTicketAfterPartial(int magicNumber, double openPr
                               |___/
 
 */
-static int OrderHelper::PlaceMarketOrderForDojiBreakSetup(double paddingPips, double spreadPips, double riskPercent, int magicNumber, int type,
-                                                          string symbol, int timeFrame, int &ticketNumber)
+static int OrderHelper::PlaceMarketOrderForCandleSetup(double paddingPips, double spreadPips, double riskPercent, int magicNumber, int type,
+                                                       string symbol, int timeFrame, int stopLossCandleIndex, int &ticketNumber)
 {
     double entryPrice;
     double stopLoss;
@@ -514,13 +519,13 @@ static int OrderHelper::PlaceMarketOrderForDojiBreakSetup(double paddingPips, do
     if (type == OP_BUY)
     {
         entryPrice = Ask;
-        stopLoss = iLow(symbol, timeFrame, 2) - PipsToRange(paddingPips);
+        stopLoss = iLow(symbol, timeFrame, stopLossCandleIndex) - PipsToRange(paddingPips);
     }
     else if (type == OP_SELL)
     {
         // move the entry down 0.1 pips so that we only get entered if we actually break below and not if we just tap it
         entryPrice = Bid;
-        stopLoss = iHigh(symbol, timeFrame, 2) + PipsToRange(spreadPips + paddingPips);
+        stopLoss = iHigh(symbol, timeFrame, stopLossCandleIndex) + PipsToRange(spreadPips + paddingPips);
     }
 
     double lots = GetLotSize(RangeToPips(MathAbs(entryPrice - stopLoss)), riskPercent);
@@ -663,7 +668,7 @@ int OrderHelper::PlaceStopOrder(int orderType, double lots, double entryPrice, d
 }
 
 static int OrderHelper::PlaceStopOrderForCandleBreak(double paddingPips, double spreadPips, double riskPercent, int magicNumber,
-                                                     int type, string symbol, int timeFrame, int candleIndex, int &ticketNumber)
+                                                     int type, string symbol, int timeFrame, int entryCandleIndex, int stopLossCandleIndex, int &ticketNumber)
 {
     double entryPrice;
     double stopLoss;
@@ -672,21 +677,45 @@ static int OrderHelper::PlaceStopOrderForCandleBreak(double paddingPips, double 
     if (type == OP_BUY)
     {
         orderType = OP_BUYSTOP;
-        entryPrice = iHigh(symbol, timeFrame, candleIndex) + PipsToRange(spreadPips);
-        stopLoss = iLow(symbol, timeFrame, candleIndex) - PipsToRange(paddingPips);
+        entryPrice = iHigh(symbol, timeFrame, entryCandleIndex) + PipsToRange(spreadPips);
+        stopLoss = iLow(symbol, timeFrame, stopLossCandleIndex) - PipsToRange(paddingPips);
     }
     else if (type == OP_SELL)
     {
         // move the entry down 0.1 pips so that we only get entered if we actually break below and not if we just tap it
         orderType = OP_SELLSTOP;
-        entryPrice = iLow(symbol, timeFrame, candleIndex) - PipsToRange(0.1);
-        stopLoss = iHigh(symbol, timeFrame, candleIndex) + PipsToRange(spreadPips + paddingPips);
+        entryPrice = iLow(symbol, timeFrame, entryCandleIndex) - PipsToRange(0.1);
+        stopLoss = iHigh(symbol, timeFrame, stopLossCandleIndex) + PipsToRange(spreadPips + paddingPips);
     }
 
     double lots = GetLotSize(RangeToPips(MathAbs(entryPrice - stopLoss)), riskPercent);
     int error = PlaceStopOrder(orderType, lots, entryPrice, stopLoss, 0, magicNumber, ticketNumber);
 
     return error;
+}
+
+static int OrderHelper::PlaceStopOrderForTheLittleDipper(double paddingPips, double spreadPips, double riskPercent, int magicNumber, int type, string symbol, int timeFrame,
+                                                         int &ticketNumber)
+{
+    int orderType;
+    double entryPrice;
+    double stopLoss;
+
+    if (type == OP_BUY)
+    {
+        orderType = OP_BUYSTOP;
+        entryPrice = iHigh(symbol, timeFrame, 1) + OrderHelper::PipsToRange(spreadPips);
+        stopLoss = iLow(symbol, timeFrame, 0) - OrderHelper::PipsToRange(paddingPips);
+    }
+    else if (type == OP_SELL)
+    {
+        orderType = OP_SELLSTOP;
+        entryPrice = iLow(symbol, timeFrame, 1);
+        stopLoss = iHigh(symbol, timeFrame, 0) + OrderHelper::PipsToRange(spreadPips + paddingPips);
+    }
+
+    double lots = GetLotSize(RangeToPips(MathAbs(entryPrice - stopLoss)), riskPercent);
+    return PlaceStopOrder(orderType, lots, entryPrice, stopLoss, 0, magicNumber, ticketNumber);
 }
 /*
 
@@ -955,6 +984,7 @@ static int OrderHelper::MoveToBreakEvenWithCandleFurtherThanEntry(string symbol,
     int error = ERR_NO_ERROR;
     if (!OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice(), OrderTakeProfit(), OrderExpiration(), clrGreen))
     {
+        Print("Time: ", Hour(), ":", Minute(), ":", Seconds(), ", Type: ", type, ", Entry: ", OrderOpenPrice(), ", Current SL: ", OrderStopLoss(), ", High: ", iHigh(symbol, timeFrame, 1), ", Low: ", iLow(symbol, timeFrame, 1));
         error = GetLastError();
         SendMail("Failed to move to break even",
                  "Time: " + IntegerToString(Hour()) + ":" + IntegerToString(Minute()) + ":" + IntegerToString(Seconds()) + "\n" +
@@ -969,6 +999,44 @@ static int OrderHelper::MoveToBreakEvenWithCandleFurtherThanEntry(string symbol,
 
     return error;
 }
+
+static int OrderHelper::CheckEditStopLossForTheLittleDipper(double stopLossPaddingPips, double spreadPips, string symbol, int timeFrame, Ticket &ticket)
+{
+    int selectError = ticket.SelectIfOpen("Editing The Little Dipper Stop Loss");
+    if (selectError != ERR_NO_ERROR)
+    {
+        return selectError;
+    }
+
+    double newStopLoss = 0.0;
+    if (OrderType() == OP_BUYSTOP)
+    {
+        double low = iLow(symbol, timeFrame, 0);
+        if (low < OrderStopLoss())
+        {
+            newStopLoss = low - OrderHelper::PipsToRange(stopLossPaddingPips);
+        }
+    }
+    else if (OrderType() == OP_SELLSTOP)
+    {
+        double high = iHigh(symbol, timeFrame, 0);
+        if (high > OrderStopLoss())
+        {
+            newStopLoss = high + OrderHelper::PipsToRange(stopLossPaddingPips + spreadPips);
+        }
+    }
+
+    if (newStopLoss != 0.0)
+    {
+        if (!OrderModify(ticket.Number(), OrderOpenPrice(), newStopLoss, 0, 0, clrNONE))
+        {
+            return GetLastError();
+        }
+    }
+
+    return ERR_NO_ERROR;
+}
+
 /*
 
    _____    _ _ _   _                ___          _                 _____            __  __ ____    ____  _                 ___          _
@@ -1047,6 +1115,7 @@ static int OrderHelper::CheckEditStopLossForStopOrderOnBreakOfMB(double paddingP
 
     double newStopLoss = 0.0;
     int stopLossError = GetStopLossForStopOrderForBreakOfMB(paddingPips, spreadPips, mbNumber, mbt, newStopLoss);
+    if (stopLossError != ERR_NO_ERROR)
     {
         return stopLossError;
     }

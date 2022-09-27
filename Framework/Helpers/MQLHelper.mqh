@@ -27,6 +27,9 @@ public:
 
     static bool GetLowestLowBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &high);
     static bool GetHighestHighBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &high);
+
+    static bool GetHighestBodyBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &highestBody);
+    static bool GetLowestBodyBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &lowestBody);
 };
 /**
  * @brief
@@ -138,5 +141,51 @@ static bool MQLHelper::GetHighestHighBetween(string symbol, int timeFrame, int l
         return false;
     }
 
+    return true;
+}
+
+static bool MQLHelper::GetHighestBodyBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &highestBody)
+{
+    if (rightIndex > leftIndex)
+    {
+        return false;
+    }
+
+    int highestOpen;
+    if (!GetHighest(symbol, timeFrame, MODE_OPEN, leftIndex - rightIndex, rightIndex, inclusive, highestOpen))
+    {
+        return false;
+    }
+
+    int highestClose;
+    if (!GetHighest(symbol, timeFrame, MODE_CLOSE, leftIndex - rightIndex, rightIndex, inclusive, highestClose))
+    {
+        return false;
+    }
+
+    highestBody = MathMax(iOpen(symbol, timeFrame, highestOpen), iClose(symbol, timeFrame, highestClose));
+    return true;
+}
+
+static bool MQLHelper::GetLowestBodyBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &lowestBody)
+{
+    if (rightIndex > leftIndex)
+    {
+        return false;
+    }
+
+    int lowestOpen;
+    if (!GetLowest(symbol, timeFrame, MODE_OPEN, leftIndex - rightIndex, rightIndex, inclusive, lowestOpen))
+    {
+        return false;
+    }
+
+    int lowestClose;
+    if (!GetLowest(symbol, timeFrame, MODE_CLOSE, leftIndex - rightIndex, rightIndex, inclusive, lowestClose))
+    {
+        return false;
+    }
+
+    lowestBody = MathMin(iOpen(symbol, timeFrame, lowestOpen), iClose(symbol, timeFrame, lowestClose));
     return true;
 }

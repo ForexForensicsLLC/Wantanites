@@ -127,6 +127,7 @@ public:
     bool MBIsOpposite(int mbNumber);
 
     int NumberOfConsecutiveMBsBeforeNthMostRecent(int nthMB);
+    int NumberOfConsecutiveMBsBeforeMB(int mbNumber);
 
     bool MBIsMostRecent(int mbNumber);
     bool MBIsMostRecent(int mbNumber, MBState *&mbState);
@@ -227,10 +228,11 @@ void MBTracker::Update()
     // this is needed in liquidation setups where the liquidation mb can tap into the zone on the same candle that
     // breaks the second. If this wasn't there, we would have to wait for that candle to close, potentially missing
     // setups and getting inaccurate results from that point on
-    if (!mInitialLoad && mMBsCreated > 0)
-    {
-        CheckMostRecentMBIsBroken(limit);
-    }
+    // TODO: test without this since I Don't think this is needed anymore with the change to only breaking on bodies
+    // if (!mInitialLoad && mMBsCreated > 0)
+    // {
+    //     CheckMostRecentMBIsBroken(limit);
+    // }
 
     // Calcualte on every tick
     if (!mInitialLoad && mCalculateOnTick)
@@ -243,7 +245,7 @@ void MBTracker::Update()
         for (int i = limit; i > 0; i--)
         {
             // This is added so that the inital load of MBs still functions as usual
-            if (mInitialLoad && mMBsCreated > 0)
+            if (/*mInitialLoad &&*/ mMBsCreated > 0)
             {
                 CheckMostRecentMBIsBroken(i);
             }
@@ -356,7 +358,7 @@ void MBTracker::CheckBias(int barIndex)
             }
 
             count += 1;
-            if (count == 2 && tempMB.IsBrokenFromBarIndex(barIndex))
+            if (count == 2 && tempMB.StartIsBrokenFromBarIndex(barIndex))
             {
                 // if (mBias == OP_BUY)
                 // {
@@ -387,7 +389,7 @@ void MBTracker::CheckMostRecentMBIsBroken(int barIndex)
     if (mMBs[MostRecentMBIndex()].Type() == OP_BUY)
     {
         // first check to make sure we didn't break our previous MB
-        if (iLow(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].LowIndex()))
+        if (iClose(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].LowIndex()))
         {
             int highestIndex;
             if (!MQLHelper::GetHighest(mSymbol, mTimeFrame, MODE_HIGH, mMBs[MostRecentMBIndex()].StartIndex() - barIndex, barIndex, false, highestIndex))
@@ -403,7 +405,7 @@ void MBTracker::CheckMostRecentMBIsBroken(int barIndex)
     else if (mMBs[MostRecentMBIndex()].Type() == OP_SELL)
     {
         // first check to make sure we didn't break our previous mb
-        if (iHigh(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].HighIndex()))
+        if (iClose(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].HighIndex()))
         {
             int lowestIndex = 0;
             if (!MQLHelper::GetLowest(mSymbol, mTimeFrame, MODE_LOW, mMBs[MostRecentMBIndex()].StartIndex() - barIndex, barIndex, false, lowestIndex))
@@ -432,14 +434,14 @@ void MBTracker::CalculateMB(int barIndex)
         CheckSetPendingMB(barIndex, OP_SELL);
 
         // validated Bullish MB
-        if (mPendingBullishMB && iHigh(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex))
+        if (mPendingBullishMB && iClose(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex))
         {
             CreateMB(OP_BUY, mCurrentBullishRetracementIndex, barIndex, mCurrentBullishRetracementIndex, mPendingBullishMBLowIndex);
             ResetTracking();
             return;
         }
         // validated Bearish MB
-        else if (mPendingBearishMB && iLow(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex))
+        else if (mPendingBearishMB && iClose(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex))
         {
             CreateMB(OP_SELL, mCurrentBearishRetracementIndex, barIndex, mPendingBearishMBHighIndex, mCurrentBearishRetracementIndex);
             ResetTracking();
@@ -456,7 +458,7 @@ void MBTracker::CalculateMB(int barIndex)
         if (mPendingBullishMB)
         {
             // new bullish mb has been validated
-            if (iHigh(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex))
+            if (iClose(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex))
             {
                 // only create the mb if it is longer than 1 candle
                 int bullishRetracementIndex = -1;
@@ -484,7 +486,7 @@ void MBTracker::CalculateMB(int barIndex)
         if (mPendingBearishMB)
         {
             // new bearish mb has been validated
-            if (iLow(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex))
+            if (iClose(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex))
             {
                 int bearishRetracementIndex = -1;
                 if (CurrentBearishRetracementIndexIsValid(bearishRetracementIndex, barIndex))
@@ -966,6 +968,12 @@ bool MBTracker::GetMB(int mbNumber, MBState *&mbState)
 {
     Update();
 
+    // just in case
+    if (mbNumber < 0)
+    {
+        return false;
+    }
+
     // mb is too old, doesn't exist anymore
     if (mbNumber < (mMBsCreated - mMBsToTrack))
     {
@@ -1127,6 +1135,12 @@ int MBTracker::NumberOfConsecutiveMBsBeforeNthMostRecent(int nthMB)
     return count;
 }
 
+int MBTracker::NumberOfConsecutiveMBsBeforeMB(int mbNumber)
+{
+    int nthMB = mMBsCreated - mbNumber - 1;
+    return NumberOfConsecutiveMBsBeforeNthMostRecent(nthMB);
+}
+
 bool MBTracker::MBIsMostRecent(int mbNumber)
 {
     Update();
@@ -1152,7 +1166,7 @@ int MBTracker::MBStartIsBroken(int mbNumber, bool &brokeRangeStart)
         return TerminalErrors::MB_DOES_NOT_EXIST;
     }
 
-    brokeRangeStart = tempMBState.StartIsBroken();
+    brokeRangeStart = tempMBState.GlobalStartIsBroken();
     return ERR_NO_ERROR;
 }
 
@@ -1468,6 +1482,7 @@ void MBTracker::DrawNMostRecentMBs(int n)
 
     for (int i = MostRecentMBIndex(); i < MostRecentMBIndex() + n; i++)
     {
+        // mMBs[i].HasImpulseValidation();
         mMBs[i].Draw(mPrintErrors);
     }
 }

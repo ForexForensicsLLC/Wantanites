@@ -84,7 +84,7 @@ void LiquidationSetupTracker::CheckInvalidateSetup()
             return;
         }
 
-        if (tempMBState.StartIsBroken())
+        if (tempMBState.GlobalStartIsBroken())
         {
             Reset();
             return;
@@ -100,7 +100,7 @@ void LiquidationSetupTracker::CheckInvalidateSetup()
             return;
         }
 
-        if (tempMBState.StartIsBroken())
+        if (tempMBState.GlobalStartIsBroken())
         {
             // subtract 2 here since we could have started a new setup during the previous one
             mMBsCalculated -= 2;
@@ -121,7 +121,7 @@ void LiquidationSetupTracker::CheckSetup(int mbNumber)
             return;
         }
 
-        if (firstMBState.Type() != mSetupType || firstMBState.StartIsBroken())
+        if (firstMBState.Type() != mSetupType || firstMBState.GlobalStartIsBroken())
         {
             Reset();
             return;

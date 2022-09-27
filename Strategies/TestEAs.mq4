@@ -19,7 +19,7 @@ input double MaxSpreadPips = 0.3;
 
 // -- MBTracker Inputs
 input int MBsToTrack = 10;
-input int MaxZonesInMB = 5;
+input int MaxZonesInMB = 1;
 input bool AllowMitigatedZones = false;
 input bool AllowZonesAfterMBValidation = true;
 input bool AllowWickBreaks = true;
@@ -43,8 +43,8 @@ LiquidationSetupTracker *LiquidationConfirmation;
 
 int OnInit()
 {
-    SetupMBT = new MBTracker(Symbol(), 60, MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
-    ConfirmationMBT = new MBTracker(Symbol(), 1, 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
+    SetupMBT = new MBTracker(Symbol(), 60, MBsToTrack, 1, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
+    ConfirmationMBT = new MBTracker(Symbol(), 1, 300, 1, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
 
     LiquidationSetup = new LiquidationSetupTracker(SetupType, SetupMBT);
     LiquidationConfirmation = new LiquidationSetupTracker(SetupType, ConfirmationMBT);

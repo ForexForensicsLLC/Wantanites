@@ -96,7 +96,7 @@ static int SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(int secondMBIn
     }
 
     // The end of our setup is the same as the start of the MB that liquidated the second MB
-    isTrue = thirdTempMBState.StartIsBroken();
+    isTrue = thirdTempMBState.GlobalStartIsBroken();
     return ERR_NO_ERROR;
 }
 /*
