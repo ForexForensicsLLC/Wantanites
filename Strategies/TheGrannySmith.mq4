@@ -40,10 +40,10 @@ int OnInit()
 {
     SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
 
-    Apple = new TheGrannySmith(OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
+    Apple = new TheGrannySmith(OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, 10, RiskPercent, EntryWriter, ExitWriter,
                                ErrorWriter, SetupMBT);
     Apple.SetPartialCSVRecordWriter(PartialWriter);
-    Apple.AddPartial(100000000, 100);
+    Apple.AddPartial(100000, 100);
 
     return (INIT_SUCCEEDED);
 }

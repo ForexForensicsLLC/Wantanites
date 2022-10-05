@@ -11,7 +11,7 @@
 #include <SummitCapital/Framework/Objects/ObjectList.mqh>
 #include <SummitCapital/Framework/Objects/Ticket.mqh>
 
-class TicketList : public ObjectList<Ticket *>
+class TicketList : public ObjectList<Ticket>
 {
 public:
     TicketList();
@@ -49,5 +49,5 @@ void TicketList::Remove(int index)
         }
     }
 
-    this = tempTicketList;
+    // this = tempTicketList;
 }

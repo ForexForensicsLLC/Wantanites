@@ -1145,6 +1145,11 @@ bool MBTracker::MBIsMostRecent(int mbNumber)
 {
     Update();
 
+    if (mMBsCreated <= 0)
+    {
+        return false;
+    }
+
     return mMBs[MostRecentMBIndex()].Number() == mbNumber;
 }
 

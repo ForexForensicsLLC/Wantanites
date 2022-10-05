@@ -13,16 +13,10 @@
 class MQLHelper
 {
 public:
-    // Tested
     static bool GetLowest(string symbol, int timeFrame, int mode, int count, int startIndex, bool inclusive, out int &lowIndex);
-
-    // Tested
     static bool GetHighest(string symbol, int timeFrame, int mode, int count, int startIndex, bool inclusive, out int &highIndex);
 
-    // Tested
     static bool GetLowestLow(string symbol, int timeFrame, int count, int startIndex, bool inclusive, out double &low);
-
-    // Tested
     static bool GetHighestHigh(string symbol, int timeFrame, int count, int startIndex, bool inclusive, out double &high);
 
     static bool GetLowestLowBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &high);

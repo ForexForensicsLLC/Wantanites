@@ -11,6 +11,8 @@
 class Partial
 {
 public:
+    typedef bool (*TPartialRRLocator)(Partial &, double);
+
     double mRR;
     double mPercent;
     bool mWasTaken;
@@ -21,6 +23,7 @@ public:
     ~Partial();
 
     double PercentAsDecimal() { return mPercent / 100; }
+    static bool FindPartialByRR(Partial &partial, double rr);
 };
 
 Partial::Partial(double rr, double percent)
@@ -39,4 +42,9 @@ Partial::Partial(Partial &partial)
 
 Partial::~Partial()
 {
+}
+
+static bool Partial::FindPartialByRR(Partial &partial, double rr)
+{
+    return partial.mRR == rr;
 }

@@ -36,6 +36,7 @@ public:
     static int EAStates::CHECKING_PREVIOUS_SETUP_TICKET;
     static int EAStates::SETTING_OPEN_DATA_ON_TICKET;
     static int EAStates::CHECKING_TO_PARTIAL;
+    static int EAStates::CHECKING_COVERING_COMMISSIONS;
 
     // 8200s Are For Setup Related States
     static int EAStates::CHECKING_FOR_SETUP;
@@ -55,6 +56,7 @@ public:
     static int EAStates::CHECKING_FOR_SINGLE_MB_SETUP;
     static int EAStates::CHECKING_FOR_DOUBLE_MB_SETUP;
     static int EAStates::CHECKING_FOR_LIQUIDATION_MB_SETUP;
+    static int EAStates::MOVING_TO_BREAK_EVEN;
 
     // 8300s Are For Confirmation Related States
     static int EAStates::CHECKING_FOR_CONFIRMATION;
@@ -87,6 +89,8 @@ static int EAStates::CHECKING_PREVIOUS_SETUP_TICKET = 8112;
 static int EAStates::SETTING_OPEN_DATA_ON_TICKET = 8113;
 static int EAStates::CHECKING_TO_PARTIAL = 8114;
 static int EAStates::COUNTING_OTHER_EA_ORDERS = 8115;
+static int EAStates::MOVING_TO_BREAK_EVEN = 8116;
+static int EAStates::CHECKING_COVERING_COMMISSIONS = 8117;
 
 // 8200s Are For Setup Related States
 static int EAStates::CHECKING_FOR_SETUP = 8200;

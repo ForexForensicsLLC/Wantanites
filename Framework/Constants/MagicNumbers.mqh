@@ -29,6 +29,12 @@ public:
 
     static int BearishSinji;
     static int BullishSingji;
+
+    static int BearishRango;
+    static int BullishRango;
+
+    static int TheBullishProspector;
+    static int TheBearishProspector;
 };
 
 static int MagicNumbers::TheSunriseShatterBearishSingleMB = 10003;
@@ -49,3 +55,9 @@ static int MagicNumbers::BullishKataraLiquidationMB = 10011;
 
 static int MagicNumbers::BearishSinji = 10015;
 static int MagicNumbers::BullishSingji = 10016;
+
+static int MagicNumbers::BearishRango = 10017;
+static int MagicNumbers::BullishRango = 10018;
+
+static int MagicNumbers::TheBullishProspector = 10019;
+static int MagicNumbers::TheBearishProspector = 10020;

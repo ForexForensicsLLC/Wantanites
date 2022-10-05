@@ -15,7 +15,7 @@ input double StopLossPaddingPips = 0;
 input double RiskPercent = 0.25;
 input int MaxCurrentSetupTradesAtOnce = 1;
 input int MaxTradesPerDay = 5;
-input double MaxSpreadPips = 0.3;
+input double MaxSpreadPips = 10;
 
 // -- MBTracker Inputs
 input int MBsToTrack = 10;
@@ -43,13 +43,13 @@ LiquidationSetupTracker *LiquidationConfirmation;
 
 int OnInit()
 {
-    SetupMBT = new MBTracker(Symbol(), 60, MBsToTrack, 1, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
-    ConfirmationMBT = new MBTracker(Symbol(), 1, 300, 1, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
+    SetupMBT = new MBTracker(Symbol(), 15, MBsToTrack, 5, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
+    ConfirmationMBT = new MBTracker(Symbol(), 1, 300, 5, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
 
     LiquidationSetup = new LiquidationSetupTracker(SetupType, SetupMBT);
     LiquidationConfirmation = new LiquidationSetupTracker(SetupType, ConfirmationMBT);
 
-    TEA = new TestEA(SetupType, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
+    TEA = new TestEA(OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, 10, RiskPercent, EntryWriter, ExitWriter,
                      ErrorWriter, SetupMBT, ConfirmationMBT, LiquidationSetup);
     TEA.SetPartialCSVRecordWriter(PartialWriter);
     TEA.AddPartial(100000000, 100);

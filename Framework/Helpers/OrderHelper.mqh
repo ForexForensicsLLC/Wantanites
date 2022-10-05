@@ -71,6 +71,7 @@ public:
     // =========================================================================
     // Placing Market Orders
     // =========================================================================
+    static int PlaceMarketOrder(int orderType, double lots, double entry, double stoploss, double takeProfit, int magicNumber, int &ticket);
     static int PlaceMarketOrderForCandleSetup(double paddingPips, double spreadPips, double riskPercent, int magicNumber, int type,
                                               string symbol, int timeFrame, int stopLossCandleIndex, int &ticketNumber);
 
@@ -121,7 +122,7 @@ public:
 
     static int MoveTicketToBreakEven(Ticket *&ticket);
 
-    static int MoveToBreakEvenWithCandleFurtherThanEntry(string symbol, int timeFrame, Ticket *&ticket);
+    static int MoveToBreakEvenWithCandleFurtherThanEntry(string symbol, int timeFrame, bool waitForCandleClose, Ticket *&ticket);
 
     static int CheckEditStopLossForTheLittleDipper(double stopLossPaddingPips, double spreadPips, string symbol, int timeFrame, Ticket &ticket);
 
@@ -211,8 +212,11 @@ static double OrderHelper::PipsToRange(double pips)
 }
 static double OrderHelper::GetLotSize(double stopLossPips, double riskPercent)
 {
-    double LotSize = (AccountBalance() * riskPercent / 100) / stopLossPips / MarketInfo(Symbol(), MODE_LOTSIZE);
-    return MathMax(LotSize, MarketInfo(Symbol(), MODE_MINLOT));
+    double pipValue = MarketInfo(Symbol(), MODE_TICKSIZE) * 10 * MarketInfo(Symbol(), MODE_LOTSIZE);
+    double lotSize = NormalizeDouble((AccountBalance() * riskPercent / 100) / (stopLossPips * pipValue), 2);
+
+    lotSize = MathMax(lotSize, MarketInfo(Symbol(), MODE_MINLOT));
+    return lotSize;
 }
 
 /**
@@ -457,6 +461,7 @@ static int OrderHelper::FindActiveTicketsByMagicNumber(bool todayOnly, int magic
     return ERR_NO_ERROR;
 }
 
+// TODO: Move into Ticket as a static function
 static int OrderHelper::FindNewTicketAfterPartial(int magicNumber, double openPrice, datetime orderOpenTime, int &ticket)
 {
     int error = ERR_NO_ERROR;
@@ -483,12 +488,12 @@ static int OrderHelper::FindNewTicketAfterPartial(int magicNumber, double openPr
             continue;
         }
 
-        if (OrderOpenPrice() != openPrice)
+        if (NormalizeDouble(OrderOpenPrice(), Digits) != NormalizeDouble(openPrice, Digits))
         {
             continue;
         }
 
-        if (OrderOpenTime() != orderOpenTime)
+        if (NormalizeDouble(OrderOpenTime(), Digits) != NormalizeDouble(orderOpenTime, Digits))
         {
             continue;
         }
@@ -509,6 +514,26 @@ static int OrderHelper::FindNewTicketAfterPartial(int magicNumber, double openPr
                               |___/
 
 */
+static int OrderHelper::PlaceMarketOrder(int orderType, double lots, double entry, double stopLoss, double takeProfit, int magicNumber, int &ticket)
+{
+    if (orderType >= 2)
+    {
+        return TerminalErrors::WRONG_ORDER_TYPE;
+    }
+
+    int newTicket = OrderSend(Symbol(), orderType, lots, entry, 0, stopLoss, takeProfit, NULL, magicNumber, 0, clrNONE);
+
+    int error = ERR_NO_ERROR;
+    if (newTicket == EMPTY)
+    {
+        error = GetLastError();
+        SendFailedOrderEMail(1, orderType, entry, stopLoss, lots, magicNumber, error);
+    }
+
+    ticket = newTicket;
+    return error;
+}
+
 static int OrderHelper::PlaceMarketOrderForCandleSetup(double paddingPips, double spreadPips, double riskPercent, int magicNumber, int type,
                                                        string symbol, int timeFrame, int stopLossCandleIndex, int &ticketNumber)
 {
@@ -651,6 +676,7 @@ int OrderHelper::PlaceStopOrder(int orderType, double lots, double entryPrice, d
 
     if ((orderType == OP_BUYSTOP && entryPrice <= currentTick.ask) || (orderType == OP_SELLSTOP && entryPrice >= currentTick.bid))
     {
+        Print("Type: ", orderType, ", Entry: ", entryPrice, ", SL:", stopLoss);
         return ExecutionErrors::STOP_ORDER_ENTRY_FURTHER_THEN_PRICE;
     }
 
@@ -900,6 +926,7 @@ static bool OrderHelper::EditStopLoss(double newStopLoss, double newLots, int ma
 static int OrderHelper::PartialTicket(int ticketNumber, double price, double currentLots, double percentAsDecimal)
 {
     double lots = NormalizeDouble(currentLots * percentAsDecimal, 2);
+    GetLastError();
     if (!OrderClose(ticketNumber, lots, price, 0, clrNONE))
     {
         int error = GetLastError();
@@ -913,7 +940,6 @@ static int OrderHelper::PartialTicket(int ticketNumber, double price, double cur
                      "Current Lots: " + DoubleToString(currentLots, 2) + "\n" +
                      "New Lots: " + DoubleToString(lots, 2) + "\n" +
                      "Percent:" + DoubleToString(percentAsDecimal, 3));
-
         return error;
     }
 
@@ -952,7 +978,7 @@ static int OrderHelper::MoveTicketToBreakEven(Ticket *&ticket)
     return error;
 }
 
-static int OrderHelper::MoveToBreakEvenWithCandleFurtherThanEntry(string symbol, int timeFrame, Ticket *&ticket)
+static int OrderHelper::MoveToBreakEvenWithCandleFurtherThanEntry(string symbol, int timeFrame, bool waitForCandleClose, Ticket *&ticket)
 {
     bool selectError = ticket.SelectIfOpen("Checking To Edit Stop Loss");
     if (selectError != ERR_NO_ERROR)
@@ -966,14 +992,16 @@ static int OrderHelper::MoveToBreakEvenWithCandleFurtherThanEntry(string symbol,
         return ERR_NO_ERROR;
     }
 
+    int index = waitForCandleClose ? 1 : 0;
     bool furtherThanEntry = false;
+
     if (type == OP_BUY)
     {
-        furtherThanEntry = iLow(symbol, timeFrame, 1) > OrderOpenPrice();
+        furtherThanEntry = iLow(symbol, timeFrame, index) > OrderOpenPrice();
     }
     else if (type == OP_SELL)
     {
-        furtherThanEntry = iHigh(symbol, timeFrame, 1) < OrderOpenPrice();
+        furtherThanEntry = iHigh(symbol, timeFrame, index) < OrderOpenPrice();
     }
 
     if (!furtherThanEntry)

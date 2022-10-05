@@ -19,7 +19,7 @@ class EA
 {
 public:
     Ticket *mCurrentSetupTicket;
-    TicketList *mPreviousSetupTickets;
+    ObjectList<Ticket> *mPreviousSetupTickets;
 
     CSVRecordWriter<TEntryRecord> *mEntryCSVRecordWriter;
     CSVRecordWriter<TPartialRecord> *mPartialCSVRecordWriter;
@@ -43,6 +43,7 @@ public:
     List<double> *mPartialPercents;
 
     int mLastState;
+    double mLargestAccountBalance; // should be defaulted to the starting capital of the account in case no trades have been taken yet
 
 public:
     EA(int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
@@ -50,6 +51,7 @@ public:
     ~EA();
 
     virtual int MagicNumber() = NULL;
+    virtual double RiskPercent() = NULL;
     virtual void Run() = NULL;
     virtual bool AllowedToTrade() = NULL;
     virtual void CheckSetSetup() = NULL;
@@ -92,7 +94,7 @@ EA::EA(int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPadd
     mErrorCSVRecordWriter = errorCSVRecordWriter;
 
     mCurrentSetupTicket = new Ticket();
-    mPreviousSetupTickets = new TicketList();
+    mPreviousSetupTickets = new ObjectList<Ticket>();
 
     mPartialRRs = new List<double>;
     mPartialPercents = new List<double>;

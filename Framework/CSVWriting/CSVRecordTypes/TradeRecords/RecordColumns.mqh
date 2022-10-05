@@ -13,7 +13,7 @@
 
 class RecordColumns
 {
-private:
+public:
     double mTotalMovePips;
     double mPotentialRR;
     double mRRAcquired;
