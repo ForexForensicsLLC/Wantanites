@@ -24,6 +24,8 @@ public:
 
     int mFirstMBInSetupNumber;
 
+    datetime mEntryCandleTime;
+
 public:
     Rango(int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
           CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
@@ -67,8 +69,10 @@ Rango::Rango(int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay
     mEntrySymbol = Symbol();
     mEntryTimeFrame = Period();
 
+    mEntryCandleTime = 0;
+
     // TODO: Change Back
-    mLargestAccountBalance = AccountBalance();
+    mLargestAccountBalance = 100000;
 
     ArrayResize(mStrategyMagicNumbers, 1);
     mStrategyMagicNumbers[0] = MagicNumber();
@@ -84,17 +88,7 @@ Rango::~Rango()
 
 double Rango::RiskPercent()
 {
-    double riskPercent = 0.25;
-    double percentLost = (AccountBalance() - mLargestAccountBalance) / mLargestAccountBalance * 100;
-
-    // for each one percent that we lost, reduce risk by 0.05 %
-    while (percentLost >= 1)
-    {
-        riskPercent -= 0.05;
-        percentLost -= 1;
-    }
-
-    return riskPercent;
+    return EAHelper::GetReducedRiskPerPercentLost<Rango>(this, 1, 0.05);
 }
 
 void Rango::Run()
@@ -160,7 +154,7 @@ void Rango::PlaceOrders()
 
     double entry = 0.0;
     double stopLoss = 0.0;
-    double stopLossPips = 30;
+    double stopLossPips = 100;
 
     if (mSetupType == OP_BUY)
     {
@@ -175,16 +169,62 @@ void Rango::PlaceOrders()
 
     EAHelper::PlaceMarketOrder<Rango>(this, entry, stopLoss);
     mBarCount = currentBars;
+    mEntryCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 0);
 }
 
 void Rango::ManageCurrentPendingSetupTicket()
 {
-    // we are placing market orders so we won't ever have pending orders
+    if (mCurrentSetupTicket.Number() == EMPTY)
+    {
+        return;
+    }
+
+    if (mEntryCandleTime == 0)
+    {
+        return;
+    }
+
+    if (iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime) > 0)
+    {
+        mCurrentSetupTicket.Close();
+    }
 }
 
 void Rango::ManageCurrentActiveSetupTicket()
 {
-    EAHelper::MoveToBreakEvenAsSoonAsPossible<Rango>(this);
+    if (mCurrentSetupTicket.Number() == EMPTY)
+    {
+        return;
+    }
+
+    int selectError = mCurrentSetupTicket.SelectIfOpen("Stuff");
+    if (TerminalErrors::IsTerminalError(selectError))
+    {
+        RecordError(selectError);
+        return;
+    }
+
+    MqlTick currentTick;
+    if (!SymbolInfoTick(Symbol(), currentTick))
+    {
+        RecordError(GetLastError());
+        return;
+    }
+
+    bool movedPips = false;
+    if (mSetupType == OP_BUY)
+    {
+        movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(10);
+    }
+    else if (mSetupType == OP_SELL)
+    {
+        movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(10);
+    }
+
+    if (movedPips)
+    {
+        EAHelper::MoveToBreakEvenAsSoonAsPossible<TradingMembership>(this, 3);
+    }
 }
 
 bool Rango::MoveToPreviousSetupTickets(Ticket &ticket)

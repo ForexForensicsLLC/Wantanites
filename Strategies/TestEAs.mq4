@@ -11,27 +11,27 @@
 #include <SummitCapital/EAs/TestEA.mqh>
 
 // --- EA Inputs ---
-input double StopLossPaddingPips = 0;
-input double RiskPercent = 0.25;
-input int MaxCurrentSetupTradesAtOnce = 1;
-input int MaxTradesPerDay = 5;
-input double MaxSpreadPips = 10;
+double StopLossPaddingPips = 0;
+double RiskPercent = 0.025; // TODO: Put back
+int MaxCurrentSetupTradesAtOnce = 1;
+int MaxTradesPerDay = 5;
+double MaxSpreadPips = 0.3;
 
 // -- MBTracker Inputs
-input int MBsToTrack = 10;
-input int MaxZonesInMB = 1;
-input bool AllowMitigatedZones = false;
-input bool AllowZonesAfterMBValidation = true;
-input bool AllowWickBreaks = true;
-input bool PrintErrors = false;
-input bool CalculateOnTick = false;
+int MBsToTrack = 10;
+int MaxZonesInMB = 5;
+bool AllowMitigatedZones = false;
+bool AllowZonesAfterMBValidation = true;
+bool AllowWickBreaks = true;
+bool PrintErrors = false;
+bool CalculateOnTick = false;
 
 int SetupType = OP_BUY;
 
-CSVRecordWriter<MultiTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<MultiTimeFrameEntryTradeRecord>("Test/Entries/", "Entries.csv");
-CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>("Test/Partials/", "Partials.csv");
-CSVRecordWriter<MultiTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<MultiTimeFrameExitTradeRecord>("Test/Exits/", "Exits.csv");
-CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>("Test/Errors/", "Errors.csv");
+CSVRecordWriter<MultiTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<MultiTimeFrameEntryTradeRecord>("TestEA/Entries/", "Entries.csv");
+CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>("TestEA/Partials/", "Partials.csv");
+CSVRecordWriter<MultiTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<MultiTimeFrameExitTradeRecord>("TestEA/Exits/", "Exits.csv");
+CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>("TestEA/Errors/", "Errors.csv");
 
 MBTracker *SetupMBT;
 MBTracker *ConfirmationMBT;
@@ -43,13 +43,13 @@ LiquidationSetupTracker *LiquidationConfirmation;
 
 int OnInit()
 {
-    SetupMBT = new MBTracker(Symbol(), 15, MBsToTrack, 5, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
-    ConfirmationMBT = new MBTracker(Symbol(), 1, 300, 5, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
+    SetupMBT = new MBTracker(Symbol(), 60, MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
+    ConfirmationMBT = new MBTracker(Symbol(), 1, 100, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
 
     LiquidationSetup = new LiquidationSetupTracker(SetupType, SetupMBT);
     LiquidationConfirmation = new LiquidationSetupTracker(SetupType, ConfirmationMBT);
 
-    TEA = new TestEA(OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, 10, RiskPercent, EntryWriter, ExitWriter,
+    TEA = new TestEA(SetupType, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
                      ErrorWriter, SetupMBT, ConfirmationMBT, LiquidationSetup);
     TEA.SetPartialCSVRecordWriter(PartialWriter);
     TEA.AddPartial(100000000, 100);

@@ -39,6 +39,7 @@ public:
     int mBarCount;
 
     int mTimeFrame;
+    string mEntrySymbol;
     int mEntryTimeFrame;
 
     bool mHasMBValChange;
@@ -53,7 +54,8 @@ public:
            CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT, MBTracker *&confirmationMBT, LiquidationSetupTracker *&lst);
     ~TestEA();
 
-    virtual int MagicNumber() { return mSetupType == OP_BUY ? MagicNumbers::BullishKataraSingleMB : MagicNumbers::BearishKataraSingleMB; }
+    virtual int MagicNumber() { return mSetupType == OP_BUY ? -1 : -1; }
+    virtual double RiskPercent();
 
     virtual void Run();
     virtual bool AllowedToTrade();
@@ -117,14 +119,22 @@ TestEA::TestEA(int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerD
     mEntryCandleTime = 0;
     mTimeFrame = 1;
 
+    mEntrySymbol = Symbol();
     mEntryTimeFrame = 1;
 
     mHasMBValChange = false;
     mHasZoneImbalanceChange = false;
+
+    mLargestAccountBalance = 100000;
 }
 
 TestEA::~TestEA()
 {
+}
+
+double TestEA::RiskPercent()
+{
+    return EAHelper::GetReducedRiskPerPercentLost<TestEA>(this, 1, 0.005); // TODO: Put back
 }
 
 void TestEA::Run()
@@ -153,25 +163,14 @@ void TestEA::CheckSetSetup()
 
     if (EAHelper::CheckSetSingleMBSetup<TestEA>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
     {
-        bool isTrue = false;
-        int error = EAHelper::MostRecentMBZoneIsHolding<TestEA>(this, mSetupMBT, mFirstMBInSetupNumber, isTrue);
-        if (error != ERR_NO_ERROR)
-        {
-            EAHelper::InvalidateSetup<TestEA>(this, true, false);
-            EAHelper::ResetSingleMBSetup<TestEA>(this, false);
-            EAHelper::ResetLiquidationMBSetup<TestEA>(this, false);
-        }
-        else if (isTrue)
+        string additionalInformation = "";
+        if (EAHelper::SetupZoneIsValidForConfirmation<TestEA>(this, mFirstMBInSetupNumber, 0, additionalInformation))
         {
             if (EAHelper::CheckSetSingleMBSetup<TestEA>(this, mConfirmationMBT, mFirstMBInConfirmationNumber, mSetupType))
             {
                 mHasSetup = true;
             }
         }
-        // string additionalInformation = "";
-        // if (EAHelper::SetupZoneIsValidForConfirmation<TestEA>(this, mFirstMBInSetupNumber, 0, additionalInformation))
-        // {
-        // }
     }
 }
 
@@ -227,15 +226,55 @@ void TestEA::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 
 bool TestEA::Confirmation()
 {
-    bool dojiInHoldingZone = false;
-    int error = EAHelper::DojiInsideMostRecentMBsHoldingZone<TestEA>(this, mConfirmationMBT, mFirstMBInConfirmationNumber, dojiInHoldingZone);
-    if (error != ERR_NO_ERROR)
+    // bool dojiInHoldingZone = false;
+    // int error = EAHelper::DojiInsideMostRecentMBsHoldingZone<TestEA>(this, mConfirmationMBT, mFirstMBInConfirmationNumber, dojiInHoldingZone);
+    // if (error != ERR_NO_ERROR)
+    // {
+    //     return false;
+    // }
+
+    // MBState *tempMBState;
+    // if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, tempMBState))
+    // {
+    //     return false;
+    // }
+
+    // ZoneState *tempZoneState;
+    // if (!tempMBState.GetDeepestHoldingZone(tempZoneState))
+    // {
+    //     return false;
+    // }
+
+    // double minPercentChange = 0.5;
+    // double mbValChange = MathAbs((iOpen(Symbol(), 15, tempMBState.EndIndex()) - iClose(Symbol(), 15, tempMBState.EndIndex())) /
+    //                              iOpen(Symbol(), 15, tempMBState.EndIndex()));
+
+    // mbValChange = false;
+    // int zoneImbalance = tempZoneState.StartIndex() - tempZoneState.EntryOffset();
+    // double zoneImbalanceChange = MathAbs((iOpen(Symbol(), 15, zoneImbalance) - iClose(Symbol(), 15, zoneImbalance)) /
+    //                                      iOpen(Symbol(), 15, zoneImbalance));
+
+    // bool hasConfirmation = dojiInHoldingZone && ((mbValChange > (minPercentChange / 100)) || (zoneImbalanceChange > (minPercentChange / 100)));
+
+    // mHasMBValChange = mbValChange > (minPercentChange / 100);
+    // mHasZoneImbalanceChange = zoneImbalanceChange > (minPercentChange / 100);
+
+    // return hasConfirmation;
+    bool zoneIsHolding = false;
+    int zoneIsHoldingError = EAHelper::MostRecentMBZoneIsHolding<TestEA>(this, mConfirmationMBT, mFirstMBInConfirmationNumber, zoneIsHolding);
+    if (zoneIsHoldingError != ERR_NO_ERROR)
+    {
+        InvalidateSetup(true);
+        return false;
+    }
+
+    if (!zoneIsHolding)
     {
         return false;
     }
 
     MBState *tempMBState;
-    if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, tempMBState))
+    if (!mConfirmationMBT.GetMB(mFirstMBInConfirmationNumber, tempMBState))
     {
         return false;
     }
@@ -246,35 +285,46 @@ bool TestEA::Confirmation()
         return false;
     }
 
-    double minPercentChange = 0.5;
-    double mbValChange = MathAbs((iOpen(Symbol(), 15, tempMBState.EndIndex()) - iClose(Symbol(), 15, tempMBState.EndIndex())) /
-                                 iOpen(Symbol(), 15, tempMBState.EndIndex()));
+    MqlTick currentTick;
+    if (!SymbolInfoTick(Symbol(), currentTick))
+    {
+        RecordError(GetLastError());
+        return false;
+    }
 
-    mbValChange = false;
-    int zoneImbalance = tempZoneState.StartIndex() - tempZoneState.EntryOffset();
-    double zoneImbalanceChange = MathAbs((iOpen(Symbol(), 15, zoneImbalance) - iClose(Symbol(), 15, zoneImbalance)) /
-                                         iOpen(Symbol(), 15, zoneImbalance));
+    bool potentialDoji = false;
+    bool withinZone = false;
 
-    bool hasConfirmation = dojiInHoldingZone && ((mbValChange > (minPercentChange / 100)) || (zoneImbalanceChange > (minPercentChange / 100)));
+    if (mSetupType == OP_BUY)
+    {
+        potentialDoji = iOpen(mEntrySymbol, mEntryTimeFrame, 0) > iLow(mEntrySymbol, mEntryTimeFrame, 1) &&
+                        currentTick.bid < iLow(mEntrySymbol, mEntryTimeFrame, 1);
 
-    mHasMBValChange = mbValChange > (minPercentChange / 100);
-    mHasZoneImbalanceChange = zoneImbalanceChange > (minPercentChange / 100);
+        withinZone = iLow(mEntrySymbol, mEntryTimeFrame, 0) <= tempZoneState.EntryPrice() && currentTick.bid >= tempZoneState.ExitPrice();
+    }
+    else if (mSetupType == OP_SELL)
+    {
+        potentialDoji = iOpen(mEntrySymbol, mEntryTimeFrame, 0) < iHigh(mEntrySymbol, mEntryTimeFrame, 1) &&
+                        currentTick.bid > iHigh(mEntrySymbol, mEntryTimeFrame, 1);
 
-    return hasConfirmation;
+        withinZone = iHigh(mEntrySymbol, mEntryTimeFrame, 0) >= tempZoneState.EntryPrice() && currentTick.bid <= tempZoneState.ExitPrice();
+    }
+
+    return mCurrentSetupTicket.Number() != EMPTY || (potentialDoji && withinZone);
 }
 
 void TestEA::PlaceOrders()
 {
-    int currentBars = iBars(Symbol(), Period());
-    if (currentBars <= mBarCount)
-    {
-        return;
-    }
+    // int currentBars = iBars(Symbol(), Period());
+    // if (currentBars <= mBarCount)
+    // {
+    //     return;
+    // }
 
-    if (mCurrentSetupTicket.Number() != EMPTY)
-    {
-        return;
-    }
+    // if (mCurrentSetupTicket.Number() != EMPTY)
+    // {
+    //     return;
+    // }
 
     // MBState *tempMBState;
     // if (!mConfirmationMBT.GetMB(mFirstMBInConfirmationNumber, tempMBState))
@@ -288,23 +338,90 @@ void TestEA::PlaceOrders()
     //     return;
     // }
 
-    EAHelper::PlaceStopOrderForCandelBreak<TestEA>(this, Symbol(), 1, iTime(Symbol(), 1, 1), iTime(Symbol(), 1, 1));
+    // EAHelper::PlaceStopOrderForCandelBreak<TestEA>(this, Symbol(), 1, iTime(Symbol(), 1, 1), iTime(Symbol(), 1, 1));
 
-    mEntryCandleTime = iTime(Symbol(), 1, 1);
-    mBarCount = currentBars;
+    // mEntryCandleTime = iTime(Symbol(), 1, 1);
+    // mBarCount = currentBars;
 
-    string info = mCurrentSetupTicket.Number() + " " + mMBCount + " " + mHasMBValChange + " " + mHasZoneImbalanceChange;
-    RecordError(-234, info);
+    // string info = mCurrentSetupTicket.Number() + " " + mMBCount + " " + mHasMBValChange + " " + mHasZoneImbalanceChange;
+    // RecordError(-234, info);
+
+    int currentBars = iBars(mEntrySymbol, mEntryTimeFrame);
+    if (currentBars <= mBarCount)
+    {
+        return;
+    }
+
+    if (mCurrentSetupTicket.Number() != EMPTY)
+    {
+        return;
+    }
+
+    MqlTick currentTick;
+    if (!SymbolInfoTick(Symbol(), currentTick))
+    {
+        RecordError(GetLastError());
+        return;
+    }
+
+    double entry = 0.0;
+    double stopLoss = 0.0;
+    double stopLossPips = 3;
+
+    if (mSetupType == OP_BUY)
+    {
+        entry = iLow(mEntrySymbol, mEntryTimeFrame, 1);
+        stopLoss = entry - OrderHelper::PipsToRange(stopLossPips);
+
+        // don't place the order if it is going to activate right away
+        if (currentTick.ask > entry)
+        {
+            return;
+        }
+    }
+    else if (mSetupType == OP_SELL)
+    {
+        entry = iHigh(mEntrySymbol, mEntryTimeFrame, 1);
+        stopLoss = entry + OrderHelper::PipsToRange(stopLossPips);
+
+        if (currentTick.bid < entry)
+        {
+            return;
+        }
+    }
+
+    EAHelper::PlaceStopOrder<TestEA>(this, entry, stopLoss);
+
+    // we successfully placed an order
+    if (mCurrentSetupTicket.Number() != EMPTY)
+    {
+        mBarCount = currentBars;
+        mEntryCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 0);
+    }
 }
 
 void TestEA::ManageCurrentPendingSetupTicket()
 {
+    // if (mCurrentSetupTicket.Number() == EMPTY)
+    // {
+    //     return;
+    // }
+
+    // EAHelper::CheckBrokePastCandle<TestEA>(this, Symbol(), Period(), mSetupType, mEntryCandleTime);
     if (mCurrentSetupTicket.Number() == EMPTY)
     {
         return;
     }
 
-    EAHelper::CheckBrokePastCandle<TestEA>(this, Symbol(), Period(), mSetupType, mEntryCandleTime);
+    if (mEntryCandleTime == 0)
+    {
+        return;
+    }
+
+    if (iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime) > 0)
+    {
+        mCurrentSetupTicket.Close();
+    }
 }
 
 void TestEA::ManageCurrentActiveSetupTicket()
@@ -314,7 +431,36 @@ void TestEA::ManageCurrentActiveSetupTicket()
         return;
     }
 
-    EAHelper::MoveToBreakEvenWithCandleFurtherThanEntry<TestEA>(this);
+    int selectError = mCurrentSetupTicket.SelectIfOpen("Stuff");
+    if (TerminalErrors::IsTerminalError(selectError))
+    {
+        RecordError(selectError);
+        return;
+    }
+
+    MqlTick currentTick;
+    if (!SymbolInfoTick(Symbol(), currentTick))
+    {
+        RecordError(GetLastError());
+        return;
+    }
+
+    bool movedPips = false;
+    double pipsToWait = 2;
+    if (mSetupType == OP_BUY)
+    {
+        movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(pipsToWait);
+    }
+    else if (mSetupType == OP_SELL)
+    {
+        movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(pipsToWait);
+    }
+
+    double additionalPips = 0.2;
+    if (movedPips)
+    {
+        EAHelper::MoveToBreakEvenAsSoonAsPossible<TestEA>(this, additionalPips);
+    }
 }
 
 bool TestEA::MoveToPreviousSetupTickets(Ticket &ticket)
@@ -329,17 +475,19 @@ void TestEA::ManagePreviousSetupTicket(int ticketIndex)
 
 void TestEA::CheckCurrentSetupTicket()
 {
+    EAHelper::CheckUpdateHowFarPriceRanFromOpen<TestEA>(this, mCurrentSetupTicket);
     EAHelper::CheckCurrentSetupTicket<TestEA>(this);
 }
 
 void TestEA::CheckPreviousSetupTicket(int ticketIndex)
 {
+    EAHelper::CheckUpdateHowFarPriceRanFromOpen<TestEA>(this, mPreviousSetupTickets[ticketIndex]);
     EAHelper::CheckPreviousSetupTicket<TestEA>(this, ticketIndex);
 }
 
 void TestEA::RecordTicketOpenData()
 {
-    EAHelper::RecordMultiTimeFrameEntryTradeRecord<TestEA>(this, 15);
+    EAHelper::RecordMultiTimeFrameEntryTradeRecord<TestEA>(this, mSetupMBT.TimeFrame());
 }
 
 void TestEA::RecordTicketPartialData(int oldTicketIndex, int newTicketNumber)
@@ -349,7 +497,7 @@ void TestEA::RecordTicketPartialData(int oldTicketIndex, int newTicketNumber)
 
 void TestEA::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordMultiTimeFrameExitTradeRecord<TestEA>(this, ticket, 1, 15);
+    EAHelper::RecordMultiTimeFrameExitTradeRecord<TestEA>(this, ticket, mConfirmationMBT.TimeFrame(), mSetupMBT.TimeFrame());
 }
 
 void TestEA::RecordError(int error, string additionalInformation = "")

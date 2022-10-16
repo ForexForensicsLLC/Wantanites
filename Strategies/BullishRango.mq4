@@ -45,7 +45,7 @@ int OnInit()
     }
 
     // Should only be running on Nas
-    if (StringFind(Symbol(), "NAS") == -1 || StringFind(Symbol(), "US100") == -1)
+    if (StringFind(Symbol(), "NDX") == -1 && StringFind(Symbol(), "US100") == -1)
     {
         return INIT_PARAMETERS_INCORRECT;
     }

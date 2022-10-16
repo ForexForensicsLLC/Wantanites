@@ -8,6 +8,12 @@
 #property version "1.00"
 #property strict
 
+/**
+ * @brief Create a List of Objects
+ *
+ * @tparam T Type of List
+ * @remark The object needs to have a copy constructor defined or else it won't compile
+ */
 template <typename T>
 class ObjectList
 {

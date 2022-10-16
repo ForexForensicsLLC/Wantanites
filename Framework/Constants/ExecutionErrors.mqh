@@ -22,7 +22,7 @@ public:
 
     // 6100s Are For Order Errors
     static int ExecutionErrors::NEW_STOPLOSS_EQUALS_OLD;
-    static int ExecutionErrors::STOP_ORDER_ENTRY_FURTHER_THEN_PRICE;
+    static int ExecutionErrors::ORDER_ENTRY_FURTHER_THEN_PRICE;
     static int ExecutionErrors::ORDER_IS_OPEN;
     static int ExecutionErrors::ORDER_IS_CLOSED;
 
@@ -51,7 +51,7 @@ static int ExecutionErrors::NO_ZONES = 6007;
 
 // 6100s Are For Order Errors
 static int ExecutionErrors::NEW_STOPLOSS_EQUALS_OLD = 6100;
-static int ExecutionErrors::STOP_ORDER_ENTRY_FURTHER_THEN_PRICE = 6101;
+static int ExecutionErrors::ORDER_ENTRY_FURTHER_THEN_PRICE = 6101;
 static int ExecutionErrors::ORDER_IS_OPEN = 6102;
 static int ExecutionErrors::ORDER_IS_CLOSED = 6103;
 

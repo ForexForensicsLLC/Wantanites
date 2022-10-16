@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                         TheBearishProspector.mq4 |
+//|                                         TheBullishProspector.mq4 |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/EAs/TheProspector.mqh>
+#include <SummitCapital/EAs/TheProspectorTwo.mqh>
 
 // --- EA Inputs ---
 double StopLossPaddingPips = 0;
@@ -26,15 +26,15 @@ bool AllowWickBreaks = true;
 bool PrintErrors = false;
 bool CalculateOnTick = false;
 
-int SetupType = OP_SELL;
+int SetupType = OP_BUY;
 
-CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>("TheBearishProspector/Entries/", "Entries.csv");
-CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>("TheBearishProspector/Partials/", "Partials.csv");
-CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>("TheBearishProspector/Exits/", "Exits.csv");
-CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>("TheBearishProspector/Errors/", "Errors.csv");
+CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>("TheBullishProspectorTwo/Entries/", "Entries.csv");
+CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>("TheBullishProspectorTwo/Partials/", "Partials.csv");
+CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>("TheBullishProspectorTwo/Exits/", "Exits.csv");
+CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>("TheBullishProspectorTwo/Errors/", "Errors.csv");
 
 MBTracker *SetupMBT;
-TheProspector *StinkyPete;
+TheProspectorTwo *StinkyPete;
 
 int OnInit()
 {
@@ -51,8 +51,8 @@ int OnInit()
     }
 
     SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
-    StinkyPete = new TheProspector(SetupType, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
-                                   ErrorWriter, SetupMBT);
+    StinkyPete = new TheProspectorTwo(SetupType, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
+                                      ErrorWriter, SetupMBT);
 
     StinkyPete.SetPartialCSVRecordWriter(PartialWriter);
     StinkyPete.AddPartial(20, 50);

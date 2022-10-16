@@ -103,7 +103,7 @@ void TheProspector::Run()
 
 bool TheProspector::AllowedToTrade()
 {
-    return EAHelper::BelowSpread<TheProspector>(this) && (Hour() >= 17 && Hour() < 23);
+    return EAHelper::BelowSpread<TheProspector>(this) && (Hour() >= 16 && Hour() <= 18);
 }
 
 void TheProspector::CheckSetSetup()
@@ -159,7 +159,7 @@ void TheProspector::PlaceOrders()
 
     double entry = 0.0;
     double stopLoss = 0.0;
-    double stopLossPips = 1.3;
+    double stopLossPips = 1.3; // TODO: Put back to 1.3
 
     if (mSetupType == OP_BUY)
     {
@@ -172,7 +172,7 @@ void TheProspector::PlaceOrders()
         stopLoss = entry + OrderHelper::PipsToRange(stopLossPips);
     }
 
-    EAHelper::PlaceMarketOrder<TheProspector>(this, entry, stopLoss);
+    EAHelper::PlaceMarketOrder<TheProspector>(this, entry, stopLoss, 0.01);
     mBarCount = currentBars;
 }
 

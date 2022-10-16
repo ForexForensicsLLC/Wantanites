@@ -15,7 +15,7 @@ double StopLossPaddingPips = 0;
 double RiskPercent = 0.25;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
-double MaxSpreadPips = 1.3;
+double MaxSpreadPips = 2; // TOD: Put back to 1.2
 
 // -- MBTracker Inputs
 int MBsToTrack = 10;

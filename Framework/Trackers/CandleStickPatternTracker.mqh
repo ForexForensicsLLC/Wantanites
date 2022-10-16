@@ -48,6 +48,8 @@ private:
     int mAccumulationUpThrustCount;
     bool mAccumulationHasLPS;
 
+    bool mTrackRanging;
+
     void
     Calculate(int &barIndex);
     void Draw(int barIndex, color clr);
@@ -82,6 +84,8 @@ public:
 
     void TrackAccumulation(bool track);
     void ResetAccumulation();
+
+    void TrackRanging(bool track);
 
     void
     Update();
@@ -123,6 +127,8 @@ CandleStickPatternTracker::CandleStickPatternTracker(bool draw)
     mAccumulationSignOfStrengthEnd = EMPTY;
     mAccumulationUpThrustCount = 0;
     mAccumulationHasLPS = false;
+
+    mTrackRanging = false;
 }
 
 CandleStickPatternTracker::~CandleStickPatternTracker()
@@ -485,13 +491,70 @@ void CandleStickPatternTracker::Calculate(int &barIndex)
         }
     }
 
-    // if (mTrackBullishRange)
-    // {
-    // }
+    if (mTrackRanging)
+    {
+        int highestIndex = EMPTY;
+        int lowestIndex = EMPTY;
 
-    // if (mTrackBearishRange)
-    // {
-    // }
+        int end = iBars(Symbol(), Period()) - 2;
+
+        for (int i = barIndex; i < end; i++)
+        {
+            double previousHigh = iHigh(Symbol(), Period(), i);
+            double secondPreviousHigh = iHigh(Symbol(), Period(), i + 1);
+            double thirdPreviousHigh = iHigh(Symbol(), Period(), i + 2);
+
+            if (secondPreviousHigh > previousHigh && secondPreviousHigh > thirdPreviousHigh)
+            {
+                highestIndex = i + 1;
+                Print("Found Highest: ", highestIndex);
+                break;
+            }
+        }
+
+        for (int i = barIndex; i < highestIndex; i++)
+        {
+            double previousLow = iLow(Symbol(), Period(), i);
+            double secondPreviousLow = iLow(Symbol(), Period(), i + 1);
+            double thirdPreviousLow = iLow(Symbol(), Period(), i + 2);
+
+            if (secondPreviousLow < previousLow && secondPreviousLow < thirdPreviousLow)
+            {
+                lowestIndex = i + 1;
+                Print("Found Lowest: ", lowestIndex);
+                break;
+            }
+        }
+
+        if (highestIndex != EMPTY && lowestIndex != EMPTY)
+        {
+            int rangeStart = MathMin(highestIndex, lowestIndex);
+
+            bool allWithinRange = true;
+            for (int i = rangeStart; i < rangeStart + 4; i++)
+            {
+                bool belowHigh = iHigh(Symbol(), Period(), i) < iHigh(Symbol(), Period(), highestIndex);
+                bool aboveLow = iLow(Symbol(), Period(), i) > iLow(Symbol(), Period(), lowestIndex);
+
+                allWithinRange = allWithinRange && belowHigh && aboveLow;
+
+                // if (iHigh(Symbol(), Period(), i) > iHigh(Symbol(), Period(), highestIndex))
+                // {
+                //     return;
+                // }
+                // else if (iLow(Symbol(), Period(), i) < iLow(Symbol(), Period(), lowestIndex))
+                // {
+                //     return;
+                // }
+            }
+
+            if (allWithinRange)
+            {
+                Draw(highestIndex, clrYellow);
+                Draw(lowestIndex, clrPurple);
+            }
+        }
+    }
 
     mHasSetup = false;
 }
@@ -658,4 +721,13 @@ datetime CandleStickPatternTracker::DistributionSignOfWeaknessStart()
     Update();
 
     return mDistributionSignOfWeaknessStart;
+}
+
+void CandleStickPatternTracker::TrackRanging(bool track)
+{
+    if (mTrackRanging != track)
+    {
+        mBarsCalculated = 0;
+        mTrackRanging = track;
+    }
 }

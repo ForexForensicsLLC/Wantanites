@@ -439,7 +439,17 @@ int Ticket::StopLossIsMovedToBreakEven(bool &stopLossIsMovedBreakEven)
         }
 
         // Need to normalize or else this will always return false on pairs that have more digits like currencies
-        mStopLossIsMovedToBreakEven = (NormalizeDouble(OrderOpenPrice(), Digits) == NormalizeDouble(OrderStopLoss(), Digits));
+        double stopLoss = NormalizeDouble(OrderStopLoss(), Digits);
+        double openPrice = NormalizeDouble(OrderOpenPrice(), Digits);
+
+        if (OrderType() == OP_BUY)
+        {
+            mStopLossIsMovedToBreakEven = stopLoss >= openPrice;
+        }
+        else if (OrderType() == OP_SELL)
+        {
+            mStopLossIsMovedToBreakEven = stopLoss <= openPrice;
+        }
     }
 
     stopLossIsMovedBreakEven = mStopLossIsMovedToBreakEven;

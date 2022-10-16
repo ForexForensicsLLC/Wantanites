@@ -123,19 +123,6 @@ bool KataraLiquidationMB::AllowedToTrade()
 
 void KataraLiquidationMB::CheckSetSetup()
 {
-    // if (mSetupMBsCreated < mConfirmationMBT.MBsCreated())
-    // {
-    //     string info = "Total MBs: " + mConfirmationMBT.MBsCreated() +
-    //                   " First MB In setup: " + mFirstMBInSetupNumber +
-    //                   " Second MB In Setup: " + mSecondMBInSetupNumber +
-    //                   " Liquidation MB In Setup: " + mLiquidationMBInSetupNumber +
-    //                   " First MB In Conf. " + mFirstMBInConfirmationNumber +
-    //                   " Second MB in Conf. " + mSecondMBInConfirmationNumber +
-    //                   " Liq. MB In Cof. " + mLiquidationMBInConfirmationNumber +
-    //                   " Has Setup: " + mHasSetup;
-    //     RecordError(-900, info);
-    // }
-
     if (EAHelper::CheckSetLiquidationMBSetup<KataraLiquidationMB>(this, mSetupLST, mFirstMBInSetupNumber, mSecondMBInSetupNumber, mLiquidationMBInSetupNumber))
     {
         bool isTrue = false;
@@ -156,21 +143,9 @@ void KataraLiquidationMB::CheckSetSetup()
                 {
                     mHasSetup = true;
                 }
-
-                // string info = "Has Setup: " + mHasSetup + " First MB In Confirmation: " + mFirstMBInConfirmationNumber +
-                //               " Second MB In Confirmation: " + mSecondMBInConfirmationNumber + " Liquidation MB In Confirmation: " + mLiquidationMBInConfirmationNumber;
-
-                // additionalInformation += info;
             }
-
-            // if (mSetupMBsCreated < mConfirmationMBT.MBsCreated())
-            // {
-            //     RecordError(-300, additionalInformation);
-            // }
         }
     }
-
-    // mSetupMBsCreated = mConfirmationMBT.MBsCreated();
 }
 
 void KataraLiquidationMB::CheckInvalidateSetup()

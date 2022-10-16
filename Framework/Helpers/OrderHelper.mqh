@@ -120,7 +120,7 @@ public:
 
     static int PartialTicket(int ticketNumber, double price, double currentLots, double percentAsDecimal);
 
-    static int MoveTicketToBreakEven(Ticket *&ticket);
+    static int MoveTicketToBreakEven(Ticket &ticket, double additionalPips);
 
     static int MoveToBreakEvenWithCandleFurtherThanEntry(string symbol, int timeFrame, bool waitForCandleClose, Ticket *&ticket);
 
@@ -676,8 +676,8 @@ int OrderHelper::PlaceStopOrder(int orderType, double lots, double entryPrice, d
 
     if ((orderType == OP_BUYSTOP && entryPrice <= currentTick.ask) || (orderType == OP_SELLSTOP && entryPrice >= currentTick.bid))
     {
-        Print("Type: ", orderType, ", Entry: ", entryPrice, ", SL:", stopLoss);
-        return ExecutionErrors::STOP_ORDER_ENTRY_FURTHER_THEN_PRICE;
+        Print("Type: ", orderType, ", Entry: ", entryPrice, ", SL:", stopLoss, ", Ask: ", currentTick.ask, ", Bid: ", currentTick.bid);
+        return ExecutionErrors::ORDER_ENTRY_FURTHER_THEN_PRICE;
     }
 
     int error = ERR_NO_ERROR;
@@ -922,7 +922,6 @@ static bool OrderHelper::EditStopLoss(double newStopLoss, double newLots, int ma
    return true;
 }
 */
-
 static int OrderHelper::PartialTicket(int ticketNumber, double price, double currentLots, double percentAsDecimal)
 {
     double lots = NormalizeDouble(currentLots * percentAsDecimal, 2);
@@ -946,7 +945,7 @@ static int OrderHelper::PartialTicket(int ticketNumber, double price, double cur
     return ERR_NO_ERROR;
 }
 
-static int OrderHelper::MoveTicketToBreakEven(Ticket *&ticket)
+static int OrderHelper::MoveTicketToBreakEven(Ticket &ticket, double additionalPips = 0.0)
 {
     bool selectError = ticket.SelectIfOpen("Checking To Edit Stop Loss");
     if (selectError != ERR_NO_ERROR)
@@ -960,8 +959,34 @@ static int OrderHelper::MoveTicketToBreakEven(Ticket *&ticket)
         return ERR_NO_ERROR;
     }
 
+    double currentPrice;
+    MqlTick currentTick;
+    if (!SymbolInfoTick(_Symbol, currentTick))
+    {
+        return GetLastError();
+    }
+
+    double additionalRange = PipsToRange(additionalPips);
+    double newPrice = 0.0;
+    if (type == OP_BUY)
+    {
+        newPrice = OrderOpenPrice() + additionalRange;
+        if (newPrice > currentTick.bid)
+        {
+            return ExecutionErrors::ORDER_ENTRY_FURTHER_THEN_PRICE;
+        }
+    }
+    else if (type == OP_SELL)
+    {
+        newPrice = OrderOpenPrice() - additionalRange;
+        if (newPrice < currentTick.ask)
+        {
+            return ExecutionErrors::ORDER_ENTRY_FURTHER_THEN_PRICE;
+        }
+    }
+
     int error = ERR_NO_ERROR;
-    if (!OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice(), OrderTakeProfit(), OrderExpiration(), clrGreen))
+    if (!OrderModify(OrderTicket(), OrderOpenPrice(), newPrice, OrderTakeProfit(), OrderExpiration(), clrGreen))
     {
         error = GetLastError();
         SendMail("Failed to move to break even",

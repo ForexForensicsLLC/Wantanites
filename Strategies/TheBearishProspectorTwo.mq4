@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/EAs/TheProspector.mqh>
+#include <SummitCapital/EAs/TheProspectorTwo.mqh>
 
 // --- EA Inputs ---
 double StopLossPaddingPips = 0;
@@ -28,13 +28,13 @@ bool CalculateOnTick = false;
 
 int SetupType = OP_SELL;
 
-CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>("TheBearishProspector/Entries/", "Entries.csv");
-CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>("TheBearishProspector/Partials/", "Partials.csv");
-CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>("TheBearishProspector/Exits/", "Exits.csv");
-CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>("TheBearishProspector/Errors/", "Errors.csv");
+CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>("TheBearishProspectorTwo/Entries/", "Entries.csv");
+CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>("TheBearishProspectorTwo/Partials/", "Partials.csv");
+CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>("TheBearishProspectorTwo/Exits/", "Exits.csv");
+CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>("TheBearishProspectorTwo/Errors/", "Errors.csv");
 
 MBTracker *SetupMBT;
-TheProspector *StinkyPete;
+TheProspectorTwo *StinkyPete;
 
 int OnInit()
 {
@@ -51,8 +51,8 @@ int OnInit()
     }
 
     SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
-    StinkyPete = new TheProspector(SetupType, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
-                                   ErrorWriter, SetupMBT);
+    StinkyPete = new TheProspectorTwo(SetupType, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
+                                      ErrorWriter, SetupMBT);
 
     StinkyPete.SetPartialCSVRecordWriter(PartialWriter);
     StinkyPete.AddPartial(20, 50);

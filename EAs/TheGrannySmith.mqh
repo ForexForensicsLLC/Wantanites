@@ -287,8 +287,8 @@ void TheGrannySmith::PlaceOrders()
 
     double entry = 0.0;
     double stopLoss = 0.0;
-    double stopLossPips = 30; // Nas
-    // double stopLossPips = 0.4; // Currencies
+    // double stopLossPips = 30; // Nas
+    double stopLossPips = 0.4; // Currencies
     // double stopLossPips = 1.3; // Gold
 
     if (mSetupType == OP_BUY)
@@ -307,7 +307,7 @@ void TheGrannySmith::PlaceOrders()
     }
 
     // double lotSize = OrderHelper::GetLotSize(stopLossPips, RiskPercent());
-    int ticket = OrderSend(mEntrySymbol, mSetupType, 0.1, entry, 0, stopLoss, 0, NULL, MagicNumber(), 0, clrNONE);
+    int ticket = OrderSend(mEntrySymbol, mSetupType, 0.01, entry, 0, stopLoss, 0, NULL, MagicNumber(), 0, clrNONE);
     EAHelper::PostPlaceOrderChecks<TheGrannySmith>(this, ticket, GetLastError());
     //  EAHelper::PlaceStopOrderForCandelBreak<TheGrannySmith>(this, mEntrySymbol, mEntryTimeFrame, mEntryCandleTime, mStopLossCandleTime);
     //  EAHelper::PlaceStopOrderForTheLittleDipper<TheGrannySmith>(this);

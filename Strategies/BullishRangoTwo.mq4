@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                         TheBearishProspector.mq4 |
+//|                                                 BullishRango.mq4 |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -8,14 +8,14 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/EAs/TheProspector.mqh>
+#include <SummitCapital/EAs/RangoTwo.mqh>
 
 // --- EA Inputs ---
 double StopLossPaddingPips = 0;
 double RiskPercent = 0.25;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
-double MaxSpreadPips = 2; // TOD: Put back to 1.2
+double MaxSpreadPips = 10;
 
 // -- MBTracker Inputs
 int MBsToTrack = 10;
@@ -26,15 +26,15 @@ bool AllowWickBreaks = true;
 bool PrintErrors = false;
 bool CalculateOnTick = false;
 
-int SetupType = OP_SELL;
+int SetupType = OP_BUY;
 
-CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>("TheBearishProspector/Entries/", "Entries.csv");
-CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>("TheBearishProspector/Partials/", "Partials.csv");
-CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>("TheBearishProspector/Exits/", "Exits.csv");
-CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>("TheBearishProspector/Errors/", "Errors.csv");
+CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>("BullishRangoTwo/Entries/", "Entries.csv");
+CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>("BullishRangoTwo/Partials/", "Partials.csv");
+CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>("BullishRangoTwo/Exits/", "Exits.csv");
+CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>("BullishRangoTwo/Errors/", "Errors.csv");
 
 MBTracker *SetupMBT;
-TheProspector *StinkyPete;
+RangoTwo *rango;
 
 int OnInit()
 {
@@ -44,19 +44,19 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    // Should only be running on Gold
-    if (StringFind(Symbol(), "XAU") == -1)
+    // Should only be running on Nas
+    if (StringFind(Symbol(), "NDX") == -1 && StringFind(Symbol(), "US100") == -1)
     {
         return INIT_PARAMETERS_INCORRECT;
     }
 
     SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
-    StinkyPete = new TheProspector(SetupType, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
-                                   ErrorWriter, SetupMBT);
+    rango = new RangoTwo(SetupType, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
+                         ErrorWriter, SetupMBT);
 
-    StinkyPete.SetPartialCSVRecordWriter(PartialWriter);
-    StinkyPete.AddPartial(20, 50);
-    StinkyPete.AddPartial(50, 100);
+    rango.SetPartialCSVRecordWriter(PartialWriter);
+    rango.AddPartial(20, 50);
+    rango.AddPartial(50, 100);
 
     return (INIT_SUCCEEDED);
 }
@@ -64,7 +64,7 @@ int OnInit()
 void OnDeinit(const int reason)
 {
     delete SetupMBT;
-    delete StinkyPete;
+    delete rango;
 
     delete EntryWriter;
     delete PartialWriter;
@@ -74,5 +74,5 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    StinkyPete.Run();
+    rango.Run();
 }
