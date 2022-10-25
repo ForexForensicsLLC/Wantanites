@@ -512,12 +512,12 @@ static void EAHelper::ManagePreviousSetupTickets(TEA &ea)
 {
     // do 2 different loops since tickets can be clsoed and deleted in CheckPreviousSetupTickets.
     // can't manage tickets that were just closed and deleted
-    for (int i = 0; i < ea.mPreviousSetupTickets.Size(); i++)
+    for (int i = ea.mPreviousSetupTickets.Size() - 1; i >= 0; i--)
     {
         ea.CheckPreviousSetupTicket(i);
     }
 
-    for (int i = 0; i < ea.mPreviousSetupTickets.Size(); i++)
+    for (int i = ea.mPreviousSetupTickets.Size() - 1; i >= 0; i--)
     {
         ea.ManagePreviousSetupTicket(i);
     }
@@ -1923,6 +1923,7 @@ static void EAHelper::CheckPartialPreviousSetupTicket(TEA &ea, int ticketIndex)
         return;
     }
 
+    // TODO: Account for closing 100% of ticket, don't need to find it
     int newTicket = EMPTY;
     int searchError = OrderHelper::FindNewTicketAfterPartial(ea.MagicNumber(), tempTicket.OpenPrice(), tempTicket.OpenTime(), newTicket);
     if (searchError != ERR_NO_ERROR)
@@ -2251,7 +2252,7 @@ static void EAHelper::SetDefaultCloseTradeData(TEA &ea, TRecord &record, Ticket 
     record.ExitTime = OrderCloseTime();
     record.ExitPrice = OrderClosePrice();
 
-    if (ticket.mDistanceRanFromOpen > 0.0)
+    if (ticket.mDistanceRanFromOpen > -1.0)
     {
         record.mTotalMovePips = OrderHelper::RangeToPips(ticket.mDistanceRanFromOpen);
     }
@@ -2366,7 +2367,7 @@ static void EAHelper::RecordMBEntryTradeRecord(TEA &ea, int mbNumber, MBTracker 
     ZoneState *tempZoneState;
     tempMBState.GetDeepestHoldingZone(tempZoneState);
 
-    double mbWidth = NormalizeDouble(MathAbs(iHigh(Symbol(), Period(), tempMBState.HighIndex()) - iLow(Symbol(), Period(), tempMBState.LowIndex())), Digits);
+    double mbHeight = NormalizeDouble(MathAbs(iHigh(Symbol(), Period(), tempMBState.HighIndex()) - iLow(Symbol(), Period(), tempMBState.LowIndex())), Digits);
     double entryFromLastMB;
     if (OrderType() == OP_BUY)
     {
@@ -2395,12 +2396,13 @@ static void EAHelper::RecordMBEntryTradeRecord(TEA &ea, int mbNumber, MBTracker 
     if (CheckPointer(tempZoneState) != POINTER_INVALID)
     {
         int zoneImbalance = tempZoneState.StartIndex() - tempZoneState.EntryOffset();
-        zoneImbalanceChange = MathAbs((iOpen(ea.mEntrySymbol, ea.mEntryTimeFrame, zoneImbalance) - iClose(ea.mEntrySymbol, ea.mEntryTimeFrame, zoneImbalance)) /
-                                      iOpen(ea.mEntrySymbol, ea.mEntryTimeFrame, zoneImbalance));
+        zoneImbalanceChange = MathAbs((iClose(ea.mEntrySymbol, ea.mEntryTimeFrame, zoneImbalance) - iOpen(ea.mEntrySymbol, ea.mEntryTimeFrame, zoneImbalance)) /
+                                      iClose(ea.mEntrySymbol, ea.mEntryTimeFrame, zoneImbalance));
     }
 
     record.EntryImage = ScreenShotHelper::TryTakeScreenShot(ea.mEntryCSVRecordWriter.Directory());
-    record.MBWidth = mbWidth;
+    record.MBHeight = mbHeight;
+    record.MBWidth = tempMBState.StartIndex() - tempMBState.EndIndex();
     record.EntryDistanceFromPreviousMB = entryFromLastMB;
     record.ZoneImbalancePercentChange = zoneImbalanceChange;
     record.MBCount = mbCount;
@@ -2511,7 +2513,16 @@ static void EAHelper::CheckUpdateHowFarPriceRanFromOpen(TEA &ea, Ticket &ticket)
         return;
     }
 
-    double distanceRan = MathAbs(currentTick.bid - OrderOpenPrice());
+    double distanceRan;
+    if (ea.mSetupType == OP_BUY)
+    {
+        distanceRan = currentTick.bid - OrderOpenPrice();
+    }
+    else if (ea.mSetupType == OP_SELL)
+    {
+        distanceRan = OrderOpenPrice() - currentTick.ask;
+    }
+
     if (distanceRan > ticket.mDistanceRanFromOpen)
     {
         ticket.mDistanceRanFromOpen = distanceRan;

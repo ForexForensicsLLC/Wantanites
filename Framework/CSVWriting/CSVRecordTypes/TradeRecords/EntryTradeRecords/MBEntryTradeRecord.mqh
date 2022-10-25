@@ -13,7 +13,8 @@
 class MBEntryTradeRecord : public SingleTimeFrameEntryTradeRecord
 {
 public:
-    double MBWidth;
+    double MBHeight;
+    int MBWidth;
     double EntryDistanceFromPreviousMB;
     int MBCount;
     int ZoneNumber;
@@ -29,6 +30,7 @@ public:
 MBEntryTradeRecord::MBEntryTradeRecord() : SingleTimeFrameEntryTradeRecord()
 {
     MBWidth = -1.0;
+    MBHeight = -1.0;
     EntryDistanceFromPreviousMB = -1.0;
     ZoneImbalancePercentChange = -1.0;
 }
@@ -40,6 +42,7 @@ MBEntryTradeRecord::~MBEntryTradeRecord()
 void MBEntryTradeRecord::WriteHeaders(int fileHandle, bool writeDelimiter = false)
 {
     SingleTimeFrameEntryTradeRecord::WriteHeaders(fileHandle, true);
+    FileHelper::WriteString(fileHandle, "MB Height");
     FileHelper::WriteString(fileHandle, "MB Width");
     FileHelper::WriteString(fileHandle, "Entry Distance From Pervious MB");
     FileHelper::WriteString(fileHandle, "MB Count");
@@ -50,7 +53,8 @@ void MBEntryTradeRecord::WriteHeaders(int fileHandle, bool writeDelimiter = fals
 void MBEntryTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = false)
 {
     SingleTimeFrameEntryTradeRecord::WriteRecord(fileHandle, true);
-    FileHelper::WriteDouble(fileHandle, MBWidth, Digits);
+    FileHelper::WriteDouble(fileHandle, MBHeight, Digits);
+    FileHelper::WriteInteger(fileHandle, MBWidth);
     FileHelper::WriteDouble(fileHandle, EntryDistanceFromPreviousMB, Digits);
     FileHelper::WriteInteger(fileHandle, MBCount);
     FileHelper::WriteInteger(fileHandle, ZoneNumber);

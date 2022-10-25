@@ -471,7 +471,7 @@ void MBTracker::CalculateMB(int barIndex)
             }
         }
         // only allow the most recent MB to have zones after it has been validated if there is no pending MB
-        else if (mAllowZonesAfterMBValidation)
+        else if (mAllowZonesAfterMBValidation || true)
         {
             mMBs[MostRecentMBIndex()].CheckAddZonesAfterMBValidation(barIndex, mAllowZoneMitigation);
         }

@@ -15,7 +15,7 @@ string ForcedSymbol = "XAU";
 int ForcedTimeFrame = 60;
 
 double StopLossPaddingPips = 0;
-double RiskPercent = 0.01;
+double RiskPercent = 1.25;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 double MaxSpreadPips = 4;

@@ -12,13 +12,13 @@
 
 // --- EA Inputs ---
 string ForcedSymbol = "US100";
-int ForcedTimeFrame = 60;
+int ForcedTimeFrame = 15;
 
 double StopLossPaddingPips = 0;
-double RiskPercent = 0.5;
+double RiskPercent = .01;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
-double MaxSpreadPips = 10;
+double MaxSpreadPips = 25;
 
 int BuysSetupType = OP_BUY;
 int BuysMagicNumber = MagicNumbers::NasPrimeBuys;
@@ -39,6 +39,24 @@ CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<S
 PrimeMembership *NasPrimeBuys;
 PrimeMembership *NasPrimeSells;
 
+// 1h
+// double AdditionalEntryPips = 120;
+// double FixedStopLossPips = 230;
+// double PipsToWaitBeforeBE = 150;
+// double BEAdditionalPips = 40;
+
+// 15 min
+// double AdditionalEntryPips = 50;
+// double FixedStopLossPips = 150;  // was 150
+// double PipsToWaitBeforeBE = 150; // was 150
+// double BEAdditionalPips = 50;    // was 50
+
+// 15 min Lil Dipper
+double AdditionalEntryPips = 50;
+double FixedStopLossPips = 250;
+double PipsToWaitBeforeBE = 200;
+double BEAdditionalPips = 50;
+
 int OnInit()
 {
     // Should only be running on Nas on the Hourly
@@ -51,32 +69,35 @@ int OnInit()
     NasPrimeBuys = new PrimeMembership(BuysMagicNumber, BuysSetupType, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
                                        EntryWriter, ExitWriter, ErrorWriter);
     NasPrimeBuys.SetPartialCSVRecordWriter(PartialWriter);
-    NasPrimeBuys.AddPartial(1.1, 100); // add .1 to account for spread
+    NasPrimeBuys.AddPartial(1000, 100); // add .03 to account for spread
 
     // Add 20 to everything to account for worst case entry due to spread
-    NasPrimeBuys.mAdditionalEntryPips = 120;
-    NasPrimeBuys.mFixedStopLossPips = 420;
-    NasPrimeBuys.mPipsToWaitBeforeBE = 150;
-    NasPrimeBuys.mBEAdditionalPips = 40;
+    NasPrimeBuys.mAdditionalEntryPips = AdditionalEntryPips;
+    NasPrimeBuys.mFixedStopLossPips = FixedStopLossPips; //  was 420
+    NasPrimeBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    NasPrimeBuys.mBEAdditionalPips = BEAdditionalPips;
 
-    // Time Restrictions on FTMO: 1:05 - 23:50
-    NasPrimeBuys.AddTradingSession(1, 5, 23, 49);
+    // Time Restrictions on FTMO: GMT+3 1:05 - 23:50
+    // NasPrimeBuys.AddTradingSession(1, 5, 23, 49);
+    NasPrimeBuys.AddTradingSession(16, 0, 23, 0);
+
     // -----------------------------------
 
     // ----------- Sells -----------------
     NasPrimeSells = new PrimeMembership(SellsMagicNumber, SellsSetupType, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
                                         EntryWriter, ExitWriter, ErrorWriter);
     NasPrimeSells.SetPartialCSVRecordWriter(PartialWriter);
-    NasPrimeSells.AddPartial(1.1, 100); // add .1 to account for spread
+    NasPrimeSells.AddPartial(1000, 100); // add .03 to account for spread
 
     // Add 20 to everything to account for worst case entry due to spread
-    NasPrimeSells.mAdditionalEntryPips = 120;
-    NasPrimeSells.mFixedStopLossPips = 420;
-    NasPrimeSells.mPipsToWaitBeforeBE = 150;
-    NasPrimeSells.mBEAdditionalPips = 40;
+    NasPrimeSells.mAdditionalEntryPips = AdditionalEntryPips;
+    NasPrimeSells.mFixedStopLossPips = FixedStopLossPips; // was 420
+    NasPrimeSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    NasPrimeSells.mBEAdditionalPips = BEAdditionalPips;
 
-    // Time Restrictions on FTMO: 1:05 - 23:50
-    NasPrimeSells.AddTradingSession(1, 5, 23, 49);
+    // Time Restrictions on FTMO: GMT+3 1:05 - 23:50
+    // NasPrimeSells.AddTradingSession(1, 5, 23, 49);
+    NasPrimeSells.AddTradingSession(16, 0, 23, 0);
 
     return (INIT_SUCCEEDED);
 }

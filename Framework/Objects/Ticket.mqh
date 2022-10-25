@@ -123,7 +123,7 @@ void Ticket::SetNewTicket(int ticket)
 
     mRRAcquired = 0;
     mStopLossIsMovedToBreakEven = false;
-    mDistanceRanFromOpen = 0.0;
+    mDistanceRanFromOpen = -1.0;
 
     mOpenPrice = 0.0;
     mOpenTime = 0;

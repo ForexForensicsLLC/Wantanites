@@ -192,10 +192,10 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
                 }
 
                 // Don't create zones that are higher than the MB
-                if (imbalanceExit > iHigh(mSymbol, mTimeFrame, StartIndex()))
-                {
-                    continue;
-                }
+                // if (imbalanceExit > iHigh(mSymbol, mTimeFrame, StartIndex()))
+                // {
+                //     continue;
+                // }
 
                 // if we have an imbalance on our last index, we can't be mitigating or below it
                 bool mitigatedZone = false;
@@ -324,7 +324,8 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
                     imbalanceExit = MathMax(indexHigh, candleTwoBeforeIndexHigh);
                     description = "Two Before Index Bullish Engulfing Zone";
 
-                    setDefault = true;
+                    // if the bearish engulfing 2 candles before has been mititgated, try and use a default zone within it
+                    setDefault = PendingSupplyZoneWasMitigated(startIndex, endingIndex, entryOffset, imbalanceEntry);
                 }
 
                 // Default Zone
@@ -368,10 +369,10 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
                 }
 
                 // don't create zones that are lower than the MB
-                if (imbalanceExit < iLow(mSymbol, mTimeFrame, StartIndex()))
-                {
-                    continue;
-                }
+                // if (imbalanceExit < iLow(mSymbol, mTimeFrame, StartIndex()))
+                // {
+                //     continue;
+                // }
 
                 // if we have an imbalance on our last index, we can't be mitigating or below it
                 bool mitigatedZone = false;

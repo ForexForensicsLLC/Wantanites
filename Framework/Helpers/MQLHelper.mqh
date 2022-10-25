@@ -16,6 +16,9 @@ public:
     static bool GetLowest(string symbol, int timeFrame, int mode, int count, int startIndex, bool inclusive, out int &lowIndex);
     static bool GetHighest(string symbol, int timeFrame, int mode, int count, int startIndex, bool inclusive, out int &highIndex);
 
+    static bool GetLowestIndexBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out int &lowIndex);
+    static bool GetHighestIndexBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out int &highIndex);
+
     static bool GetLowestLow(string symbol, int timeFrame, int count, int startIndex, bool inclusive, out double &low);
     static bool GetHighestHigh(string symbol, int timeFrame, int count, int startIndex, bool inclusive, out double &high);
 
@@ -82,6 +85,36 @@ static bool MQLHelper::GetHighest(string symbol, int timeFrame, int mode, int co
     return true;
 }
 
+static bool MQLHelper::GetLowestIndexBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out int &lowIndex)
+{
+    if (rightIndex > leftIndex)
+    {
+        return false;
+    }
+
+    if (!MQLHelper::GetLowest(symbol, timeFrame, MODE_LOW, leftIndex - rightIndex, rightIndex, inclusive, lowIndex))
+    {
+        return false;
+    }
+
+    return true;
+}
+
+static bool MQLHelper::GetHighestIndexBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out int &highIndex)
+{
+    if (rightIndex > leftIndex)
+    {
+        return false;
+    }
+
+    if (!MQLHelper::GetHighest(symbol, timeFrame, MODE_HIGH, leftIndex - rightIndex, rightIndex, inclusive, highIndex))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 static bool MQLHelper::GetLowestLow(string symbol, int timeFrame, int count, int startIndex, bool inclusive, out double &low)
 {
     int lowestIndex = -1;
@@ -108,7 +141,6 @@ static bool MQLHelper::GetHighestHigh(string symbol, int timeFrame, int count, i
 
 static bool MQLHelper::GetLowestLowBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &low)
 {
-    int lowestIndex = EMPTY;
     if (rightIndex > leftIndex)
     {
         return false;
@@ -124,7 +156,6 @@ static bool MQLHelper::GetLowestLowBetween(string symbol, int timeFrame, int lef
 
 static bool MQLHelper::GetHighestHighBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &high)
 {
-    int highestIndex = EMPTY;
     if (rightIndex > leftIndex)
     {
         return false;

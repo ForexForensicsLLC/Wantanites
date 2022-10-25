@@ -18,15 +18,13 @@ input int MaxTradesPerDay = 5;
 input double MaxSpreadPips = 10;
 
 // -- MBTracker Inputs
-input int MBsToTrack = 10;
-input int MaxZonesInMB = 5;
-input bool AllowMitigatedZones = false;
-input bool AllowZonesAfterMBValidation = true;
-input bool AllowWickBreaks = true;
-input bool PrintErrors = false;
-input bool CalculateOnTick = false;
-
-input int SetupType = OP_BUY;
+int MBsToTrack = 10;
+int MaxZonesInMB = 5;
+bool AllowMitigatedZones = false;
+bool AllowZonesAfterMBValidation = true;
+bool AllowWickBreaks = true;
+bool PrintErrors = false;
+bool CalculateOnTick = false;
 
 CSVRecordWriter<MBEntryTradeRecord> *EntryWriter = new CSVRecordWriter<MBEntryTradeRecord>("TheGrannySmith/Entries/", "Entries.csv");
 CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>("TheGrannySmith/Partials/", "Partials.csv");
@@ -34,16 +32,26 @@ CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWrite
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>("TheGrannySmith/Errors/", "Errors.csv");
 
 MBTracker *SetupMBT;
-TheGrannySmith *Apple;
+TheGrannySmith *AppleBuys;
+TheGrannySmith *AppleSells;
 
 int OnInit()
 {
     SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
 
-    Apple = new TheGrannySmith(OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, 10, RiskPercent, EntryWriter, ExitWriter,
-                               ErrorWriter, SetupMBT);
-    Apple.SetPartialCSVRecordWriter(PartialWriter);
-    Apple.AddPartial(100000, 100);
+    AppleBuys = new TheGrannySmith(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, 10, RiskPercent, EntryWriter, ExitWriter,
+                                   ErrorWriter, SetupMBT);
+    AppleBuys.SetPartialCSVRecordWriter(PartialWriter);
+    AppleBuys.AddPartial(1000, 100);
+
+    AppleBuys.AddTradingSession(16, 0, 23, 0);
+
+    AppleSells = new TheGrannySmith(-1, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, 10, RiskPercent, EntryWriter, ExitWriter,
+                                    ErrorWriter, SetupMBT);
+    AppleSells.SetPartialCSVRecordWriter(PartialWriter);
+    AppleSells.AddPartial(1000, 100);
+
+    AppleSells.AddTradingSession(16, 0, 23, 0);
 
     return (INIT_SUCCEEDED);
 }
@@ -51,7 +59,9 @@ int OnInit()
 void OnDeinit(const int reason)
 {
     delete SetupMBT;
-    delete Apple;
+
+    delete AppleBuys;
+    delete AppleSells;
 
     delete EntryWriter;
     delete PartialWriter;
@@ -61,5 +71,6 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    Apple.Run();
+    AppleBuys.Run();
+    AppleSells.Run();
 }
