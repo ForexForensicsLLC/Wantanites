@@ -11,11 +11,11 @@
 #include <SummitCapital/EAs/TheGrannySmith.mqh>
 
 // --- EA Inputs ---
-input double StopLossPaddingPips = 0;
-input double RiskPercent = 0.25;
-input int MaxCurrentSetupTradesAtOnce = 1;
-input int MaxTradesPerDay = 5;
-input double MaxSpreadPips = 10;
+double StopLossPaddingPips = 0;
+double RiskPercent = 0.25;
+int MaxCurrentSetupTradesAtOnce = 1;
+int MaxTradesPerDay = 5;
+double MaxSpreadPips = 10;
 
 // -- MBTracker Inputs
 int MBsToTrack = 10;
@@ -39,14 +39,14 @@ int OnInit()
 {
     SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
 
-    AppleBuys = new TheGrannySmith(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, 10, RiskPercent, EntryWriter, ExitWriter,
+    AppleBuys = new TheGrannySmith(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
                                    ErrorWriter, SetupMBT);
     AppleBuys.SetPartialCSVRecordWriter(PartialWriter);
     AppleBuys.AddPartial(1000, 100);
 
     AppleBuys.AddTradingSession(16, 0, 23, 0);
 
-    AppleSells = new TheGrannySmith(-1, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, 10, RiskPercent, EntryWriter, ExitWriter,
+    AppleSells = new TheGrannySmith(-1, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
                                     ErrorWriter, SetupMBT);
     AppleSells.SetPartialCSVRecordWriter(PartialWriter);
     AppleSells.AddPartial(1000, 100);

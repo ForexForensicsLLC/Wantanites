@@ -14,6 +14,7 @@
 #include <SummitCapital\Framework\Helpers\SetupHelper.mqh>
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
 #include <SummitCapital\Framework\Helpers\ScreenShotHelper.mqh>
+#include <SummitCapital\Framework\Helpers\CandleStickHelper.mqh>
 
 #include <SummitCapital\Framework\Trackers\LiquidationSetupTracker.mqh>
 

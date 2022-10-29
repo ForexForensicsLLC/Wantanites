@@ -78,7 +78,11 @@ static void FileHelper::WriteDouble(int fileHandle, double value, int precision,
 
 static void FileHelper::WriteDateTime(int fileHandle, datetime value, bool writeDelimiter = true)
 {
-    if (!InternalWriteString(fileHandle, TimeToString(value, TIME_DATE | TIME_MINUTES), writeDelimiter))
+    // replace '.' with '/' so that excel knows its a date and allows for datetime functions within
+    string dateAsString = TimeToString(value, TIME_DATE | TIME_MINUTES);
+    StringReplace(dateAsString, ".", "/");
+
+    if (!InternalWriteString(fileHandle, dateAsString, writeDelimiter))
     {
         SendFailedFileWriteEmail<datetime>("DateTime", value);
     }
