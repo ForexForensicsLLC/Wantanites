@@ -44,7 +44,13 @@ double CandleStickHelper::PercentChange(string symbol, int timeFrame, int index)
 
 double CandleStickHelper::PercentBody(string symbol, int timeFrame, int index)
 {
-    return BodyLength(symbol, timeFrame, index) / (iHigh(symbol, timeFrame, index) - iLow(symbol, timeFrame, index));
+    double candleLength = iHigh(symbol, timeFrame, index) - iLow(symbol, timeFrame, index);
+    if (candleLength <= 0)
+    {
+        return 0.0;
+    }
+
+    return BodyLength(symbol, timeFrame, index) / candleLength;
 }
 
 bool CandleStickHelper::HasImbalance(int type, string symbol, int timeFrame, int index)

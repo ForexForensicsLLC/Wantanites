@@ -19,6 +19,7 @@ public:
 
     double mAdditionalEntryPips;
     double mFixedStopLossPips;
+    double mMaxStopLossPips;
     double mPipsToWaitBeforeBE;
     double mBEAdditionalPips;
 
@@ -35,17 +36,22 @@ public:
     datetime mSetupCandleTime;
     datetime mEntryCandleTime;
 
-    double mMinAlligatorGap;
+    double mMinBreakPips;
+    double mMaxPipsFromGreenLips;
+    double mMinBlueRedAlligatorGap;
+    double mMinRedGreenAlligatorGap;
+
     double mMinWickLength;
 
     bool mTradedToday; // TODO: Switch this logic to follow mMaxTradesPerDay instead
 
 public:
-    Alligator(int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+    Alligator(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
               CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
               CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT);
     ~Alligator();
 
+    int DojiCandleIndex() { return 2; }
     virtual int MagicNumber() { return mSetupType == OP_BUY ? -1 : -1; }
     virtual double RiskPercent();
 
@@ -68,25 +74,45 @@ public:
     virtual void RecordError(int error, string additionalInformation);
     virtual void Reset();
 
-    double BlueJaw() { return iAlligator(NULL, 0, 13, 8, 8, 5, 5, 3, MODE_SMMA, PRICE_MEDIAN, MODE_GATORJAW, 0); }
-    double RedTeeth() { return iAlligator(NULL, 0, 13, 8, 8, 5, 5, 3, MODE_SMMA, PRICE_MEDIAN, MODE_GATORTEETH, 0); }
-    double GreenLips() { return iAlligator(NULL, 0, 13, 8, 8, 5, 5, 3, MODE_SMMA, PRICE_MEDIAN, MODE_GATORLIPS, 0); }
+    double BlueJaw(int index);
+    double RedTeeth(int index);
+    double GreenLips(int index);
 };
 
-Alligator::Alligator(int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+double Alligator::BlueJaw(int index = EMPTY)
+{
+    int indexToUse = index == EMPTY ? DojiCandleIndex() : index;
+    return iAlligator(NULL, 0, 13, 8, 8, 5, 5, 3, MODE_SMMA, PRICE_MEDIAN, MODE_GATORJAW, indexToUse);
+}
+double Alligator::RedTeeth(int index = EMPTY)
+{
+    int indexToUse = index == EMPTY ? DojiCandleIndex() : index;
+    return iAlligator(NULL, 0, 13, 8, 8, 5, 5, 3, MODE_SMMA, PRICE_MEDIAN, MODE_GATORTEETH, indexToUse);
+}
+double Alligator::GreenLips(int index = EMPTY)
+{
+    int indexToUse = index == EMPTY ? DojiCandleIndex() : index;
+    return iAlligator(NULL, 0, 13, 8, 8, 5, 5, 3, MODE_SMMA, PRICE_MEDIAN, MODE_GATORLIPS, indexToUse);
+}
+
+Alligator::Alligator(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                      CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
                      CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT)
-    : EA(maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
+    : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter,
+         exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mSetupMBT = setupMBT;
-    mSetupType = setupType;
     mFirstMBInSetupNumber = EMPTY;
 
     mFixedStopLossPips = 0.0;
     mPipsToWaitBeforeBE = 0.0;
+    mMaxStopLossPips = 0.0;
     mBEAdditionalPips = 0.0;
 
-    mMinAlligatorGap = 0.0;
+    mMinBreakPips = 0.0;
+    mMaxPipsFromGreenLips = 0.0;
+    mMinBlueRedAlligatorGap = 0.0;
+    mMinRedGreenAlligatorGap = 0.0;
     mMinWickLength = 0.0;
 
     mTradedToday = false;
@@ -143,7 +169,14 @@ void Alligator::CheckSetSetup()
     }
 
     bool potentialDoji = false;
-    if (MathAbs(GreenLips() - RedTeeth()) < mMinAlligatorGap || MathAbs(RedTeeth() - BlueJaw()) < mMinAlligatorGap)
+    double redGreenGap = MathAbs(GreenLips() - RedTeeth());
+    if (redGreenGap < mMinRedGreenAlligatorGap)
+    {
+        return;
+    }
+
+    double redBlueGap = MathAbs(RedTeeth() - BlueJaw());
+    if (redBlueGap < mMinBlueRedAlligatorGap)
     {
         return;
     }
@@ -152,7 +185,7 @@ void Alligator::CheckSetSetup()
     {
         if (GreenLips() > RedTeeth() && RedTeeth() > BlueJaw())
         {
-            mSetupCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 0);
+            mSetupCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex());
             mHasSetup = true;
         }
     }
@@ -160,7 +193,7 @@ void Alligator::CheckSetSetup()
     {
         if (GreenLips() < RedTeeth() && RedTeeth() < BlueJaw())
         {
-            mSetupCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 0);
+            mSetupCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex());
             mHasSetup = true;
         }
     }
@@ -170,10 +203,23 @@ void Alligator::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
-    if (mSetupCandleTime != 0 && iBarShift(mEntrySymbol, mEntryTimeFrame, mSetupCandleTime) > 0)
+    bool potentialDoji = false;
+    double redGreenGap = MathAbs(GreenLips() - RedTeeth());
+    if (redGreenGap < mMinRedGreenAlligatorGap)
     {
-        InvalidateSetup(false);
+        InvalidateSetup(true);
     }
+
+    double redBlueGap = MathAbs(RedTeeth() - BlueJaw());
+    if (redBlueGap < mMinBlueRedAlligatorGap)
+    {
+        InvalidateSetup(true);
+    }
+
+    // if (mSetupCandleTime != 0 && iBarShift(mEntrySymbol, mEntryTimeFrame, mSetupCandleTime) > DojiCandleIndex())
+    // {
+    //     InvalidateSetup(false);
+    // }
 }
 
 void Alligator::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
@@ -193,60 +239,96 @@ bool Alligator::Confirmation()
         return false;
     }
 
+    bool hasTicket = mCurrentSetupTicket.Number() != EMPTY;
+
     if (mSetupType == OP_BUY)
     {
-        double openPrice = iOpen(mEntrySymbol, mEntryTimeFrame, 0);
-        double lowPrice = iLow(mEntrySymbol, mEntryTimeFrame, 0);
+        double openPrice = iOpen(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex());
+        double lowPrice = iLow(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex());
+        double closePrice = iClose(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex());
 
-        if (currentTick.bid - lowPrice < mMinWickLength)
+        // if (currentTick.bid - lowPrice < mMinWickLength)
+        // {
+        //     return mCurrentSetupTicket.Number() != EMPTY;
+        // }
+
+        if (MathMin(openPrice, closePrice) - lowPrice < OrderHelper::PipsToRange(mMinWickLength))
         {
-            return mCurrentSetupTicket.Number() != EMPTY;
+            return hasTicket;
         }
 
-        if (openPrice > GreenLips() && lowPrice < GreenLips())
+        if (openPrice > GreenLips() && lowPrice < GreenLips() && closePrice > GreenLips())
         {
             mEntryPrice = GreenLips();
-            return true;
+            if (iClose(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex() - 1) > iHigh(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex()) &&
+                iLow(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex() - 1) >= iLow(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex()))
+            {
+                if (iClose(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex() - 1) - iHigh(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex()) < OrderHelper::PipsToRange(mMinBreakPips) ||
+                    iHigh(mEntrySymbol, mEntryTimeFrame, 1) - GreenLips(1) >= OrderHelper::PipsToRange(mMaxPipsFromGreenLips))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+            // return true;
         }
-        else if (openPrice > RedTeeth() && lowPrice < RedTeeth())
-        {
-            mEntryPrice = RedTeeth();
-            return true;
-        }
-        else if (openPrice > BlueJaw() && lowPrice < BlueJaw())
-        {
-            mEntryPrice = BlueJaw();
-            return true;
-        }
+        // else if (openPrice > RedTeeth() && lowPrice < RedTeeth() && closePrice > RedTeeth())
+        // {
+        //     mEntryPrice = RedTeeth();
+        //     return true;
+        // }
+        // else if (openPrice > BlueJaw() && lowPrice < BlueJaw() && closePrice > BlueJaw())
+        // {
+        //     mEntryPrice = BlueJaw();
+        //     return true;
+        // }
     }
     else if (mSetupType == OP_SELL)
     {
-        double openPrice = iOpen(mEntrySymbol, mEntryTimeFrame, 0);
-        double highPrice = iHigh(mEntrySymbol, mEntryTimeFrame, 0);
+        double openPrice = iOpen(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex());
+        double highPrice = iHigh(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex());
+        double closePrice = iClose(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex());
 
-        if (highPrice - currentTick.bid < mMinWickLength)
+        // if (highPrice - currentTick.bid < mMinWickLength)
+        // {
+        //     return mCurrentSetupTicket.Number() != EMPTY;
+        // }
+
+        if (highPrice - MathMax(openPrice, closePrice) < OrderHelper::PipsToRange(mMinWickLength))
         {
-            return mCurrentSetupTicket.Number() != EMPTY;
+            return hasTicket;
         }
 
-        if (openPrice < GreenLips() && highPrice > GreenLips())
+        if (openPrice < GreenLips() && highPrice > GreenLips() && closePrice < GreenLips())
         {
-            mEntryPrice = GreenLips();
-            return true;
+            if (iClose(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex() - 1) < iLow(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex()) &&
+                iHigh(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex() - 1) <= iHigh(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex()))
+            {
+                // mEntryPrice = GreenLips();
+                if (iLow(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex() - iClose(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex() - 1)) < OrderHelper::PipsToRange(mMinBreakPips) ||
+                    GreenLips(1) - iLow(mEntrySymbol, mEntryTimeFrame, 1) >= OrderHelper::PipsToRange(mMaxPipsFromGreenLips))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+            // return true;
         }
-        else if (openPrice < RedTeeth() && highPrice > RedTeeth())
-        {
-            mEntryPrice = RedTeeth();
-            return true;
-        }
-        else if (openPrice < BlueJaw() && highPrice > BlueJaw())
-        {
-            mEntryPrice = BlueJaw();
-            return true;
-        }
+        // else if (openPrice < RedTeeth() && highPrice > RedTeeth() && closePrice < RedTeeth())
+        // {
+        //     mEntryPrice = RedTeeth();
+        //     return true;
+        // }
+        // else if (openPrice < BlueJaw() && highPrice > BlueJaw() && closePrice < BlueJaw())
+        // {
+        //     mEntryPrice = BlueJaw();
+        //     return true;
+        // }
     }
 
-    return mCurrentSetupTicket.Number() != EMPTY;
+    return hasTicket;
 }
 
 void Alligator::PlaceOrders()
@@ -274,54 +356,96 @@ void Alligator::PlaceOrders()
         return;
     }
 
+    double entry = 0.0;
     double stopLoss = 0.0;
-
     if (mSetupType == OP_BUY)
     {
-        mEntryPrice = NormalizeDouble(mEntryPrice, Digits) + OrderHelper::PipsToRange(mAdditionalEntryPips);
-        stopLoss = mEntryPrice - OrderHelper::PipsToRange(mFixedStopLossPips);
+        // mEntryPrice = NormalizeDouble(mEntryPrice, Digits) + OrderHelper::PipsToRange(mAdditionalEntryPips);
+        // stopLoss = mEntryPrice - OrderHelper::PipsToRange(mFixedStopLossPips);
+
+        // entry = iHigh(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex());
+        // entry = currentTick.ask;
+        entry = iHigh(mEntrySymbol, mEntryTimeFrame, 1) + OrderHelper::PipsToRange(mMaxSpreadPips);
+        // stopLoss = iLow(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex()) - OrderHelper::PipsToRange(mStopLossPaddingPips);
+        stopLoss = iLow(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex() - 1) - OrderHelper::PipsToRange(mStopLossPaddingPips);
+
+        if (entry - stopLoss > OrderHelper::PipsToRange(mMaxStopLossPips))
+        {
+            return;
+        }
 
         // don't place the order if it is going to activate right away
-        if (currentTick.ask > mEntryPrice)
+        if (currentTick.ask > entry)
         {
             return;
         }
     }
     else if (mSetupType == OP_SELL)
     {
-        mEntryPrice = NormalizeDouble(mEntryPrice, Digits) - OrderHelper::PipsToRange(mAdditionalEntryPips);
-        stopLoss = mEntryPrice + OrderHelper::PipsToRange(mFixedStopLossPips);
-        if (currentTick.bid < mEntryPrice)
+        // mEntryPrice = NormalizeDouble(mEntryPrice, Digits) - OrderHelper::PipsToRange(mAdditionalEntryPips);
+        // stopLoss = mEntryPrice + OrderHelper::PipsToRange(mFixedStopLossPips);
+
+        // entry = iLow(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex());
+        // entry = currentTick.bid;
+        entry = iLow(mEntrySymbol, mEntryTimeFrame, 1);
+        // stopLoss = iHigh(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex()) + OrderHelper::PipsToRange(mStopLossPaddingPips);
+        stopLoss = iHigh(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex() - 1) + OrderHelper::PipsToRange(mStopLossPaddingPips + mMaxSpreadPips);
+
+        if (stopLoss - entry > OrderHelper::PipsToRange(mMaxStopLossPips))
+        {
+            return;
+        }
+
+        if (currentTick.bid < entry)
         {
             return;
         }
     }
 
-    EAHelper::PlaceStopOrder<Alligator>(this, mEntryPrice, stopLoss);
+    EAHelper::PlaceStopOrder<Alligator>(this, entry, stopLoss);
+    // EAHelper::PlaceMarketOrder<Alligator>(this, entry, stopLoss);
 
     // we successfully placed an order
     if (mCurrentSetupTicket.Number() != EMPTY)
     {
         mBarCount = currentBars;
-        mEntryCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 0);
+        mEntryCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, DojiCandleIndex());
     }
 }
 
 void Alligator::ManageCurrentPendingSetupTicket()
 {
-    if (mCurrentSetupTicket.Number() == EMPTY)
-    {
-        return;
-    }
+    // if (mCurrentSetupTicket.Number() == EMPTY)
+    // {
+    //     return;
+    // }
 
-    if (mEntryCandleTime == 0)
-    {
-        return;
-    }
+    // if (mEntryCandleTime == 0)
+    // {
+    //     return;
+    // }
 
-    if (iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime) > 0)
+    // if (iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime) > 1)
+    // {
+    //     InvalidateSetup(true);
+    // }
+
+    int entryIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
+    if (mSetupType == OP_BUY)
     {
-        InvalidateSetup(true);
+        // went lower than the break index
+        if (iLow(mEntrySymbol, mEntryTimeFrame, 0) < iLow(mEntrySymbol, mEntryTimeFrame, entryIndex - 1))
+        {
+            InvalidateSetup(true);
+        }
+    }
+    else if (mSetupType == OP_SELL)
+    {
+        // went higher than the break index
+        if (iHigh(mEntrySymbol, mEntryTimeFrame, 0) > iHigh(mEntrySymbol, mEntryTimeFrame, entryIndex - 1))
+        {
+            InvalidateSetup(true);
+        }
     }
 }
 
@@ -346,13 +470,43 @@ void Alligator::ManageCurrentActiveSetupTicket()
         return;
     }
 
+    int entryIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
+
     bool movedPips = false;
     if (mSetupType == OP_BUY)
     {
+        if (entryIndex > DojiCandleIndex())
+        {
+            if (iOpen(mEntrySymbol, mEntryTimeFrame, 0) < OrderOpenPrice() && currentTick.bid >= OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
+            {
+                mCurrentSetupTicket.Close();
+                return;
+            }
+
+            if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
+            {
+                movedPips = true;
+            }
+        }
+
         movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
     else if (mSetupType == OP_SELL)
     {
+        if (entryIndex > DojiCandleIndex())
+        {
+            if (iOpen(mEntrySymbol, mEntryTimeFrame, 0) > OrderOpenPrice() && currentTick.ask <= OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
+            {
+                mCurrentSetupTicket.Close();
+                return;
+            }
+
+            if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
+            {
+                movedPips = true;
+            }
+        }
+
         movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
 
@@ -374,17 +528,17 @@ void Alligator::ManagePreviousSetupTicket(int ticketIndex)
 
 void Alligator::CheckCurrentSetupTicket()
 {
-    bool isActive = false;
-    int isActiveError = mCurrentSetupTicket.IsActive(isActive);
-    if (TerminalErrors::IsTerminalError(isActiveError))
-    {
-        RecordError(isActiveError);
-    }
+    // bool isActive = false;
+    // int isActiveError = mCurrentSetupTicket.IsActive(isActive);
+    // if (TerminalErrors::IsTerminalError(isActiveError))
+    // {
+    //     RecordError(isActiveError);
+    // }
 
-    if (isActive)
-    {
-        mTradedToday = true;
-    }
+    // if (isActive)
+    // {
+    //     mTradedToday = true;
+    // }
 
     EAHelper::CheckUpdateHowFarPriceRanFromOpen<Alligator>(this, mCurrentSetupTicket);
     EAHelper::CheckCurrentSetupTicket<Alligator>(this);
@@ -418,4 +572,5 @@ void Alligator::RecordError(int error, string additionalInformation = "")
 
 void Alligator::Reset()
 {
+    mHasSetup = false;
 }

@@ -1016,12 +1016,12 @@ static void EAHelper::InvalidateSetup(TEA &ea, bool deletePendingOrder, bool sto
         return;
     }
 
-    bool isActive = false;
-    int isActiveError = ea.mCurrentSetupTicket.IsActive(isActive);
+    bool wasActivated = false;
+    int wasActivatedError = ea.mCurrentSetupTicket.WasActivated(wasActivated);
 
     // Only close the order if it is pending or else every active order would get closed
     // as soon as the setup is finished
-    if (!isActive)
+    if (!wasActivated)
     {
         int closeError = ea.mCurrentSetupTicket.Close();
         if (TerminalErrors::IsTerminalError(closeError))

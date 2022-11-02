@@ -38,6 +38,8 @@ public:
     // Tested
     static double GetLotSize(double stopLossPips, double riskPercent);
 
+    static double CleanLotSize(double dirtyLotSize);
+
 private:
     // Tested
     // ResetsOutParam
@@ -157,6 +159,24 @@ public:
     // Tested
     static int CheckTrailStopLossWithMBUpToBreakEven(double paddingPips, double spreadPips, int setUpMB, int setUpType, MBTracker *&mbt, Ticket *&ticket, out bool &succeeded);
 };
+
+static double OrderHelper::CleanLotSize(double dirtyLotSize)
+{
+    double lotStep = MarketInfo(Symbol(), MODE_LOTSTEP);
+    double maxLotSize = MarketInfo(Symbol(), MODE_MAXLOT);
+    double minLotSize = MarketInfo(Symbol(), MODE_MINLOT);
+
+    // cut off extra decimal places
+    int intLotSize = dirtyLotSize / lotStep;
+    double cleanedLots = intLotSize * lotStep;
+
+    // make sure we are not larger than the max
+    cleanedLots = MathMin(cleanedLots, maxLotSize);
+    cleanedLots = MathMax(cleanedLots, minLotSize);
+
+    // make sure we are not lower than the min
+    return cleanedLots;
+}
 /*
 
    _____                       _   _                 _ _ _
@@ -679,6 +699,8 @@ int OrderHelper::PlaceStopOrder(int orderType, double lots, double entryPrice, d
         Print("Type: ", orderType, ", Entry: ", entryPrice, ", SL:", stopLoss, ", Ask: ", currentTick.ask, ", Bid: ", currentTick.bid);
         return ExecutionErrors::ORDER_ENTRY_FURTHER_THEN_PRICE;
     }
+
+    lots = CleanLotSize(lots);
 
     int error = ERR_NO_ERROR;
     int ticketNumber = OrderSend(NULL, orderType, lots, entryPrice, 0, stopLoss, takeProfit, NULL, magicNumber, 0, clrNONE);

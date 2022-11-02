@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                    TheGrannySmith.mqh |
+//|                                                    ReversalInnerBreak.mqh |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -12,12 +12,20 @@
 #include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
-class TheGrannySmith : public EA<MBEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class ReversalInnerBreak : public EA<MBEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     MBTracker *mSetupMBT;
 
     int mFirstMBInSetupNumber;
+
+    double mMinPendingMBPips;
+    double mEntryPaddingPips;
+    double mMinStopLossPips;
+    double mPipsToWaitBeforeBE;
+    double mBEAdditionalPip;
+    double mLargeBodyPips;
+    double mPushFurtherPips;
 
     int mSetupMBsCreated;
 
@@ -46,10 +54,10 @@ public:
     double mImbalanceCandlePercentChange;
 
 public:
-    TheGrannySmith(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                   CSVRecordWriter<MBEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                   CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT);
-    ~TheGrannySmith();
+    ReversalInnerBreak(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+                       CSVRecordWriter<MBEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                       CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT);
+    ~ReversalInnerBreak();
 
     virtual int MagicNumber() { return mSetupType == OP_BUY ? MagicNumbers::BullishKataraSingleMB : MagicNumbers::BearishKataraSingleMB; }
     virtual double RiskPercent();
@@ -74,17 +82,25 @@ public:
     virtual void Reset();
 };
 
-TheGrannySmith::TheGrannySmith(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                               CSVRecordWriter<MBEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                               CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT)
+ReversalInnerBreak::ReversalInnerBreak(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+                                       CSVRecordWriter<MBEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                                       CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mSetupMBT = setupMBT;
     mFirstMBInSetupNumber = EMPTY;
 
-    EAHelper::FindSetPreviousAndCurrentSetupTickets<TheGrannySmith>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<TheGrannySmith, PartialTradeRecord>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<TheGrannySmith, MultiTimeFrameEntryTradeRecord>(this);
+    mMinPendingMBPips = 0.0;
+    mEntryPaddingPips = 0.0;
+    mMinStopLossPips = 0.0;
+    mPipsToWaitBeforeBE = 0.0;
+    mBEAdditionalPip = 0.0;
+    mLargeBodyPips = 0.0;
+    mPushFurtherPips = 0.0;
+
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<ReversalInnerBreak>(this);
+    EAHelper::UpdatePreviousSetupTicketsRRAcquried<ReversalInnerBreak, PartialTradeRecord>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<ReversalInnerBreak, MultiTimeFrameEntryTradeRecord>(this);
 
     mSetupMBsCreated = 0;
 
@@ -118,11 +134,11 @@ TheGrannySmith::TheGrannySmith(int magicNumber, int setupType, int maxCurrentSet
     mLargestAccountBalance = AccountBalance();
 }
 
-TheGrannySmith::~TheGrannySmith()
+ReversalInnerBreak::~ReversalInnerBreak()
 {
 }
 
-double TheGrannySmith::RiskPercent()
+double ReversalInnerBreak::RiskPercent()
 {
     double riskPercent = 0.25;
 
@@ -137,17 +153,17 @@ double TheGrannySmith::RiskPercent()
     return riskPercent;
 }
 
-void TheGrannySmith::Run()
+void ReversalInnerBreak::Run()
 {
-    EAHelper::RunDrawMBT<TheGrannySmith>(this, mSetupMBT);
+    EAHelper::RunDrawMBT<ReversalInnerBreak>(this, mSetupMBT);
 }
 
-bool TheGrannySmith::AllowedToTrade()
+bool ReversalInnerBreak::AllowedToTrade()
 {
-    return EAHelper::BelowSpread<TheGrannySmith>(this) && EAHelper::WithinTradingSession<TheGrannySmith>(this);
+    return EAHelper::BelowSpread<ReversalInnerBreak>(this) && EAHelper::WithinTradingSession<ReversalInnerBreak>(this);
 }
 
-void TheGrannySmith::CheckSetSetup()
+void ReversalInnerBreak::CheckSetSetup()
 {
     if (mLastDay != Day())
     {
@@ -161,7 +177,9 @@ void TheGrannySmith::CheckSetSetup()
         mMBCount += 1;
     }
 
-    if (EAHelper::CheckSetSingleMBSetup<TheGrannySmith>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
+    // looking for opposite MB
+    int setupType = mSetupType == OP_BUY ? OP_SELL : OP_BUY;
+    if (EAHelper::CheckSetSingleMBSetup<ReversalInnerBreak>(this, mSetupMBT, mFirstMBInSetupNumber, setupType))
     {
         // MBState *tempMBState;
         // if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, tempMBState))
@@ -210,7 +228,7 @@ void TheGrannySmith::CheckSetSetup()
     // }
 }
 
-void TheGrannySmith::CheckInvalidateSetup()
+void ReversalInnerBreak::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
@@ -248,15 +266,14 @@ void TheGrannySmith::CheckInvalidateSetup()
     }
 }
 
-void TheGrannySmith::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void ReversalInnerBreak::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
-    EAHelper::InvalidateSetup<TheGrannySmith>(this, deletePendingOrder, false, error);
+    EAHelper::InvalidateSetup<ReversalInnerBreak>(this, deletePendingOrder, false, error);
     mFirstMBInSetupNumber = EMPTY;
-    mEntryCandleTime = 0;
     mStopLossCandleTime = 0;
 }
 
-bool TheGrannySmith::Confirmation()
+bool ReversalInnerBreak::Confirmation()
 {
     bool hasTicket = mCurrentSetupTicket.Number() != EMPTY;
 
@@ -271,7 +288,7 @@ bool TheGrannySmith::Confirmation()
 
     // int entryCandle = 2;
     // bool isTrue = false;
-    // int error = EAHelper::DojiInsideMostRecentMBsHoldingZone<TheGrannySmith>(this, mSetupMBT, mFirstMBInSetupNumber, isTrue, entryCandle);
+    // int error = EAHelper::DojiInsideMostRecentMBsHoldingZone<ReversalInnerBreak>(this, mSetupMBT, mFirstMBInSetupNumber, isTrue, entryCandle);
     // if (error != ERR_NO_ERROR)
     // {
     //     return false;
@@ -288,14 +305,14 @@ bool TheGrannySmith::Confirmation()
     //     return false;
     // }
 
-    double minMBHeightPips = 700;
-    double maxMBHeightPips = 2500;
+    // double minMBHeightPips = 700;
+    // double maxMBHeightPips = 2500;
     // int minMBWidthCandles = 7;
     // int minPipsPerCandle = 70;
     // double currentMBPercentIntoPrevious = 0.5;
 
     // double previousMBWidthCandles = tempMBState.StartIndex() - tempMBState.EndIndex();
-    double previousMBHeightPips = OrderHelper::RangeToPips(iHigh(mEntrySymbol, mEntryTimeFrame, tempMBState.HighIndex()) - iLow(mEntrySymbol, mEntryTimeFrame, tempMBState.LowIndex()));
+    // double previousMBHeightPips = OrderHelper::RangeToPips(iHigh(mEntrySymbol, mEntryTimeFrame, tempMBState.HighIndex()) - iLow(mEntrySymbol, mEntryTimeFrame, tempMBState.LowIndex()));
     // if (previousMBWidthCandles < minMBWidthCandles || previousMBHeightPips > maxMBHeightPips)
     // {
     //     return false;
@@ -314,11 +331,11 @@ bool TheGrannySmith::Confirmation()
     //     return false;
     // }
 
-    ZoneState *tempZoneState;
-    if (!tempMBState.GetDeepestHoldingZone(tempZoneState))
-    {
-        return false;
-    }
+    // ZoneState *tempZoneState;
+    // if (!tempMBState.GetDeepestHoldingZone(tempZoneState))
+    // {
+    //     return false;
+    // }
 
     // int zoneImbalance = tempZoneState.StartIndex() - tempZoneState.EntryOffset() - 1;
     // bool furthestInZone = false;
@@ -345,9 +362,9 @@ bool TheGrannySmith::Confirmation()
     //     furthestInZone = highestIndex == entryCandle;
     // }
 
-    bool inZone = false;
-    bool zoneIsHolding = false;
-    int holdingError = EAHelper::MostRecentMBZoneIsHolding<TheGrannySmith>(this, mSetupMBT, mFirstMBInSetupNumber, zoneIsHolding);
+    // bool inZone = false;
+    // bool zoneIsHolding = false;
+    // int holdingError = EAHelper::MostRecentMBZoneIsHolding<ReversalInnerBreak>(this, mSetupMBT, mFirstMBInSetupNumber, zoneIsHolding);
 
     // bool doji = false;
     bool potentialDoji = false;
@@ -358,10 +375,10 @@ bool TheGrannySmith::Confirmation()
     // bool impulseOutOfZone = false;
 
     // int dojiCandleIndex = 2;
-    double minBodyPercent = 0.7;
-    double largeBreakPips = 90;
-    double breakAbovePips = 200;
-    double pushFurtherPips = 100;
+    // double minBodyPercent = 0.7;
+    // double largeBreakPips = 90;
+    // double breakAbovePips = 200;
+    // double pushFurtherPips = 100;
 
     int dojiCandleIndex = EMPTY;
     int breakCandleIndex = EMPTY;
@@ -399,10 +416,10 @@ bool TheGrannySmith::Confirmation()
         //          MathMin(iOpen(mEntrySymbol, mEntryTimeFrame, dojiCandleIndex), iClose(mEntrySymbol, mEntryTimeFrame, dojiCandleIndex) > tempZoneState.ExitPrice());
 
         // make sure zone is within mb
-        if (tempZoneState.EntryPrice() > iHigh(mEntrySymbol, mEntryTimeFrame, tempMBState.HighIndex()))
-        {
-            return false;
-        }
+        // if (tempZoneState.EntryPrice() > iHigh(mEntrySymbol, mEntryTimeFrame, tempMBState.HighIndex()))
+        // {
+        //     return false;
+        // }
 
         // if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > iHigh(mEntrySymbol, mEntryTimeFrame, 2))
         // {
@@ -478,11 +495,11 @@ bool TheGrannySmith::Confirmation()
         //     return false;
         // }
 
-        int currentBullishRetracementIndex = EMPTY;
-        if (!mSetupMBT.CurrentBullishRetracementIndexIsValid(currentBullishRetracementIndex))
-        {
-            return false;
-        }
+        // int currentBullishRetracementIndex = EMPTY;
+        // if (!mSetupMBT.CurrentBullishRetracementIndexIsValid(currentBullishRetracementIndex))
+        // {
+        //     return false;
+        // }
 
         // // need to have all bearish candels leading up to the doji
         // for (int i = currentBullishRetracementIndex - 1; i > breakCandleIndex; i--)
@@ -498,9 +515,14 @@ bool TheGrannySmith::Confirmation()
         // {
         //     return false;
         // }
-
+        int endIndex = tempMBState.HighIndex();
         int lowestIndex = EMPTY;
-        if (!MQLHelper::GetLowestIndexBetween(mEntrySymbol, mEntryTimeFrame, currentBullishRetracementIndex, 1, true, lowestIndex))
+        if (!MQLHelper::GetLowestIndexBetween(mEntrySymbol, mEntryTimeFrame, endIndex, 1, true, lowestIndex))
+        {
+            return false;
+        }
+
+        if (iHigh(mEntrySymbol, mEntryTimeFrame, endIndex) - iLow(mEntrySymbol, mEntryTimeFrame, lowestIndex) < OrderHelper::PipsToRange(mMinPendingMBPips))
         {
             return false;
         }
@@ -511,7 +533,7 @@ bool TheGrannySmith::Confirmation()
         int fractalCandleIndex = EMPTY;
         bool pushedBelowMostRecentPushUp = false;
 
-        for (int i = lowestIndex + 1; i <= currentBullishRetracementIndex; i++)
+        for (int i = lowestIndex + 1; i <= endIndex; i++)
         {
             if (bullishCandleIndex == EMPTY && iClose(mEntrySymbol, mEntryTimeFrame, i) > iOpen(mEntrySymbol, mEntryTimeFrame, i))
             {
@@ -595,9 +617,9 @@ bool TheGrannySmith::Confirmation()
             {
                 // double percentBody = CandleStickHelper::PercentBody(mEntrySymbol, mEntryTimeFrame, i);
                 double bodyLength = CandleStickHelper::BodyLength(mEntrySymbol, mEntryTimeFrame, i);
-                bool singleCandleImpulse = /* percentBody >= 0.9*/ !bullish && bodyLength >= OrderHelper::PipsToRange(pushFurtherPips);
+                bool singleCandleImpulse = /* percentBody >= 0.9*/ !bullish && bodyLength >= OrderHelper::PipsToRange(mLargeBodyPips);
 
-                bool pushedFurther = iLow(mEntrySymbol, mEntryTimeFrame, mostRecentPushUp) - iLow(mEntrySymbol, mEntryTimeFrame, i) >= OrderHelper::PipsToRange(pushFurtherPips);
+                bool pushedFurther = iLow(mEntrySymbol, mEntryTimeFrame, mostRecentPushUp) - iLow(mEntrySymbol, mEntryTimeFrame, i) >= OrderHelper::PipsToRange(mPushFurtherPips);
 
                 // double multipleCandleImpulseLength = MathMax(iOpen(mEntrySymbol, mEntryTimeFrame, mostRecentPushUp), iClose(mEntrySymbol, mEntryTimeFrame, mostRecentPushUp)) -
                 //                                      MathMin(iOpen(mEntrySymbol, mEntryTimeFrame, lowestIndex), iClose(mEntrySymbol, mEntryTimeFrame, lowestIndex));
@@ -629,9 +651,20 @@ bool TheGrannySmith::Confirmation()
                     return hasTicket;
                 }
 
-                breakCandleIndex = i;
-                brokePushUp = true;
-                break;
+                bool largeBody = CandleStickHelper::BodyLength(mEntrySymbol, mEntryTimeFrame, i) >= OrderHelper::PipsToRange(mLargeBodyPips);
+                bool hasImpulse = CandleStickHelper::HasImbalance(OP_BUY, mEntrySymbol, mEntryTimeFrame, i) ||
+                                  CandleStickHelper::HasImbalance(OP_BUY, mEntrySymbol, mEntryTimeFrame, i + 1);
+
+                if (hasImpulse || largeBody)
+                {
+                    breakCandleIndex = i;
+                    brokePushUp = true;
+                    break;
+                }
+                else
+                {
+                    return hasTicket;
+                }
             }
         }
 
@@ -639,6 +672,20 @@ bool TheGrannySmith::Confirmation()
         {
             // Print("No Push up at: ", TimeCurrent());
             return false;
+        }
+
+        int bearishCandleCount = 0;
+        for (int i = breakCandleIndex - 1; i >= 1; i--)
+        {
+            if (CandleStickHelper::IsBearish(mEntrySymbol, mEntryTimeFrame, i))
+            {
+                bearishCandleCount += 1;
+            }
+
+            if (bearishCandleCount > 1 || (bearishCandleCount == 1 && breakCandleIndex > 2))
+            {
+                return false;
+            }
         }
 
         // Big Dipper Entry
@@ -725,7 +772,7 @@ bool TheGrannySmith::Confirmation()
         // isTrue = previousIsBearish && previousDidNotGoLower && twoPreviousBrokeAbove && twoPreviousHasImbalance;
         // isTrue = previousIsBearish;
 
-        // if (EAHelper::CheckSetSingleMBSetup<TheGrannySmith>(this, mSetupMBT, mFirstMBInSetupNumber, OP_SELL))
+        // if (EAHelper::CheckSetSingleMBSetup<ReversalInnerBreak>(this, mSetupMBT, mFirstMBInSetupNumber, OP_SELL))
         // {
         //     return true;
         // }
@@ -763,10 +810,10 @@ bool TheGrannySmith::Confirmation()
         //          MathMax(iOpen(mEntrySymbol, mEntryTimeFrame, dojiCandleIndex), iClose(mEntrySymbol, mEntryTimeFrame, dojiCandleIndex) <= tempZoneState.ExitPrice());
 
         // make sure zone is in mb
-        if (tempZoneState.EntryPrice() < iLow(mEntrySymbol, mEntryTimeFrame, tempMBState.LowIndex()))
-        {
-            return false;
-        }
+        // if (tempZoneState.EntryPrice() < iLow(mEntrySymbol, mEntryTimeFrame, tempMBState.LowIndex()))
+        // {
+        //     return false;
+        // }
 
         // if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, 2))
         // {
@@ -840,11 +887,11 @@ bool TheGrannySmith::Confirmation()
         //     return false;
         // }
 
-        int currentBearishRetracementIndex = EMPTY;
-        if (!mSetupMBT.CurrentBearishRetracementIndexIsValid(currentBearishRetracementIndex))
-        {
-            return false;
-        }
+        // int currentBearishRetracementIndex = EMPTY;
+        // if (!mSetupMBT.CurrentBearishRetracementIndexIsValid(currentBearishRetracementIndex))
+        // {
+        //     return false;
+        // }
 
         // // need to have all bullish candels leading up to the doji
         // for (int i = currentBearishRetracementIndex - 1; i > breakCandleIndex; i--)
@@ -888,8 +935,14 @@ bool TheGrannySmith::Confirmation()
         //     return false;
         // }
 
+        int endIndex = tempMBState.LowIndex();
         int highestIndex = EMPTY;
-        if (!MQLHelper::GetHighestIndexBetween(mEntrySymbol, mEntryTimeFrame, currentBearishRetracementIndex, 1, true, highestIndex))
+        if (!MQLHelper::GetHighestIndexBetween(mEntrySymbol, mEntryTimeFrame, endIndex, 1, true, highestIndex))
+        {
+            return false;
+        }
+
+        if (iHigh(mEntrySymbol, mEntryTimeFrame, highestIndex) - iLow(mEntrySymbol, mEntryTimeFrame, endIndex) < OrderHelper::PipsToRange(mMinPendingMBPips))
         {
             return false;
         }
@@ -914,7 +967,7 @@ bool TheGrannySmith::Confirmation()
         //     return false;
         // }
 
-        for (int i = highestIndex + 1; i <= currentBearishRetracementIndex; i++)
+        for (int i = highestIndex + 1; i <= endIndex; i++)
         {
             if (bearishCandleIndex == EMPTY && iClose(mEntrySymbol, mEntryTimeFrame, i) < iOpen(mEntrySymbol, mEntryTimeFrame, i))
             {
@@ -1009,13 +1062,13 @@ bool TheGrannySmith::Confirmation()
             {
                 double percentBody = CandleStickHelper::PercentBody(mEntrySymbol, mEntryTimeFrame, i);
                 double bodyLength = CandleStickHelper::BodyLength(mEntrySymbol, mEntryTimeFrame, i);
-                bool singleCandleImpulse = /*percentBody >= 0.9*/ !bearish && bodyLength >= OrderHelper::PipsToRange(pushFurtherPips);
+                bool singleCandleImpulse = /*percentBody >= 0.9*/ !bearish && bodyLength >= OrderHelper::PipsToRange(mLargeBodyPips);
 
                 // double multipleCandleImpulseLength = MathMax(iOpen(mEntrySymbol, mEntryTimeFrame, highestIndex), iClose(mEntrySymbol, mEntryTimeFrame, highestIndex)) -
                 //                                      MathMin(iOpen(mEntrySymbol, mEntryTimeFrame, mostRecentPushDown), iClose(mEntrySymbol, mEntryTimeFrame, mostRecentPushDown));
                 // bool multipleCandleImpulse = multipleCandleImpulseLength >= OrderHelper::PipsToRange(250);
 
-                bool pushedFurther = iHigh(mEntrySymbol, mEntryTimeFrame, i) - iHigh(mEntrySymbol, mEntryTimeFrame, mostRecentPushDown) >= OrderHelper::PipsToRange(pushFurtherPips);
+                bool pushedFurther = iHigh(mEntrySymbol, mEntryTimeFrame, i) - iHigh(mEntrySymbol, mEntryTimeFrame, mostRecentPushDown) >= OrderHelper::PipsToRange(mPushFurtherPips);
                 if (singleCandleImpulse || pushedFurther)
                 {
                     pushedAboveMostRecentPushDown = true;
@@ -1039,15 +1092,40 @@ bool TheGrannySmith::Confirmation()
                     return hasTicket;
                 }
 
-                breakCandleIndex = i;
-                brokePushDown = true;
-                break;
+                bool largeBody = CandleStickHelper::BodyLength(mEntrySymbol, mEntryTimeFrame, i) >= OrderHelper::PipsToRange(mLargeBodyPips);
+                bool hasImpulse = CandleStickHelper::HasImbalance(OP_SELL, mEntrySymbol, mEntryTimeFrame, i) ||
+                                  CandleStickHelper::HasImbalance(OP_SELL, mEntrySymbol, mEntryTimeFrame, i + 1);
+
+                if (hasImpulse || largeBody)
+                {
+                    breakCandleIndex = i;
+                    brokePushDown = true;
+                    break;
+                }
+                else
+                {
+                    return hasTicket;
+                }
             }
         }
 
         if (!brokePushDown)
         {
             return false;
+        }
+
+        int bullishCandleCount = 0;
+        for (int i = breakCandleIndex - 1; i >= 1; i--)
+        {
+            if (CandleStickHelper::IsBullish(mEntrySymbol, mEntryTimeFrame, i))
+            {
+                bullishCandleCount += 1;
+            }
+
+            if (bullishCandleCount > 1 || (bullishCandleCount == 1 && breakCandleIndex > 2))
+            {
+                return false;
+            }
         }
 
         // Big Dipper Entry
@@ -1093,7 +1171,7 @@ bool TheGrannySmith::Confirmation()
 
         // isTrue = previousIsBullish;
 
-        // if (EAHelper::CheckSetSingleMBSetup<TheGrannySmith>(this, mSetupMBT, mFirstMBInSetupNumber, OP_BUY))
+        // if (EAHelper::CheckSetSingleMBSetup<ReversalInnerBreak>(this, mSetupMBT, mFirstMBInSetupNumber, OP_BUY))
         // {
         //     return true;
         // }
@@ -1152,7 +1230,7 @@ bool TheGrannySmith::Confirmation()
     return hasConfirmation;
 }
 
-void TheGrannySmith::PlaceOrders()
+void ReversalInnerBreak::PlaceOrders()
 {
     int currentBars = iBars(mEntrySymbol, mEntryTimeFrame);
     if (currentBars <= mBarCount)
@@ -1165,17 +1243,17 @@ void TheGrannySmith::PlaceOrders()
         return;
     }
 
-    MBState *mostRecentMB;
-    if (!mSetupMBT.GetNthMostRecentMB(0, mostRecentMB))
-    {
-        return;
-    }
+    // MBState *mostRecentMB;
+    // if (!mSetupMBT.GetNthMostRecentMB(0, mostRecentMB))
+    // {
+    //     return;
+    // }
 
-    ZoneState *holdingZone;
-    if (!mostRecentMB.GetClosestValidZone(holdingZone))
-    {
-        return;
-    }
+    // ZoneState *holdingZone;
+    // if (!mostRecentMB.GetClosestValidZone(holdingZone))
+    // {
+    //     return;
+    // }
 
     MqlTick currentTick;
     if (!SymbolInfoTick(Symbol(), currentTick))
@@ -1186,11 +1264,6 @@ void TheGrannySmith::PlaceOrders()
 
     double entry = 0.0;
     double stopLoss = 0.0;
-    double stopLossPips = 250; // Nas
-    // double stopLossPips = 0.4; // Currencies
-    // double stopLossPips = 1.3; // Gold
-    // double stopLossPips = 30; // S&P
-    double additionalEntryPips = 0;
 
     // if (mSetupType == OP_BUY)
     // {
@@ -1237,7 +1310,7 @@ void TheGrannySmith::PlaceOrders()
         // {
         //     stopLoss = currentTick.ask - OrderHelper::PipsToRange(stopLossPips); // TODO: Change to bid to account for spread?
         //     // stopLoss = iLow(mEntrySymbol, mEntryTimeFrame, 0);
-        //     EAHelper::PlaceMarketOrder<TheGrannySmith>(this, currentTick.ask, stopLoss);
+        //     EAHelper::PlaceMarketOrder<ReversalInnerBreak>(this, currentTick.ask, stopLoss);
         //     // return;
         // }
 
@@ -1281,13 +1354,13 @@ void TheGrannySmith::PlaceOrders()
         // entry = iHigh(mEntrySymbol, mEntryTimeFrame, tempMBState.HighIndex());
         // stopLoss = entry - OrderHelper::PipsToRange(stopLossPips);
 
-        entry = iHigh(mEntrySymbol, mEntryTimeFrame, 1) + OrderHelper::PipsToRange(mMaxSpreadPips);
+        entry = iHigh(mEntrySymbol, mEntryTimeFrame, 1) + OrderHelper::PipsToRange(mMaxSpreadPips + mEntryPaddingPips);
         // stopLoss = iLow(mEntrySymbol, mEntryTimeFrame, 1);
-        stopLoss = lowest - OrderHelper::PipsToRange(50);
+        stopLoss = lowest - OrderHelper::PipsToRange(mStopLossPaddingPips);
         // int entryCandle = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
 
         // stopLoss = iLow(mEntrySymbol, mEntryTimeFrame, entryCandle);
-        // EAHelper::PlaceMarketOrder<TheGrannySmith>(this, currentTick.ask, iLow(mEntrySymbol, mEntryTimeFrame, 1));
+        // EAHelper::PlaceMarketOrder<ReversalInnerBreak>(this, currentTick.ask, iLow(mEntrySymbol, mEntryTimeFrame, 1));
     }
     else if (mSetupType == OP_SELL)
     {
@@ -1318,7 +1391,7 @@ void TheGrannySmith::PlaceOrders()
         // {
         //     stopLoss = currentTick.bid + OrderHelper::PipsToRange(stopLossPips);
         //     // stopLoss = iHigh(mEntrySymbol, mEntryTimeFrame, 0);
-        //     EAHelper::PlaceMarketOrder<TheGrannySmith>(this, currentTick.bid, stopLoss);
+        //     EAHelper::PlaceMarketOrder<ReversalInnerBreak>(this, currentTick.bid, stopLoss);
         //     // return;
         // }
 
@@ -1367,30 +1440,30 @@ void TheGrannySmith::PlaceOrders()
         // int entryIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
 
         // stopLoss = iHigh(mEntrySymbol, mEntryTimeFrame, entryIndex);
-        // EAHelper::PlaceMarketOrder<TheGrannySmith>(this, currentTick.bid, iHigh(mEntrySymbol, mEntryTimeFrame, 1));
+        // EAHelper::PlaceMarketOrder<ReversalInnerBreak>(this, currentTick.bid, iHigh(mEntrySymbol, mEntryTimeFrame, 1));
 
-        entry = iLow(mEntrySymbol, mEntryTimeFrame, 1);
+        entry = iLow(mEntrySymbol, mEntryTimeFrame, 1) - OrderHelper::PipsToRange(mEntryPaddingPips);
         // stopLoss = iHigh(mEntrySymbol, mEntryTimeFrame, 1);
-        stopLoss = highest + OrderHelper::PipsToRange(50) + OrderHelper::PipsToRange(mMaxSpreadPips);
+        stopLoss = highest + OrderHelper::PipsToRange(mStopLossPaddingPips) + OrderHelper::PipsToRange(mMaxSpreadPips);
     }
 
     // double lotSize = OrderHelper::GetLotSize(stopLossPips, RiskPercent());
     // int ticket = OrderSend(mEntrySymbol, mSetupType, 0.01, entry, 0, stopLoss, 0, NULL, MagicNumber(), 0, clrNONE);
-    // EAHelper::PostPlaceOrderChecks<TheGrannySmith>(this, ticket, GetLastError());
-    //  EAHelper::PlaceStopOrderForCandelBreak<TheGrannySmith>(this, mEntrySymbol, mEntryTimeFrame, mEntryCandleTime, mStopLossCandleTime);
-    //  EAHelper::PlaceStopOrderForTheLittleDipper<TheGrannySmith>(this);
-    EAHelper::PlaceStopOrder<TheGrannySmith>(this, entry, stopLoss);
+    // EAHelper::PostPlaceOrderChecks<ReversalInnerBreak>(this, ticket, GetLastError());
+    //  EAHelper::PlaceStopOrderForCandelBreak<ReversalInnerBreak>(this, mEntrySymbol, mEntryTimeFrame, mEntryCandleTime, mStopLossCandleTime);
+    //  EAHelper::PlaceStopOrderForTheLittleDipper<ReversalInnerBreak>(this);
+    EAHelper::PlaceStopOrder<ReversalInnerBreak>(this, entry, stopLoss);
 
     if (mCurrentSetupTicket.Number() != EMPTY)
     {
-        mLastEntryMB = mostRecentMB.Number();
-        mLastEntryZone = holdingZone.Number();
+        // mLastEntryMB = mostRecentMB.Number();
+        // mLastEntryZone = holdingZone.Number();
         mEntryCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 1);
         mBarCount = currentBars;
     }
 }
 
-void TheGrannySmith::ManageCurrentPendingSetupTicket()
+void ReversalInnerBreak::ManageCurrentPendingSetupTicket()
 {
     int entryCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
     // if (entryCandleIndex >= 2)
@@ -1419,18 +1492,18 @@ void TheGrannySmith::ManageCurrentPendingSetupTicket()
         }
     }
 
-    // EAHelper::CheckBrokePastCandle<TheGrannySmith>(this, mEntrySymbol, mEntryTimeFrame, mSetupType, mEntryCandleTime);
-    //  EAHelper::CheckEditStopLossForTheLittleDipper<TheGrannySmith>(this);
+    // EAHelper::CheckBrokePastCandle<ReversalInnerBreak>(this, mEntrySymbol, mEntryTimeFrame, mSetupType, mEntryCandleTime);
+    //  EAHelper::CheckEditStopLossForTheLittleDipper<ReversalInnerBreak>(this);
 }
 
-void TheGrannySmith::ManageCurrentActiveSetupTicket()
+void ReversalInnerBreak::ManageCurrentActiveSetupTicket()
 {
     // Test BE with candle past
     // Test with Trail with candles after they close up to BE
-    // EAHelper::MoveToBreakEvenAfterMBValidation<TheGrannySmith>(this, mSetupMBT, mLastEntryMB);
-    // EAHelper::MoveToBreakEvenWithCandleFurtherThanEntry<TheGrannySmith>(this, false);
-    // EAHelper::CloseIfPriceCrossedTicketOpen<TheGrannySmith>(this, 1);
-    // EAHelper::MoveToBreakEvenAsSoonAsPossible<TheGrannySmith>(this);
+    // EAHelper::MoveToBreakEvenAfterMBValidation<ReversalInnerBreak>(this, mSetupMBT, mLastEntryMB);
+    // EAHelper::MoveToBreakEvenWithCandleFurtherThanEntry<ReversalInnerBreak>(this, false);
+    // EAHelper::CloseIfPriceCrossedTicketOpen<ReversalInnerBreak>(this, 1);
+    // EAHelper::MoveToBreakEvenAsSoonAsPossible<ReversalInnerBreak>(this);
 
     if (mCurrentSetupTicket.Number() == EMPTY)
     {
@@ -1488,7 +1561,7 @@ void TheGrannySmith::ManageCurrentActiveSetupTicket()
     //         // move to BE if we moved more than 50 pips
     //         // if (iHigh(mEntrySymbol, mEntryTimeFrame, 1) > OrderOpenPrice() + OrderHelper::PipsToRange(250))
     //         // {
-    //         //     EAHelper::MoveToBreakEvenAsSoonAsPossible<TheGrannySmith>(this);
+    //         //     EAHelper::MoveToBreakEvenAsSoonAsPossible<ReversalInnerBreak>(this);
     //         // }
     //     }
     //     else if (mSetupType == OP_SELL)
@@ -1512,7 +1585,7 @@ void TheGrannySmith::ManageCurrentActiveSetupTicket()
     //         // move to BE if we move more than 50 pips
     //         // if (iLow(mEntrySymbol, mEntryTimeFrame, 1) < OrderOpenPrice() - OrderHelper::PipsToRange(250))
     //         // {
-    //         //     EAHelper::MoveToBreakEvenAsSoonAsPossible<TheGrannySmith>(this);
+    //         //     EAHelper::MoveToBreakEvenAsSoonAsPossible<ReversalInnerBreak>(this);
     //         // }
     //     }
     // }
@@ -1541,7 +1614,7 @@ void TheGrannySmith::ManageCurrentActiveSetupTicket()
     //     // BE if we push above the candle that entered us in
     //     if (iHigh(mEntrySymbol, mEntryTimeFrame, 1) > iHigh(mEntrySymbol, mEntryTimeFrame, entryIndex - 1))
     //     {
-    //         EAHelper::MoveToBreakEvenAsSoonAsPossible<TheGrannySmith>(this);
+    //         EAHelper::MoveToBreakEvenAsSoonAsPossible<ReversalInnerBreak>(this);
     //     }
     // }
     // else if (mSetupType == OP_SELL && entryIndex > 1)
@@ -1566,15 +1639,15 @@ void TheGrannySmith::ManageCurrentActiveSetupTicket()
     //     // BE if we push below the candle that entered us in
     //     if (iLow(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, entryIndex - 1))
     //     {
-    //         EAHelper::MoveToBreakEvenAsSoonAsPossible<TheGrannySmith>(this);
+    //         EAHelper::MoveToBreakEvenAsSoonAsPossible<ReversalInnerBreak>(this);
     //     }
     // }
 
-    int entryIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, OrderOpenTime());
+    int entryIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
 
     bool movedPips = false;
-    double pipsToWaitBeforeBE = 200;
-    double beAdditionalPips = 50;
+    // double pipsToWaitBeforeBE = 200;
+    // double beAdditionalPips = 50;
     if (mSetupType == OP_BUY)
     {
         if (entryIndex > 2)
@@ -1587,19 +1660,37 @@ void TheGrannySmith::ManageCurrentActiveSetupTicket()
             }
         }
 
-        if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > iHigh(mEntrySymbol, mEntryTimeFrame, entryIndex) && currentTick.bid <= OrderOpenPrice())
+        // if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > iHigh(mEntrySymbol, mEntryTimeFrame, entryIndex) &&
+        //     iOpen(mEntrySymbol, mEntryTimeFrame, 0) > OrderOpenPrice() + OrderHelper::PipsToRange(beAdditionalPips) &&
+        //     currentTick.bid <= OrderOpenPrice() + OrderHelper::PipsToRange(beAdditionalPips))
+        // {
+        //     mCurrentSetupTicket.Close();
+        //     return;
+        // }
+
+        if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > OrderOpenPrice() &&
+            iLow(mEntrySymbol, mEntryTimeFrame, 0) < iLow(mEntrySymbol, mEntryTimeFrame, 1) &&
+            iLow(mEntrySymbol, mEntryTimeFrame, 0) > OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPip))
         {
             mCurrentSetupTicket.Close();
             return;
         }
 
-        movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(pipsToWaitBeforeBE);
+        // if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPip))
+        // {
+        //     movedPips = true;
+        // }
+        // else
+        // {
+        // }
+        movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
     else if (mSetupType == OP_SELL)
     {
         if (entryIndex > 2)
         {
             // close if we are still bouncing around our entry price after 2 candles
+            // TODO: Only Exit here if we aren't puttin into lower candles / failing to go higher?
             if (iOpen(mEntrySymbol, mEntryTimeFrame, 1) > iLow(mEntrySymbol, mEntryTimeFrame, entryIndex) && currentTick.ask <= OrderOpenPrice())
             {
                 mCurrentSetupTicket.Close();
@@ -1607,27 +1698,50 @@ void TheGrannySmith::ManageCurrentActiveSetupTicket()
             }
         }
 
-        movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(pipsToWaitBeforeBE);
+        // if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, entryIndex) &&
+        //     iOpen(mEntrySymbol, mEntryTimeFrame, 0) < OrderOpenPrice() - OrderHelper::PipsToRange(beAdditionalPips) &&
+        //     currentTick.ask >= OrderOpenPrice() - OrderHelper::PipsToRange(beAdditionalPips))
+        // {
+        //     mCurrentSetupTicket.Close();
+        //     return;
+        // }
+
+        if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < OrderOpenPrice() &&
+            iHigh(mEntrySymbol, mEntryTimeFrame, 0) > iHigh(mEntrySymbol, mEntryTimeFrame, 1) &&
+            iHigh(mEntrySymbol, mEntryTimeFrame, 0) < OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPip))
+        {
+            mCurrentSetupTicket.Close();
+            return;
+        }
+
+        // if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPip))
+        // {
+        //     movedPips = true;
+        // }
+        else
+        {
+        }
+        movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
 
     if (movedPips)
     {
-        EAHelper::MoveToBreakEvenAsSoonAsPossible<TheGrannySmith>(this, beAdditionalPips);
+        EAHelper::MoveToBreakEvenAsSoonAsPossible<ReversalInnerBreak>(this, mBEAdditionalPip);
     }
 }
 
-bool TheGrannySmith::MoveToPreviousSetupTickets(Ticket &ticket)
+bool ReversalInnerBreak::MoveToPreviousSetupTickets(Ticket &ticket)
 {
     // return true;
-    return EAHelper::TicketStopLossIsMovedToBreakEven<TheGrannySmith>(this, ticket);
+    return EAHelper::TicketStopLossIsMovedToBreakEven<ReversalInnerBreak>(this, ticket);
     //  TODO: Switch to never move to previous setup tickets to conform to the FIFO Rule
     //  Not doing it now so that I can see how for most of my trades run
     //  return false;
 }
 
-void TheGrannySmith::ManagePreviousSetupTicket(int ticketIndex)
+void ReversalInnerBreak::ManagePreviousSetupTicket(int ticketIndex)
 {
-    // EAHelper::MoveStopLossToCoverCommissions<TheGrannySmith>(this);
+    // EAHelper::MoveStopLossToCoverCommissions<ReversalInnerBreak>(this);
     // int selectError = mPreviousSetupTickets[ticketIndex].SelectIfOpen("Stuff");
     // if (TerminalErrors::IsTerminalError(selectError))
     // {
@@ -1668,42 +1782,42 @@ void TheGrannySmith::ManagePreviousSetupTicket(int ticketIndex)
     //     }
     // }
 
-    EAHelper::CheckPartialPreviousSetupTicket<TheGrannySmith>(this, ticketIndex);
+    EAHelper::CheckPartialPreviousSetupTicket<ReversalInnerBreak>(this, ticketIndex);
 }
 
-void TheGrannySmith::CheckCurrentSetupTicket()
+void ReversalInnerBreak::CheckCurrentSetupTicket()
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<TheGrannySmith>(this, mCurrentSetupTicket);
-    EAHelper::CheckCurrentSetupTicket<TheGrannySmith>(this);
+    EAHelper::CheckUpdateHowFarPriceRanFromOpen<ReversalInnerBreak>(this, mCurrentSetupTicket);
+    EAHelper::CheckCurrentSetupTicket<ReversalInnerBreak>(this);
 }
 
-void TheGrannySmith::CheckPreviousSetupTicket(int ticketIndex)
+void ReversalInnerBreak::CheckPreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<TheGrannySmith>(this, mPreviousSetupTickets[ticketIndex]);
-    EAHelper::CheckPreviousSetupTicket<TheGrannySmith>(this, ticketIndex);
+    EAHelper::CheckUpdateHowFarPriceRanFromOpen<ReversalInnerBreak>(this, mPreviousSetupTickets[ticketIndex]);
+    EAHelper::CheckPreviousSetupTicket<ReversalInnerBreak>(this, ticketIndex);
 }
 
-void TheGrannySmith::RecordTicketOpenData()
+void ReversalInnerBreak::RecordTicketOpenData()
 {
-    EAHelper::RecordMBEntryTradeRecord<TheGrannySmith>(this, mSetupMBT.MBsCreated() - 1, mSetupMBT, mMBCount, mLastEntryZone);
+    EAHelper::RecordMBEntryTradeRecord<ReversalInnerBreak>(this, mSetupMBT.MBsCreated() - 1, mSetupMBT, mMBCount, mLastEntryZone);
 }
 
-void TheGrannySmith::RecordTicketPartialData(int oldTicketIndex, int newTicketNumber)
+void ReversalInnerBreak::RecordTicketPartialData(int oldTicketIndex, int newTicketNumber)
 {
-    EAHelper::RecordPartialTradeRecord<TheGrannySmith>(this, oldTicketIndex, newTicketNumber);
+    EAHelper::RecordPartialTradeRecord<ReversalInnerBreak>(this, oldTicketIndex, newTicketNumber);
 }
 
-void TheGrannySmith::RecordTicketCloseData(Ticket &ticket)
+void ReversalInnerBreak::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameExitTradeRecord<TheGrannySmith>(this, ticket, Period());
+    EAHelper::RecordSingleTimeFrameExitTradeRecord<ReversalInnerBreak>(this, ticket, Period());
 }
 
-void TheGrannySmith::RecordError(int error, string additionalInformation = "")
+void ReversalInnerBreak::RecordError(int error, string additionalInformation = "")
 {
-    EAHelper::RecordSingleTimeFrameErrorRecord<TheGrannySmith>(this, error, additionalInformation);
+    EAHelper::RecordSingleTimeFrameErrorRecord<ReversalInnerBreak>(this, error, additionalInformation);
 }
 
-void TheGrannySmith::Reset()
+void ReversalInnerBreak::Reset()
 {
     mMBCount = 0;
 }
