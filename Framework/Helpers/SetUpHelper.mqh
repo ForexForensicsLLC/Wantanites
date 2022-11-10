@@ -543,44 +543,44 @@ static int SetupHelper::BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker 
 // hopint to see price break up after
 static bool SetupHelper::HammerCandleStickPattern(string symbol, int timeFrame, int startingCandle)
 {
-    bool HighNotAbovePreviuos = iHigh(symbol, timeFrame, startingCandle) < iHigh(symbol, timeFrame, startingCandle + 1);
+    // bool HighNotAbovePreviuos = iHigh(symbol, timeFrame, startingCandle) < iHigh(symbol, timeFrame, startingCandle + 1);
     bool bodyNotBelowPrevious = MathMin(iOpen(symbol, timeFrame, startingCandle), iClose(symbol, timeFrame, startingCandle)) > iLow(symbol, timeFrame, startingCandle + 1);
     bool wickBelowPreviuos = iLow(symbol, timeFrame, startingCandle) < iLow(symbol, timeFrame, startingCandle + 1);
 
-    return HighNotAbovePreviuos && bodyNotBelowPrevious && wickBelowPreviuos;
+    return bodyNotBelowPrevious && wickBelowPreviuos;
 }
 
 static bool SetupHelper::HammerCandleStickPatternBreak(string symbol, int timeFrame, bool useBody = true)
 {
-    bool HighNotAbovePreviuos = iHigh(symbol, timeFrame, 2) < iHigh(symbol, timeFrame, 3);
+    // bool HighNotAbovePreviuos = iHigh(symbol, timeFrame, 2) < iHigh(symbol, timeFrame, 3);
     bool bodyNotBelowPrevious = MathMin(iOpen(symbol, timeFrame, 2), iClose(symbol, timeFrame, 2)) > iLow(symbol, timeFrame, 3);
     bool wickBelowPreviuos = iLow(symbol, timeFrame, 2) < iLow(symbol, timeFrame, 3);
     bool breakHigher = (useBody && MathMax(iOpen(symbol, timeFrame, 1), iClose(symbol, timeFrame, 1)) > iHigh(symbol, timeFrame, 2)) ||
                        (!useBody && iHigh(symbol, timeFrame, 1) > iHigh(symbol, timeFrame, 2));
 
-    return HighNotAbovePreviuos && bodyNotBelowPrevious && wickBelowPreviuos && breakHigher;
+    return bodyNotBelowPrevious && wickBelowPreviuos && breakHigher;
 }
 
 // bearish candlestick pattern where a candle wick liqudiates the candle high before it
 // hopint to see price break down after
 static bool SetupHelper::ShootingStarCandleStickPattern(string symbol, int timeFrame, int startingCandle)
 {
-    bool lowNotBelowPrevious = iLow(symbol, timeFrame, startingCandle) > iLow(symbol, timeFrame, startingCandle + 1);
+    // bool lowNotBelowPrevious = iLow(symbol, timeFrame, startingCandle) > iLow(symbol, timeFrame, startingCandle + 1);
     bool bodyNotAbovePrevious = MathMax(iOpen(symbol, timeFrame, startingCandle), iClose(symbol, timeFrame, startingCandle)) < iHigh(symbol, timeFrame, startingCandle + 1);
     bool wickAbovePrevious = iHigh(symbol, timeFrame, startingCandle) > iHigh(symbol, timeFrame, startingCandle + 1);
 
-    return lowNotBelowPrevious && bodyNotAbovePrevious && wickAbovePrevious;
+    return bodyNotAbovePrevious && wickAbovePrevious;
 }
 
 static bool SetupHelper::ShootingStarCandleStickPatternBreak(string symbol, int timeFrame, bool useBody = true)
 {
-    bool lowNotBelowPrevious = iLow(symbol, timeFrame, 2) > iLow(symbol, timeFrame, 3);
+    // bool lowNotBelowPrevious = iLow(symbol, timeFrame, 2) > iLow(symbol, timeFrame, 3);
     bool bodyNotAbovePrevious = MathMax(iOpen(symbol, timeFrame, 2), iClose(symbol, timeFrame, 2)) < iHigh(symbol, timeFrame, 3);
     bool wickAbovePrevious = iHigh(symbol, timeFrame, 2) > iHigh(symbol, timeFrame, 3);
     bool breakLower = (useBody && MathMin(iOpen(symbol, timeFrame, 1), iClose(symbol, timeFrame, 1)) < iLow(symbol, timeFrame, 2)) ||
                       (!useBody && iLow(symbol, timeFrame, 1) < iLow(symbol, timeFrame, 2));
 
-    return lowNotBelowPrevious && bodyNotAbovePrevious && wickAbovePrevious && breakLower;
+    return bodyNotAbovePrevious && wickAbovePrevious && breakLower;
 }
 
 static bool SetupHelper::BullishEngulfing(string symbol, int timeFrame, int startingCandle)

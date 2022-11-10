@@ -20,6 +20,9 @@ public:
     static double PercentBody(string symbol, int timeFrame, int index);
 
     static bool HasImbalance(int type, string symbol, int timeFrame, int index);
+
+    static double GetHighestBodyPart(string symbol, int timeFrame, int index);
+    static double GetLowestBodyPart(string symbol, int timeFrame, int index);
 };
 
 bool CandleStickHelper::IsBullish(string symbol, int timeFrame, int index)
@@ -39,7 +42,7 @@ double CandleStickHelper::BodyLength(string symbol, int timeFrame, int index)
 
 double CandleStickHelper::PercentChange(string symbol, int timeFrame, int index)
 {
-    return (iClose(symbol, timeFrame, index) - iOpen(symbol, timeFrame, index)) / iClose(symbol, timeFrame, index);
+    return ((iClose(symbol, timeFrame, index) - iOpen(symbol, timeFrame, index)) / iClose(symbol, timeFrame, index)) * 100;
 }
 
 double CandleStickHelper::PercentBody(string symbol, int timeFrame, int index)
@@ -65,4 +68,14 @@ bool CandleStickHelper::HasImbalance(int type, string symbol, int timeFrame, int
     }
 
     return false;
+}
+
+double CandleStickHelper::GetHighestBodyPart(string symbol, int timeFrame, int index)
+{
+    return MathMax(iOpen(symbol, timeFrame, index), iClose(symbol, timeFrame, index));
+}
+
+double CandleStickHelper::GetLowestBodyPart(string symbol, int timeFrame, int index)
+{
+    return MathMin(iOpen(symbol, timeFrame, index), iClose(symbol, timeFrame, index));
 }

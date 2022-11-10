@@ -36,6 +36,8 @@ Zone::Zone(string symbol, int timeFrame, int mbNumber, int zoneNumber, int type,
     mType = type;
     mDescription = description;
 
+    mHeight = 0.0;
+
     mStartDateTime = startDateTime;
     mEndDateTime = endDateTime;
 

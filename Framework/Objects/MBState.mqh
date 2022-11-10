@@ -33,6 +33,10 @@ protected:
     datetime mHighDateTime;
     datetime mLowDateTime;
 
+    int mWidth;
+    double mHeight;
+    double mHeightToWidthRatio;
+
     bool mGlobalStartIsBroken;
     // bool mGlobalEndIsBroken;
 
@@ -60,14 +64,17 @@ public:
     int HighIndex() { return iBarShift(mSymbol, mTimeFrame, mHighDateTime); }
     int LowIndex() { return iBarShift(mSymbol, mTimeFrame, mLowDateTime); }
 
+    int Width();
+    double Height();
+    double HeightToWidthRatio();
+
+    double PercentOfMBPrice(double percent);
+
     bool mEndIsBroken;
 
     int mSetupZoneNumber;
     Status mInsideSetupZone;
     Status mPushedFurtherIntoSetupZone;
-
-    bool CanUseLowIndexForILow(int &lowIndex);
-    bool CanUseHighIndexForIHigh(int &highIndex);
 
     int ZoneCount() { return mZoneCount; }
     int UnretrievedZoneCount() { return mUnretrievedZoneCount; }
@@ -95,6 +102,56 @@ public:
     void Draw(bool printErrors);
     void DrawZones(bool printErrors);
 };
+
+int MBState::Width()
+{
+    if (mWidth == 0.0)
+    {
+        mWidth = StartIndex() - EndIndex();
+    }
+
+    return mWidth;
+}
+
+double MBState::Height()
+{
+    if (mHeight == 0.0)
+    {
+        mHeight = NormalizeDouble(iHigh(Symbol(), TimeFrame(), HighIndex()) - iLow(Symbol(), TimeFrame(), LowIndex()), Digits);
+    }
+
+    return mHeight;
+}
+
+double MBState::HeightToWidthRatio()
+{
+    if (mHeightToWidthRatio == 0.0)
+    {
+        double height = Height();
+        if (height <= 0)
+        {
+            return 0.0;
+        }
+
+        mHeightToWidthRatio = Width() / height;
+    }
+
+    return mHeightToWidthRatio;
+}
+
+double MBState::PercentOfMBPrice(double percent)
+{
+    if (Type() == OP_BUY)
+    {
+        return iHigh(Symbol(), TimeFrame(), HighIndex()) - ((iHigh(Symbol(), TimeFrame(), HighIndex()) - iLow(Symbol(), TimeFrame(), LowIndex())) * percent);
+    }
+    else if (Type() == OP_SELL)
+    {
+        return iLow(Symbol(), TimeFrame(), LowIndex()) + ((iHigh(Symbol(), TimeFrame(), HighIndex()) - iLow(Symbol(), TimeFrame(), LowIndex())) * percent);
+    }
+
+    return 0.0;
+}
 
 bool MBState::StartIsBrokenFromBarIndex(int barIndex)
 {
@@ -140,6 +197,7 @@ bool MBState::StartIsBrokenFromBarIndex(int barIndex)
     return false;
 }
 
+// this will return true if you are running on every tick and price wicks the end of the mb
 bool MBState::GlobalStartIsBroken()
 {
     if (!mGlobalStartIsBroken)

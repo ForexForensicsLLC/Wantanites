@@ -43,10 +43,6 @@ double StopLossPaddingPips = 50;
 double PipsToWaitBeforeBE = 200;
 double BEAdditionalPips = 50;
 
-// Dow
-
-// S&P
-
 int OnInit()
 {
     SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);

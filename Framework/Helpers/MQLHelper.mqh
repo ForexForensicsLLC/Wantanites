@@ -169,6 +169,7 @@ static bool MQLHelper::GetHighestHighBetween(string symbol, int timeFrame, int l
     return true;
 }
 
+/// @brief This will return the highest body at the given time. If you are running on every tick it could give inaccurate results
 static bool MQLHelper::GetHighestBodyBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &highestBody)
 {
     if (rightIndex > leftIndex)
@@ -192,6 +193,7 @@ static bool MQLHelper::GetHighestBodyBetween(string symbol, int timeFrame, int l
     return true;
 }
 
+/// @brief This will return the lowest body at the given time. If you are running on every tick it could give inaccurate results
 static bool MQLHelper::GetLowestBodyBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &lowestBody)
 {
     if (rightIndex > leftIndex)

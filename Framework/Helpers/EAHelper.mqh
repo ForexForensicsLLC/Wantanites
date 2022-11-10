@@ -139,19 +139,27 @@ public:
     static int DojiInsideMostRecentMBsHoldingZone(TEA &ea, MBTracker *&mbt, int mbNumber, bool &hasConfirmation, int dojiCandleIndex);
     template <typename TEA>
     static int DojiBreakInsideMostRecentMBsHoldingZone(TEA &ea, MBTracker *&mbt, int mbNumber, bool &hasConfirmation);
-
     template <typename TEA>
     static int DojiBreakInsideLiquidationSetupMBsHoldingZone(TEA &ea, MBTracker *&mbt, int firstMBNumber, int secondMBNumber, bool &hasConfirmation);
-
     template <typename TEA>
     static int ImbalanceDojiInZone(TEA &ea, MBTracker *&mbt, int mbNumber, int numberOfCandlesBackForPossibleImbalance, double minPercentROC, bool &hasConfirmation);
-
     template <typename TEA>
     static int EngulfingCandleInZone(TEA &ea, MBTracker *&mbt, int mbNumber, bool &hasConfirmation);
-
     template <typename TEA>
     static int DojiConsecutiveCandles(TEA &ea, MBTracker *&mbt, int mbNumber, int consecutiveCandlesAfter, bool &hasConfirmation);
+    template <typename TEA>
+    static bool CandleIsBigDipper(TEA &ea, int bigDipperIndex);
 
+    template <typename TEA>
+    static bool MBWithinWidth(TEA &ea, MBTracker *mbt, int mbNumber, int minWidth, int maxWidth);
+    template <typename TEA>
+    static bool MBWithinHeight(TEA &ea, MBTracker *mbt, int mbNumber, double minHeight, double maxHeight);
+    template <typename TEA>
+    static bool MBWithinPipsPerCandle(TEA &ea, MBTracker *mbt, int mbNumber, double minPipsPerCandle, double maxPipsPerCandle);
+    template <typename TEA>
+    static bool PriceIsFurtherThanPercentIntoMB(TEA &ea, MBTracker *mbt, int mbNumber, double price, double percentAsDecimal);
+    template <typename TEA>
+    static bool CandleIsInZone(TEA &ea, MBTracker *mbt, int mbNumber, int candleIndex, bool furthest);
     // =========================================================================
     // Place Order
     // =========================================================================
@@ -581,6 +589,8 @@ static void EAHelper::Run(TEA &ea)
 
         return;
     }
+
+    ea.mWasReset = false;
 
     if (ea.mStopTrading)
     {
@@ -1387,6 +1397,189 @@ static int EAHelper::DojiConsecutiveCandles(TEA &ea, MBTracker *&mbt, int mbNumb
     }
 
     return ERR_NO_ERROR;
+}
+
+template <typename TEA>
+static bool EAHelper::CandleIsBigDipper(TEA &ea, int bigDipperIndex = 1)
+{
+    ea.mLastState = EAStates::CHECKING_FOR_CONFIRMATION;
+
+    bool hasConfirmation = false;
+
+    if (ea.mSetupType == OP_BUY)
+    {
+        bool twoPreviousIsBullish = CandleStickHelper::IsBullish(ea.mEntrySymbol, ea.mEntryTimeFrame, bigDipperIndex + 1);
+        bool previousIsBearish = CandleStickHelper::IsBearish(ea.mEntrySymbol, ea.mEntryTimeFrame, bigDipperIndex);
+        bool previousDoesNotBreakBelowTwoPrevious = iClose(ea.mEntrySymbol, ea.mEntryTimeFrame, bigDipperIndex) > iLow(ea.mEntrySymbol, ea.mEntryTimeFrame, bigDipperIndex + 1);
+
+        hasConfirmation = twoPreviousIsBullish && previousIsBearish && previousDoesNotBreakBelowTwoPrevious;
+    }
+    else if (ea.mSetupType == OP_SELL)
+    {
+        bool twoPreviousIsBearish = CandleStickHelper::IsBearish(ea.mEntrySymbol, ea.mEntryTimeFrame, bigDipperIndex + 1);
+        bool previousIsBullish = CandleStickHelper::IsBullish(ea.mEntrySymbol, ea.mEntryTimeFrame, bigDipperIndex);
+        bool previousDoesNotBreakAboveTwoPrevious = iClose(ea.mEntrySymbol, ea.mEntryTimeFrame, bigDipperIndex) < iHigh(ea.mEntrySymbol, ea.mEntryTimeFrame, bigDipperIndex + 1);
+
+        hasConfirmation = twoPreviousIsBearish && previousIsBullish && previousDoesNotBreakAboveTwoPrevious;
+    }
+
+    return hasConfirmation;
+}
+
+template <typename TEA>
+static bool EAHelper::MBWithinWidth(TEA &ea, MBTracker *mbt, int mbNumber, int minWidth = 0, int maxWidth = 0)
+{
+    ea.mLastState = EAStates::CHECKING_FOR_CONFIRMATION;
+
+    MBState *tempMBState;
+    if (!mbt.GetMB(mbNumber, tempMBState))
+    {
+        ea.RecordError(TerminalErrors::MB_DOES_NOT_EXIST);
+        return false;
+    }
+
+    bool greaterThanMin = true;
+    bool lessThanMax = true;
+
+    if (minWidth > 0)
+    {
+        greaterThanMin = tempMBState.Width() >= minWidth;
+    }
+
+    if (maxWidth > 0)
+    {
+        lessThanMax = tempMBState.Width() <= maxWidth;
+    }
+
+    return greaterThanMin && lessThanMax;
+}
+
+template <typename TEA>
+static bool EAHelper::MBWithinHeight(TEA &ea, MBTracker *mbt, int mbNumber, double minHeightPips = 0.0, double maxHeightPips = 0.0)
+{
+    ea.mLastState = EAStates::CHECKING_FOR_CONFIRMATION;
+
+    MBState *tempMBState;
+    if (!mbt.GetMB(mbNumber, tempMBState))
+    {
+        ea.RecordError(TerminalErrors::MB_DOES_NOT_EXIST);
+        return false;
+    }
+
+    bool greaterThanMin = true;
+    bool lessThanMax = true;
+
+    if (minHeightPips > 0.0)
+    {
+        greaterThanMin = tempMBState.Height() >= OrderHelper::PipsToRange(minHeightPips);
+    }
+
+    if (maxHeightPips > 0.0)
+    {
+        lessThanMax = tempMBState.Height() <= OrderHelper::PipsToRange(maxHeightPips);
+    }
+
+    return greaterThanMin && lessThanMax;
+}
+
+template <typename TEA>
+static bool EAHelper::MBWithinPipsPerCandle(TEA &ea, MBTracker *mbt, int mbNumber, double minPipsPerCandle, double maxPipsPerCandle)
+{
+    ea.mLastState = EAStates::CHECKING_FOR_CONFIRMATION;
+
+    MBState *tempMBState;
+    if (!mbt.GetMB(mbNumber, tempMBState))
+    {
+        ea.RecordError(TerminalErrors::MB_DOES_NOT_EXIST);
+        return false;
+    }
+
+    return tempMBState.PipsPerCandle() >= minPipsPerCandle && tempMBState.PipsPerCandle() <= maxPipsPerCandle;
+}
+
+template <typename TEA>
+static bool EAHelper::PriceIsFurtherThanPercentIntoMB(TEA &ea, MBTracker *mbt, int mbNumber, double price, double percentAsDecimal)
+{
+    ea.mLastState = EAStates::CHECKING_FOR_CONFIRMATION;
+
+    MBState *tempMBState;
+    if (!mbt.GetMB(mbNumber, tempMBState))
+    {
+        ea.RecordError(TerminalErrors::MB_DOES_NOT_EXIST);
+        return false;
+    }
+
+    if (tempMBState.Type() == OP_BUY)
+    {
+        return price <= tempMBState.PercentOfMBPrice(percentAsDecimal);
+    }
+    else if (tempMBState.Type() == OP_SELL)
+    {
+        return price >= tempMBState.PercentOfMBPrice(percentAsDecimal);
+    }
+
+    return false;
+}
+
+template <typename TEA>
+static bool EAHelper::CandleIsInZone(TEA &ea, MBTracker *mbt, int mbNumber, int candleIndex, bool furthest = false)
+{
+    MBState *tempMBState;
+    if (!mbt.GetMB(mbNumber, tempMBState))
+    {
+        ea.RecordError(TerminalErrors::MB_DOES_NOT_EXIST);
+        return false;
+    }
+
+    ZoneState *tempZoneState;
+    if (!tempMBState.GetDeepestHoldingZone(tempZoneState))
+    {
+        return false;
+    }
+
+    int zoneStart = tempZoneState.StartIndex() - tempZoneState.EntryOffset() - 1;
+
+    // don't count the candle if it is the zone or before it
+    if (candleIndex >= zoneStart)
+    {
+        return false;
+    }
+
+    bool isTrue = false;
+    if (tempMBState.Type() == OP_BUY)
+    {
+        isTrue = tempZoneState.CandleIsInZone(candleIndex);
+
+        if (furthest)
+        {
+            int lowestIndex = EMPTY;
+            if (!MQLHelper::GetLowestIndexBetween(ea.mEntrySymbol, ea.mEntryTimeFrame, zoneStart, 0, true, lowestIndex))
+            {
+                ea.RecordError(ExecutionErrors::COULD_NOT_RETRIEVE_LOW);
+                return false;
+            }
+
+            isTrue = isTrue && lowestIndex == candleIndex;
+        }
+    }
+    else if (tempMBState.Type() == OP_SELL)
+    {
+        isTrue = tempZoneState.CandleIsInZone(candleIndex);
+
+        if (furthest)
+        {
+            int highestIndex = EMPTY;
+            if (!MQLHelper::GetHighestIndexBetween(ea.mEntrySymbol, ea.mEntryTimeFrame, zoneStart, 0, true, highestIndex))
+            {
+                ea.RecordError(ExecutionErrors::COULD_NOT_RETRIEVE_HIGH);
+                return false;
+            }
+
+            isTrue = isTrue && highestIndex == candleIndex;
+        }
+    }
+
+    return isTrue;
 }
 /*
 

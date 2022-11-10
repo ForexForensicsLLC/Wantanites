@@ -38,6 +38,27 @@ public:
 
     static int GoldPrimeBuys;
     static int GoldPrimeSells;
+
+    static int NasInnerBreakBigDipperBuys;
+    static int NasInnerBreakBigDipperSells;
+
+    static int DowInnerBreakBigDipperBuys;
+    static int DowInnerBreakBigDipperSells;
+
+    static int SPXInnerBreakBigDipperBuys;
+    static int SPXInnerBreakBigDipperSells;
+
+    static int NasLiquidationMBBuys;
+    static int NasLiquidationMBSells;
+
+    static int DowLiquidationMBBuys;
+    static int DowLiquidationMBSells;
+
+    static int SPXLiquidationMBBuys;
+    static int SPXLiquidationMBSells;
+
+    static int DowMBRunBuys;
+    static int DowMBRunSells;
 };
 
 static int MagicNumbers::TheSunriseShatterBearishSingleMB = 10003;
@@ -64,3 +85,24 @@ static int MagicNumbers::NasPrimeSells = 10018;
 
 static int MagicNumbers::GoldPrimeBuys = 10019;
 static int MagicNumbers::GoldPrimeSells = 10020;
+
+static int MagicNumbers::NasInnerBreakBigDipperBuys = 10021;
+static int MagicNumbers::NasInnerBreakBigDipperSells = 10022;
+
+static int MagicNumbers::DowInnerBreakBigDipperBuys = 10023;
+static int MagicNumbers::DowInnerBreakBigDipperSells = 10024;
+
+static int MagicNumbers::SPXInnerBreakBigDipperBuys = 10025;
+static int MagicNumbers::SPXInnerBreakBigDipperSells = 10026;
+
+static int MagicNumbers::NasLiquidationMBBuys = 10027;
+static int MagicNumbers::NasLiquidationMBSells = 10028;
+
+static int MagicNumbers::DowLiquidationMBBuys = 10029;
+static int MagicNumbers::DowLiquidationMBSells = 10030;
+
+static int MagicNumbers::SPXLiquidationMBBuys = 10031;
+static int MagicNumbers::SPXLiquidationMBSells = 10032;
+
+static int MagicNumbers::DowMBRunBuys = 10033;
+static int MagicNumbers::DowMBRunSells = 10034;

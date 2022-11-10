@@ -24,17 +24,23 @@ bool AllowWickBreaks = true;
 bool PrintErrors = false;
 bool CalculateOnTick = false;
 
-CSVRecordWriter<MBEntryTradeRecord> *EntryWriter = new CSVRecordWriter<MBEntryTradeRecord>("RIB/Entries/", "Entries.csv");
-CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>("RIB/Partials/", "Partials.csv");
-CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>("RIB/Exits/", "Exits.csv");
-CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>("RIB/Errors/", "Errors.csv");
+string StrategyName = "ReversalInnerBreak/";
+string EAName = "Dow/";
+string SetupTypeName = "";
+string Directory = StrategyName + EAName + SetupTypeName;
+
+CSVRecordWriter<MBEntryTradeRecord> *EntryWriter = new CSVRecordWriter<MBEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
+CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>(Directory + "Partials/", "Partials.csv");
+CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
+CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
 MBTracker *SetupMBT;
 ReversalInnerBreak *RIBBuys;
 ReversalInnerBreak *RIBSells;
 
 // Nas
-// double MinPendingMBPips = 800;
+// double MaxSpreadPips = 10;
+// double MinMBPips = 800;
 // double EntryPaddingPips = 0;
 // double MinStopLossPips = 250;
 // double StopLossPaddingPips = 50;
@@ -45,6 +51,7 @@ ReversalInnerBreak *RIBSells;
 
 // Dow
 double MaxSpreadPips = 19;
+double MinMBPips = 0;
 double MinPendingMBPips = 800;
 double EntryPaddingPips = 20;
 double MinStopLossPips = 0.0;
@@ -72,7 +79,7 @@ int OnInit()
     RIBBuys.SetPartialCSVRecordWriter(PartialWriter);
     RIBBuys.AddPartial(1000, 100);
 
-    RIBBuys.mMinPendingMBPips = MinPendingMBPips;
+    RIBBuys.mMinMBPips = MinMBPips;
     RIBBuys.mEntryPaddingPips = EntryPaddingPips;
     RIBBuys.mMinStopLossPips = MinStopLossPips;
     RIBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
@@ -87,7 +94,7 @@ int OnInit()
     RIBSells.SetPartialCSVRecordWriter(PartialWriter);
     RIBSells.AddPartial(1000, 100);
 
-    RIBSells.mMinPendingMBPips = MinPendingMBPips;
+    RIBSells.mMinMBPips = MinMBPips;
     RIBSells.mEntryPaddingPips = EntryPaddingPips;
     RIBSells.mMinStopLossPips = MinStopLossPips;
     RIBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;

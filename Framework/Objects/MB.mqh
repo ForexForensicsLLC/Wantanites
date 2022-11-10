@@ -221,16 +221,12 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
                 if ((allowZoneMitigation || !mitigatedZone) && imbalanceEntry != imbalanceExit && startIndex <= StartIndex())
                 {
                     int endIndex = EndIndex();
-                    if (startIndex == endIndex)
+                    if (startIndex <= endIndex)
                     {
                         // move over 1 to the right if zone is right on the end or else I won't be able to see it
-                        endIndex = i - 1;
+                        endIndex = startIndex - 1;
                     }
-                    else
-                    {
-                        // Account for zones after the validation of the mb
-                        endIndex = endIndex <= i ? endIndex : i;
-                    }
+
                     AddZone(description, startIndex, imbalanceEntry, endIndex, imbalanceExit, entryOffset);
                 }
             }
@@ -398,15 +394,10 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
                 if ((allowZoneMitigation || !mitigatedZone) && imbalanceEntry != imbalanceExit && startIndex <= StartIndex())
                 {
                     int endIndex = EndIndex();
-                    if (startIndex == endIndex)
+                    if (startIndex <= endIndex)
                     {
                         // move over 1 to the right if zone is right on the end or else I won't be able to see it
-                        endIndex = i - 1;
-                    }
-                    else
-                    {
-                        // Account for zones after the validation of the mb
-                        endIndex = endIndex <= i ? endIndex : i;
+                        endIndex = startIndex - 1;
                     }
 
                     AddZone(description, startIndex, imbalanceEntry, endIndex, imbalanceExit, entryOffset);
@@ -434,7 +425,7 @@ bool MB::PendingDemandZoneWasMitigated(int startIndex, int endingIndex, int entr
         return false;
     }
 
-    return lowestPriceAfterValidation < imbalanceEntry;
+    return lowestPriceAfterValidation <= imbalanceEntry;
 }
 
 bool MB::PendingSupplyZoneWasMitigated(int startIndex, int endingIndex, int entryOffset, double imbalanceEntry)
@@ -455,7 +446,7 @@ bool MB::PendingSupplyZoneWasMitigated(int startIndex, int endingIndex, int entr
         return false;
     }
 
-    return highestPriceAfterValidation > imbalanceEntry;
+    return highestPriceAfterValidation >= imbalanceEntry;
 }
 
 bool MB::PendingZoneIsOverlappingOtherZone(int type, int startIndex, double imbalanceExit)
@@ -502,6 +493,10 @@ MB::MB(string symbol, int timeFrame, int number, int type, datetime startDateTim
     mEndDateTime = endDateTime;
     mHighDateTime = highDateTime;
     mLowDateTime = lowDateTime;
+
+    mWidth = 0.0;
+    mHeight = 0.0;
+    mHeightToWidthRatio = 0.0;
 
     mGlobalStartIsBroken = false;
     // mEndIsBroken = false;

@@ -47,7 +47,7 @@ double PipsToWaitBeforeBE = 50;
 double BEAdditionalPips = SymbolConstants::SPXSlippagePips;
 double LargeBodyPips = 20;
 double PushFurtherPips = 10;
-double CloseRR = 10;
+double CloseRR = 1000;
 
 int OnInit()
 {

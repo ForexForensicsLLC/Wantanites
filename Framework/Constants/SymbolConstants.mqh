@@ -14,12 +14,14 @@ class SymbolConstants
 public:
     static double NasSpreadPips;
     static double NasSlippagePips;
+    static double NasMinStopLossPips;
 
     static double SPXSpreadPips;
     static double SPXSlippagePips;
 
     static double DowSpreadPips;
     static double DowSlippagePips;
+    static double DowMinStopLossPips;
 
     static double GoldSpreadPips;
     static double GoldSlippagePips;
@@ -27,12 +29,14 @@ public:
 
 double SymbolConstants::NasSpreadPips = 10;
 double SymbolConstants::NasSlippagePips = 50;
+double SymbolConstants::NasMinStopLossPips = 250;
 
 double SymbolConstants::SPXSpreadPips = 3;
-double SymbolConstants::SPXSlippagePips = 20;
+double SymbolConstants::SPXSlippagePips = 10;
 
 double SymbolConstants::DowSpreadPips = 18;
 double SymbolConstants::DowSlippagePips = 50;
+double SymbolConstants::DowMinStopLossPips = 350;
 
 double SymbolConstants::GoldSpreadPips = 3;
 double SymbolConstants::GoldSlippagePips = 3;

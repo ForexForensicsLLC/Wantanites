@@ -20,6 +20,8 @@ protected:
     int mType;
     string mDescription;
 
+    double mHeight;
+
     datetime mStartDateTime;
     datetime mEndDateTime;
 
@@ -50,8 +52,11 @@ public:
     double ExitPrice() { return mExitPrice; }
 
     int EntryOffset() { return mEntryOffset; }
-
     bool WasRetrieved() { return mWasRetrieved; }
+
+    double Height();
+
+    bool CandleIsInZone(int index);
 
     // --- Computed Properties ---
     double Range() { return MathAbs(mEntryPrice - mExitPrice); }
@@ -80,14 +85,43 @@ public:
     string ToSingleLineString();
     void Draw(bool printErrors);
 };
-bool ZoneState::BelowDemandZone(int barIndex)
+
+double ZoneState::Height()
 {
-    return (mAllowWickBreaks && MathMin(iOpen(mSymbol, mTimeFrame, barIndex), iClose(mSymbol, mTimeFrame, barIndex)) < mExitPrice) || (!mAllowWickBreaks && iLow(mSymbol, mTimeFrame, barIndex) < mExitPrice);
+    if (mHeight == 0.0)
+    {
+        mHeight = NormalizeDouble(MathAbs(EntryPrice() - ExitPrice()), Digits);
+    }
+
+    return mHeight;
 }
 
+bool ZoneState::CandleIsInZone(int index)
+{
+    if (Type() == OP_BUY)
+    {
+        return iLow(Symbol(), TimeFrame(), index) <= EntryPrice() && !BelowDemandZone(index);
+    }
+    else if (Type() == OP_SELL)
+    {
+        return iHigh(Symbol(), TimeFrame(), index) >= EntryPrice() && !AboveSupplyZone(index);
+    }
+
+    return false;
+}
+
+/// @brief This will return return if you are caclculating on every tick and a wick breaks below the zone
+bool ZoneState::BelowDemandZone(int barIndex)
+{
+    return (mAllowWickBreaks && MathMin(iOpen(mSymbol, mTimeFrame, barIndex), iClose(mSymbol, mTimeFrame, barIndex)) < mExitPrice) ||
+           (!mAllowWickBreaks && iLow(mSymbol, mTimeFrame, barIndex) < mExitPrice);
+}
+
+/// @brief This will return return if you are caclculating on every tick and a wick breaks above the zone
 bool ZoneState::AboveSupplyZone(int barIndex)
 {
-    return (mAllowWickBreaks && MathMax(iOpen(mSymbol, mTimeFrame, barIndex), iClose(mSymbol, mTimeFrame, barIndex)) > mExitPrice) || (!mAllowWickBreaks && iHigh(mSymbol, mTimeFrame, barIndex) > mExitPrice);
+    return (mAllowWickBreaks && MathMax(iOpen(mSymbol, mTimeFrame, barIndex), iClose(mSymbol, mTimeFrame, barIndex)) > mExitPrice) ||
+           (!mAllowWickBreaks && iHigh(mSymbol, mTimeFrame, barIndex) > mExitPrice);
 }
 // ----------------- Computed Properties ----------------------
 // checks if price is or was  in the zone from the barIndex, and the zone hasn't been broken

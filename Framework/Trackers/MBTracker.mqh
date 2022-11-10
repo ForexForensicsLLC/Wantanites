@@ -10,6 +10,7 @@
 
 #include <SummitCapital\Framework\Constants\Index.mqh>
 #include <SummitCapital\Framework\Objects\MB.mqh>
+#include <SummitCapital\Framework\Helpers\CandleStickHelper.mqh>
 
 class MBTracker
 {
@@ -118,6 +119,7 @@ public:
     bool GetMB(int mbNumber, MBState *&mbState);
     bool GetPreviousMB(int mbNumber, MBState *&mbState);
     bool GetSubsequentMB(int mbNumber, MBState *&mbState);
+    int GetNthMostRecentMBsType(int nthMB);
 
     bool HasNMostRecentConsecutiveMBs(int nMBs);
     bool HasNMostRecentConsecutiveMBs(int nMBs, MBState *&mbStates[]);
@@ -389,10 +391,10 @@ void MBTracker::CheckMostRecentMBIsBroken(int barIndex)
     if (mMBs[MostRecentMBIndex()].Type() == OP_BUY)
     {
         // first check to make sure we didn't break our previous MB
-        if (iClose(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].LowIndex()))
+        if (CandleStickHelper::GetLowestBodyPart(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].LowIndex()))
         {
             int highestIndex;
-            if (!MQLHelper::GetHighest(mSymbol, mTimeFrame, MODE_HIGH, mMBs[MostRecentMBIndex()].StartIndex() - barIndex, barIndex, false, highestIndex))
+            if (!MQLHelper::GetHighest(mSymbol, mTimeFrame, MODE_HIGH, mMBs[MostRecentMBIndex()].EndIndex() - barIndex, barIndex, true, highestIndex))
             {
                 return;
             }
@@ -405,10 +407,10 @@ void MBTracker::CheckMostRecentMBIsBroken(int barIndex)
     else if (mMBs[MostRecentMBIndex()].Type() == OP_SELL)
     {
         // first check to make sure we didn't break our previous mb
-        if (iClose(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].HighIndex()))
+        if (CandleStickHelper::GetHighestBodyPart(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].HighIndex()))
         {
             int lowestIndex = 0;
-            if (!MQLHelper::GetLowest(mSymbol, mTimeFrame, MODE_LOW, mMBs[MostRecentMBIndex()].StartIndex() - barIndex, barIndex, false, lowestIndex))
+            if (!MQLHelper::GetLowest(mSymbol, mTimeFrame, MODE_LOW, mMBs[MostRecentMBIndex()].EndIndex() - barIndex, barIndex, true, lowestIndex))
             {
                 return;
             }
@@ -434,14 +436,14 @@ void MBTracker::CalculateMB(int barIndex)
         CheckSetPendingMB(barIndex, OP_SELL);
 
         // validated Bullish MB
-        if (mPendingBullishMB && iClose(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex))
+        if (mPendingBullishMB && CandleStickHelper::GetHighestBodyPart(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex))
         {
             CreateMB(OP_BUY, mCurrentBullishRetracementIndex, barIndex, mCurrentBullishRetracementIndex, mPendingBullishMBLowIndex);
             ResetTracking();
             return;
         }
         // validated Bearish MB
-        else if (mPendingBearishMB && iClose(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex))
+        else if (mPendingBearishMB && CandleStickHelper::GetLowestBodyPart(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex))
         {
             CreateMB(OP_SELL, mCurrentBearishRetracementIndex, barIndex, mPendingBearishMBHighIndex, mCurrentBearishRetracementIndex);
             ResetTracking();
@@ -458,7 +460,7 @@ void MBTracker::CalculateMB(int barIndex)
         if (mPendingBullishMB)
         {
             // new bullish mb has been validated
-            if (iClose(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex))
+            if (CandleStickHelper::GetHighestBodyPart(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex))
             {
                 // only create the mb if it is longer than 1 candle
                 int bullishRetracementIndex = -1;
@@ -486,7 +488,7 @@ void MBTracker::CalculateMB(int barIndex)
         if (mPendingBearishMB)
         {
             // new bearish mb has been validated
-            if (iClose(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex))
+            if (CandleStickHelper::GetLowestBodyPart(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex))
             {
                 int bearishRetracementIndex = -1;
                 if (CurrentBearishRetracementIndexIsValid(bearishRetracementIndex, barIndex))
@@ -1040,6 +1042,19 @@ bool MBTracker::GetNMostRecentMBs(int nMostRecent, MBState *&mbStates[])
     }
 
     return true;
+}
+
+int MBTracker::GetNthMostRecentMBsType(int nthMB)
+{
+    Update();
+
+    if (nthMB >= mCurrentMBs)
+    {
+        Print("Nth MB, ", nthMB, ", is further than current MBs, ", mCurrentMBs);
+        return false;
+    }
+
+    return mMBs[MostRecentMBIndex() + nthMB].Type();
 }
 
 bool MBTracker::HasNMostRecentConsecutiveMBs(int nMBs)
