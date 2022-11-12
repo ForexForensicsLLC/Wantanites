@@ -50,7 +50,7 @@ public:
               CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT);
     ~MBCluster();
 
-    double MinHeightDifferencePercent() { return 0.1; }
+    double MinHeightDifferencePercent() { return 0.4; }
     virtual double RiskPercent();
 
     virtual void Run();
@@ -149,8 +149,6 @@ void MBCluster::CheckSetSetup()
             return;
         }
 
-        ZoneState *tempZoneState;
-
         if (EAHelper::CheckSetSingleMBSetup<MBCluster>(this, mSetupMBT, mSecondMBInSetupNumber, mSetupType))
         {
             if (mSecondMBInSetupNumber != mFirstMBInSetupNumber + 1)
@@ -164,8 +162,15 @@ void MBCluster::CheckSetSetup()
                 return;
             }
 
+            ZoneState *tempZoneState;
             if (firstMBState.GetDeepestHoldingZone(tempZoneState))
             {
+                bool entryWithinMB = EAHelper::PriceIsFurtherThanPercentIntoMB<MBCluster>(this, mSetupMBT, mFirstMBInSetupNumber, tempZoneState.EntryPrice(), 0);
+                if (!entryWithinMB)
+                {
+                    return;
+                }
+
                 if (tempZoneState.StartIndex() >= firstMBState.EndIndex())
                 {
                     MBState *secondMBState;
@@ -197,7 +202,15 @@ void MBCluster::CheckSetSetup()
                     double maxHeight = MathMax(firstMBState.Height(), secondMBState.Height());
                     double minHeight = MathMin(firstMBState.Height(), secondMBState.Height());
 
-                    if (minHeight / maxHeight >= MinHeightDifferencePercent())
+                    int maxWidth = MathMax(firstMBState.Width(), secondMBState.Width());
+                    int minWidth = MathMin(firstMBState.Width(), secondMBState.Width());
+
+                    bool minHeightWidthPercent = minHeight / maxHeight >= 0.5 && minWidth / maxWidth >= 0.5;
+                    bool minPercentIntoPreviousMinHeightPercent = minHeight / maxHeight >= 0.3 && secondMBState.Width() < 1.5 * firstMBState.Width() &&
+                                                                  EAHelper::PriceIsFurtherThanPercentIntoMB<MBCluster>(this, mSetupMBT, mFirstMBInSetupNumber,
+                                                                                                                       secondMBState.PercentOfMBPrice(0.3), 0);
+
+                    if (minHeightWidthPercent || minPercentIntoPreviousMinHeightPercent)
                     {
                         mHasSetup = true;
                     }
@@ -288,11 +301,21 @@ bool MBCluster::Confirmation()
         return false;
     }
 
-    bool inZone = EAHelper::CandleIsInZone<MBCluster>(this, mSetupMBT, mSecondMBInSetupNumber, 2, false);
+    bool entryWithinMB = EAHelper::PriceIsFurtherThanPercentIntoMB<MBCluster>(this, mSetupMBT, mSecondMBInSetupNumber, tempZoneState.EntryPrice(), 0);
+    if (!entryWithinMB)
+    {
+        return false;
+    }
+
+    int entryCandle = 1;
+    bool inZone = EAHelper::CandleIsInZone<MBCluster>(this, mSetupMBT, mSecondMBInSetupNumber, entryCandle, false);
     if (!inZone)
     {
         return hasTicket;
     }
+
+    bool hasDoji = false;
+    int hasDojiError = EAHelper::DojiInsideMostRecentMBsHoldingZone<MBCluster>(this, mSetupMBT, mSecondMBInSetupNumber, hasDoji, entryCandle);
 
     if (tempZoneState.EndIndex() < secondMBState.EndIndex())
     {
@@ -300,94 +323,104 @@ bool MBCluster::Confirmation()
     }
 
     bool brokeFurther = false;
+    double highest = 0.0;
+    double lowest = 0.0;
+    double percentOfPendingMB = 0.0;
+    int pendingMBWidth = EMPTY;
+
     if (mSetupType == OP_BUY)
     {
-        int bullishRetracementIndex = EMPTY;
-        if (!mSetupMBT.CurrentBullishRetracementIndexIsValid(bullishRetracementIndex))
+        if (!mSetupMBT.CurrentBullishRetracementIndexIsValid(pendingMBWidth))
         {
             return false;
         }
 
         // this should probably be dependent on the size of the MBs. the large the mb the longer we can wait between them
-        if (secondMBState.EndIndex() - bullishRetracementIndex > 1)
+        if (secondMBState.EndIndex() - pendingMBWidth > 1)
         {
             return false;
         }
 
-        double highest = 0.0;
         if (!MQLHelper::GetHighestHighBetween(mEntrySymbol, mEntryTimeFrame, secondMBState.EndIndex(), 0, true, highest))
         {
             return false;
         }
 
-        double lowest = 0.0;
         if (!MQLHelper::GetLowestLowBetween(mEntrySymbol, mEntryTimeFrame, secondMBState.EndIndex() - 1, 0, true, lowest))
         {
             return false;
         }
 
-        double pendingMBHeight = highest - lowest;
-        double minHeightBetweenSecond = MathMin(secondMBState.Height(), pendingMBHeight);
-        double maxHeightBetweenSecond = MathMax(secondMBState.Height(), pendingMBHeight);
-
-        double minHeightBetweenFirst = MathMin(firstMBState.Height(), pendingMBHeight);
-        double maxHeightBetweenFirst = MathMax(firstMBState.Height(), pendingMBHeight);
-
-        if (minHeightBetweenSecond / maxHeightBetweenSecond < MinHeightDifferencePercent() && minHeightBetweenSecond / maxHeightBetweenSecond < MinHeightDifferencePercent())
+        if (lowest < iLow(mEntrySymbol, mEntryTimeFrame, secondMBState.LowIndex()))
         {
             return false;
         }
 
-        if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > iHigh(mEntrySymbol, mEntryTimeFrame, 2))
-        {
-            brokeFurther = true;
-        }
+        percentOfPendingMB = highest - ((highest - lowest) * 0.2);
     }
     else if (mSetupType == OP_SELL)
     {
-        int bearishRetracementIndex = EMPTY;
-        if (!mSetupMBT.CurrentBearishRetracementIndexIsValid(bearishRetracementIndex))
+        if (!mSetupMBT.CurrentBearishRetracementIndexIsValid(pendingMBWidth))
         {
             return false;
         }
 
         // this should probably be dependent on the size of the MBs. the large the mb the longer we can wait between them
-        if (secondMBState.EndIndex() - bearishRetracementIndex > 1)
+        if (secondMBState.EndIndex() - pendingMBWidth > 1)
         {
             return false;
         }
 
-        double highest = 0.0;
         if (!MQLHelper::GetHighestHighBetween(mEntrySymbol, mEntryTimeFrame, secondMBState.EndIndex() - 1, 0, true, highest))
         {
             return false;
         }
 
-        double lowest = 0.0;
         if (!MQLHelper::GetLowestLowBetween(mEntrySymbol, mEntryTimeFrame, secondMBState.EndIndex(), 0, true, lowest))
         {
             return false;
         }
 
-        double pendingMBHeight = highest - lowest;
-        double minHeightBetweenSecond = MathMin(secondMBState.Height(), pendingMBHeight);
-        double maxHeightBetweenSecond = MathMax(secondMBState.Height(), pendingMBHeight);
-
-        double minHeightBetweenFirst = MathMin(firstMBState.Height(), pendingMBHeight);
-        double maxHeightBetweenFirst = MathMax(firstMBState.Height(), pendingMBHeight);
-
-        if (minHeightBetweenSecond / maxHeightBetweenSecond < MinHeightDifferencePercent() && minHeightBetweenSecond / maxHeightBetweenSecond < MinHeightDifferencePercent())
+        if (highest > iHigh(mEntrySymbol, mEntryTimeFrame, secondMBState.HighIndex()))
         {
             return false;
         }
 
-        if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, 2))
-        {
-            brokeFurther = true;
-        }
+        percentOfPendingMB = lowest + ((highest - lowest) * 0.3);
     }
 
-    return hasTicket || (zoneIsHolding && brokeFurther);
+    double pendingMBHeight = highest - lowest;
+    double minWidthPercent = 0.3;
+
+    double minHeightBetweenSecond = MathMin(secondMBState.Height(), pendingMBHeight);
+    double maxHeightBetweenSecond = MathMax(secondMBState.Height(), pendingMBHeight);
+
+    double minWidthBetweenSecond = MathMin(secondMBState.Width(), pendingMBWidth);
+    double maxWidthBetweenSecond = MathMax(secondMBState.Width(), pendingMBWidth);
+
+    double minHeightBetweenFirst = MathMin(firstMBState.Height(), pendingMBHeight);
+    double maxHeightBetweenFirst = MathMax(firstMBState.Height(), pendingMBHeight);
+
+    double minWidthBetweenFirst = MathMin(firstMBState.Width(), pendingMBWidth);
+    double maxWidthBetweenFisrt = MathMax(firstMBState.Width(), pendingMBWidth);
+
+    bool minHeightWdithPercentBetweenFirst = minHeightBetweenFirst / maxHeightBetweenFirst >= 0.5 && minWidthBetweenFirst / maxWidthBetweenFisrt >= minWidthPercent;
+    bool minPercentIntoPreviousMinHeightPercentFirst = minHeightBetweenFirst / maxHeightBetweenFirst >= 0.3 && minWidthBetweenFirst / maxWidthBetweenFisrt >= minWidthPercent &&
+                                                       EAHelper::PriceIsFurtherThanPercentIntoMB<MBCluster>(this, mSetupMBT, mFirstMBInSetupNumber,
+                                                                                                            percentOfPendingMB, 0);
+
+    bool minHeightWdithPercentBetweenSecond = minHeightBetweenSecond / maxHeightBetweenSecond >= 0.5 && minWidthBetweenSecond / maxWidthBetweenSecond >= minWidthPercent;
+    bool minPercentIntoPreviousMinHeightPercentSecond = minHeightBetweenSecond / maxHeightBetweenSecond >= 0.3 && minWidthBetweenFirst / maxWidthBetweenFisrt >= minWidthPercent &&
+                                                        EAHelper::PriceIsFurtherThanPercentIntoMB<MBCluster>(this, mSetupMBT, mSecondMBInSetupNumber,
+                                                                                                             percentOfPendingMB, 0);
+
+    bool cluster = false;
+    if (minHeightWdithPercentBetweenFirst || minPercentIntoPreviousMinHeightPercentFirst || minHeightWdithPercentBetweenSecond || minPercentIntoPreviousMinHeightPercentSecond)
+    {
+        cluster = true;
+    }
+
+    return hasTicket || (zoneIsHolding && hasDoji && cluster);
 }
 
 void MBCluster::PlaceOrders()

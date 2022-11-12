@@ -27,6 +27,9 @@ public:
 
     static bool GetHighestBodyBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &highestBody);
     static bool GetLowestBodyBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &lowestBody);
+
+    static bool GetHighestBodyIndexBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out int &highestBodyIndex);
+    static bool GetLowestBodyIndexBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out int &lowestBodyIndex);
 };
 /**
  * @brief
@@ -214,5 +217,67 @@ static bool MQLHelper::GetLowestBodyBetween(string symbol, int timeFrame, int le
     }
 
     lowestBody = MathMin(iOpen(symbol, timeFrame, lowestOpen), iClose(symbol, timeFrame, lowestClose));
+    return true;
+}
+
+static bool MQLHelper::GetHighestBodyIndexBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out int &highestBodyIndex)
+{
+    if (rightIndex > leftIndex)
+    {
+        return false;
+    }
+
+    int highestOpen;
+    if (!GetHighest(symbol, timeFrame, MODE_OPEN, leftIndex - rightIndex, rightIndex, inclusive, highestOpen))
+    {
+        return false;
+    }
+
+    int highestClose;
+    if (!GetHighest(symbol, timeFrame, MODE_CLOSE, leftIndex - rightIndex, rightIndex, inclusive, highestClose))
+    {
+        return false;
+    }
+
+    if (iOpen(symbol, timeFrame, highestOpen) > iClose(symbol, timeFrame, highestClose))
+    {
+        highestBodyIndex = highestOpen;
+    }
+    else
+    {
+        highestBodyIndex = highestClose;
+    }
+
+    return true;
+}
+
+static bool MQLHelper::GetLowestBodyIndexBetween(string symbol, int timeFrame, int leftIndex, int rightIndex, bool inclusive, out int &lowestBodyIndex)
+{
+    if (rightIndex > leftIndex)
+    {
+        return false;
+    }
+
+    int lowestOpen;
+    if (!GetLowest(symbol, timeFrame, MODE_OPEN, leftIndex - rightIndex, rightIndex, inclusive, lowestOpen))
+    {
+        return false;
+    }
+
+    int lowestClose;
+    if (!GetLowest(symbol, timeFrame, MODE_CLOSE, leftIndex - rightIndex, rightIndex, inclusive, lowestClose))
+    {
+        return false;
+    }
+
+    if (iOpen(symbol, timeFrame, lowestOpen) < iClose(symbol, timeFrame, lowestClose))
+    {
+        lowestBodyIndex = lowestOpen;
+    }
+    else
+    {
+        lowestBodyIndex = lowestClose;
+    }
+
     return true;
 }

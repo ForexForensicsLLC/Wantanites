@@ -47,6 +47,7 @@ protected:
     int mZoneCount;
     int mUnretrievedZoneCount;
     bool mAllowZoneWickBreaks;
+    bool mOnlyZonesInMB;
 
     string mName;
 

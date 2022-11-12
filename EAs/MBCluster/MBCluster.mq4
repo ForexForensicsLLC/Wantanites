@@ -26,7 +26,7 @@ bool PrintErrors = false;
 bool CalculateOnTick = false;
 
 string StrategyName = "MBCluster/";
-string EAName = "Nas/";
+string EAName = "S&P/";
 string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
@@ -41,13 +41,13 @@ MBCluster *MBClusterBuys;
 MBCluster *MBClusterSells;
 
 // Nas
-double MaxSpreadPips = SymbolConstants::NasSpreadPips;
-double EntryPaddingPips = 20;
-double MinStopLossPips = 250;
-double StopLossPaddingPips = 50;
-double PipsToWaitBeforeBE = 500;
-double BEAdditionalPips = SymbolConstants::NasSlippagePips;
-double CloseRR = 1000;
+// double MaxSpreadPips = SymbolConstants::NasSpreadPips;
+// double EntryPaddingPips = 20;
+// double MinStopLossPips = 250;
+// double StopLossPaddingPips = 50;
+// double PipsToWaitBeforeBE = 500;
+// double BEAdditionalPips = SymbolConstants::NasSlippagePips;
+// double CloseRR = 1000;
 
 // Dow
 // double MaxSpreadPips = SymbolConstants::DowSpreadPips;
@@ -57,6 +57,15 @@ double CloseRR = 1000;
 // double PipsToWaitBeforeBE = 500;
 // double BEAdditionalPips = SymbolConstants::DowSlippagePips;
 // double CloseRR = 1000;
+
+// S&P;
+double MaxSpreadPips = SymbolConstants::SPXSpreadPips;
+double EntryPaddingPips = 5;
+double MinStopLossPips = 20;
+double StopLossPaddingPips = 10;
+double PipsToWaitBeforeBE = 50;
+double BEAdditionalPips = SymbolConstants::SPXSlippagePips;
+double CloseRR = 1000;
 
 int OnInit()
 {

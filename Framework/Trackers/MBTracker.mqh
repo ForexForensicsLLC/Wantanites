@@ -44,6 +44,7 @@ private:
     bool mAllowZoneMitigation;
     bool mAllowZonesAfterMBValidation;
     bool mAllowZoneWickBreaks;
+    bool mOnlyZonesInMB;
 
     int mForcedSetupType;
 
@@ -58,8 +59,6 @@ private:
     MB *mMBs[];
 
     // --- Tracking Methods ---
-    void init(string symbol, int timeFrame,
-              int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool allowZoneWickBreaks, bool printErrors, bool calculateOnTick);
     void Update();
     int MostRecentMBIndex() { return mMBsToTrack - mCurrentMBs; }
 
@@ -102,8 +101,8 @@ public:
     int SetupType() { return mForcedSetupType; }
 
     // --- Constructors / Destructors ---
-    MBTracker(string symbol, int timeFrame,
-              int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool allowZoneWickBreaks, bool printErrors, bool calculateOnTick);
+    MBTracker(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool allowZoneWickBreaks,
+              bool onlyZonesInMB, bool printErrors, bool calculateOnTick);
     ~MBTracker();
 
     // --- Maintenance Methods ---
@@ -168,44 +167,6 @@ public:
 // ##############################################################
 
 //----------------------- Tracking Methods ----------------------
-void MBTracker::init(string symbol, int timeFrame,
-                     int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool allowZoneWickBreaks, bool printErrors, bool calculateOnTick)
-{
-    mSymbol = symbol;
-    mTimeFrame = timeFrame;
-    mPrevCalculated = 0;
-    mFirstBarTime = 0;
-    mInitialLoad = true;
-    mPrintErrors = printErrors;
-    mCalculateOnTick = calculateOnTick;
-    mHasNewData = true;
-
-    mMBsToTrack = mbsToTrack;
-    mMaxZonesInMB = maxZonesInMB;
-    mMBsCreated = 0;
-    mAllowZoneMitigation = allowZoneMitigation;
-    mAllowZonesAfterMBValidation = allowZonesAfterMBValidation;
-    mAllowZoneWickBreaks = allowZoneWickBreaks;
-
-    mCurrentBullishRetracementIndex = -1;
-    mCurrentBearishRetracementIndex = -1;
-
-    mForcedSetupType = EMPTY;
-
-    mLastCheckedLiquidationMBSetupNumber = 0;
-
-    // TODO Remove
-    mBias = EMPTY;
-
-    mFirstMBNumberInMostRecentLiquidationSetup = EMPTY;
-    mSecondMBNumberInMostRecentLiquidationSetup = EMPTY;
-    mLiquidationMBNumberInMostRecentLiquidationSetup = EMPTY;
-
-    ArrayResize(mMBs, mbsToTrack);
-
-    Update();
-}
-
 void MBTracker::Update()
 {
     // how many bars are available to calcualte
@@ -795,14 +756,14 @@ void MBTracker::CreateMB(int mbType, int startIndex, int endIndex, int highIndex
         ArrayCopy(mMBs, mMBs, 1, 0, mMBsToTrack - 1);
 
         MB *mb = new MB(mSymbol, mTimeFrame, mMBsCreated, mbType, iTime(mSymbol, mTimeFrame, startIndex), iTime(mSymbol, mTimeFrame, endIndex),
-                        iTime(mSymbol, mTimeFrame, highIndex), iTime(mSymbol, mTimeFrame, lowIndex), mMaxZonesInMB, mAllowZoneWickBreaks);
+                        iTime(mSymbol, mTimeFrame, highIndex), iTime(mSymbol, mTimeFrame, lowIndex), mMaxZonesInMB, mAllowZoneWickBreaks, mOnlyZonesInMB);
         mb.CheckAddZones(mAllowZoneMitigation);
         mMBs[0] = mb;
     }
     else
     {
         MB *mb = new MB(mSymbol, mTimeFrame, mMBsCreated, mbType, iTime(mSymbol, mTimeFrame, startIndex), iTime(mSymbol, mTimeFrame, endIndex),
-                        iTime(mSymbol, mTimeFrame, highIndex), iTime(mSymbol, mTimeFrame, lowIndex), mMaxZonesInMB, mAllowZoneWickBreaks);
+                        iTime(mSymbol, mTimeFrame, highIndex), iTime(mSymbol, mTimeFrame, lowIndex), mMaxZonesInMB, mAllowZoneWickBreaks, mOnlyZonesInMB);
         mb.CheckAddZones(mAllowZoneMitigation);
         mMBs[(mMBsToTrack - 1) - mCurrentMBs] = mb;
 
@@ -871,10 +832,43 @@ bool MBTracker::InternalNthMostRecentMBIsOpposite(int nthMB)
 // ##############################################################
 
 // -------------- Constructors / Destructors --------------------
-MBTracker::MBTracker(string symbol, int timeFrame,
-                     int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool allowZoneWickBreaks, bool printErrors, bool calculateOnTick)
+MBTracker::MBTracker(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool allowZoneWickBreaks,
+                     bool onlyZonesInMB, bool printErrors, bool calculateOnTick)
 {
-    init(symbol, timeFrame, mbsToTrack, maxZonesInMB, allowZoneMitigation, allowZonesAfterMBValidation, allowZoneWickBreaks, printErrors, calculateOnTick);
+    mSymbol = symbol;
+    mTimeFrame = timeFrame;
+    mPrevCalculated = 0;
+    mFirstBarTime = 0;
+    mInitialLoad = true;
+    mPrintErrors = printErrors;
+    mCalculateOnTick = calculateOnTick;
+    mHasNewData = true;
+
+    mMBsToTrack = mbsToTrack;
+    mMaxZonesInMB = maxZonesInMB;
+    mMBsCreated = 0;
+    mAllowZoneMitigation = allowZoneMitigation;
+    mAllowZonesAfterMBValidation = allowZonesAfterMBValidation;
+    mAllowZoneWickBreaks = allowZoneWickBreaks;
+    mOnlyZonesInMB = onlyZonesInMB;
+
+    mCurrentBullishRetracementIndex = -1;
+    mCurrentBearishRetracementIndex = -1;
+
+    mForcedSetupType = EMPTY;
+
+    mLastCheckedLiquidationMBSetupNumber = 0;
+
+    // TODO Remove
+    mBias = EMPTY;
+
+    mFirstMBNumberInMostRecentLiquidationSetup = EMPTY;
+    mSecondMBNumberInMostRecentLiquidationSetup = EMPTY;
+    mLiquidationMBNumberInMostRecentLiquidationSetup = EMPTY;
+
+    ArrayResize(mMBs, mbsToTrack);
+
+    Update();
 }
 
 MBTracker::~MBTracker()

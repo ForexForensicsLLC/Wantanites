@@ -29,7 +29,7 @@ private:
 public:
     // --- Constructors / Destructors ----------
     MB(string symbol, int timeFrame, int number, int type, datetime startDateTime, datetime endDateTime, datetime highDateTime, datetime lowDateTime,
-       int maxZones, bool allowZoneWickBreaks);
+       int maxZones, bool allowZoneWickBreaks, bool onlyZonesInMB);
     ~MB();
 
     // --- Maintenance Methods ---
@@ -192,10 +192,10 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
                 }
 
                 // Don't create zones that are higher than the MB
-                // if (imbalanceExit > iHigh(mSymbol, mTimeFrame, StartIndex()))
-                // {
-                //     continue;
-                // }
+                if (mOnlyZonesInMB && imbalanceEntry > iHigh(mSymbol, mTimeFrame, StartIndex()))
+                {
+                    continue;
+                }
 
                 // if we have an imbalance on our last index, we can't be mitigating or below it
                 bool mitigatedZone = false;
@@ -365,10 +365,10 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
                 }
 
                 // don't create zones that are lower than the MB
-                // if (imbalanceExit < iLow(mSymbol, mTimeFrame, StartIndex()))
-                // {
-                //     continue;
-                // }
+                if (mOnlyZonesInMB && imbalanceEntry < iLow(mSymbol, mTimeFrame, StartIndex()))
+                {
+                    continue;
+                }
 
                 // if we have an imbalance on our last index, we can't be mitigating or below it
                 bool mitigatedZone = false;
@@ -481,7 +481,7 @@ bool MB::PendingZoneIsOverlappingOtherZone(int type, int startIndex, double imba
 */
 // --------- Constructor / Destructor --------
 MB::MB(string symbol, int timeFrame, int number, int type, datetime startDateTime, datetime endDateTime, datetime highDateTime, datetime lowDateTime,
-       int maxZones, bool allowZoneWickBreaks)
+       int maxZones, bool allowZoneWickBreaks, bool onlyZonesInMB)
 {
     mSymbol = symbol;
     mTimeFrame = timeFrame;
@@ -509,6 +509,7 @@ MB::MB(string symbol, int timeFrame, int number, int type, datetime startDateTim
     mZoneCount = 0;
     mUnretrievedZoneCount = 0;
     mAllowZoneWickBreaks = allowZoneWickBreaks;
+    mOnlyZonesInMB = onlyZonesInMB;
 
     mName = "MB: " + IntegerToString(timeFrame) + "_" + IntegerToString(number);
     mDrawn = false;

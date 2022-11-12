@@ -109,6 +109,9 @@ public:
     template <typename TEA>
     static bool CheckSetFirstMBBreakAfterConsecutiveMBs(TEA &ea, MBTracker *&mbt, int conseuctiveMBs, int &firstMBNumber);
 
+    template <typename TEA>
+    static bool MBWasCreatedAfterSessionStart(TEA &ea, MBTracker *&mbt, int mbNumber);
+
     // =========================================================================
     // Check Invalidate Setup
     // =========================================================================
@@ -924,6 +927,22 @@ static bool EAHelper::CheckSetFirstMBBreakAfterConsecutiveMBs(TEA &ea, MBTracker
 
     firstMBNumber = tempMBState.Number();
     return true;
+}
+
+template <typename TEA>
+static bool EAHelper::MBWasCreatedAfterSessionStart(TEA &ea, MBTracker *&mbt, int mbNumber)
+{
+    string minCreatedTimeString = ea.mTradingSessions[0].HourStart() + ":" + ea.mTradingSessions[0].MinuteStart();
+    datetime minCreatedTime = StringToTime(minCreatedTimeString);
+
+    MBState *tempMBState;
+    if (!mbt.GetMB(mbNumber, tempMBState))
+    {
+        ea.RecordError(TerminalErrors::MB_DOES_NOT_EXIST);
+        return false;
+    }
+
+    return iTime(tempMBState.Symbol(), tempMBState.TimeFrame(), tempMBState.StartIndex()) >= minCreatedTime;
 }
 /*
 
@@ -2737,7 +2756,6 @@ static void EAHelper::BaseReset(TEA &ea)
 {
     ea.mStopTrading = false;
     ea.mHasSetup = false;
-
     ea.mSetupType = EMPTY;
 }
 
