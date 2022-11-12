@@ -7,17 +7,7 @@
 #property link "https://www.mql5.com"
 #property version "1.00"
 #property strict
-/*
 
-       _           _                 _   _
-    __| | ___  ___| | __ _ _ __ __ _| |_(_) ___  _ __
-   / _` |/ _ \/ __| |/ _` | '__/ _` | __| |/ _ \| '_ \
-  | (_| |  __/ (__| | (_| | | | (_| | |_| | (_) | | | |
-   \__,_|\___|\___|_|\__,_|_|  \__,_|\__|_|\___/|_| |_|
-
-
-*/
-// ClearedForUse
 class MinROCFromTimeStamp
 {
 private:
@@ -142,8 +132,7 @@ bool MinROCFromTimeStamp::DuringTime()
     int startTime = (mServerHourStartTime * 59) + mServerMinuteStartTime;
     int endTime = (mServerHourEndTime * 59) + mServerMinuteEndTime;
 
-    // TODO: Add && DayOfWeek() < 6; back
-    return currentTime >= startTime && currentTime < endTime;
+    return currentTime >= startTime && currentTime < endTime && DayOfWeek() < 6;
 }
 
 void MinROCFromTimeStamp::Reset()
@@ -240,8 +229,8 @@ bool MinROCFromTimeStamp::CrossedOpenPriceAfterMinROC()
     {
         if (mOpenPrice > 0.0 && mHadMinROC && iTime(mSymbol, mTimeFrame, 0) > mMinROCAchievedTime)
         {
-            mCrossedOpenPriceAfterMinROC = (iLow(mSymbol, mTimeFrame, 1) > mOpenPrice && iLow(mSymbol, mTimeFrame, 0) < mOpenPrice) ||
-                                           (iHigh(mSymbol, mTimeFrame, 1) < mOpenPrice && iHigh(mSymbol, mTimeFrame, 0) > mOpenPrice);
+            mCrossedOpenPriceAfterMinROC = (iLow(mSymbol, mTimeFrame, 1) > mOpenPrice && iLow(mSymbol, mTimeFrame, 0) <= mOpenPrice) ||
+                                           (iHigh(mSymbol, mTimeFrame, 1) < mOpenPrice && iHigh(mSymbol, mTimeFrame, 0) >= mOpenPrice);
         }
     }
 

@@ -10,6 +10,7 @@
 
 #include <SummitCapital\Framework\Constants\Index.mqh>
 #include <SummitCapital\Framework\Objects\MB.mqh>
+#include <SummitCapital\Framework\Helpers\CandleStickHelper.mqh>
 
 class MBTracker
 {
@@ -25,8 +26,9 @@ private:
 
     // --- MB Counting / Tracking---
     int mMBsToTrack;
-    int mCurrentMBs;
-    int mMBsCreated;
+    int mCurrentMBs; // Used for tracking when to start cleaning up MBs
+    int mMBsCreated; // Used for MBNumber
+    bool mHasNewData;
 
     int mCurrentBullishRetracementIndex;
     int mCurrentBearishRetracementIndex;
@@ -42,17 +44,27 @@ private:
     bool mAllowZoneMitigation;
     bool mAllowZonesAfterMBValidation;
     bool mAllowZoneWickBreaks;
+    bool mOnlyZonesInMB;
+
+    int mForcedSetupType;
+
+    int mLastCheckedLiquidationMBSetupNumber;
+
+    int mFirstMBNumberInMostRecentLiquidationSetup;
+    int mSecondMBNumberInMostRecentLiquidationSetup;
+    int mLiquidationMBNumberInMostRecentLiquidationSetup;
+
+    int mBias;
 
     MB *mMBs[];
 
     // --- Tracking Methods ---
-    void init(string symbol, int timeFrame,
-              int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool allowZoneWickBreaks, bool printErrors, bool calculateOnTick);
     void Update();
     int MostRecentMBIndex() { return mMBsToTrack - mCurrentMBs; }
 
     // --- MB Creation Methods ---
     // Tested
+    void CheckMostRecentMBIsBroken(int barIndex);
     void CalculateMB(int barIndex);
 
     bool IsEngulfingCandle(int mbType, int index);
@@ -71,14 +83,26 @@ private:
     bool InternalHasNMostRecentConsecutiveMBs(int nMBs);
     bool InternalNthMostRecentMBIsOpposite(int nthMB);
 
+    void CheckBias(int barIndex);
+    void MarketSentiment(int barIndex);
+
 public:
     //  --- Getters ---
     string Symbol() { return mSymbol; }
     int TimeFrame() { return mTimeFrame; }
+    int CurrentMBs() { return mCurrentMBs; }
+    int MBsCreated() { return mMBsCreated; }
+    bool HasPendingBullishMB() { return mPendingBullishMB; }
+    bool HasPendingBearishMB() { return mPendingBearishMB; }
+
+    // TODO: Remove
+    bool HasNewData();
+    void ForceSetupType(int type);
+    int SetupType() { return mForcedSetupType; }
 
     // --- Constructors / Destructors ---
-    MBTracker(string symbol, int timeFrame,
-              int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool allowZoneWickBreaks, bool printErrors, bool calculateOnTick);
+    MBTracker(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool allowZoneWickBreaks,
+              bool onlyZonesInMB, bool printErrors, bool calculateOnTick);
     ~MBTracker();
 
     // --- Maintenance Methods ---
@@ -88,24 +112,36 @@ public:
     bool CurrentBullishRetracementIndexIsValid(out int &currentBullishRetracementIndex, int barIndex);
     bool CurrentBearishRetracementIndexIsValid(out int &currentBearishRetracementIndex, int barIndex);
 
-    // --- MB Schematic Methods ---
+    bool MBExists(int mbNumber);
     bool GetNthMostRecentMB(int nthMB, MBState *&mbState);
     bool GetNMostRecentMBs(int nMostRecent, MBState *&mbStates[]);
     bool GetMB(int mbNumber, MBState *&mbState);
     bool GetPreviousMB(int mbNumber, MBState *&mbState);
     bool GetSubsequentMB(int mbNumber, MBState *&mbState);
+    int GetNthMostRecentMBsType(int nthMB);
 
     bool HasNMostRecentConsecutiveMBs(int nMBs);
     bool HasNMostRecentConsecutiveMBs(int nMBs, MBState *&mbStates[]);
 
     bool NthMostRecentMBIsOpposite(int nthMB);
-    bool NthMostRecentMBIsOpposite(int nthMB, MBState *&mbState[]);
+    bool NthMostRecentMBIsOpposite(int nthMB, MBState *&mbState);
     bool MBIsOpposite(int mbNumber);
 
     int NumberOfConsecutiveMBsBeforeNthMostRecent(int nthMB);
+    int NumberOfConsecutiveMBsBeforeMB(int mbNumber);
 
     bool MBIsMostRecent(int mbNumber);
     bool MBIsMostRecent(int mbNumber, MBState *&mbState);
+
+    int MBStartIsBroken(int mbNumber, bool &brokeRangeStart);
+    int MBEndIsBroken(int mbNumber, bool &brokeRangeEnd);
+
+    bool HasSingleMBSetup(int &firstMBInSetupNumber, int nthMB);
+    bool HasDoubleMBSetup(int &firstMBInSetupNumber, int &secondMBInSetupNumber);
+
+    void ResetLiquidationSetup();
+    void CheckInvalidateLiquidationSetup();
+    bool HasLiquidationMBSetup(int &firstMBInSetupNumber, int &secondMBInSetupNumber, int &liquidationMBInSetupNumber);
 
     string ToString(int mbsToPrint);
     string ToSingleLineString(int mbsToPrint);
@@ -131,32 +167,6 @@ public:
 // ##############################################################
 
 //----------------------- Tracking Methods ----------------------
-void MBTracker::init(string symbol, int timeFrame,
-                     int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool allowZoneWickBreaks, bool printErrors, bool calculateOnTick)
-{
-    mSymbol = symbol;
-    mTimeFrame = timeFrame;
-    mPrevCalculated = 0;
-    mFirstBarTime = 0;
-    mInitialLoad = true;
-    mPrintErrors = printErrors;
-    mCalculateOnTick = calculateOnTick;
-
-    mMBsToTrack = mbsToTrack;
-    mMaxZonesInMB = maxZonesInMB;
-    mMBsCreated = 0;
-    mAllowZoneMitigation = allowZoneMitigation;
-    mAllowZonesAfterMBValidation = allowZonesAfterMBValidation;
-    mAllowZoneWickBreaks = allowZoneWickBreaks;
-
-    mCurrentBullishRetracementIndex = -1;
-    mCurrentBearishRetracementIndex = -1;
-
-    ArrayResize(mMBs, mbsToTrack);
-
-    Update();
-}
-
 void MBTracker::Update()
 {
     // how many bars are available to calcualte
@@ -177,24 +187,207 @@ void MBTracker::Update()
         mFirstBarTime = firstBarTime;
     }
 
-    if (mCalculateOnTick && limit == 0)
+    // this was added so that MBs are invalidated without having to wait for the candle to close, no matter what
+    // this is needed in liquidation setups where the liquidation mb can tap into the zone on the same candle that
+    // breaks the second. If this wasn't there, we would have to wait for that candle to close, potentially missing
+    // setups and getting inaccurate results from that point on
+    // TODO: test without this since I Don't think this is needed anymore with the change to only breaking on bodies
+    // if (!mInitialLoad && mMBsCreated > 0)
+    // {
+    //     CheckMostRecentMBIsBroken(limit);
+    // }
+
+    // Calcualte on every tick
+    if (!mInitialLoad && mCalculateOnTick)
     {
-        limit += 1;
+        CalculateMB(limit);
+    }
+    // only calculate when a new bar gets created. Will calcualte on the previous bar
+    else
+    {
+        for (int i = limit; i > 0; i--)
+        {
+            // This is added so that the inital load of MBs still functions as usual
+            if (/*mInitialLoad &&*/ mMBsCreated > 0)
+            {
+                CheckMostRecentMBIsBroken(i);
+            }
+
+            CalculateMB(i);
+        }
     }
 
     // Calcualte MBs for each bar we have left
-    for (int i = limit - 1; i >= 0; i--)
-    {
-        CalculateMB(i);
-    }
+    // removed -1 from limit here, i don't think it should be there
 
     mPrevCalculated = bars;
     mInitialLoad = false;
 }
 
-//----------------------- MB Creation Methods ----------------------------
+void MBTracker::MarketSentiment(int barIndex)
+{
+    if (mCurrentMBs < 10)
+    {
+        return;
+    }
+
+    int bullishCount = 0;
+    int bearishCount = 0;
+
+    for (int i = 0; i < 5; i++)
+    {
+        MB *mb = mMBs[MostRecentMBIndex() + i];
+
+        if (mb.Type() == OP_BUY)
+        {
+            bullishCount += 1;
+        }
+        else if (mb.Type() == OP_SELL)
+        {
+            bearishCount += 1;
+        }
+    }
+
+    if (bullishCount / MathMax(bearishCount, 1) > 0.7)
+    {
+        datetime barTime = iTime(Symbol(), Period(), barIndex);
+        string name = "Sent" + TimeToString(barTime);
+
+        ObjectCreate(ChartID(), name, OBJ_VLINE, 0, barTime, Ask);
+        ObjectSetInteger(ChartID(), name, OBJPROP_COLOR, clrYellow);
+    }
+    else if (bearishCount / MathMax(bullishCount, 1) > 0.5)
+    {
+        datetime barTime = iTime(Symbol(), Period(), barIndex);
+        string name = "Sent" + TimeToString(barTime);
+
+        ObjectCreate(ChartID(), name, OBJ_VLINE, 0, barTime, Ask);
+        ObjectSetInteger(ChartID(), name, OBJPROP_COLOR, clrPurple);
+    }
+}
+
+void MBTracker::CheckBias(int barIndex)
+{
+    if (mCurrentMBs <= 3)
+    {
+        return;
+    }
+
+    if (mBias == EMPTY)
+    {
+        int type = EMPTY;
+        for (int i = 0; i < 3; i++)
+        {
+            MBState *tempMBState = mMBs[MostRecentMBIndex() + i];
+            if (i == 0)
+            {
+                type = tempMBState.Type();
+            }
+            else if (type != tempMBState.Type())
+            {
+                return;
+            }
+        }
+
+        mBias = type;
+
+        datetime barTime = iTime(Symbol(), Period(), barIndex);
+        string name = "Bias" + TimeToString(barTime);
+        color clr = mBias == OP_BUY ? clrYellow : clrPurple;
+
+        ObjectCreate(ChartID(), name, OBJ_VLINE, 0, barTime, Ask);
+        ObjectSetInteger(ChartID(), name, OBJPROP_COLOR, clr);
+    }
+    else
+    {
+        int count = 0;
+        for (int i = 0; i < mCurrentMBs; i++)
+        {
+            if (count > 2)
+            {
+                return;
+            }
+
+            MB *tempMB = mMBs[MostRecentMBIndex() + i];
+
+            if (tempMB.Type() != mBias)
+            {
+                if (count > 0)
+                {
+                    count = 0;
+                }
+
+                continue;
+            }
+
+            count += 1;
+            if (count == 2 && tempMB.StartIsBrokenFromBarIndex(barIndex))
+            {
+                // if (mBias == OP_BUY)
+                // {
+                //     mBias = OP_SELL;
+                // }
+                // else if (mBias == OP_SELL)
+                // {
+                //     mBias = OP_BUY;
+                // }
+
+                mBias = EMPTY;
+
+                datetime barTime = iTime(Symbol(), Period(), barIndex);
+                string name = "Bias" + TimeToString(barTime);
+                color clr = clrRed;
+
+                ObjectCreate(ChartID(), name, OBJ_VLINE, 0, barTime, Ask);
+                ObjectSetInteger(ChartID(), name, OBJPROP_COLOR, clr);
+
+                return;
+            }
+        }
+    }
+}
+
+void MBTracker::CheckMostRecentMBIsBroken(int barIndex)
+{
+    if (mMBs[MostRecentMBIndex()].Type() == OP_BUY)
+    {
+        // first check to make sure we didn't break our previous MB
+        if (CandleStickHelper::GetLowestBodyPart(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].LowIndex()))
+        {
+            int highestIndex;
+            if (!MQLHelper::GetHighest(mSymbol, mTimeFrame, MODE_HIGH, mMBs[MostRecentMBIndex()].EndIndex() - barIndex, barIndex, true, highestIndex))
+            {
+                return;
+            }
+
+            CreateMB(OP_SELL, mMBs[MostRecentMBIndex()].LowIndex(), barIndex, highestIndex, mMBs[MostRecentMBIndex()].LowIndex());
+            ResetTracking();
+        }
+    }
+    // prev mb was bearish
+    else if (mMBs[MostRecentMBIndex()].Type() == OP_SELL)
+    {
+        // first check to make sure we didn't break our previous mb
+        if (CandleStickHelper::GetHighestBodyPart(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].HighIndex()))
+        {
+            int lowestIndex = 0;
+            if (!MQLHelper::GetLowest(mSymbol, mTimeFrame, MODE_LOW, mMBs[MostRecentMBIndex()].EndIndex() - barIndex, barIndex, true, lowestIndex))
+            {
+                return;
+            }
+
+            CreateMB(OP_BUY, mMBs[MostRecentMBIndex()].HighIndex(), barIndex, mMBs[MostRecentMBIndex()].HighIndex(), lowestIndex);
+            ResetTracking();
+        }
+    }
+}
+
 void MBTracker::CalculateMB(int barIndex)
 {
+    mHasNewData = true;
+    // CheckBias(barIndex);
+    // MarketSentiment(barIndex);
+
     if (CheckPointer(mMBs[mMBsToTrack - 1]) == POINTER_INVALID)
     {
         CheckSetRetracement(barIndex, OP_BUY, -1);
@@ -204,14 +397,14 @@ void MBTracker::CalculateMB(int barIndex)
         CheckSetPendingMB(barIndex, OP_SELL);
 
         // validated Bullish MB
-        if (mPendingBullishMB && iHigh(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex))
+        if (mPendingBullishMB && CandleStickHelper::GetHighestBodyPart(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex))
         {
             CreateMB(OP_BUY, mCurrentBullishRetracementIndex, barIndex, mCurrentBullishRetracementIndex, mPendingBullishMBLowIndex);
             ResetTracking();
             return;
         }
         // validated Bearish MB
-        else if (mPendingBearishMB && iLow(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex))
+        else if (mPendingBearishMB && CandleStickHelper::GetLowestBodyPart(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex))
         {
             CreateMB(OP_SELL, mCurrentBearishRetracementIndex, barIndex, mPendingBearishMBHighIndex, mCurrentBearishRetracementIndex);
             ResetTracking();
@@ -221,30 +414,14 @@ void MBTracker::CalculateMB(int barIndex)
     // prev mb was bullish
     else if (mMBs[MostRecentMBIndex()].Type() == OP_BUY)
     {
-        // first check to make sure we didn't break our previous MB
-        if (iLow(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].LowIndex()))
-        {
-            int highestIndex;
-            if (!MQLHelper::GetHighest(mSymbol, mTimeFrame, MODE_HIGH, mMBs[MostRecentMBIndex()].StartIndex() - barIndex, barIndex, false, highestIndex))
-            {
-                return;
-            }
-
-            CreateMB(OP_SELL, mMBs[MostRecentMBIndex()].LowIndex(), barIndex, highestIndex, mMBs[MostRecentMBIndex()].LowIndex());
-            ResetTracking();
-
-            return;
-        }
-
         // check pending first so that a single candle can trigger the pending flag and confirm an MB else retracement will get reset in CheckSetRetracement()
-        // CheckInvalidateRetracement(OP_BUY);
         CheckSetPendingMB(barIndex, OP_BUY);
         CheckSetRetracement(barIndex, OP_BUY, OP_BUY);
 
         if (mPendingBullishMB)
         {
             // new bullish mb has been validated
-            if (iHigh(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex))
+            if (CandleStickHelper::GetHighestBodyPart(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex))
             {
                 // only create the mb if it is longer than 1 candle
                 int bullishRetracementIndex = -1;
@@ -257,7 +434,7 @@ void MBTracker::CalculateMB(int barIndex)
             }
         }
         // only allow the most recent MB to have zones after it has been validated if there is no pending MB
-        else if (mAllowZonesAfterMBValidation)
+        else if (mAllowZonesAfterMBValidation || true)
         {
             mMBs[MostRecentMBIndex()].CheckAddZonesAfterMBValidation(barIndex, mAllowZoneMitigation);
         }
@@ -265,30 +442,14 @@ void MBTracker::CalculateMB(int barIndex)
     // prev mb was bearish
     else if (mMBs[MostRecentMBIndex()].Type() == OP_SELL)
     {
-        // first check to make sure we didn't break our previous mb
-        if (iHigh(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].HighIndex()))
-        {
-            int lowestIndex = 0;
-            if (!MQLHelper::GetLowest(mSymbol, mTimeFrame, MODE_LOW, mMBs[MostRecentMBIndex()].StartIndex() - barIndex, barIndex, false, lowestIndex))
-            {
-                return;
-            }
-
-            CreateMB(OP_BUY, mMBs[MostRecentMBIndex()].HighIndex(), barIndex, mMBs[MostRecentMBIndex()].HighIndex(), lowestIndex);
-            ResetTracking();
-
-            return;
-        }
-
         // check pending first so that a single candle can trigger the pending flag and confirm an MB else retracement will get reset in CheckSetRetracement()
-        // CheckInvalidateRetracement(OP_SELL);
         CheckSetPendingMB(barIndex, OP_SELL);
         CheckSetRetracement(barIndex, OP_SELL, OP_SELL);
 
         if (mPendingBearishMB)
         {
             // new bearish mb has been validated
-            if (iLow(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex))
+            if (CandleStickHelper::GetLowestBodyPart(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex))
             {
                 int bearishRetracementIndex = -1;
                 if (CurrentBearishRetracementIndexIsValid(bearishRetracementIndex, barIndex))
@@ -524,7 +685,6 @@ void MBTracker::CheckSetPendingMB(int startingIndex, int mbType)
             // Basically don't want the impulses that just broke and started the retacement to be considered
             int count = mCurrentBearishRetracementIndex - startingIndex;
 
-            // TODO: Only allow retracement candle to be the high if it it a bullish candle aka started lower than the one before it and then broke higher
             count = mCurrentMBs == 0 ||
                             (mCurrentMBs > 0 &&
                              startingIndex != mMBs[MostRecentMBIndex()].EndIndex() &&
@@ -595,13 +755,15 @@ void MBTracker::CreateMB(int mbType, int startIndex, int endIndex, int highIndex
         delete mMBs[mMBsToTrack - 1];
         ArrayCopy(mMBs, mMBs, 1, 0, mMBsToTrack - 1);
 
-        MB *mb = new MB(mSymbol, mTimeFrame, mMBsCreated, mbType, startIndex, endIndex, highIndex, lowIndex, mMaxZonesInMB, mAllowZoneWickBreaks);
+        MB *mb = new MB(mSymbol, mTimeFrame, mMBsCreated, mbType, iTime(mSymbol, mTimeFrame, startIndex), iTime(mSymbol, mTimeFrame, endIndex),
+                        iTime(mSymbol, mTimeFrame, highIndex), iTime(mSymbol, mTimeFrame, lowIndex), mMaxZonesInMB, mAllowZoneWickBreaks, mOnlyZonesInMB);
         mb.CheckAddZones(mAllowZoneMitigation);
         mMBs[0] = mb;
     }
     else
     {
-        MB *mb = new MB(mSymbol, mTimeFrame, mMBsCreated, mbType, startIndex, endIndex, highIndex, lowIndex, mMaxZonesInMB, mAllowZoneWickBreaks);
+        MB *mb = new MB(mSymbol, mTimeFrame, mMBsCreated, mbType, iTime(mSymbol, mTimeFrame, startIndex), iTime(mSymbol, mTimeFrame, endIndex),
+                        iTime(mSymbol, mTimeFrame, highIndex), iTime(mSymbol, mTimeFrame, lowIndex), mMaxZonesInMB, mAllowZoneWickBreaks, mOnlyZonesInMB);
         mb.CheckAddZones(mAllowZoneMitigation);
         mMBs[(mMBsToTrack - 1) - mCurrentMBs] = mb;
 
@@ -670,19 +832,68 @@ bool MBTracker::InternalNthMostRecentMBIsOpposite(int nthMB)
 // ##############################################################
 
 // -------------- Constructors / Destructors --------------------
-MBTracker::MBTracker(string symbol, int timeFrame,
-                     int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool allowZoneWickBreaks, bool printErrors, bool calculateOnTick)
+MBTracker::MBTracker(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool allowZoneWickBreaks,
+                     bool onlyZonesInMB, bool printErrors, bool calculateOnTick)
 {
-    init(symbol, timeFrame, mbsToTrack, maxZonesInMB, allowZoneMitigation, allowZonesAfterMBValidation, allowZoneWickBreaks, printErrors, calculateOnTick);
+    mSymbol = symbol;
+    mTimeFrame = timeFrame;
+    mPrevCalculated = 0;
+    mFirstBarTime = 0;
+    mInitialLoad = true;
+    mPrintErrors = printErrors;
+    mCalculateOnTick = calculateOnTick;
+    mHasNewData = true;
+
+    mMBsToTrack = mbsToTrack;
+    mMaxZonesInMB = maxZonesInMB;
+    mMBsCreated = 0;
+    mAllowZoneMitigation = allowZoneMitigation;
+    mAllowZonesAfterMBValidation = allowZonesAfterMBValidation;
+    mAllowZoneWickBreaks = allowZoneWickBreaks;
+    mOnlyZonesInMB = onlyZonesInMB;
+
+    mCurrentBullishRetracementIndex = -1;
+    mCurrentBearishRetracementIndex = -1;
+
+    mForcedSetupType = EMPTY;
+
+    mLastCheckedLiquidationMBSetupNumber = 0;
+
+    // TODO Remove
+    mBias = EMPTY;
+
+    mFirstMBNumberInMostRecentLiquidationSetup = EMPTY;
+    mSecondMBNumberInMostRecentLiquidationSetup = EMPTY;
+    mLiquidationMBNumberInMostRecentLiquidationSetup = EMPTY;
+
+    ArrayResize(mMBs, mbsToTrack);
+
+    Update();
 }
 
 MBTracker::~MBTracker()
 {
-    Print("Deint MBTracker");
     for (int i = (mMBsToTrack - mCurrentMBs); i < mMBsToTrack; i++)
     {
         delete mMBs[i];
     }
+
+    ObjectsDeleteAll(ChartID(), "Bias");
+    ObjectsDeleteAll(ChartID(), "Sent");
+}
+
+bool MBTracker::HasNewData()
+{
+    bool tempHasNewData = mHasNewData;
+    mHasNewData = false;
+
+    return tempHasNewData;
+}
+
+void MBTracker::ForceSetupType(int type)
+{
+    mLastCheckedLiquidationMBSetupNumber = 0;
+    mForcedSetupType = type;
 }
 
 // -------------- Maintenance Methods --------------------------
@@ -693,11 +904,6 @@ void MBTracker::UpdateIndexes(int barIndex)
 
     mPendingBullishMBLowIndex = mPendingBullishMBLowIndex > -1 ? mPendingBullishMBLowIndex + barIndex : -1;
     mPendingBearishMBHighIndex = mPendingBearishMBHighIndex > -1 ? mPendingBearishMBHighIndex + barIndex : -1;
-
-    for (int i = (mMBsToTrack - mCurrentMBs); i < mMBsToTrack; i++)
-    {
-        mMBs[i].UpdateIndexes(barIndex);
-    }
 }
 // ---------------- Computer Properties -----------------------
 bool MBTracker::CurrentBullishRetracementIndexIsValid(out int &currentBullishRetracementIndex, int barIndex = 0)
@@ -725,11 +931,26 @@ bool MBTracker::CurrentBearishRetracementIndexIsValid(out int &currentBearishRet
 }
 
 // -------------- MB Schematic Mehthods ---------------
+bool MBTracker::MBExists(int mbNumber)
+{
+    if (mbNumber == EMPTY)
+    {
+        return false;
+    }
+
+    if (mMBsCreated <= mMBsToTrack)
+    {
+        return true;
+    }
+
+    return mbNumber >= (mMBsCreated - mMBsToTrack) && mbNumber <= (mMBsCreated - 1);
+}
+
 bool MBTracker::GetNthMostRecentMB(int nthMB, MBState *&mbState)
 {
     Update();
 
-    if (nthMB > mCurrentMBs)
+    if (nthMB >= mCurrentMBs)
     {
         Print("Nth MB, ", nthMB, ", is further than current MBs, ", mCurrentMBs);
         return false;
@@ -743,14 +964,46 @@ bool MBTracker::GetMB(int mbNumber, MBState *&mbState)
 {
     Update();
 
-    for (int i = 0; i <= mCurrentMBs - 1; i++)
+    // just in case
+    if (mbNumber < 0)
     {
-        if (mMBs[MostRecentMBIndex() + i].Number() == mbNumber)
-        {
-            mbState = mMBs[MostRecentMBIndex() + i];
-            return true;
-        }
+        return false;
     }
+
+    // mb is too old, doesn't exist anymore
+    if (mbNumber < (mMBsCreated - mMBsToTrack))
+    {
+        return false;
+    }
+
+    // mb doesn't exist yet, return false
+    // can happen when calling GetSubsequentMB()
+    if (mbNumber >= mMBsCreated)
+    {
+        return false;
+    }
+
+    int index;
+    if (mMBsCreated < mMBsToTrack)
+    {
+        // MBs are stored from the back of the array to the front. Since we haven't filled the array yet we can just use mMBsToTrack
+        // EX: track 10 looking for 6, 10 - 6 - 1 = 3. Since they are stored from front to back, index 3 would be our most recent
+        index = mMBsToTrack - mbNumber - 1;
+    }
+    else
+    {
+        // can just subtract them to find the nth most recent one that we are looking for
+        // ex: looking for 99, created 100. 100 - 99 - 1 = 0 which would be the most recently created MB (mMBsCreated is incremented after creation of MB)
+        index = mMBsCreated - mbNumber - 1;
+    }
+
+    if (mMBs[index].Number() == mbNumber)
+    {
+        mbState = mMBs[index];
+        return true;
+    }
+
+    Print("Not Able To Find MB:", mbNumber, ", MBsCreated: ", mMBsCreated, ", MBs To Track: ", mMBsToTrack, ", Index: ", index);
 
     return false;
 }
@@ -785,6 +1038,19 @@ bool MBTracker::GetNMostRecentMBs(int nMostRecent, MBState *&mbStates[])
     return true;
 }
 
+int MBTracker::GetNthMostRecentMBsType(int nthMB)
+{
+    Update();
+
+    if (nthMB >= mCurrentMBs)
+    {
+        Print("Nth MB, ", nthMB, ", is further than current MBs, ", mCurrentMBs);
+        return false;
+    }
+
+    return mMBs[MostRecentMBIndex() + nthMB].Type();
+}
+
 bool MBTracker::HasNMostRecentConsecutiveMBs(int nMBs)
 {
     return InternalHasNMostRecentConsecutiveMBs(nMBs);
@@ -816,11 +1082,11 @@ bool MBTracker::NthMostRecentMBIsOpposite(int nthMB)
     return InternalNthMostRecentMBIsOpposite(nthMB);
 }
 
-bool MBTracker::NthMostRecentMBIsOpposite(int nthMB, MBState *&mbState[])
+bool MBTracker::NthMostRecentMBIsOpposite(int nthMB, MBState *&mbState)
 {
     if (InternalNthMostRecentMBIsOpposite(nthMB))
     {
-        mbState[0] = mMBs[MostRecentMBIndex() + nthMB];
+        mbState = mMBs[MostRecentMBIndex() + nthMB];
         return true;
     }
 
@@ -878,9 +1144,20 @@ int MBTracker::NumberOfConsecutiveMBsBeforeNthMostRecent(int nthMB)
     return count;
 }
 
+int MBTracker::NumberOfConsecutiveMBsBeforeMB(int mbNumber)
+{
+    int nthMB = mMBsCreated - mbNumber - 1;
+    return NumberOfConsecutiveMBsBeforeNthMostRecent(nthMB);
+}
+
 bool MBTracker::MBIsMostRecent(int mbNumber)
 {
     Update();
+
+    if (mMBsCreated <= 0)
+    {
+        return false;
+    }
 
     return mMBs[MostRecentMBIndex()].Number() == mbNumber;
 }
@@ -894,6 +1171,261 @@ bool MBTracker::MBIsMostRecent(int mbNumber, MBState *&mbState)
 
     return false;
 }
+
+int MBTracker::MBStartIsBroken(int mbNumber, bool &brokeRangeStart)
+{
+    MBState *tempMBState;
+    if (!GetMB(mbNumber, tempMBState))
+    {
+        return TerminalErrors::MB_DOES_NOT_EXIST;
+    }
+
+    brokeRangeStart = tempMBState.GlobalStartIsBroken();
+    return ERR_NO_ERROR;
+}
+
+int MBTracker::MBEndIsBroken(int mbNumber, bool &brokeRangeEnd)
+{
+    // don't calcualte unless we put in a new mb past the one we are checking
+    if (mMBs[MostRecentMBIndex()].Number() <= mbNumber)
+    {
+        brokeRangeEnd = false;
+        return ERR_NO_ERROR;
+    }
+
+    MBState *tempMBState;
+    if (!GetMB(mbNumber, tempMBState))
+    {
+        return TerminalErrors::MB_DOES_NOT_EXIST;
+    }
+
+    if (!tempMBState.mEndIsBroken)
+    {
+        if (tempMBState.Type() == OP_BUY)
+        {
+            double high;
+            if (!MQLHelper::GetHighestHigh(mSymbol, mTimeFrame, tempMBState.HighIndex(), 0, false, high))
+            {
+                return ExecutionErrors::COULD_NOT_RETRIEVE_HIGH;
+            }
+
+            tempMBState.mEndIsBroken = high > iHigh(mSymbol, mTimeFrame, tempMBState.HighIndex());
+        }
+        else if (tempMBState.Type() == OP_SELL)
+        {
+            double low;
+            if (!MQLHelper::GetLowestLow(mSymbol, mTimeFrame, tempMBState.LowIndex(), 0, false, low))
+            {
+                return ExecutionErrors::COULD_NOT_RETRIEVE_LOW;
+            }
+
+            tempMBState.mEndIsBroken = low < iLow(mSymbol, mTimeFrame, tempMBState.LowIndex());
+        }
+    }
+
+    brokeRangeEnd = tempMBState.mEndIsBroken;
+    return ERR_NO_ERROR;
+}
+
+// bool MBTracker::HasSingleMBSetup(int &firstMBInSetupNumber, int nthMB = 0)
+// {
+//     if (mForcedSetupType == EMPTY)
+//     {
+//         Print("Need to call ForceSetupType(int type) before checking for setups");
+//         return false;
+//     }
+
+//     Update();
+
+//     if (firstMBInSetupNumber == EMPTY && mMBs[MostRecentMBIndex() + nthMB].Type() == mForcedSetupType)
+//     {
+//         firstMBInSetupNumber = mMBs[MostRecentMBIndex() + nthMB].Number();
+//     }
+
+//     return firstMBInSetupNumber != EMPTY;
+// }
+
+// bool MBTracker::HasDoubleMBSetup(int &firstMBInSetupNumber, int &secondMBInSetupNumber)
+// {
+//     if (HasSingleMBSetup(firstMBInSetupNumber, 1))
+//     {
+//         if (secondMBInSetupNumber == EMPTY && mMBs[MostRecentMBIndex()].Type() == mForcedSetupType)
+//         {
+//             secondMBInSetupNumber = mMBs[MostRecentMBIndex()].Number();
+//         }
+//     }
+
+//     return firstMBInSetupNumber != EMPTY && secondMBInSetupNumber != EMPTY;
+// }
+
+// void MBTracker::ResetLiquidationSetup()
+// {
+//     mFirstMBNumberInMostRecentLiquidationSetup = EMPTY;
+//     mSecondMBNumberInMostRecentLiquidationSetup = EMPTY;
+//     mLiquidationMBNumberInMostRecentLiquidationSetup = EMPTY;
+// }
+
+// void MBTracker::CheckInvalidateLiquidationSetup()
+// {
+//     if (mFirstMBNumberInMostRecentLiquidationSetup != EMPTY)
+//     {
+//         MBState *tempMBState;
+//         if (!GetMB(mFirstMBNumberInMostRecentLiquidationSetup, tempMBState))
+//         {
+//             return;
+//         }
+
+//         if (tempMBState.StartIsBroken())
+//         {
+//             ResetLiquidationSetup();
+
+//             return;
+//         }
+//     }
+
+//     if (mLiquidationMBNumberInMostRecentLiquidationSetup != EMPTY)
+//     {
+//         MBState *tempMBState;
+//         if (!GetMB(mLiquidationMBNumberInMostRecentLiquidationSetup, tempMBState))
+//         {
+//             return;
+//         }
+
+//         if (tempMBState.StartIsBroken())
+//         {
+//             ResetLiquidationSetup();
+//         }
+//     }
+// }
+
+// bool MBTracker::HasLiquidationMBSetup(int &firstMBInSetupNumber, int &secondMBInSetupNumber, int &liquidationMBInSetupNumber)
+// {
+//     if (mForcedSetupType == EMPTY)
+//     {
+//         Print("Need to call ForceSetupType(int type) before checking for setups");
+//         return false;
+//     }
+
+//     Update();
+
+//     if (mFirstMBNumberInMostRecentLiquidationSetup == EMPTY)
+//     {
+//         // if we don't have a first mb yet, we don't know where we are starting. Technically we could be in a setup starting any number
+//         // of mbs back. We'll chceck all the ones we haven't already checked from oldest -> newest to find the most recent setup
+//         while (mLastCheckedLiquidationMBSetupNumber < mMBsCreated)
+//         {
+//             CheckInvalidateLiquidationSetup();
+
+//             MBState *tempMBState;
+//             if (GetMB(mLastCheckedLiquidationMBSetupNumber, tempMBState))
+//             {
+//                 if (mFirstMBNumberInMostRecentLiquidationSetup == EMPTY)
+//                 {
+//                     if (tempMBState.Type() != mForcedSetupType || tempMBState.StartIsBroken())
+//                     {
+//                         ResetLiquidationSetup();
+//                         mLastCheckedLiquidationMBSetupNumber += 1;
+
+//                         continue;
+//                     }
+
+//                     mFirstMBNumberInMostRecentLiquidationSetup = tempMBState.Number();
+//                 }
+//                 else if (mSecondMBNumberInMostRecentLiquidationSetup == EMPTY)
+//                 {
+//                     if (mLastCheckedLiquidationMBSetupNumber != (mFirstMBNumberInMostRecentLiquidationSetup + 1))
+//                     {
+//                         // subtract one since we somehow got seperated. Recalc the last 2 mbs
+//                         mLastCheckedLiquidationMBSetupNumber -= 1;
+
+//                         ResetLiquidationSetup();
+//                         continue;
+//                     }
+
+//                     if (tempMBState.Type() != mForcedSetupType)
+//                     {
+//                         ResetLiquidationSetup();
+//                         mLastCheckedLiquidationMBSetupNumber += 1;
+
+//                         continue;
+//                     }
+
+//                     mSecondMBNumberInMostRecentLiquidationSetup = tempMBState.Number();
+//                 }
+//                 else if (mLiquidationMBNumberInMostRecentLiquidationSetup == EMPTY)
+//                 {
+//                     if (mLastCheckedLiquidationMBSetupNumber != (mSecondMBNumberInMostRecentLiquidationSetup + 1) || tempMBState.Type() == mForcedSetupType)
+//                     {
+//                         // subtract one since we somehow got seperated, re calc the 2 mbs
+//                         mLastCheckedLiquidationMBSetupNumber -= 1;
+
+//                         ResetLiquidationSetup();
+//                         continue;
+//                     }
+
+//                     mLiquidationMBNumberInMostRecentLiquidationSetup = tempMBState.Number();
+//                 }
+//             }
+
+//             mLastCheckedLiquidationMBSetupNumber += 1;
+//         }
+//     }
+//     else
+//     {
+//         // need to check to make sure our first mb in setup is still valid
+//         CheckInvalidateLiquidationSetup();
+
+//         if (mSecondMBNumberInMostRecentLiquidationSetup == EMPTY)
+//         {
+//             MBState *secondMBState;
+//             if (!GetSubsequentMB(mFirstMBNumberInMostRecentLiquidationSetup, secondMBState))
+//             {
+//                 return false;
+//             }
+
+//             if (secondMBState.Type() != mForcedSetupType)
+//             {
+//                 ResetLiquidationSetup();
+//             }
+//             else
+//             {
+//                 mSecondMBNumberInMostRecentLiquidationSetup = secondMBState.Number();
+//             }
+//         }
+
+//         if (mSecondMBNumberInMostRecentLiquidationSetup != EMPTY && mLiquidationMBNumberInMostRecentLiquidationSetup == EMPTY)
+//         {
+//             MBState *liquidationMBState;
+//             if (!GetSubsequentMB(mSecondMBNumberInMostRecentLiquidationSetup, liquidationMBState))
+//             {
+//                 return false;
+//             }
+
+//             if (liquidationMBState.Type() == mForcedSetupType)
+//             {
+//                 // subtract one since the end of this setup could also be the middle of a next setup
+//                 mLastCheckedLiquidationMBSetupNumber -= 1;
+
+//                 ResetLiquidationSetup();
+//             }
+//             else
+//             {
+//                 mLiquidationMBNumberInMostRecentLiquidationSetup = liquidationMBState.Number();
+//             }
+//         }
+//     }
+
+//     if (mFirstMBNumberInMostRecentLiquidationSetup != EMPTY && mSecondMBNumberInMostRecentLiquidationSetup != EMPTY && mLiquidationMBNumberInMostRecentLiquidationSetup != EMPTY)
+//     {
+//         firstMBInSetupNumber = mFirstMBNumberInMostRecentLiquidationSetup;
+//         secondMBInSetupNumber = mSecondMBNumberInMostRecentLiquidationSetup;
+//         liquidationMBInSetupNumber = mLiquidationMBNumberInMostRecentLiquidationSetup;
+
+//         return true;
+//     }
+
+//     return false;
+// }
 
 string MBTracker::ToString(int mbsToPrint = 3)
 {
@@ -964,6 +1496,7 @@ void MBTracker::DrawNMostRecentMBs(int n)
 
     for (int i = MostRecentMBIndex(); i < MostRecentMBIndex() + n; i++)
     {
+        // mMBs[i].HasImpulseValidation();
         mMBs[i].Draw(mPrintErrors);
     }
 }
@@ -995,7 +1528,6 @@ bool MBTracker::GetNthMostRecentMBsUnretrievedZones(int nthMB, ZoneState *&zoneS
 // the first 0 -> mMaxZonesInMB zones will be for the first MB,
 // then mMaxZonesInMB -> 2 * mMaxZonesInMB zones will be for the second MB,
 // so on and so on
-// TODO: Not usable right now and will probaly remove
 bool MBTracker::GetNMostRecentMBsUnretrievedZones(int nMBs, ZoneState *&zoneStates[])
 {
     Update();

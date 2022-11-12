@@ -18,7 +18,7 @@
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\BeforeAndAfterImagesUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/Helpers/OrderHelper/CheckEditStopLossForStopOrderOnPendingMB/";
-const int NumberOfAsserts = 25;
+const int NumberOfAsserts = 50;
 const int AssertCooldown = 0;
 const bool RecordScreenShot = true;
 const bool RecordErrors = true;
@@ -32,10 +32,16 @@ input bool CalculateOnTick = true;
 
 MBTracker *MBT;
 
+// https://drive.google.com/drive/folders/1DigHJxGwYFAHckmbhpMmigKB4gsMyzLr?usp=sharing
 BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> *DidNotEditBullishMBStopLossUnitTest;
+
+// https://drive.google.com/drive/folders/1WWzU8oEw85RIgr7e-Ht6Yx5qdQCkYeLu?usp=sharing
 BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> *DidNotEditBearishMBStopLossUnitTest;
 
+// https://drive.google.com/drive/folders/1F8qgF2S_Wr34jdx0onWuR9HXnOmDkUhY?usp=sharing
 BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> *DidEditBullishMBStopLossUnitTest;
+
+// https://drive.google.com/drive/folders/1c_C6ps6ww75rpsF7x8n1KV6A-FxZv8oQ?usp=sharing
 BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> *DidEditBearishMBStopLossUnitTest;
 
 const int PaddingPips = 0.0;
@@ -88,10 +94,10 @@ void OnTick()
     MBT.DrawZonesForNMostRecentMBs(1);
 
     // DidNotEditBullishMBStopLossUnitTest.Assert();
-    DidNotEditBearishMBStopLossUnitTest.Assert();
+    // DidNotEditBearishMBStopLossUnitTest.Assert();
 
     // DidEditBullishMBStopLossUnitTest.Assert();
-    // DidEditBearishMBStopLossUnitTest.Assert();
+    DidEditBearishMBStopLossUnitTest.Assert();
 }
 
 int CloseTicket(int &ticket)
@@ -305,7 +311,7 @@ int DidNotEditBearishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
 
     if (editStopLossError != ExecutionErrors::NEW_STOPLOSS_EQUALS_OLD)
     {
-        return editStopLossError;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     actual = oldTicket == ticket;
@@ -326,7 +332,7 @@ int DidEditBullishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
     int setupVariablesError = SetSetupVariables(OP_BUY, ticket, stopLoss, mbNumber, reset, cooldown, setupImageCount);
     if (setupVariablesError != ERR_NO_ERROR)
     {
-        return setupVariablesError;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     if (!PastCooldown(cooldown))
@@ -338,7 +344,7 @@ int DidEditBullishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
     int newStopLossError = OrderHelper::GetStopLossForStopOrderForPendingMBValidation(PaddingPips, SpreadPips, OP_BUY, MBT, newStopLoss);
     if (newStopLossError != ERR_NO_ERROR)
     {
-        return newStopLossError;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     if (newStopLoss == stopLoss)
@@ -351,8 +357,7 @@ int DidEditBullishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
     int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(PaddingPips, SpreadPips, RiskPercent, mbNumber, MBT, ticket);
     if (editStopLossError != ERR_NO_ERROR)
     {
-        reset = true;
-        return editStopLossError;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory(), IntegerToString(setupImageCount));
@@ -360,8 +365,7 @@ int DidEditBullishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
     int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Editing Stop Loss");
     if (selectError != ERR_NO_ERROR)
     {
-        reset = true;
-        return selectError;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     actual = stopLoss != OrderStopLoss();
@@ -382,7 +386,7 @@ int DidEditBearishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
     int setupVariablesError = SetSetupVariables(OP_SELL, ticket, stopLoss, mbNumber, reset, cooldown, setupImageCount);
     if (setupVariablesError != ERR_NO_ERROR)
     {
-        return setupVariablesError;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     if (!PastCooldown(cooldown))
@@ -394,7 +398,7 @@ int DidEditBearishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
     int newStopLossError = OrderHelper::GetStopLossForStopOrderForPendingMBValidation(PaddingPips, SpreadPips, OP_SELL, MBT, newStopLoss);
     if (newStopLossError != ERR_NO_ERROR)
     {
-        return newStopLossError;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     if (newStopLoss == stopLoss)
@@ -407,8 +411,7 @@ int DidEditBearishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
     int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(PaddingPips, SpreadPips, RiskPercent, mbNumber, MBT, ticket);
     if (editStopLossError != ERR_NO_ERROR)
     {
-        reset = true;
-        return editStopLossError;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory(), IntegerToString(setupImageCount));
@@ -416,8 +419,7 @@ int DidEditBearishMBStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
     int selectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Editing Stop Loss");
     if (selectError != ERR_NO_ERROR)
     {
-        reset = true;
-        return selectError;
+        return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     actual = stopLoss != OrderStopLoss();

@@ -11,7 +11,6 @@
 class Results
 {
 public:
-    // 7000 Are For Order Results
     static int Results::UNIT_TEST_RAN;
     static int Results::UNIT_TEST_DID_NOT_RUN;
 };

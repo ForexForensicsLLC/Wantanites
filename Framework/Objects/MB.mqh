@@ -28,7 +28,8 @@ private:
 
 public:
     // --- Constructors / Destructors ----------
-    MB(string symbol, int timeFrame, int number, int type, int startIndex, int endIndex, int highIndex, int lowIndex, int maxZones, bool allowZoneWickBreaks);
+    MB(string symbol, int timeFrame, int number, int type, datetime startDateTime, datetime endDateTime, datetime highDateTime, datetime lowDateTime,
+       int maxZones, bool allowZoneWickBreaks, bool onlyZonesInMB);
     ~MB();
 
     // --- Maintenance Methods ---
@@ -42,7 +43,7 @@ public:
     void CheckAddZonesAfterMBValidation(int barIndex, bool allowZoneMitigation);
 
     // Tested
-    void AddZone(string description, int startIndex, double entryPrice, int endIndex, double exitPrice);
+    void AddZone(string description, int startIndex, double entryPrice, int endIndex, double exitPrice, int entryOffset);
 };
 /*
 
@@ -68,7 +69,8 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
 
         for (int i = startingIndex; i >= endingIndex; i--)
         {
-            bool currentImbalance = iHigh(mSymbol, mTimeFrame, i + 1) < iLow(mSymbol, mTimeFrame, i - 1);
+            // don't calculate if our next candle is the most recent bar since we don't know if the imabalance will still be there when the candle closes
+            bool currentImbalance = (i - 1) > 0 && iHigh(mSymbol, mTimeFrame, i + 1) < iLow(mSymbol, mTimeFrame, i - 1);
             if (currentImbalance)
             {
                 // Zone variables that get set depending on the zone
@@ -190,7 +192,7 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
                 }
 
                 // Don't create zones that are higher than the MB
-                if (imbalanceExit > iHigh(mSymbol, mTimeFrame, mStartIndex))
+                if (mOnlyZonesInMB && imbalanceEntry > iHigh(mSymbol, mTimeFrame, StartIndex()))
                 {
                     continue;
                 }
@@ -199,15 +201,15 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
                 bool mitigatedZone = false;
                 if (startIndex - entryOffset != endingIndex)
                 {
-
                     double lowestPriceAfterIndex = 0.0;
                     if (!MQLHelper::GetLowestLowBetween(mSymbol, mTimeFrame, startIndex - entryOffset, endingIndex, false, lowestPriceAfterIndex))
                     {
                         continue;
                     }
 
-                    // Check to make sure we haven't gone below the zone within the MB. This can happen in large MBs when price bounces around a lot
-                    if (lowestPriceAfterIndex < imbalanceExit)
+                    // Check to make sure we havne't gone below the zone. This can happen if we have large mbs and price bounces around a lot.
+                    // Also want to prevent huge zones that aren't technically mitigated but are basically the whole mb
+                    if (lowestPriceAfterIndex < imbalanceEntry)
                     {
                         continue;
                     }
@@ -216,11 +218,16 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
                 }
 
                 // only allow zones that follow the mitigation parameter, that arenen't single ticks, and occur after the start of the MB
-                if ((allowZoneMitigation || !mitigatedZone) && imbalanceEntry != imbalanceExit && startIndex <= mStartIndex)
+                if ((allowZoneMitigation || !mitigatedZone) && imbalanceEntry != imbalanceExit && startIndex <= StartIndex())
                 {
-                    // account for zones after the validaiton of an mb
-                    int endIndex = i >= mEndIndex ? mEndIndex : i;
-                    AddZone(description, startIndex, imbalanceEntry, endIndex, imbalanceExit);
+                    int endIndex = EndIndex();
+                    if (startIndex <= endIndex)
+                    {
+                        // move over 1 to the right if zone is right on the end or else I won't be able to see it
+                        endIndex = startIndex - 1;
+                    }
+
+                    AddZone(description, startIndex, imbalanceEntry, endIndex, imbalanceExit, entryOffset);
                 }
             }
         }
@@ -235,8 +242,8 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
         // only go from high -> current so that we only grab imbalances that are in the impulse that broke sructure and not in the move up
         for (int i = startingIndex; i >= endingIndex; i--)
         {
-            bool currentImbalance = iLow(mSymbol, mTimeFrame, i + 1) > iHigh(mSymbol, mTimeFrame, i - 1);
-
+            // don't calculate if our next candle is the most recent bar since we don't know if the imabalance will still be there when the candle closes
+            bool currentImbalance = (i - 1) > 0 && iLow(mSymbol, mTimeFrame, i + 1) > iHigh(mSymbol, mTimeFrame, i - 1);
             if (currentImbalance)
             {
                 // Zone variables that get set depending on the zone
@@ -313,7 +320,8 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
                     imbalanceExit = MathMax(indexHigh, candleTwoBeforeIndexHigh);
                     description = "Two Before Index Bullish Engulfing Zone";
 
-                    setDefault = true;
+                    // if the bearish engulfing 2 candles before has been mititgated, try and use a default zone within it
+                    setDefault = PendingSupplyZoneWasMitigated(startIndex, endingIndex, entryOffset, imbalanceEntry);
                 }
 
                 // Default Zone
@@ -357,7 +365,7 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
                 }
 
                 // don't create zones that are lower than the MB
-                if (imbalanceExit < iLow(mSymbol, mTimeFrame, mStartIndex))
+                if (mOnlyZonesInMB && imbalanceEntry < iLow(mSymbol, mTimeFrame, StartIndex()))
                 {
                     continue;
                 }
@@ -372,9 +380,9 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
                         continue;
                     }
 
-                    // Check to make sure we havne't gone above the zone while within the MB. This can happen in large MBs when price
-                    // bounces around a lot
-                    if (highestPriceAfterIndex > imbalanceExit)
+                    // Check to make sure we havne't gone above the zone. This can happen if we have large mbs and price bounces around a lot.
+                    // Also want to prevent huge zones that aren't technically mitigated but are basically the whole mb
+                    if (highestPriceAfterIndex > imbalanceEntry)
                     {
                         continue;
                     }
@@ -383,11 +391,16 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool allowZon
                 }
 
                 // that follow the mitigation parameter, that arenen't single ticks, and occur after the start of the zone
-                if ((allowZoneMitigation || !mitigatedZone) && imbalanceEntry != imbalanceExit && startIndex <= mStartIndex)
+                if ((allowZoneMitigation || !mitigatedZone) && imbalanceEntry != imbalanceExit && startIndex <= StartIndex())
                 {
-                    // Account for zones after the validation of the mb
-                    int endIndex = mEndIndex <= i ? mEndIndex : i;
-                    AddZone(description, startIndex, imbalanceEntry, endIndex, imbalanceExit);
+                    int endIndex = EndIndex();
+                    if (startIndex <= endIndex)
+                    {
+                        // move over 1 to the right if zone is right on the end or else I won't be able to see it
+                        endIndex = startIndex - 1;
+                    }
+
+                    AddZone(description, startIndex, imbalanceEntry, endIndex, imbalanceExit, entryOffset);
                 }
             }
         }
@@ -412,7 +425,7 @@ bool MB::PendingDemandZoneWasMitigated(int startIndex, int endingIndex, int entr
         return false;
     }
 
-    return lowestPriceAfterValidation < imbalanceEntry;
+    return lowestPriceAfterValidation <= imbalanceEntry;
 }
 
 bool MB::PendingSupplyZoneWasMitigated(int startIndex, int endingIndex, int entryOffset, double imbalanceEntry)
@@ -433,7 +446,7 @@ bool MB::PendingSupplyZoneWasMitigated(int startIndex, int endingIndex, int entr
         return false;
     }
 
-    return highestPriceAfterValidation > imbalanceEntry;
+    return highestPriceAfterValidation >= imbalanceEntry;
 }
 
 bool MB::PendingZoneIsOverlappingOtherZone(int type, int startIndex, double imbalanceExit)
@@ -467,27 +480,41 @@ bool MB::PendingZoneIsOverlappingOtherZone(int type, int startIndex, double imba
 
 */
 // --------- Constructor / Destructor --------
-MB::MB(string symbol, int timeFrame, int number, int type, int startIndex, int endIndex, int highIndex, int lowIndex, int maxZones, bool allowZoneWickBreaks)
+MB::MB(string symbol, int timeFrame, int number, int type, datetime startDateTime, datetime endDateTime, datetime highDateTime, datetime lowDateTime,
+       int maxZones, bool allowZoneWickBreaks, bool onlyZonesInMB)
 {
     mSymbol = symbol;
     mTimeFrame = timeFrame;
 
     mNumber = number;
     mType = type;
-    mStartIndex = startIndex;
-    mEndIndex = endIndex;
-    mHighIndex = highIndex;
-    mLowIndex = lowIndex;
 
-    mIsBroken = false;
+    mStartDateTime = startDateTime;
+    mEndDateTime = endDateTime;
+    mHighDateTime = highDateTime;
+    mLowDateTime = lowDateTime;
+
+    mWidth = 0.0;
+    mHeight = 0.0;
+    mHeightToWidthRatio = 0.0;
+
+    mGlobalStartIsBroken = false;
+    // mEndIsBroken = false;
+
+    mSetupZoneNumber = EMPTY;
+    mInsideSetupZone = Status::NOT_CHECKED;
+    mPushedFurtherIntoSetupZone = Status::NOT_CHECKED;
 
     mMaxZones = maxZones;
     mZoneCount = 0;
     mUnretrievedZoneCount = 0;
     mAllowZoneWickBreaks = allowZoneWickBreaks;
+    mOnlyZonesInMB = onlyZonesInMB;
 
-    mName = "MB: " + IntegerToString(number);
+    mName = "MB: " + IntegerToString(timeFrame) + "_" + IntegerToString(number);
     mDrawn = false;
+
+    mHasImpulseValidation = Status::NOT_CHECKED;
 
     ArrayResize(mZones, maxZones);
 }
@@ -495,6 +522,7 @@ MB::MB(string symbol, int timeFrame, int number, int type, int startIndex, int e
 MB::~MB()
 {
     ObjectsDeleteAll(ChartID(), mName, 0, OBJ_RECTANGLE);
+    ObjectsDeleteAll(ChartID(), mName + "imp");
 
     for (int i = mMaxZones - 1; i >= 0; i--)
     {
@@ -506,47 +534,31 @@ MB::~MB()
         delete mZones[i];
     }
 }
-
-// ------------- Maintenance Methods ---------------
-void MB::UpdateIndexes(int barIndex)
-{
-    mStartIndex = mStartIndex + barIndex;
-    mEndIndex = mEndIndex + barIndex;
-    mHighIndex = mHighIndex + barIndex;
-    mLowIndex = mLowIndex + barIndex;
-
-    for (int i = mMaxZones - 1; i >= 0; i--)
-    {
-        if (CheckPointer(mZones[i]) == POINTER_INVALID)
-        {
-            break;
-        }
-
-        mZones[i].UpdateIndexes(barIndex);
-    }
-}
 // --------------- Adding Zones -------------------
 // Checks for zones that are within the MB
 void MB::CheckAddZones(bool allowZoneMitigation)
 {
-    int startIndex = mType == OP_BUY ? mLowIndex : mHighIndex;
-    InternalCheckAddZones(startIndex, mEndIndex, allowZoneMitigation, false);
+    int startIndex = mType == OP_BUY ? LowIndex() : HighIndex();
+    InternalCheckAddZones(startIndex, EndIndex(), allowZoneMitigation, false);
 }
 // Checks for  zones that occur after the MB
 void MB::CheckAddZonesAfterMBValidation(int barIndex, bool allowZoneMitigation)
 {
-    // Add one to this so that imbalances on the candle before the end index can be found
-    InternalCheckAddZones(mEndIndex, barIndex, allowZoneMitigation, true);
+    // add one to this after the updates to allow an MB to break on tick since we can't calaculate the zone during that candel anymore, since the
+    // imbalance might not be there when the candle closes.
+    // Adding one to this allows us to safely check it after it has closed
+    InternalCheckAddZones(EndIndex() + 1, barIndex, allowZoneMitigation, true);
 }
 
 // Add zones
-void MB::AddZone(string description, int startIndex, double entryPrice, int endIndex, double exitPrice)
+void MB::AddZone(string description, int startIndex, double entryPrice, int endIndex, double exitPrice, int entryOffset)
 {
     if (mZoneCount < mMaxZones)
     {
         // So Zone Numbers Match the order they are placed in the array, from back to front with the furthest in the back
         int zoneNumber = mMaxZones - mZoneCount - 1;
-        Zone *zone = new Zone(mSymbol, mTimeFrame, mNumber, zoneNumber, mType, description, startIndex, entryPrice, endIndex, exitPrice, mAllowZoneWickBreaks);
+        Zone *zone = new Zone(mSymbol, mTimeFrame, mNumber, zoneNumber, mType, description, iTime(mSymbol, mTimeFrame, startIndex), entryPrice,
+                              iTime(mSymbol, mTimeFrame, endIndex), exitPrice, entryOffset, mAllowZoneWickBreaks);
 
         mZones[zoneNumber] = zone;
 

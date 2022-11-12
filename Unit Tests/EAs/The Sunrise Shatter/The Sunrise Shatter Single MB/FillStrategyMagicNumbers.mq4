@@ -23,7 +23,7 @@
 
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
-const string Directory = "/UnitTests/EAs/The Sunrise Shatter/The Sunrise Shatter Single MB/BreakAfterMinROC/";
+const string Directory = "/UnitTests/EAs/The Sunrise Shatter/The Sunrise Shatter Single MB/FillStrategyMagicNumbers/";
 const int NumberOfAsserts = 1;
 const int AssertCooldown = 1;
 const bool RecordScreenShot = false;
@@ -50,17 +50,14 @@ const int StopLossPaddingPips = 0;
 const int MaxSpreadPips = 70;
 const double RiskPercent = 0.25;
 
+// https://drive.google.com/drive/folders/1dYEuYWHmwuIulfqPDJzGCpZFQwshjHhr?usp=sharing
 BoolUnitTest<DefaultUnitTestRecord> *FillStrategyMagicNumbersUnitTest;
 
 int OnInit()
 {
-    MBT = new MBTracker(MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, PrintErrors, CalculateOnTick);
-    MRFTS = new MinROCFromTimeStamp(Symbol(), Period(), ServerHourStartTime, ServerHourEndTime, ServerMinuteStartTime, ServerMinuteEndTime, MinROCPercent);
-    TSSSMB = new TheSunriseShatterSingleMB(MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, MRFTS, MBT);
-
     FillStrategyMagicNumbersUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
         Directory, "Fill Strategy Magic Numbers", "Returns True If The Strategy Magic Numbers Array Was Correctly Filled",
-        NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
+        NumberOfAsserts, AssertCooldown, RecordErrors,
         true, FillStrategyMagicNumbers);
 
     return (INIT_SUCCEEDED);
@@ -75,6 +72,12 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
+    delete TSSSMB;
+
+    MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, true, PrintErrors, CalculateOnTick);
+    MRFTS = new MinROCFromTimeStamp(Symbol(), Period(), ServerHourStartTime, ServerHourEndTime, ServerMinuteStartTime, ServerMinuteEndTime, MinROCPercent);
+    TSSSMB = new TheSunriseShatterSingleMB(MaxTradesPerStrategy, StopLossPaddingPips, MaxSpreadPips, RiskPercent, MRFTS, MBT);
+
     FillStrategyMagicNumbersUnitTest.Assert();
 }
 

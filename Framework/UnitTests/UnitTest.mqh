@@ -14,11 +14,14 @@
 #include <SummitCapital\Framework\CSVWriting\CSVRecordWriter.mqh>
 
 template <typename TUnitTest, typename TRecord>
-class UnitTest : public CSVRecordWriter<TRecord>
+class UnitTest
 {
 private:
     bool mDone;
+    bool mUseAssertCooldown;
     int mAssertCooldownMinutes;
+
+    string mDirectory;
     datetime mLastAssertTime;
 
     void SetAssertResult(string result, string message);
@@ -28,28 +31,41 @@ private:
 protected:
     bool mRecordErrors;
 
-    bool CanAssert();
-
     // TODO: Can Update These To Take a message string from child if implicit string conversion is causing issues
     void AssertEquals(TUnitTest expected, TUnitTest actual);
     void AssertNotEquals(TUnitTest expected, TUnitTest actual);
 
-    void RecordError(int error);
-
 public:
-    UnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordErrors);
+    UnitTest(string directory, string testName, string description, int maxAsserts);
     ~UnitTest();
+
+    CSVRecordWriter<TRecord> *mRecordWriter;
+    TRecord *PendingRecord;
+
+    string Directory() { return mDirectory; }
+
+    void AssertCooldown(int minutes);
+    void RecordErrors(bool recordErrors) { mRecordErrors = recordErrors; }
+
+    bool CanAssert();
+    void RecordError(int error);
 
     virtual void Assert(bool equals);
 };
 
 template <typename TUnitTest, typename TRecord>
-UnitTest::UnitTest(string directory, string testName, string description, int maxAsserts, int assertCooldownMinutes, bool recordErrors)
+UnitTest::UnitTest(string directory, string testName, string description, int maxAsserts)
 {
     mDirectory = directory + testName + "/";
-    mCSVFileName = testName + ".csv";
-    mAssertCooldownMinutes = assertCooldownMinutes;
-    mRecordErrors = recordErrors;
+    string csvFileName = testName + ".csv";
+
+    mRecordWriter = new CSVRecordWriter<TRecord>(mDirectory, csvFileName);
+
+    mRecordErrors = true;
+    mLastAssertTime = 0;
+    mUseAssertCooldown = false;
+
+    PendingRecord = new TRecord();
 
     PendingRecord.Name = testName;
     PendingRecord.Description = description;
@@ -59,6 +75,15 @@ UnitTest::UnitTest(string directory, string testName, string description, int ma
 template <typename TUnitTest, typename TRecord>
 UnitTest::~UnitTest(void)
 {
+    delete PendingRecord;
+    delete mRecordWriter;
+}
+
+template <typename TUnitTest, typename TRecord>
+void UnitTest::AssertCooldown(int minutes)
+{
+    mUseAssertCooldown = true;
+    mAssertCooldownMinutes = minutes;
 }
 
 template <typename TUnitTest, typename TRecord>
@@ -70,13 +95,15 @@ void UnitTest::SetAssertResult(string result, string message)
     PendingRecord.Message = message;
     mLastAssertTime = TimeCurrent();
 
-    CSVRecordWriter<TRecord>::Write();
+    mRecordWriter.WriteRecord(PendingRecord);
 
     if (PendingRecord.Asserts >= PendingRecord.MaxAsserts)
     {
         mDone = true;
         SendEmail();
     }
+
+    PendingRecord.Reset();
 }
 
 template <typename TUnitTest, typename TRecord>
@@ -87,7 +114,12 @@ bool UnitTest::CanAssert()
         return false;
     }
 
-    return PastAssertCooldown();
+    if (mUseAssertCooldown)
+    {
+        return PastAssertCooldown();
+    }
+
+    return true;
 }
 
 template <typename TUnitTest, typename TRecord>
@@ -142,5 +174,6 @@ void UnitTest::RecordError(int error)
     PendingRecord.Result = "Error";
     PendingRecord.Message = IntegerToString(error);
 
-    CSVRecordWriter<TRecord>::Write();
+    mRecordWriter.WriteRecord(PendingRecord);
+    PendingRecord.Reset();
 }

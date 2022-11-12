@@ -24,14 +24,14 @@ public:
     static int TICKET_IS_EMPTY;
     static int WRONG_ORDER_TYPE;
     static int STOPLOSS_PAST_ENTRY;
-    static int ORDER_IS_CLOSED;
-    static int ORDER_IS_OPEN;
     static int ORDER_NOT_FOUND;
+    static int MORE_THAN_ONE_UNMANAGED_TICKET;
+    static int UNABLE_TO_FIND_PARTIALED_TICKET;
 };
 
 static bool TerminalErrors::IsTerminalError(int error)
 {
-    return error != ERR_NO_ERROR && error < 6000;
+    return error > 1 && error < 6000;
 }
 
 // 5000s Are for Indicator Errors
@@ -45,6 +45,6 @@ static int TerminalErrors::BEARISH_RETRACEMENT_INDEX_FURTHER_THAN_PREVIOUS_MB = 
 static int TerminalErrors::TICKET_IS_EMPTY = 5101;
 static int TerminalErrors::WRONG_ORDER_TYPE = 5102;
 static int TerminalErrors::STOPLOSS_PAST_ENTRY = 5103;
-static int TerminalErrors::ORDER_IS_CLOSED = 5104;
-static int TerminalErrors::ORDER_IS_OPEN = 5105;
-static int TerminalErrors::ORDER_NOT_FOUND = 5106;
+static int TerminalErrors::ORDER_NOT_FOUND = 5104;
+static int TerminalErrors::MORE_THAN_ONE_UNMANAGED_TICKET = 5105;
+static int TerminalErrors::UNABLE_TO_FIND_PARTIALED_TICKET = 5106;
