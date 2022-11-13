@@ -12,7 +12,6 @@
 #include <SummitCapital\Framework\Constants\TerminalErrors.mqh>
 
 #include <SummitCapital\Framework\Objects\List.mqh>
-#include <SummitCapital\Framework\Objects\PartialList.mqh>
 
 class Ticket
 {

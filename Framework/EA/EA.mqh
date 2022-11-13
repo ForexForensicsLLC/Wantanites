@@ -9,7 +9,6 @@
 #property strict
 
 #include <SummitCapital\Framework\Objects\List.mqh>
-#include <SummitCapital\Framework\Objects\TicketList.mqh>
 #include <SummitCapital\Framework\Constants\Index.mqh>
 #include <SummitCapital\Framework\Constants\EAStates.mqh>
 #include <SummitCapital\Framework\CSVWriting\CSVRecordWriter.mqh>
