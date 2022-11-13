@@ -1,3 +1,3 @@
 # SummitCapital
 
-Repository for all MT4 Classes, Indicators, and EAs
+Repository for all Investing / Trading related material
