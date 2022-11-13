@@ -12,7 +12,6 @@
 #include <SummitCapital\Framework\Trackers\MBTracker.mqh>
 #include <SummitCapital\Framework\Constants\Index.mqh>
 
-// HasUntestedMethods
 class OrderHelper
 {
 protected:

@@ -94,8 +94,6 @@ static int ScreenShotHelper::TryTakeMultiTimeFrameScreenShot(string directory, i
             break;
         }
 
-        Print("Chart Symbol: ", ChartSymbol(secondChart), ", Chart Period: ", ChartPeriod(secondChart));
-
         if (ChartSymbol(secondChart) == Symbol() && ChartPeriod(secondChart) == secondChartTimeFrame)
         {
             foundChart = true;
