@@ -9,7 +9,7 @@
 #property strict
 
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/LiquidationMB/LiquidationMB.mqh>
+#include <SummitCapital/EAs/Active/LiquidationMB/LiquidationMB.mqh>
 
 // --- EA Inputs ---
 double RiskPercent = 0.25;

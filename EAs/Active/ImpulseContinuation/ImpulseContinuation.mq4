@@ -9,7 +9,7 @@
 #property strict
 
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/ImpulseContinuation/ImpulseContinuation.mqh>
+#include <SummitCapital/EAs/Active/ImpulseContinuation/ImpulseContinuation.mqh>
 
 string EntrySymbol = "US30";
 string EntryTimeFrame = 1;

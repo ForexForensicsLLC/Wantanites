@@ -10,7 +10,7 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/InnerBreaks/MB/TheGrannySmith.mqh>
+#include <SummitCapital/EAs/Active/MBInnerBreaks/MBInnerBreak.mqh>
 
 // --- EA Inputs ---
 double RiskPercent = 1;
@@ -23,6 +23,7 @@ int MaxZonesInMB = 5;
 bool AllowMitigatedZones = false;
 bool AllowZonesAfterMBValidation = true;
 bool AllowWickBreaks = true;
+bool OnlyZonesInMB = true;
 bool PrintErrors = false;
 bool CalculateOnTick = false;
 
@@ -52,7 +53,7 @@ double CloseRR = 10;
 
 int OnInit()
 {
-    SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
+    SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
 
     MBInnerBreakBuys = new TheGrannySmith(MagicNumbers::DowInnerBreakBigDipperBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                                           ExitWriter, ErrorWriter, SetupMBT);

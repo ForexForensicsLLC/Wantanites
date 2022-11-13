@@ -10,7 +10,7 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/MBRun/MBRun.mqh>
+#include <SummitCapital/EAs/Active/MBRun/MBRun.mqh>
 
 // --- EA Inputs ---
 double RiskPercent = 1;
@@ -23,6 +23,7 @@ int MaxZonesInMB = 1;
 bool AllowMitigatedZones = false;
 bool AllowZonesAfterMBValidation = true;
 bool AllowWickBreaks = true;
+bool OnlyZonesInMB = true;
 bool PrintErrors = false;
 bool CalculateOnTick = false;
 
@@ -54,7 +55,7 @@ double CloseRR = 20;
 
 int OnInit()
 {
-    SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
+    SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
 
     MBRunBuys = new MBRun(MagicNumbers::DowMBRunBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
                           ErrorWriter, SetupMBT);
