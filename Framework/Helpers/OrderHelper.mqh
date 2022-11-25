@@ -119,7 +119,7 @@ public:
     // !Tested
     // static bool EditStopLoss(double newStopLoss, double newLots, int magicNumber);
 
-    static int PartialTicket(int ticketNumber, double price, double currentLots, double percentAsDecimal);
+    static int PartialTicket(int ticketNumber, double price, double lotsToPartial);
 
     static int MoveTicketToBreakEven(Ticket &ticket, double additionalPips);
 
@@ -165,9 +165,14 @@ static double OrderHelper::CleanLotSize(double dirtyLotSize)
     double maxLotSize = MarketInfo(Symbol(), MODE_MAXLOT);
     double minLotSize = MarketInfo(Symbol(), MODE_MINLOT);
 
+    Print("Dirty Lot Size: ", dirtyLotSize);
+    Print("Normalized Lot Size: ", NormalizeDouble(dirtyLotSize, 2));
     // cut off extra decimal places
     int intLotSize = dirtyLotSize / lotStep;
+    Print("Int Lot Size: ", intLotSize);
     double cleanedLots = intLotSize * lotStep;
+
+    Print("Cleaned Lots: ", cleanedLots);
 
     // make sure we are not larger than the max
     cleanedLots = MathMin(cleanedLots, maxLotSize);
@@ -943,23 +948,21 @@ static bool OrderHelper::EditStopLoss(double newStopLoss, double newLots, int ma
    return true;
 }
 */
-static int OrderHelper::PartialTicket(int ticketNumber, double price, double currentLots, double percentAsDecimal)
+static int OrderHelper::PartialTicket(int ticketNumber, double price, double lotsToPartial)
 {
-    double lots = NormalizeDouble(currentLots * percentAsDecimal, 2);
     GetLastError();
-    if (!OrderClose(ticketNumber, lots, price, 0, clrNONE))
+    if (!OrderClose(ticketNumber, lotsToPartial, price, 0, clrNONE))
     {
         int error = GetLastError();
         SendMail("Failed To Partial",
                  "Time: " + TimeToString(TimeCurrent()) + "\n" +
-                     "Errro: " + IntegerToString(error) + "\n" +
+                     "Error: " + IntegerToString(error) + "\n" +
                      "Ticket Number: " + IntegerToString(ticketNumber) + "\n" +
                      "Price: " + DoubleToString(price, Digits) + "\n" +
                      "Bid: " + DoubleToString(Bid, Digits) + "\n" +
                      "Ask: " + DoubleToString(Ask, Digits) + "\n" +
-                     "Current Lots: " + DoubleToString(currentLots, 2) + "\n" +
-                     "New Lots: " + DoubleToString(lots, 2) + "\n" +
-                     "Percent:" + DoubleToString(percentAsDecimal, 3));
+                     "Current Lots: " + DoubleToString(OrderLots(), 2) + "\n" +
+                     "New Lots: " + DoubleToString(lotsToPartial, 2));
         return error;
     }
 

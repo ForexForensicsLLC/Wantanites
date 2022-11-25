@@ -352,7 +352,7 @@ void MBTracker::CheckMostRecentMBIsBroken(int barIndex)
     if (mMBs[MostRecentMBIndex()].Type() == OP_BUY)
     {
         // first check to make sure we didn't break our previous MB
-        if (CandleStickHelper::GetLowestBodyPart(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].LowIndex()))
+        if (CandleStickHelper::LowestBodyPart(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].LowIndex()))
         {
             int highestIndex;
             if (!MQLHelper::GetHighest(mSymbol, mTimeFrame, MODE_HIGH, mMBs[MostRecentMBIndex()].EndIndex() - barIndex, barIndex, true, highestIndex))
@@ -368,7 +368,7 @@ void MBTracker::CheckMostRecentMBIsBroken(int barIndex)
     else if (mMBs[MostRecentMBIndex()].Type() == OP_SELL)
     {
         // first check to make sure we didn't break our previous mb
-        if (CandleStickHelper::GetHighestBodyPart(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].HighIndex()))
+        if (CandleStickHelper::HighestBodyPart(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].HighIndex()))
         {
             int lowestIndex = 0;
             if (!MQLHelper::GetLowest(mSymbol, mTimeFrame, MODE_LOW, mMBs[MostRecentMBIndex()].EndIndex() - barIndex, barIndex, true, lowestIndex))
@@ -397,14 +397,14 @@ void MBTracker::CalculateMB(int barIndex)
         CheckSetPendingMB(barIndex, OP_SELL);
 
         // validated Bullish MB
-        if (mPendingBullishMB && CandleStickHelper::GetHighestBodyPart(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex))
+        if (mPendingBullishMB && CandleStickHelper::HighestBodyPart(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex))
         {
             CreateMB(OP_BUY, mCurrentBullishRetracementIndex, barIndex, mCurrentBullishRetracementIndex, mPendingBullishMBLowIndex);
             ResetTracking();
             return;
         }
         // validated Bearish MB
-        else if (mPendingBearishMB && CandleStickHelper::GetLowestBodyPart(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex))
+        else if (mPendingBearishMB && CandleStickHelper::LowestBodyPart(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex))
         {
             CreateMB(OP_SELL, mCurrentBearishRetracementIndex, barIndex, mPendingBearishMBHighIndex, mCurrentBearishRetracementIndex);
             ResetTracking();
@@ -417,11 +417,13 @@ void MBTracker::CalculateMB(int barIndex)
         // check pending first so that a single candle can trigger the pending flag and confirm an MB else retracement will get reset in CheckSetRetracement()
         CheckSetPendingMB(barIndex, OP_BUY);
         CheckSetRetracement(barIndex, OP_BUY, OP_BUY);
+        // recheck for a pending mb again incase we set the retracment flag or else we may not have a pending mb until the candle after we actually do
+        CheckSetPendingMB(barIndex, OP_BUY);
 
         if (mPendingBullishMB)
         {
             // new bullish mb has been validated
-            if (CandleStickHelper::GetHighestBodyPart(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex))
+            if (CandleStickHelper::HighestBodyPart(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex))
             {
                 // only create the mb if it is longer than 1 candle
                 int bullishRetracementIndex = -1;
@@ -445,11 +447,13 @@ void MBTracker::CalculateMB(int barIndex)
         // check pending first so that a single candle can trigger the pending flag and confirm an MB else retracement will get reset in CheckSetRetracement()
         CheckSetPendingMB(barIndex, OP_SELL);
         CheckSetRetracement(barIndex, OP_SELL, OP_SELL);
+        // recheck for a pending mb again incase we set the retracment flag or else we may not have a pending mb until the candle after we actually do
+        CheckSetPendingMB(barIndex, OP_SELL);
 
         if (mPendingBearishMB)
         {
             // new bearish mb has been validated
-            if (CandleStickHelper::GetLowestBodyPart(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex))
+            if (CandleStickHelper::LowestBodyPart(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex))
             {
                 int bearishRetracementIndex = -1;
                 if (CurrentBearishRetracementIndexIsValid(bearishRetracementIndex, barIndex))

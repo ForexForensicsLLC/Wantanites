@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/EAs/InnerBreaks/Reversal/ReversalInnerBreak.mqh>
+#include <SummitCapital/EAs/Inactive/ReversalInnerBreak/ReversalInnerBreak.mqh>
 
 // --- EA Inputs ---
 double RiskPercent = 0.25;
@@ -17,10 +17,11 @@ int MaxTradesPerDay = 5;
 
 // -- MBTracker Inputs
 int MBsToTrack = 10;
-int MaxZonesInMB = 5;
+int MaxZonesInMB = 0;
 bool AllowMitigatedZones = false;
 bool AllowZonesAfterMBValidation = true;
 bool AllowWickBreaks = true;
+bool OnlyZonesInMB = true;
 bool PrintErrors = false;
 bool CalculateOnTick = false;
 
@@ -72,7 +73,8 @@ double PushFurtherPips = 150;
 
 int OnInit()
 {
-    SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
+    SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors,
+                             CalculateOnTick);
 
     RIBBuys = new ReversalInnerBreak(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
                                      ErrorWriter, SetupMBT);

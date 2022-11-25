@@ -15,10 +15,12 @@ class MBEntryTradeRecord : public SingleTimeFrameEntryTradeRecord
 public:
     double MBHeight;
     int MBWidth;
-    double EntryDistanceFromPreviousMB;
+    double PendingMBHeight;
+    int PendingMBWidth;
+    double PercentOfPendingMBInPrevious;
     int MBCount;
     int ZoneNumber;
-    double ZoneImbalancePercentChange;
+    double RRToMBValidation;
 
     MBEntryTradeRecord();
     ~MBEntryTradeRecord();
@@ -31,8 +33,9 @@ MBEntryTradeRecord::MBEntryTradeRecord() : SingleTimeFrameEntryTradeRecord()
 {
     MBWidth = -1.0;
     MBHeight = -1.0;
-    EntryDistanceFromPreviousMB = -1.0;
-    ZoneImbalancePercentChange = -1.0;
+    PendingMBHeight = 1.0;
+    PendingMBWidth = EMPTY;
+    PercentOfPendingMBInPrevious = -1.0;
 }
 
 MBEntryTradeRecord::~MBEntryTradeRecord()
@@ -42,21 +45,25 @@ MBEntryTradeRecord::~MBEntryTradeRecord()
 void MBEntryTradeRecord::WriteHeaders(int fileHandle, bool writeDelimiter = false)
 {
     SingleTimeFrameEntryTradeRecord::WriteHeaders(fileHandle, true);
+    FileHelper::WriteString(fileHandle, "RR To MB Validation");
     FileHelper::WriteString(fileHandle, "MB Height");
     FileHelper::WriteString(fileHandle, "MB Width");
-    FileHelper::WriteString(fileHandle, "Entry Distance From Pervious MB");
-    FileHelper::WriteString(fileHandle, "MB Count");
-    FileHelper::WriteString(fileHandle, "Zone Number");
-    FileHelper::WriteString(fileHandle, "Zone Imbalance % Change");
+    FileHelper::WriteString(fileHandle, "Pending MB Height");
+    FileHelper::WriteString(fileHandle, "Pending MB Width");
+    FileHelper::WriteString(fileHandle, "Percent Of Pending MB in Previous");
+    // FileHelper::WriteString(fileHandle, "MB Count");
+    // FileHelper::WriteString(fileHandle, "Zone Number");
 }
 
 void MBEntryTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = false)
 {
     SingleTimeFrameEntryTradeRecord::WriteRecord(fileHandle, true);
+    FileHelper::WriteDouble(fileHandle, RRToMBValidation, 2);
     FileHelper::WriteDouble(fileHandle, MBHeight, Digits);
     FileHelper::WriteInteger(fileHandle, MBWidth);
-    FileHelper::WriteDouble(fileHandle, EntryDistanceFromPreviousMB, Digits);
-    FileHelper::WriteInteger(fileHandle, MBCount);
-    FileHelper::WriteInteger(fileHandle, ZoneNumber);
-    FileHelper::WriteDouble(fileHandle, ZoneImbalancePercentChange, Digits);
+    FileHelper::WriteDouble(fileHandle, PendingMBHeight, Digits);
+    FileHelper::WriteInteger(fileHandle, PendingMBWidth);
+    FileHelper::WriteDouble(fileHandle, PercentOfPendingMBInPrevious, 2);
+    // FileHelper::WriteInteger(fileHandle, MBCount);
+    // FileHelper::WriteInteger(fileHandle, ZoneNumber);
 }

@@ -55,6 +55,7 @@ public:
     bool WasRetrieved() { return mWasRetrieved; }
 
     double Height();
+    double PercentOfZonePrice(double percent);
 
     bool CandleIsInZone(int index);
 
@@ -94,6 +95,20 @@ double ZoneState::Height()
     }
 
     return mHeight;
+}
+
+double ZoneState::PercentOfZonePrice(double percent)
+{
+    if (Type() == OP_BUY)
+    {
+        return EntryPrice() - (Height() * percent);
+    }
+    else if (Type() == OP_SELL)
+    {
+        return EntryPrice() + (Height() * percent);
+    }
+
+    return 0.0;
 }
 
 bool ZoneState::CandleIsInZone(int index)
