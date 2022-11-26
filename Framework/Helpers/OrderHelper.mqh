@@ -165,20 +165,14 @@ static double OrderHelper::CleanLotSize(double dirtyLotSize)
     double maxLotSize = MarketInfo(Symbol(), MODE_MAXLOT);
     double minLotSize = MarketInfo(Symbol(), MODE_MINLOT);
 
-    Print("Dirty Lot Size: ", dirtyLotSize);
-    Print("Normalized Lot Size: ", NormalizeDouble(dirtyLotSize, 2));
     // cut off extra decimal places
-    int intLotSize = dirtyLotSize / lotStep;
-    Print("Int Lot Size: ", intLotSize);
-    double cleanedLots = intLotSize * lotStep;
-
-    Print("Cleaned Lots: ", cleanedLots);
+    double cleanedLots = NormalizeDouble(dirtyLotSize, 2);
 
     // make sure we are not larger than the max
     cleanedLots = MathMin(cleanedLots, maxLotSize);
+    // make sure we are not lower than the min
     cleanedLots = MathMax(cleanedLots, minLotSize);
 
-    // make sure we are not lower than the min
     return cleanedLots;
 }
 /*

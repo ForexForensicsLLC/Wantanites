@@ -2252,8 +2252,18 @@ static void EAHelper::CheckPartialTicket(TEA &ea, Ticket &ticket)
 
     // store lots since I don't think i'll be able to access it once I partial the ticket
     double currentTicketLots = OrderLots();
-    double lotsToPartial = OrderHelper::CleanLotSize(currentTicketLots * ticket.mPartials[0].PercentAsDecimal());
-    Print("Current Lots: ", currentTicketLots, ", Lots To Parial: ", lotsToPartial, ", Percent: ", ticket.mPartials[0].PercentAsDecimal());
+    double lotsToPartial = 0.0;
+
+    // if we are planning on closing the ticket we need to make sure we do or else this will break
+    // aka don't risk a potential rounding issue and just use the current lots
+    if (ticket.mPartials[0].PercentAsDecimal() >= 1)
+    {
+        lotsToPartial = currentTicketLots;
+    }
+    else
+    {
+        lotsToPartial = OrderHelper::CleanLotSize(currentTicketLots * ticket.mPartials[0].PercentAsDecimal());
+    }
 
     int partialError = OrderHelper::PartialTicket(ticket.Number(), currentPrice, lotsToPartial);
     if (partialError != ERR_NO_ERROR)

@@ -27,7 +27,7 @@ bool PrintErrors = false;
 bool CalculateOnTick = false;
 
 string StrategyName = "NeighborMBs/";
-string EAName = "Nas/";
+string EAName = "Dow/";
 string SetupTypeName = "Doji/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
@@ -42,24 +42,24 @@ NeighborMBs *NMBsBuys;
 NeighborMBs *NMBsSells;
 
 // Dow
-// double MinMBHeight = 900;
-// double MaxSpreadPips = SymbolConstants::DowSpreadPips;
-// double EntryPaddingPips = 0;
-// double MinStopLossPips = 350;
-// double StopLossPaddingPips = 50;
-// double PipsToWaitBeforeBE = 1000;
-// double BEAdditionalPips = SymbolConstants::DowSlippagePips;
-// double CloseRR = 10;
+double MinMBHeight = 400;
+double MaxSpreadPips = SymbolConstants::DowSpreadPips;
+double EntryPaddingPips = 0;
+double MinStopLossPips = 350;
+double StopLossPaddingPips = 50;
+double PipsToWaitBeforeBE = 1000;
+double BEAdditionalPips = SymbolConstants::DowSlippagePips;
+double CloseRR = 10;
 
 // Nas
-double MinMBHeight = 200;
-double MaxSpreadPips = SymbolConstants::NasSpreadPips;
-double EntryPaddingPips = 0;
-double MinStopLossPips = 0;
-double StopLossPaddingPips = 0;
-double PipsToWaitBeforeBE = 150;
-double BEAdditionalPips = SymbolConstants::NasSlippagePips;
-double CloseRR = 10;
+// double MinMBHeight = 200;
+// double MaxSpreadPips = SymbolConstants::NasSpreadPips;
+// double EntryPaddingPips = 0;
+// double MinStopLossPips = 0;
+// double StopLossPaddingPips = 0;
+// double PipsToWaitBeforeBE = 150;
+// double BEAdditionalPips = SymbolConstants::NasSlippagePips;
+// double CloseRR = 10;
 
 int OnInit()
 {

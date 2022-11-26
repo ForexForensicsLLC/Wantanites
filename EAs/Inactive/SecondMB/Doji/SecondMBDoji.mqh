@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                        FirstMB.mqh |
+//|                                        SecondMB.mqh |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -12,7 +12,7 @@
 #include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
-class FirstMB : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class SecondMB : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     string mEntrySymbol;
@@ -44,10 +44,10 @@ public:
     double mLastManagedBid;
 
 public:
-    FirstMB(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-            CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-            CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT);
-    ~FirstMB();
+    SecondMB(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+             CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+             CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT);
+    ~SecondMB();
 
     // virtual int MagicNumber() { return mSetupType == OP_BUY ? MagicNumbers::BullishFirstMB : MagicNumbers::BearishFirstMB; }
     virtual double RiskPercent() { return mRiskPercent; }
@@ -65,15 +65,15 @@ public:
     virtual void CheckCurrentSetupTicket();
     virtual void CheckPreviousSetupTicket(int ticketIndex);
     virtual void RecordTicketOpenData();
-    virtual void RecordTicketPartialData(int oldTicketIndex, int newTicketNumber);
+    virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
     virtual void Reset();
 };
 
-FirstMB::FirstMB(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                 CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT)
+SecondMB::SecondMB(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+                   CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                   CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mEntrySymbol = Symbol();
@@ -105,27 +105,27 @@ FirstMB::FirstMB(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce
     mLastManagedAsk = 0.0;
     mLastManagedBid = 0.0;
 
-    EAHelper::FindSetPreviousAndCurrentSetupTickets<FirstMB>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<FirstMB, PartialTradeRecord>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<FirstMB, MultiTimeFrameEntryTradeRecord>(this);
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<SecondMB>(this);
+    EAHelper::UpdatePreviousSetupTicketsRRAcquried<SecondMB, PartialTradeRecord>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<SecondMB, MultiTimeFrameEntryTradeRecord>(this);
 }
 
-FirstMB::~FirstMB()
+SecondMB::~SecondMB()
 {
 }
 
-void FirstMB::Run()
+void SecondMB::Run()
 {
-    EAHelper::RunDrawMBT<FirstMB>(this, mSetupMBT);
+    EAHelper::RunDrawMBT<SecondMB>(this, mSetupMBT);
     mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
 }
 
-bool FirstMB::AllowedToTrade()
+bool SecondMB::AllowedToTrade()
 {
-    return EAHelper::BelowSpread<FirstMB>(this) && EAHelper::WithinTradingSession<FirstMB>(this);
+    return EAHelper::BelowSpread<SecondMB>(this) && EAHelper::WithinTradingSession<SecondMB>(this);
 }
 
-void FirstMB::CheckSetSetup()
+void SecondMB::CheckSetSetup()
 {
     if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
     {
@@ -137,16 +137,16 @@ void FirstMB::CheckSetSetup()
         mMBsBeforeSession = mSetupMBT.MBsCreated();
     }
 
-    if (mSetupMBT.MBsCreated() - 1 == mMBsBeforeSession)
+    if (mSetupMBT.MBsCreated() - 1 == mMBsBeforeSession + 1)
     {
-        if (EAHelper::CheckSetSingleMBSetup<FirstMB>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
+        if (EAHelper::CheckSetSingleMBSetup<SecondMB>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
         {
             mHasSetup = true;
         }
     }
 }
 
-void FirstMB::CheckInvalidateSetup()
+void SecondMB::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
@@ -161,13 +161,13 @@ void FirstMB::CheckInvalidateSetup()
     }
 }
 
-void FirstMB::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void SecondMB::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
-    EAHelper::InvalidateSetup<FirstMB>(this, deletePendingOrder, false, error);
-    EAHelper::ResetSingleMBSetup<FirstMB>(this, false);
+    EAHelper::InvalidateSetup<SecondMB>(this, deletePendingOrder, false, error);
+    EAHelper::ResetSingleMBSetup<SecondMB>(this, false);
 }
 
-bool FirstMB::Confirmation()
+bool SecondMB::Confirmation()
 {
     bool hasTicket = mCurrentSetupTicket.Number() != EMPTY;
 
@@ -176,47 +176,11 @@ bool FirstMB::Confirmation()
         return hasTicket;
     }
 
-    MBState *tempMBState;
-    if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, tempMBState))
-    {
-        return false;
-    }
-
-    ZoneState *tempZoneState;
-    if (!tempMBState.GetDeepestHoldingZone(tempZoneState))
-    {
-        return false;
-    }
-
-    if (mSetupType == OP_BUY)
-    {
-        // make sure zone is within mb
-        // TODO: Turn this into a parameter on mbtracker
-        if (tempZoneState.EntryPrice() > iHigh(mEntrySymbol, mEntryTimeFrame, tempMBState.HighIndex()))
-        {
-            return false;
-        }
-    }
-    else if (mSetupType == OP_SELL)
-    {
-        if (tempZoneState.EntryPrice() < iLow(mEntrySymbol, mEntryTimeFrame, tempMBState.LowIndex()))
-        {
-            return false;
-        }
-    }
-
-    bool dojiInZone = false;
-    int error = EAHelper::DojiInsideMostRecentMBsHoldingZone<FirstMB>(this, mSetupMBT, mFirstMBInSetupNumber, dojiInZone);
-    if (TerminalErrors::IsTerminalError(error))
-    {
-        RecordError(error);
-        return hasTicket;
-    }
-
+    bool dojiInZone = EAHelper::DojiInsideMostRecentMBsHoldingZone<SecondMB>(this, mSetupMBT, mFirstMBInSetupNumber);
     return hasTicket || dojiInZone;
 }
 
-void FirstMB::PlaceOrders()
+void SecondMB::PlaceOrders()
 {
     if (mCurrentSetupTicket.Number() != EMPTY)
     {
@@ -248,7 +212,7 @@ void FirstMB::PlaceOrders()
         stopLoss = MathMax(highest + OrderHelper::PipsToRange(mStopLossPaddingPips + mMaxSpreadPips), entry + OrderHelper::PipsToRange(mMinStopLossPips));
     }
 
-    EAHelper::PlaceStopOrder<FirstMB>(this, entry, stopLoss);
+    EAHelper::PlaceStopOrder<SecondMB>(this, entry, stopLoss);
 
     if (mCurrentSetupTicket.Number() != EMPTY)
     {
@@ -256,7 +220,7 @@ void FirstMB::PlaceOrders()
     }
 }
 
-void FirstMB::ManageCurrentPendingSetupTicket()
+void SecondMB::ManageCurrentPendingSetupTicket()
 {
     mBrokeEntryIndex = false;
 
@@ -282,7 +246,7 @@ void FirstMB::ManageCurrentPendingSetupTicket()
     }
 }
 
-void FirstMB::ManageCurrentActiveSetupTicket()
+void SecondMB::ManageCurrentActiveSetupTicket()
 {
     if (mCurrentSetupTicket.Number() == EMPTY)
     {
@@ -345,6 +309,13 @@ void FirstMB::ManageCurrentActiveSetupTicket()
         //     }
         // }
 
+        double percentIntoSL = (OrderOpenPrice() - currentTick.bid) / (OrderOpenPrice() - OrderStopLoss());
+        if (percentIntoSL >= 0.2)
+        {
+            mCurrentSetupTicket.Close();
+            return;
+        }
+
         movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
     else if (mSetupType == OP_SELL)
@@ -388,60 +359,66 @@ void FirstMB::ManageCurrentActiveSetupTicket()
         //     }
         // }
 
+        double percentIntoSL = (currentTick.ask - OrderOpenPrice()) / (OrderStopLoss() - OrderOpenPrice());
+        if (percentIntoSL >= 0.2)
+        {
+            mCurrentSetupTicket.Close();
+            return;
+        }
+
         movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
 
     if (movedPips)
     {
-        EAHelper::MoveToBreakEvenAsSoonAsPossible<FirstMB>(this, mBEAdditionalPips);
+        EAHelper::MoveToBreakEvenAsSoonAsPossible<SecondMB>(this, mBEAdditionalPips);
     }
 
     mLastManagedAsk = currentTick.ask;
     mLastManagedBid = currentTick.bid;
 }
 
-bool FirstMB::MoveToPreviousSetupTickets(Ticket &ticket)
+bool SecondMB::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    return EAHelper::TicketStopLossIsMovedToBreakEven<FirstMB>(this, ticket);
+    return EAHelper::TicketStopLossIsMovedToBreakEven<SecondMB>(this, ticket);
 }
 
-void FirstMB::ManagePreviousSetupTicket(int ticketIndex)
+void SecondMB::ManagePreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::CheckPartialPreviousSetupTicket<FirstMB>(this, ticketIndex);
+    EAHelper::CheckPartialTicket<SecondMB>(this, mPreviousSetupTickets[ticketIndex]);
 }
 
-void FirstMB::CheckCurrentSetupTicket()
+void SecondMB::CheckCurrentSetupTicket()
 {
-    EAHelper::CheckCurrentSetupTicket<FirstMB>(this);
+    EAHelper::CheckCurrentSetupTicket<SecondMB>(this);
 }
 
-void FirstMB::CheckPreviousSetupTicket(int ticketIndex)
+void SecondMB::CheckPreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::CheckPreviousSetupTicket<FirstMB>(this, ticketIndex);
+    EAHelper::CheckPreviousSetupTicket<SecondMB>(this, ticketIndex);
 }
 
-void FirstMB::RecordTicketOpenData()
+void SecondMB::RecordTicketOpenData()
 {
-    EAHelper::RecordSingleTimeFrameEntryTradeRecord<FirstMB>(this);
+    EAHelper::RecordSingleTimeFrameEntryTradeRecord<SecondMB>(this);
 }
 
-void FirstMB::RecordTicketPartialData(int oldTicketIndex, int newTicketNumber)
+void SecondMB::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
-    EAHelper::RecordPartialTradeRecord<FirstMB>(this, oldTicketIndex, newTicketNumber);
+    EAHelper::RecordPartialTradeRecord<SecondMB>(this, partialedTicket, newTicketNumber);
 }
 
-void FirstMB::RecordTicketCloseData(Ticket &ticket)
+void SecondMB::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameExitTradeRecord<FirstMB>(this, ticket, mEntryTimeFrame);
+    EAHelper::RecordSingleTimeFrameExitTradeRecord<SecondMB>(this, ticket, mEntryTimeFrame);
 }
 
-void FirstMB::RecordError(int error, string additionalInformation = "")
+void SecondMB::RecordError(int error, string additionalInformation = "")
 {
-    EAHelper::RecordSingleTimeFrameErrorRecord<FirstMB>(this, error, additionalInformation);
+    EAHelper::RecordSingleTimeFrameErrorRecord<SecondMB>(this, error, additionalInformation);
 }
 
-void FirstMB::Reset()
+void SecondMB::Reset()
 {
-    Print("Reseting");
     mMBsBeforeSession = EMPTY;
 }

@@ -70,10 +70,6 @@ T *ObjectList::GetItemPointer(T &obj)
 template <typename T>
 T *ObjectList::operator[](int index)
 {
-    if (index >= Size())
-    {
-        Print("Index Out of Range. Index: ", index, ", Size: ", Size(), ", Type: ", &this);
-    }
     return GetPointer(mItems[index]);
 }
 

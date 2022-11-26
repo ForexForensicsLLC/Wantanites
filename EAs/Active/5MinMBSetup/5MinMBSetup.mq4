@@ -21,8 +21,8 @@ int MBsToTrack = 10;
 int MaxZonesInMB = 5;
 bool AllowMitigatedZones = false;
 bool AllowZonesAfterMBValidation = true;
-bool AllowWickBreaks = false;
-bool OnlyZonesInMB = true;
+bool AllowWickBreaks = true;
+bool OnlyZonesInMB = false;
 bool PrintErrors = false;
 bool CalculateOnTick = false;
 
@@ -43,14 +43,14 @@ FiveMinMBSetup *FMBSBuys;
 FiveMinMBSetup *FMBSSells;
 
 // Dow
-double MaxMBPips = 300;
+double MaxMBPips = 500;
 double MaxSpreadPips = SymbolConstants::DowSpreadPips;
 double EntryPaddingPips = 20;
 double MinStopLossPips = 350;
 double StopLossPaddingPips = 50;
 double PipsToWaitBeforeBE = 200;
 double BEAdditionalPips = SymbolConstants::DowSlippagePips;
-double CloseRR = 1000;
+double CloseRR = 15;
 
 int OnInit()
 {
@@ -66,6 +66,7 @@ int OnInit()
     FMBSBuys.SetPartialCSVRecordWriter(PartialWriter);
     FMBSBuys.AddPartial(CloseRR, 100);
 
+    FMBSBuys.mMaxMBPips = MaxMBPips;
     FMBSBuys.mEntryPaddingPips = EntryPaddingPips;
     FMBSBuys.mMinStopLossPips = MinStopLossPips;
     FMBSBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
@@ -78,6 +79,7 @@ int OnInit()
     FMBSSells.SetPartialCSVRecordWriter(PartialWriter);
     FMBSSells.AddPartial(CloseRR, 100);
 
+    FMBSSells.mMaxMBPips = MaxMBPips;
     FMBSSells.mEntryPaddingPips = EntryPaddingPips;
     FMBSSells.mMinStopLossPips = MinStopLossPips;
     FMBSSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;

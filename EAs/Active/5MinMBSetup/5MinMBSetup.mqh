@@ -16,10 +16,12 @@ class FiveMinMBSetup : public EA<MBEntryTradeRecord, PartialTradeRecord, SingleT
 {
 public:
     MBTracker *mSetupMBT;
-    MBTracker *mEntryMBT;
+    MBTracker *mLastEntryMBT;
 
     int mFirstMBInSetupNumber;
     int mFirstMBInEntryNumber;
+
+    datetime mZoneCandleTime;
 
     double mMaxMBPips;
 
@@ -29,7 +31,7 @@ public:
     double mBEAdditionalPips;
 
     datetime mEntryCandleTime;
-    int mEntryMB;
+    int mLastEntryMB;
     int mBarCount;
 
     int mEntryTimeFrame;
@@ -72,10 +74,12 @@ FiveMinMBSetup::FiveMinMBSetup(int magicNumber, int setupType, int maxCurrentSet
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mSetupMBT = setupMBT;
-    mEntryMBT = entryMBT;
+    mLastEntryMBT = entryMBT;
 
     mFirstMBInSetupNumber = EMPTY;
     mFirstMBInEntryNumber = EMPTY;
+
+    mZoneCandleTime = 0;
 
     mMaxMBPips = 0.0;
 
@@ -89,7 +93,7 @@ FiveMinMBSetup::FiveMinMBSetup(int magicNumber, int setupType, int maxCurrentSet
     EAHelper::SetPreviousSetupTicketsOpenData<FiveMinMBSetup, SingleTimeFrameEntryTradeRecord>(this);
 
     mBarCount = 0;
-    mEntryMB = EMPTY;
+    mLastEntryMB = EMPTY;
     mEntryCandleTime = 0;
 
     mEntrySymbol = Symbol();
@@ -114,7 +118,7 @@ double FiveMinMBSetup::RiskPercent()
 
 void FiveMinMBSetup::Run()
 {
-    EAHelper::RunDrawMBT<FiveMinMBSetup>(this, mSetupMBT);
+    EAHelper::RunDrawMBTs<FiveMinMBSetup>(this, mSetupMBT, mLastEntryMBT);
     mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
 }
 
@@ -134,9 +138,112 @@ void FiveMinMBSetup::CheckSetSetup()
     {
         if (EAHelper::MostRecentMBZoneIsHolding<FiveMinMBSetup>(this, mSetupMBT, mFirstMBInSetupNumber))
         {
-            if (EAHelper::CheckSetSingleMBSetup<FiveMinMBSetup>(this, mEntryMBT, mFirstMBInEntryNumber, mSetupType))
+            if (EAHelper::CheckSetSingleMBSetup<FiveMinMBSetup>(this, mLastEntryMBT, mFirstMBInEntryNumber, mSetupType))
             {
-                mHasSetup = true;
+                MBState *entryMB;
+                if (!mLastEntryMBT.GetMB(mFirstMBInEntryNumber, entryMB))
+                {
+                    return;
+                }
+
+                if (entryMB.Height() > OrderHelper::PipsToRange(mMaxMBPips))
+                {
+                    return;
+                }
+
+                // make sure first mb isn't too small
+                // if (entryMB.StartIndex() - entryMB.EndIndex() < 10)
+                // {
+                //     return;
+                // }
+
+                int pendingMBStart = EMPTY;
+                double pendingMBHeight = 0.0;
+                if (EAHelper::MostRecentMBZoneIsHolding<FiveMinMBSetup>(this, mLastEntryMBT, mFirstMBInEntryNumber))
+                {
+                    if (mSetupType == OP_BUY)
+                    {
+                        if (!mLastEntryMBT.CurrentBullishRetracementIndexIsValid(pendingMBStart))
+                        {
+                            return;
+                        }
+
+                        int lowestIndex = EMPTY;
+                        if (!MQLHelper::GetLowestIndexBetween(mEntrySymbol, mEntryTimeFrame, entryMB.EndIndex() - 1, 1, true, lowestIndex))
+                        {
+                            return;
+                        }
+
+                        // pendingMBHeight = iHigh(mEntrySymbol, mEntryTimeFrame, pendingMBStart) - iLow(mEntrySymbol, mEntryTimeFrame, lowestIndex);
+                        // if (pendingMBHeight < OrderHelper::PipsToRange(mMinMBHeight))
+                        // {
+                        //     return;
+                        // }
+
+                        // need to break within 3 candles of our lowest
+                        // if (lowestIndex > 3)
+                        // {
+                        //     return;
+                        // }
+
+                        // make sure low is above ema
+                        // if (iLow(mEntrySymbol, mEntryTimeFrame, lowestIndex) < EMA(lowestIndex))
+                        // {
+                        //     return;
+                        // }
+
+                        // make sure we broke above
+                        if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < iHigh(mEntrySymbol, mEntryTimeFrame, 2))
+                        {
+                            return;
+                        }
+
+                        mHasSetup = true;
+                        mZoneCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 2);
+                        // mMostRecentMB = mLastEntryMBT.MBsCreated() - 1;
+                    }
+                    else if (mSetupType == OP_SELL)
+                    {
+                        if (!mLastEntryMBT.CurrentBearishRetracementIndexIsValid(pendingMBStart))
+                        {
+                            return;
+                        }
+
+                        int highestIndex = EMPTY;
+                        if (!MQLHelper::GetHighestIndexBetween(mEntrySymbol, mEntryTimeFrame, entryMB.EndIndex() - 1, 1, true, highestIndex))
+                        {
+                            return;
+                        }
+
+                        // pendingMBHeight = iHigh(mEntrySymbol, mEntryTimeFrame, highestIndex) - iLow(mEntrySymbol, mEntryTimeFrame, pendingMBStart);
+                        // if (pendingMBHeight < OrderHelper::PipsToRange(mMinMBHeight))
+                        // {
+                        //     return;
+                        // }
+
+                        // need to break within 3 candles of our highest
+                        // if (highestIndex > 3)
+                        // {
+                        //     return;
+                        // }
+
+                        // make sure high is below ema
+                        // if (iHigh(mEntrySymbol, mEntryTimeFrame, highestIndex) > EMA(highestIndex))
+                        // {
+                        //     return;
+                        // }
+
+                        // make sure we broke below a candle
+                        if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > iLow(mEntrySymbol, mEntryTimeFrame, 2))
+                        {
+                            return;
+                        }
+
+                        mHasSetup = true;
+                        mZoneCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 2);
+                        // mMostRecentMB = mLastEntryMBT.MBsCreated() - 1;
+                    }
+                }
             }
         }
     }
@@ -160,18 +267,57 @@ void FiveMinMBSetup::CheckInvalidateSetup()
         return;
     }
 
-    if (mFirstMBInEntryNumber != EMPTY && mFirstMBInEntryNumber != mEntryMBT.MBsCreated() - 1)
+    if (mFirstMBInEntryNumber != EMPTY && mFirstMBInEntryNumber != mLastEntryMBT.MBsCreated() - 1)
     {
         InvalidateSetup(true);
         mFirstMBInEntryNumber = EMPTY;
 
         return;
     }
+
+    if (!mHasSetup)
+    {
+        return;
+    }
+
+    if (!EAHelper::MostRecentMBZoneIsHolding<FiveMinMBSetup>(this, mSetupMBT, mFirstMBInSetupNumber))
+    {
+        InvalidateSetup(true);
+        return;
+    }
+
+    if (!EAHelper::MostRecentMBZoneIsHolding<FiveMinMBSetup>(this, mLastEntryMBT, mFirstMBInEntryNumber))
+    {
+        InvalidateSetup(true);
+        return;
+    }
+
+    int zoneCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mZoneCandleTime);
+    if (mSetupType == OP_BUY)
+    {
+        // invalidate if we broke below our candle zone
+        if (iLow(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, zoneCandleIndex))
+        {
+            InvalidateSetup(true);
+            return;
+        }
+    }
+    else if (mSetupType == OP_SELL)
+    {
+        // invalidate if we broke above our candle zone
+        if (iHigh(mEntrySymbol, mEntryTimeFrame, 1) > iHigh(mEntrySymbol, mEntryTimeFrame, zoneCandleIndex))
+        {
+            InvalidateSetup(true);
+            return;
+        }
+    }
 }
 
 void FiveMinMBSetup::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
     EAHelper::InvalidateSetup<FiveMinMBSetup>(this, deletePendingOrder, false, error);
+
+    mZoneCandleTime = 0;
 }
 
 bool FiveMinMBSetup::Confirmation()
@@ -182,13 +328,79 @@ bool FiveMinMBSetup::Confirmation()
         return hasTicket;
     }
 
-    bool hasDoji = EAHelper::DojiInsideMostRecentMBsHoldingZone<FiveMinMBSetup>(this, mEntryMBT, mFirstMBInEntryNumber);
-    return hasTicket || hasDoji;
+    int zoneCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mZoneCandleTime);
+
+    // make sure we actually had a decent push up after the inital break
+    // if (zoneCandleIndex < 5)
+    // {
+    //     return false;
+    // }
+
+    if (mSetupType == OP_BUY)
+    {
+        bool pushedUpAfterInitialBreak = false;
+        for (int i = zoneCandleIndex - 1; i >= 1; i--)
+        {
+            // need to have a bearish candle break a previuos one, heading back into the candle zone in order for it to be considered a
+            // decent push back in
+            if (CandleStickHelper::IsBearish(mEntrySymbol, mEntryTimeFrame, i) &&
+                MathMin(iOpen(mEntrySymbol, mEntryTimeFrame, i), iClose(mEntrySymbol, mEntryTimeFrame, i)) < iLow(mEntrySymbol, mEntryTimeFrame, i + 1))
+            {
+                pushedUpAfterInitialBreak = true;
+                break;
+            }
+        }
+
+        if (!pushedUpAfterInitialBreak)
+        {
+            return false;
+        }
+
+        // need a body break above our previous candle while within the candle zone
+        if (iLow(mEntrySymbol, mEntryTimeFrame, 2) < iHigh(mEntrySymbol, mEntryTimeFrame, zoneCandleIndex) &&
+            iClose(mEntrySymbol, mEntryTimeFrame, 1) > iHigh(mEntrySymbol, mEntryTimeFrame, 2))
+        {
+            return true;
+        }
+    }
+    else if (mSetupType == OP_SELL)
+    {
+        bool pushedDownAfterInitialBreak = false;
+        for (int i = zoneCandleIndex - 1; i >= 1; i--)
+        {
+            // need to have a bullish candle break a previuos one, heading back into the candle zone in order for it to be considered a
+            // decent push back in
+            if (CandleStickHelper::IsBullish(mEntrySymbol, mEntryTimeFrame, i) &&
+                MathMax(iOpen(mEntrySymbol, mEntryTimeFrame, i), iClose(mEntrySymbol, mEntryTimeFrame, i)) > iHigh(mEntrySymbol, mEntryTimeFrame, i + 1))
+            {
+                pushedDownAfterInitialBreak = true;
+                break;
+            }
+        }
+
+        if (!pushedDownAfterInitialBreak)
+        {
+            return false;
+        }
+        // need a body break below our previous candle while within the candle zone
+        if (iHigh(mEntrySymbol, mEntryTimeFrame, 2) > iLow(mEntrySymbol, mEntryTimeFrame, zoneCandleIndex) &&
+            iClose(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, 2))
+        {
+            return true;
+        }
+    }
+
+    return hasTicket;
 }
 
 void FiveMinMBSetup::PlaceOrders()
 {
     if (mCurrentSetupTicket.Number() != EMPTY)
+    {
+        return;
+    }
+
+    if (mFirstMBInEntryNumber == mLastEntryMB)
     {
         return;
     }
@@ -205,20 +417,23 @@ void FiveMinMBSetup::PlaceOrders()
 
     if (mSetupType == OP_BUY)
     {
-        entry = iHigh(mEntrySymbol, mEntryTimeFrame, 1) + OrderHelper::PipsToRange(mEntryPaddingPips + mMaxSpreadPips);
-        stopLoss = iLow(mEntrySymbol, mEntryTimeFrame, 1) - OrderHelper::PipsToRange(mStopLossPaddingPips);
+        double lowest = MathMin(iLow(mEntrySymbol, mEntryTimeFrame, 2), iLow(mEntrySymbol, mEntryTimeFrame, 1));
+
+        entry = iHigh(mEntrySymbol, mEntryTimeFrame, 1) + OrderHelper::PipsToRange(mMaxSpreadPips + mEntryPaddingPips);
+        stopLoss = MathMin(lowest - OrderHelper::PipsToRange(mMinStopLossPips), entry - OrderHelper::PipsToRange(mMinStopLossPips));
     }
     else if (mSetupType == OP_SELL)
     {
+        double highest = MathMax(iHigh(mEntrySymbol, mEntryTimeFrame, 2), iHigh(mEntrySymbol, mEntryTimeFrame, 1));
         entry = iLow(mEntrySymbol, mEntryTimeFrame, 1) - OrderHelper::PipsToRange(mEntryPaddingPips);
-        stopLoss = iHigh(mEntrySymbol, mEntryTimeFrame, 1) + OrderHelper::PipsToRange(mStopLossPaddingPips + mMaxSpreadPips);
+
+        stopLoss = MathMax(highest + OrderHelper::PipsToRange(mStopLossPaddingPips + mMaxSpreadPips), entry + OrderHelper::PipsToRange(mMinStopLossPips));
     }
 
     EAHelper::PlaceStopOrder<FiveMinMBSetup>(this, entry, stopLoss, 0.0, true, mBEAdditionalPips);
 
     if (mCurrentSetupTicket.Number() != EMPTY)
     {
-        mEntryMB = mFirstMBInSetupNumber;
         mEntryCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 1);
     }
 }
@@ -257,6 +472,11 @@ void FiveMinMBSetup::ManageCurrentActiveSetupTicket()
     if (mCurrentSetupTicket.Number() == EMPTY)
     {
         return;
+    }
+
+    if (mLastEntryMB != mFirstMBInEntryNumber && mFirstMBInEntryNumber != EMPTY)
+    {
+        mLastEntryMB = mFirstMBInEntryNumber;
     }
 
     int selectError = mCurrentSetupTicket.SelectIfOpen("Stuff");
@@ -300,7 +520,7 @@ void FiveMinMBSetup::ManageCurrentActiveSetupTicket()
         movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
 
-    if (movedPips /*|| mEntryMB != mSetupMBT.MBsCreated() - 1*/)
+    if (movedPips /*|| mLastEntryMB != mSetupMBT.MBsCreated() - 1*/)
     {
         EAHelper::MoveToBreakEvenAsSoonAsPossible<FiveMinMBSetup>(this, mBEAdditionalPips);
     }
@@ -333,7 +553,7 @@ void FiveMinMBSetup::CheckPreviousSetupTicket(int ticketIndex)
 
 void FiveMinMBSetup::RecordTicketOpenData()
 {
-    EAHelper::RecordMBEntryTradeRecord<FiveMinMBSetup>(this, mFirstMBInSetupNumber, mSetupMBT, 0, 0);
+    EAHelper::RecordMBEntryTradeRecord<FiveMinMBSetup>(this, mFirstMBInEntryNumber, mLastEntryMBT, 0, 0);
 }
 
 void FiveMinMBSetup::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)

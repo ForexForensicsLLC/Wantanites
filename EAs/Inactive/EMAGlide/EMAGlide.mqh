@@ -380,6 +380,13 @@ void EMAGlide::ManageCurrentActiveSetupTicket()
         //     }
         // }
 
+        double percentIntoSL = (OrderOpenPrice() - currentTick.bid) / (OrderOpenPrice() - OrderStopLoss());
+        if (percentIntoSL >= 0.2)
+        {
+            mCurrentSetupTicket.Close();
+            return;
+        }
+
         movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
     else if (mSetupType == OP_SELL)
@@ -425,6 +432,13 @@ void EMAGlide::ManageCurrentActiveSetupTicket()
         //         mCurrentSetupTicket.Close();
         //     }
         // }
+
+        double percentIntoSL = (currentTick.ask - OrderOpenPrice()) / (OrderStopLoss() - OrderOpenPrice());
+        if (percentIntoSL >= 0.2)
+        {
+            mCurrentSetupTicket.Close();
+            return;
+        }
 
         movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }

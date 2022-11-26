@@ -51,7 +51,7 @@ void MBEntryTradeRecord::WriteHeaders(int fileHandle, bool writeDelimiter = fals
     FileHelper::WriteString(fileHandle, "Pending MB Height");
     FileHelper::WriteString(fileHandle, "Pending MB Width");
     FileHelper::WriteString(fileHandle, "Percent Of Pending MB in Previous");
-    // FileHelper::WriteString(fileHandle, "MB Count");
+    FileHelper::WriteString(fileHandle, "MB Count");
     // FileHelper::WriteString(fileHandle, "Zone Number");
 }
 
@@ -64,6 +64,6 @@ void MBEntryTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = false
     FileHelper::WriteDouble(fileHandle, PendingMBHeight, Digits);
     FileHelper::WriteInteger(fileHandle, PendingMBWidth);
     FileHelper::WriteDouble(fileHandle, PercentOfPendingMBInPrevious, 2);
-    // FileHelper::WriteInteger(fileHandle, MBCount);
+    FileHelper::WriteInteger(fileHandle, MBCount);
     // FileHelper::WriteInteger(fileHandle, ZoneNumber);
 }

@@ -9,7 +9,7 @@
 #property strict
 
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/FirstMB/FirstMB.mqh>
+#include <SummitCapital/EAs/Inactive/MBEntry/Doji/MBEntryDoji.mqh>
 
 // --- EA Inputs ---
 double RiskPercent = 1;
@@ -22,39 +22,49 @@ int MaxZonesInMB = 5;
 bool AllowMitigatedZones = false;
 bool AllowZonesAfterMBValidation = true;
 bool AllowWickBreaks = true;
+bool OnlyZonesInMB = true;
 bool PrintErrors = false;
 bool CalculateOnTick = false;
 
-string StrategyName = "FirstMB/";
-string EAName = "Nas/";
-string SetupTypeName = "";
+string StrategyName = "MBEntry/";
+string EAName = "Dow/";
+string SetupTypeName = "Doji/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
-CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
+CSVRecordWriter<MBEntryTradeRecord> *EntryWriter = new CSVRecordWriter<MBEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
 CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>(Directory + "Partials/", "Partials.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
 MBTracker *SetupMBT;
 
-FirstMB *FMBBuys;
-FirstMB *FMBSells;
+MBEntryDoji *FMBBuys;
+MBEntryDoji *FMBSells;
 
 // Nas
-double MaxSpreadPips = 10;
-double EntryPaddingPips = 20;
-double MinStopLossPips = 250;
-double StopLossPaddingPips = 50;
+// double MaxSpreadPips = 10;
+// double EntryPaddingPips = 0;
+// double MinStopLossPips = 250;
+// double StopLossPaddingPips = 0;
+// double PipsToWaitBeforeBE = 500;
+// double BEAdditionalPips = 50;
+// double CloseRR = 10;
+
+// Dow
+double MaxSpreadPips = SymbolConstants::DowSpreadPips;
+double EntryPaddingPips = 0;
+double MinStopLossPips = 350;
+double StopLossPaddingPips = 0;
 double PipsToWaitBeforeBE = 500;
-double BEAdditionalPips = 50;
-double CloseRR = 10;
+double BEAdditionalPips = SymbolConstants::DowSlippagePips;
+double CloseRR = 3;
 
 int OnInit()
 {
-    SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
+    SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
 
-    FMBBuys = new FirstMB(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
-                          ErrorWriter, SetupMBT);
+    FMBBuys = new MBEntryDoji(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
+                              ErrorWriter, SetupMBT);
     FMBBuys.SetPartialCSVRecordWriter(PartialWriter);
     FMBBuys.AddPartial(1000, 100);
 
@@ -65,8 +75,8 @@ int OnInit()
 
     FMBBuys.AddTradingSession(16, 30, 23, 0);
 
-    FMBSells = new FirstMB(-1, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
-                           ErrorWriter, SetupMBT);
+    FMBSells = new MBEntryDoji(-1, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
+                               ErrorWriter, SetupMBT);
     FMBSells.SetPartialCSVRecordWriter(PartialWriter);
     FMBSells.AddPartial(1000, 100);
 
