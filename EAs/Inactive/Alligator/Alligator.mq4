@@ -43,6 +43,21 @@ Alligator *NasiaBuys;
 Alligator *NasiaSells;
 
 // Dow 1 min
+// double MaxSpreadPips = 19;
+// double StopLossPaddingPips = 200;
+// double AdditionalEntryPips = 20;
+// double FixedStopLossPips = 0;
+// double MaxStopLossPips = 1500;
+// double PipsToWaitBeforeBE = 1000;
+// double BEAdditionalPips = 50;
+// double MinBreakPips = 0;
+// double MaxPipsFromGreenLips = 1200;
+// double MinBlueRedAlligatorGap = 4;
+// double MinRedGreenAlligatorGap = 20;
+// double MinWickLength = 0;
+// double CloseRR = 3;
+
+// Dow 5 min
 double MaxSpreadPips = 19;
 double StopLossPaddingPips = 200;
 double AdditionalEntryPips = 20;

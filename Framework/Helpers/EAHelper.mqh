@@ -236,6 +236,8 @@ public:
     static void MoveToBreakEvenAsSoonAsPossible(TEA &ea, double waitForAdditionalPips);
     template <typename TEA>
     static void MoveStopLossToCoverCommissions(TEA &ea);
+    template <typename TEA>
+    static bool CloseIfPercentIntoStopLoss(TEA &ea, Ticket &ticket, double percent);
 
     template <typename TEA>
     static bool TicketStopLossIsMovedToBreakEven(TEA &ea, Ticket &ticket);
@@ -2447,6 +2449,42 @@ void EAHelper::MoveStopLossToCoverCommissions(TEA &ea)
             ea.RecordError(GetLastError());
         }
     }
+}
+
+template <typename TEA>
+static bool EAHelper::CloseIfPercentIntoStopLoss(TEA &ea, Ticket &ticket, double percentAsDecimal)
+{
+    int selectError = ticket.SelectIfOpen("Checking percent into stoplos");
+    if (TerminalErrors::IsTerminalError(selectError))
+    {
+        ea.RecordError(selectError);
+        return false;
+    }
+
+    MqlTick currentTick;
+    if (!SymbolInfoTick(Symbol(), currentTick))
+    {
+        ea.RecordError(GetLastError());
+        return false;
+    }
+
+    bool isPercentIntoStopLoss = false;
+    if (OrderType() == OP_BUY)
+    {
+        isPercentIntoStopLoss = (OrderOpenPrice() - currentTick.bid) / (OrderOpenPrice() - OrderStopLoss()) >= percentAsDecimal;
+    }
+    else if (OrderType() == OP_SELL)
+    {
+        isPercentIntoStopLoss = (currentTick.ask - OrderOpenPrice()) / (OrderStopLoss() - OrderOpenPrice()) >= percentAsDecimal;
+    }
+
+    if (isPercentIntoStopLoss)
+    {
+        ticket.Close();
+        return true;
+    }
+
+    return false;
 }
 /*
 

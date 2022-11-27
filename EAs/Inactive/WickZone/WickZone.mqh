@@ -476,6 +476,11 @@ void WickZone::ManageCurrentActiveSetupTicket()
         movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
 
+    if (EAHelper::CloseIfPercentIntoStopLoss<WickZone>(this, mCurrentSetupTicket, 0.2))
+    {
+        return;
+    }
+
     // BE after we validate the MB we entered in
     // if (mSetupMBT.MBsCreated() - 1 != mEntryMB)
     // {
