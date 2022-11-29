@@ -10,7 +10,10 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Active/LiquidationMB/LiquidationMB.mqh>
+#include <SummitCapital/EAs/Active/LiquidationSetupPastEMA/LiquidationSetupPastEMA.mqh>
+
+string ForcedSymbol = "US30";
+int ForcedTimeFrame = 1;
 
 // --- EA Inputs ---
 double RiskPercent = 1;
@@ -27,7 +30,7 @@ bool OnlyZonesInMB = true;
 bool PrintErrors = false;
 bool CalculateOnTick = false;
 
-string StrategyName = "LiquidationMB/";
+string StrategyName = "LiquidationSetupPastEMA/";
 string EAName = "Dow/";
 string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
@@ -57,6 +60,11 @@ double CloseRR = 10;
 
 int OnInit()
 {
+    if (!EAHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
+    {
+        return INIT_PARAMETERS_INCORRECT;
+    }
+
     SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
 
     LSTBuys = new LiquidationSetupTracker(OP_BUY, SetupMBT);

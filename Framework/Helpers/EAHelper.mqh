@@ -751,7 +751,6 @@ static bool EAHelper::CheckSetFirstMB(TEA &ea, MBTracker *&mbt, int &mbNumber, i
     else
     {
         mbNumber = mbOneTempState.Number();
-        ea.mSetupType = mbOneTempState.Type();
     }
 
     return true;

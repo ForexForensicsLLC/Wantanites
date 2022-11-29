@@ -9,7 +9,10 @@
 #property strict
 
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/ZoneOutsideMB/ZoneOutsideMB.mqh>
+#include <SummitCapital/EAs/Active/ZoneOutsideMB/ZoneOutsideMB.mqh>
+
+string ForcedSymbol = "US30";
+int ForcedTimeFrame = 1;
 
 // --- EA Inputs ---
 double RiskPercent = 1;
@@ -53,6 +56,11 @@ double CloseRR = 20;
 
 int OnInit()
 {
+    if (!EAHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
+    {
+        return INIT_PARAMETERS_INCORRECT;
+    }
+
     SetupMBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
 
     ZOMBBuys = new ZoneOutsideMB(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,

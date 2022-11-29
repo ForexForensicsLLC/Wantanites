@@ -9,7 +9,10 @@
 #property strict
 
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/CandleZone/CandleZone.mqh>
+#include <SummitCapital/EAs/Active/CandleZone/1min/CandleZone.mqh>
+
+string ForcedSymbol = "US30";
+int ForcedTimeFrame = 1;
 
 // --- EA Inputs ---
 double RiskPercent = 0.25;
@@ -28,7 +31,7 @@ bool CalculateOnTick = false;
 
 string StrategyName = "CandleZone/";
 string EAName = "Dow/";
-string SetupTypeName = "";
+string SetupTypeName = "1min/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -53,6 +56,11 @@ double CloseRR = 20;
 
 int OnInit()
 {
+    if (!EAHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
+    {
+        return INIT_PARAMETERS_INCORRECT;
+    }
+
     SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
 
     CZBuys = new CandleZone(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,

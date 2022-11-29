@@ -9,7 +9,7 @@
 #property strict
 
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/MostMBHolding/MostMBHolding.mqh>
+#include <SummitCapital/EAs/Inactive/5minMBSetup/LoneDoji/LoneDoji.mqh>
 
 // --- EA Inputs ---
 double RiskPercent = 0.01;
@@ -26,64 +26,71 @@ bool OnlyZonesInMB = false;
 bool PrintErrors = false;
 bool CalculateOnTick = false;
 
-string StrategyName = "MostMBHolding/";
+string StrategyName = "5MinMBSetup/";
 string EAName = "Dow/";
-string SetupTypeName = "";
+string SetupTypeName = "LoneDoji/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
-CSVRecordWriter<MBEntryTradeRecord> *EntryWriter = new CSVRecordWriter<MBEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
+CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
 CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>(Directory + "Partials/", "Partials.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
 MBTracker *SetupMBT;
 
-MostMBHolding *MMBHBuys;
-MostMBHolding *MMBHSells;
+LoneDoji *LDBuys;
+LoneDoji *LDSells;
 
 // Dow
-double MaxMBHeight = 10000;
-double MinMBHeight = 0;
+// double MinMBHeight = 900;
+// double MaxSpreadPips = SymbolConstants::DowSpreadPips;
+// double EntryPaddingPips = 0;
+// double MinStopLossPips = 0;
+// double StopLossPaddingPips = 50;
+// double PipsToWaitBeforeBE = 1000;
+// double BEAdditionalPips = SymbolConstants::DowSlippagePips;
+// double CloseRR = 10;
+
+// Nas
+double MinMBHeight = 200;
 double MaxSpreadPips = SymbolConstants::DowSpreadPips;
 double EntryPaddingPips = 0;
 double MinStopLossPips = 350;
 double StopLossPaddingPips = 0;
-double PipsToWaitBeforeBE = 400;
+double PipsToWaitBeforeBE = 150;
 double BEAdditionalPips = SymbolConstants::DowSlippagePips;
-double CloseRR = 20;
+double CloseRR = 10;
 
 int OnInit()
 {
     SetupMBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
 
-    MMBHBuys = new MostMBHolding(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                 ExitWriter, ErrorWriter, SetupMBT);
+    LDBuys = new LoneDoji(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                          ExitWriter, ErrorWriter, SetupMBT);
 
-    MMBHBuys.SetPartialCSVRecordWriter(PartialWriter);
-    MMBHBuys.AddPartial(CloseRR, 100);
+    LDBuys.SetPartialCSVRecordWriter(PartialWriter);
+    LDBuys.AddPartial(CloseRR, 100);
 
-    MMBHBuys.mMaxMBHeight = MaxMBHeight;
-    MMBHBuys.mMinMBHeight = MinMBHeight;
-    MMBHBuys.mEntryPaddingPips = EntryPaddingPips;
-    MMBHBuys.mMinStopLossPips = MinStopLossPips;
-    MMBHBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    MMBHBuys.mBEAdditionalPips = BEAdditionalPips;
+    LDBuys.mMinMBHeight = MinMBHeight;
+    LDBuys.mEntryPaddingPips = EntryPaddingPips;
+    LDBuys.mMinStopLossPips = MinStopLossPips;
+    LDBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    LDBuys.mBEAdditionalPips = BEAdditionalPips;
 
-    MMBHBuys.AddTradingSession(16, 30, 23, 0);
+    LDBuys.AddTradingSession(16, 40, 23, 0);
 
-    MMBHSells = new MostMBHolding(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                  ExitWriter, ErrorWriter, SetupMBT);
-    MMBHSells.SetPartialCSVRecordWriter(PartialWriter);
-    MMBHSells.AddPartial(CloseRR, 100);
+    LDSells = new LoneDoji(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                           ExitWriter, ErrorWriter, SetupMBT);
+    LDSells.SetPartialCSVRecordWriter(PartialWriter);
+    LDSells.AddPartial(CloseRR, 100);
 
-    MMBHSells.mMaxMBHeight = MaxMBHeight;
-    MMBHSells.mMinMBHeight = MinMBHeight;
-    MMBHSells.mEntryPaddingPips = EntryPaddingPips;
-    MMBHSells.mMinStopLossPips = MinStopLossPips;
-    MMBHSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    MMBHSells.mBEAdditionalPips = BEAdditionalPips;
+    LDSells.mMinMBHeight = MinMBHeight;
+    LDSells.mEntryPaddingPips = EntryPaddingPips;
+    LDSells.mMinStopLossPips = MinStopLossPips;
+    LDSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    LDSells.mBEAdditionalPips = BEAdditionalPips;
 
-    MMBHSells.AddTradingSession(16, 30, 23, 0);
+    LDSells.AddTradingSession(16, 40, 23, 0);
 
     return (INIT_SUCCEEDED);
 }
@@ -92,8 +99,8 @@ void OnDeinit(const int reason)
 {
     delete SetupMBT;
 
-    delete MMBHBuys;
-    delete MMBHSells;
+    delete LDBuys;
+    delete LDSells;
 
     delete EntryWriter;
     delete PartialWriter;
@@ -103,6 +110,6 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    MMBHBuys.Run();
-    MMBHSells.Run();
+    LDBuys.Run();
+    LDSells.Run();
 }

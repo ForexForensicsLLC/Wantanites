@@ -9,7 +9,9 @@
 #property strict
 
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/MostMBHolding/MostMBHolding.mqh>
+#include <SummitCapital/EAs/Inactive/MostMBHolding/4hSetup/MostMBHoldingSetup.mqh>
+
+int SetupTimeFrame = 240;
 
 // --- EA Inputs ---
 double RiskPercent = 0.01;
@@ -22,11 +24,11 @@ int MaxZonesInMB = 5;
 bool AllowMitigatedZones = false;
 bool AllowZonesAfterMBValidation = true;
 bool AllowWickBreaks = true;
-bool OnlyZonesInMB = false;
+bool OnlyZonesInMB = true;
 bool PrintErrors = false;
 bool CalculateOnTick = false;
 
-string StrategyName = "MostMBHolding/";
+string StrategyName = "MostMBHoldingSetup/";
 string EAName = "Dow/";
 string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
@@ -37,6 +39,7 @@ CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWrite
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
 MBTracker *SetupMBT;
+MBTracker *EntryMBT;
 
 MostMBHolding *MMBHBuys;
 MostMBHolding *MMBHSells;
@@ -54,14 +57,16 @@ double CloseRR = 20;
 
 int OnInit()
 {
-    SetupMBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
+    SetupMBT = new MBTracker(Symbol(), SetupTimeFrame, MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
+    EntryMBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
 
     MMBHBuys = new MostMBHolding(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                 ExitWriter, ErrorWriter, SetupMBT);
+                                 ExitWriter, ErrorWriter, SetupMBT, EntryMBT);
 
     MMBHBuys.SetPartialCSVRecordWriter(PartialWriter);
     MMBHBuys.AddPartial(CloseRR, 100);
 
+    MMBHBuys.mSetupTimeFrame = SetupTimeFrame;
     MMBHBuys.mMaxMBHeight = MaxMBHeight;
     MMBHBuys.mMinMBHeight = MinMBHeight;
     MMBHBuys.mEntryPaddingPips = EntryPaddingPips;
@@ -72,10 +77,11 @@ int OnInit()
     MMBHBuys.AddTradingSession(16, 30, 23, 0);
 
     MMBHSells = new MostMBHolding(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                  ExitWriter, ErrorWriter, SetupMBT);
+                                  ExitWriter, ErrorWriter, SetupMBT, EntryMBT);
     MMBHSells.SetPartialCSVRecordWriter(PartialWriter);
     MMBHSells.AddPartial(CloseRR, 100);
 
+    MMBHSells.mSetupTimeFrame = SetupTimeFrame;
     MMBHSells.mMaxMBHeight = MaxMBHeight;
     MMBHSells.mMinMBHeight = MinMBHeight;
     MMBHSells.mEntryPaddingPips = EntryPaddingPips;
@@ -91,6 +97,7 @@ int OnInit()
 void OnDeinit(const int reason)
 {
     delete SetupMBT;
+    delete EntryMBT;
 
     delete MMBHBuys;
     delete MMBHSells;

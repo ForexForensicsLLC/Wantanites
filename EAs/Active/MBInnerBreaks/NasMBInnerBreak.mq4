@@ -9,7 +9,7 @@
 #property strict
 
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/InnerBreaks/MB/TheGrannySmith.mqh>
+#include <SummitCapital/EAs/Active/MBInnerBreaks/MBInnerBreak.mqh>
 
 // --- EA Inputs ---
 double RiskPercent = 1;
@@ -22,6 +22,7 @@ int MaxZonesInMB = 5;
 bool AllowMitigatedZones = false;
 bool AllowZonesAfterMBValidation = true;
 bool AllowWickBreaks = true;
+bool OnlyZonesInMB = true;
 bool PrintErrors = false;
 bool CalculateOnTick = false;
 
@@ -36,8 +37,8 @@ CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWrite
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
 MBTracker *SetupMBT;
-TheGrannySmith *MBInnerBreakBuys;
-TheGrannySmith *MBInnerBreakSells;
+MBInnerBreak *MBInnerBreakBuys;
+MBInnerBreak *MBInnerBreakSells;
 
 double MaxSpreadPips = SymbolConstants::NasSpreadPips;
 double EntryPaddingPips = 10;
@@ -51,10 +52,10 @@ double CloseRR = 10;
 
 int OnInit()
 {
-    SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
+    SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
 
-    MBInnerBreakBuys = new TheGrannySmith(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                          ExitWriter, ErrorWriter, SetupMBT);
+    MBInnerBreakBuys = new MBInnerBreak(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                        ExitWriter, ErrorWriter, SetupMBT);
 
     MBInnerBreakBuys.SetPartialCSVRecordWriter(PartialWriter);
     MBInnerBreakBuys.AddPartial(CloseRR, 100);
@@ -68,8 +69,8 @@ int OnInit()
 
     MBInnerBreakBuys.AddTradingSession(16, 30, 23, 0);
 
-    MBInnerBreakSells = new TheGrannySmith(-1, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                           ExitWriter, ErrorWriter, SetupMBT);
+    MBInnerBreakSells = new MBInnerBreak(-1, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                         ExitWriter, ErrorWriter, SetupMBT);
     MBInnerBreakSells.SetPartialCSVRecordWriter(PartialWriter);
     MBInnerBreakSells.AddPartial(CloseRR, 100);
 

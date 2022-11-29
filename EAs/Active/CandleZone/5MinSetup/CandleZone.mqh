@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                    FiveMinMBSetup.mqh |
+//|                                                    CandleZone.mqh |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -12,11 +12,11 @@
 #include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
-class FiveMinMBSetup : public EA<MBEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class CandleZone : public EA<MBEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     MBTracker *mSetupMBT;
-    MBTracker *mLastEntryMBT;
+    MBTracker *mEntryMBT;
 
     int mFirstMBInSetupNumber;
     int mFirstMBInEntryNumber;
@@ -41,10 +41,10 @@ public:
     double mLastManagedBid;
 
 public:
-    FiveMinMBSetup(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                   CSVRecordWriter<MBEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                   CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT, MBTracker *&entryMBT);
-    ~FiveMinMBSetup();
+    CandleZone(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+               CSVRecordWriter<MBEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+               CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT, MBTracker *&entryMBT);
+    ~CandleZone();
 
     virtual double RiskPercent();
 
@@ -68,19 +68,18 @@ public:
     virtual void Reset();
 };
 
-FiveMinMBSetup::FiveMinMBSetup(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                               CSVRecordWriter<MBEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                               CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT, MBTracker *&entryMBT)
+CandleZone::CandleZone(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+                       CSVRecordWriter<MBEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                       CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT, MBTracker *&entryMBT)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mSetupMBT = setupMBT;
-    mLastEntryMBT = entryMBT;
+    mEntryMBT = entryMBT;
 
     mFirstMBInSetupNumber = EMPTY;
     mFirstMBInEntryNumber = EMPTY;
 
     mZoneCandleTime = 0;
-
     mMaxMBPips = 0.0;
 
     mEntryPaddingPips = 0.0;
@@ -88,9 +87,9 @@ FiveMinMBSetup::FiveMinMBSetup(int magicNumber, int setupType, int maxCurrentSet
     mPipsToWaitBeforeBE = 0.0;
     mBEAdditionalPips = 0.0;
 
-    EAHelper::FindSetPreviousAndCurrentSetupTickets<FiveMinMBSetup>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<FiveMinMBSetup, PartialTradeRecord>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<FiveMinMBSetup, SingleTimeFrameEntryTradeRecord>(this);
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<CandleZone>(this);
+    EAHelper::UpdatePreviousSetupTicketsRRAcquried<CandleZone, PartialTradeRecord>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<CandleZone, SingleTimeFrameEntryTradeRecord>(this);
 
     mBarCount = 0;
     mLastEntryMB = EMPTY;
@@ -99,49 +98,46 @@ FiveMinMBSetup::FiveMinMBSetup(int magicNumber, int setupType, int maxCurrentSet
     mEntrySymbol = Symbol();
     mEntryTimeFrame = Period();
 
-    mLastManagedAsk = 0.0;
-    mLastManagedBid = 0.0;
-
     // TODO: Change Back
     mLargestAccountBalance = AccountBalance();
 }
 
-FiveMinMBSetup::~FiveMinMBSetup()
+CandleZone::~CandleZone()
 {
 }
 
-double FiveMinMBSetup::RiskPercent()
+double CandleZone::RiskPercent()
 {
     // reduce risk by half if we lose 5%
-    return EAHelper::GetReducedRiskPerPercentLost<FiveMinMBSetup>(this, 5, 0.5);
+    return EAHelper::GetReducedRiskPerPercentLost<CandleZone>(this, 5, 0.5);
 }
 
-void FiveMinMBSetup::Run()
+void CandleZone::Run()
 {
-    EAHelper::RunDrawMBTs<FiveMinMBSetup>(this, mSetupMBT, mLastEntryMBT);
+    EAHelper::RunDrawMBTs<CandleZone>(this, mSetupMBT, mEntryMBT);
     mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
 }
 
-bool FiveMinMBSetup::AllowedToTrade()
+bool CandleZone::AllowedToTrade()
 {
-    return EAHelper::BelowSpread<FiveMinMBSetup>(this) && EAHelper::WithinTradingSession<FiveMinMBSetup>(this);
+    return EAHelper::BelowSpread<CandleZone>(this) && EAHelper::WithinTradingSession<CandleZone>(this);
 }
 
-void FiveMinMBSetup::CheckSetSetup()
+void CandleZone::CheckSetSetup()
 {
     if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
     {
         return;
     }
 
-    if (EAHelper::CheckSetSingleMBSetup<FiveMinMBSetup>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
+    if (EAHelper::CheckSetSingleMBSetup<CandleZone>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
     {
-        if (EAHelper::MostRecentMBZoneIsHolding<FiveMinMBSetup>(this, mSetupMBT, mFirstMBInSetupNumber))
+        if (EAHelper::MostRecentMBZoneIsHolding<CandleZone>(this, mSetupMBT, mFirstMBInSetupNumber))
         {
-            if (EAHelper::CheckSetSingleMBSetup<FiveMinMBSetup>(this, mLastEntryMBT, mFirstMBInEntryNumber, mSetupType))
+            if (EAHelper::CheckSetSingleMBSetup<CandleZone>(this, mEntryMBT, mFirstMBInEntryNumber, mSetupType))
             {
                 MBState *entryMB;
-                if (!mLastEntryMBT.GetMB(mFirstMBInEntryNumber, entryMB))
+                if (!mEntryMBT.GetMB(mFirstMBInEntryNumber, entryMB))
                 {
                     return;
                 }
@@ -151,19 +147,13 @@ void FiveMinMBSetup::CheckSetSetup()
                     return;
                 }
 
-                // make sure first mb isn't too small
-                // if (entryMB.StartIndex() - entryMB.EndIndex() < 10)
-                // {
-                //     return;
-                // }
-
                 int pendingMBStart = EMPTY;
                 double pendingMBHeight = 0.0;
-                if (EAHelper::MostRecentMBZoneIsHolding<FiveMinMBSetup>(this, mLastEntryMBT, mFirstMBInEntryNumber))
+                if (EAHelper::MostRecentMBZoneIsHolding<CandleZone>(this, mEntryMBT, mFirstMBInEntryNumber))
                 {
                     if (mSetupType == OP_BUY)
                     {
-                        if (!mLastEntryMBT.CurrentBullishRetracementIndexIsValid(pendingMBStart))
+                        if (!mEntryMBT.CurrentBullishRetracementIndexIsValid(pendingMBStart))
                         {
                             return;
                         }
@@ -174,24 +164,6 @@ void FiveMinMBSetup::CheckSetSetup()
                             return;
                         }
 
-                        // pendingMBHeight = iHigh(mEntrySymbol, mEntryTimeFrame, pendingMBStart) - iLow(mEntrySymbol, mEntryTimeFrame, lowestIndex);
-                        // if (pendingMBHeight < OrderHelper::PipsToRange(mMinMBHeight))
-                        // {
-                        //     return;
-                        // }
-
-                        // need to break within 3 candles of our lowest
-                        // if (lowestIndex > 3)
-                        // {
-                        //     return;
-                        // }
-
-                        // make sure low is above ema
-                        // if (iLow(mEntrySymbol, mEntryTimeFrame, lowestIndex) < EMA(lowestIndex))
-                        // {
-                        //     return;
-                        // }
-
                         // make sure we broke above
                         if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < iHigh(mEntrySymbol, mEntryTimeFrame, 2))
                         {
@@ -200,11 +172,11 @@ void FiveMinMBSetup::CheckSetSetup()
 
                         mHasSetup = true;
                         mZoneCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 2);
-                        // mMostRecentMB = mLastEntryMBT.MBsCreated() - 1;
+                        // mMostRecentMB = mEntryMBT.MBsCreated() - 1;
                     }
                     else if (mSetupType == OP_SELL)
                     {
-                        if (!mLastEntryMBT.CurrentBearishRetracementIndexIsValid(pendingMBStart))
+                        if (!mEntryMBT.CurrentBearishRetracementIndexIsValid(pendingMBStart))
                         {
                             return;
                         }
@@ -215,24 +187,6 @@ void FiveMinMBSetup::CheckSetSetup()
                             return;
                         }
 
-                        // pendingMBHeight = iHigh(mEntrySymbol, mEntryTimeFrame, highestIndex) - iLow(mEntrySymbol, mEntryTimeFrame, pendingMBStart);
-                        // if (pendingMBHeight < OrderHelper::PipsToRange(mMinMBHeight))
-                        // {
-                        //     return;
-                        // }
-
-                        // need to break within 3 candles of our highest
-                        // if (highestIndex > 3)
-                        // {
-                        //     return;
-                        // }
-
-                        // make sure high is below ema
-                        // if (iHigh(mEntrySymbol, mEntryTimeFrame, highestIndex) > EMA(highestIndex))
-                        // {
-                        //     return;
-                        // }
-
                         // make sure we broke below a candle
                         if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > iLow(mEntrySymbol, mEntryTimeFrame, 2))
                         {
@@ -241,7 +195,7 @@ void FiveMinMBSetup::CheckSetSetup()
 
                         mHasSetup = true;
                         mZoneCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 2);
-                        // mMostRecentMB = mLastEntryMBT.MBsCreated() - 1;
+                        // mMostRecentMB = mEntryMBT.MBsCreated() - 1;
                     }
                 }
             }
@@ -249,7 +203,7 @@ void FiveMinMBSetup::CheckSetSetup()
     }
 }
 
-void FiveMinMBSetup::CheckInvalidateSetup()
+void CandleZone::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
@@ -267,7 +221,7 @@ void FiveMinMBSetup::CheckInvalidateSetup()
         return;
     }
 
-    if (mFirstMBInEntryNumber != EMPTY && mFirstMBInEntryNumber != mLastEntryMBT.MBsCreated() - 1)
+    if (mFirstMBInEntryNumber != EMPTY && mFirstMBInEntryNumber != mEntryMBT.MBsCreated() - 1)
     {
         InvalidateSetup(true);
         mFirstMBInEntryNumber = EMPTY;
@@ -280,13 +234,13 @@ void FiveMinMBSetup::CheckInvalidateSetup()
         return;
     }
 
-    if (!EAHelper::MostRecentMBZoneIsHolding<FiveMinMBSetup>(this, mSetupMBT, mFirstMBInSetupNumber))
+    if (!EAHelper::MostRecentMBZoneIsHolding<CandleZone>(this, mSetupMBT, mFirstMBInSetupNumber))
     {
         InvalidateSetup(true);
         return;
     }
 
-    if (!EAHelper::MostRecentMBZoneIsHolding<FiveMinMBSetup>(this, mLastEntryMBT, mFirstMBInEntryNumber))
+    if (!EAHelper::MostRecentMBZoneIsHolding<CandleZone>(this, mEntryMBT, mFirstMBInEntryNumber))
     {
         InvalidateSetup(true);
         return;
@@ -313,14 +267,14 @@ void FiveMinMBSetup::CheckInvalidateSetup()
     }
 }
 
-void FiveMinMBSetup::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void CandleZone::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
-    EAHelper::InvalidateSetup<FiveMinMBSetup>(this, deletePendingOrder, false, error);
+    EAHelper::InvalidateSetup<CandleZone>(this, deletePendingOrder, false, error);
 
     mZoneCandleTime = 0;
 }
 
-bool FiveMinMBSetup::Confirmation()
+bool CandleZone::Confirmation()
 {
     bool hasTicket = mCurrentSetupTicket.Number() != EMPTY;
     if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
@@ -329,13 +283,6 @@ bool FiveMinMBSetup::Confirmation()
     }
 
     int zoneCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mZoneCandleTime);
-
-    // make sure we actually had a decent push up after the inital break
-    // if (zoneCandleIndex < 5)
-    // {
-    //     return false;
-    // }
-
     if (mSetupType == OP_BUY)
     {
         bool pushedUpAfterInitialBreak = false;
@@ -393,7 +340,7 @@ bool FiveMinMBSetup::Confirmation()
     return hasTicket;
 }
 
-void FiveMinMBSetup::PlaceOrders()
+void CandleZone::PlaceOrders()
 {
     if (mCurrentSetupTicket.Number() != EMPTY)
     {
@@ -425,12 +372,12 @@ void FiveMinMBSetup::PlaceOrders()
     else if (mSetupType == OP_SELL)
     {
         double highest = MathMax(iHigh(mEntrySymbol, mEntryTimeFrame, 2), iHigh(mEntrySymbol, mEntryTimeFrame, 1));
-        entry = iLow(mEntrySymbol, mEntryTimeFrame, 1) - OrderHelper::PipsToRange(mEntryPaddingPips);
 
+        entry = iLow(mEntrySymbol, mEntryTimeFrame, 1) - OrderHelper::PipsToRange(mEntryPaddingPips);
         stopLoss = MathMax(highest + OrderHelper::PipsToRange(mStopLossPaddingPips + mMaxSpreadPips), entry + OrderHelper::PipsToRange(mMinStopLossPips));
     }
 
-    EAHelper::PlaceStopOrder<FiveMinMBSetup>(this, entry, stopLoss, 0.0, true, mBEAdditionalPips);
+    EAHelper::PlaceStopOrder<CandleZone>(this, entry, stopLoss, 0.0, true, mBEAdditionalPips);
 
     if (mCurrentSetupTicket.Number() != EMPTY)
     {
@@ -438,7 +385,7 @@ void FiveMinMBSetup::PlaceOrders()
     }
 }
 
-void FiveMinMBSetup::ManageCurrentPendingSetupTicket()
+void CandleZone::ManageCurrentPendingSetupTicket()
 {
     int entryCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
     if (mCurrentSetupTicket.Number() == EMPTY)
@@ -467,7 +414,7 @@ void FiveMinMBSetup::ManageCurrentPendingSetupTicket()
     }
 }
 
-void FiveMinMBSetup::ManageCurrentActiveSetupTicket()
+void CandleZone::ManageCurrentActiveSetupTicket()
 {
     if (mCurrentSetupTicket.Number() == EMPTY)
     {
@@ -493,84 +440,72 @@ void FiveMinMBSetup::ManageCurrentActiveSetupTicket()
         return;
     }
 
+    if (EAHelper::CloseIfPercentIntoStopLoss<CandleZone>(this, mCurrentSetupTicket, 0.2))
+    {
+        return;
+    }
+
     bool movedPips = false;
     int orderPlaceIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
     int entryIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, OrderOpenTime());
 
     if (mSetupType == OP_BUY)
     {
-        double percentIntoSL = (OrderOpenPrice() - currentTick.bid) / (OrderOpenPrice() - OrderStopLoss());
-        if (percentIntoSL >= 0.2)
-        {
-            mCurrentSetupTicket.Close();
-            return;
-        }
-
         movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
     else if (mSetupType == OP_SELL)
     {
-        double percentIntoSL = (currentTick.ask - OrderOpenPrice()) / (OrderStopLoss() - OrderOpenPrice());
-        if (percentIntoSL >= 0.2)
-        {
-            mCurrentSetupTicket.Close();
-            return;
-        }
-
         movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
 
-    if (movedPips /*|| mLastEntryMB != mSetupMBT.MBsCreated() - 1*/)
+    if (movedPips)
     {
-        EAHelper::MoveToBreakEvenAsSoonAsPossible<FiveMinMBSetup>(this, mBEAdditionalPips);
+        EAHelper::MoveToBreakEvenAsSoonAsPossible<CandleZone>(this, mBEAdditionalPips);
     }
-
-    mLastManagedAsk = currentTick.ask;
-    mLastManagedBid = currentTick.bid;
 }
 
-bool FiveMinMBSetup::MoveToPreviousSetupTickets(Ticket &ticket)
+bool CandleZone::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    return EAHelper::TicketStopLossIsMovedToBreakEven<FiveMinMBSetup>(this, ticket);
+    return EAHelper::TicketStopLossIsMovedToBreakEven<CandleZone>(this, ticket);
 }
 
-void FiveMinMBSetup::ManagePreviousSetupTicket(int ticketIndex)
+void CandleZone::ManagePreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::CheckPartialTicket<FiveMinMBSetup>(this, mPreviousSetupTickets[ticketIndex]);
+    EAHelper::CheckPartialTicket<CandleZone>(this, mPreviousSetupTickets[ticketIndex]);
 }
 
-void FiveMinMBSetup::CheckCurrentSetupTicket()
+void CandleZone::CheckCurrentSetupTicket()
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<FiveMinMBSetup>(this, mCurrentSetupTicket);
-    EAHelper::CheckCurrentSetupTicket<FiveMinMBSetup>(this);
+    EAHelper::CheckUpdateHowFarPriceRanFromOpen<CandleZone>(this, mCurrentSetupTicket);
+    EAHelper::CheckCurrentSetupTicket<CandleZone>(this);
 }
 
-void FiveMinMBSetup::CheckPreviousSetupTicket(int ticketIndex)
+void CandleZone::CheckPreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<FiveMinMBSetup>(this, mPreviousSetupTickets[ticketIndex]);
-    EAHelper::CheckPreviousSetupTicket<FiveMinMBSetup>(this, ticketIndex);
+    EAHelper::CheckUpdateHowFarPriceRanFromOpen<CandleZone>(this, mPreviousSetupTickets[ticketIndex]);
+    EAHelper::CheckPreviousSetupTicket<CandleZone>(this, ticketIndex);
 }
 
-void FiveMinMBSetup::RecordTicketOpenData()
+void CandleZone::RecordTicketOpenData()
 {
-    EAHelper::RecordMBEntryTradeRecord<FiveMinMBSetup>(this, mFirstMBInEntryNumber, mLastEntryMBT, 0, 0);
+    EAHelper::RecordMBEntryTradeRecord<CandleZone>(this, mFirstMBInEntryNumber, mEntryMBT, 0, 0);
 }
 
-void FiveMinMBSetup::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
+void CandleZone::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
-    EAHelper::RecordPartialTradeRecord<FiveMinMBSetup>(this, partialedTicket, newTicketNumber);
+    EAHelper::RecordPartialTradeRecord<CandleZone>(this, partialedTicket, newTicketNumber);
 }
 
-void FiveMinMBSetup::RecordTicketCloseData(Ticket &ticket)
+void CandleZone::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameExitTradeRecord<FiveMinMBSetup>(this, ticket, Period());
+    EAHelper::RecordSingleTimeFrameExitTradeRecord<CandleZone>(this, ticket, Period());
 }
 
-void FiveMinMBSetup::RecordError(int error, string additionalInformation = "")
+void CandleZone::RecordError(int error, string additionalInformation = "")
 {
-    EAHelper::RecordSingleTimeFrameErrorRecord<FiveMinMBSetup>(this, error, additionalInformation);
+    EAHelper::RecordSingleTimeFrameErrorRecord<CandleZone>(this, error, additionalInformation);
 }
 
-void FiveMinMBSetup::Reset()
+void CandleZone::Reset()
 {
 }

@@ -16,10 +16,10 @@ class MostMBHolding : public EA<MBEntryTradeRecord, PartialTradeRecord, SingleTi
 {
 public:
     MBTracker *mSetupMBT;
+    MBTracker *mEntryMBT;
 
     int mFirstMBInSetupNumber;
-    int mSecondMBInSetupNumber;
-    int mThirdMBInSetupNumber;
+    int mFirstMBInEntryNumber;
 
     double mMinMBRatio;
     double mMaxMBRatio;
@@ -36,8 +36,11 @@ public:
     int mLastEntryMB;
     int mBarCount;
 
-    int mEntryTimeFrame;
+    string mSetupSymbol;
+    int mSetupTimeFrame;
+
     string mEntrySymbol;
+    int mEntryTimeFrame;
 
     datetime mFailedImpulseEntryTime;
     bool mClosedOutsideEntry;
@@ -48,7 +51,7 @@ public:
 public:
     MostMBHolding(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                   CSVRecordWriter<MBEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                  CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT);
+                  CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT, MBTracker *&entryMBT);
     ~MostMBHolding();
 
     double EMA(int index) { return iMA(mEntrySymbol, mEntryTimeFrame, 100, 0, MODE_EMA, PRICE_CLOSE, index); }
@@ -76,13 +79,14 @@ public:
 
 MostMBHolding::MostMBHolding(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                              CSVRecordWriter<MBEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                             CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT)
+                             CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT, MBTracker *&entryMBT)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mSetupMBT = setupMBT;
+    mEntryMBT = entryMBT;
+
     mFirstMBInSetupNumber = EMPTY;
-    mSecondMBInSetupNumber = EMPTY;
-    mThirdMBInSetupNumber = EMPTY;
+    mFirstMBInEntryNumber = EMPTY;
 
     mMinMBRatio = 0.0;
     mMaxMBRatio = 0.0;
@@ -106,6 +110,9 @@ MostMBHolding::MostMBHolding(int magicNumber, int setupType, int maxCurrentSetup
     mFailedImpulseEntryTime = 0;
     mClosedOutsideEntry = false;
 
+    mSetupSymbol = Symbol();
+    mSetupTimeFrame = Period();
+
     mEntrySymbol = Symbol();
     mEntryTimeFrame = Period();
 
@@ -127,7 +134,7 @@ double MostMBHolding::RiskPercent()
 
 void MostMBHolding::Run()
 {
-    EAHelper::RunDrawMBT<MostMBHolding>(this, mSetupMBT);
+    EAHelper::RunDrawMBTs<MostMBHolding>(this, mSetupMBT, mEntryMBT);
     mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
 }
 
@@ -145,21 +152,67 @@ void MostMBHolding::CheckSetSetup()
 
     if (EAHelper::CheckSetSingleMBSetup<MostMBHolding>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
     {
-        MBState *tempMBState;
-        if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, tempMBState))
+        if (EAHelper::MostRecentMBZoneIsHolding<MostMBHolding>(this, mSetupMBT, mFirstMBInSetupNumber))
         {
-            return;
-        }
+            MqlTick currentTick;
+            if (!SymbolInfoTick(Symbol(), currentTick))
+            {
+                RecordError(GetLastError());
+                return;
+            }
 
-        if (tempMBState.Height() > OrderHelper::PipsToRange(mMaxMBHeight) || tempMBState.Height() < OrderHelper::PipsToRange(mMinMBHeight))
-        {
-            return;
-        }
+            int pendingMBStart = EMPTY;
+            double furthestPoint = 0.0;
+            double threshold = 0.0;
+            double percent = 0.5;
 
-        // if (EAHelper::MBWasCreatedAfterSessionStart<MostMBHolding>(this, mSetupMBT, mFirstMBInSetupNumber))
-        // {
-        // }
-        mHasSetup = true;
+            if (mSetupType == OP_BUY)
+            {
+                if (!mSetupMBT.CurrentBullishRetracementIndexIsValid(pendingMBStart))
+                {
+                    return;
+                }
+
+                if (!MQLHelper::GetLowestLowBetween(mSetupSymbol, mSetupTimeFrame, pendingMBStart, 0, false, furthestPoint))
+                {
+                    return;
+                }
+
+                threshold = iHigh(mSetupSymbol, mSetupTimeFrame, pendingMBStart) - ((iHigh(mSetupSymbol, mSetupTimeFrame, pendingMBStart) - furthestPoint) * percent);
+                if (currentTick.bid <= threshold)
+                {
+                    return;
+                }
+            }
+            else if (mSetupType == OP_SELL)
+            {
+                if (!mSetupMBT.CurrentBearishRetracementIndexIsValid(pendingMBStart))
+                {
+                    return;
+                }
+
+                if (!MQLHelper::GetHighestHighBetween(mSetupSymbol, mSetupTimeFrame, pendingMBStart, 0, false, furthestPoint))
+                {
+                    return;
+                }
+
+                threshold = iLow(mSetupSymbol, mSetupTimeFrame, pendingMBStart) + ((furthestPoint - iLow(mSetupSymbol, mSetupTimeFrame, pendingMBStart)) * percent);
+                if (currentTick.bid >= threshold)
+                {
+                    return;
+                }
+            }
+
+            if (!CandleStickHelper::BrokeFurther(mSetupType, mSetupSymbol, mSetupTimeFrame, 1))
+            {
+                return;
+            }
+
+            if (EAHelper::CheckSetSingleMBSetup<MostMBHolding>(this, mEntryMBT, mFirstMBInEntryNumber, mSetupType))
+            {
+                mHasSetup = true;
+            }
+        }
     }
 }
 
@@ -172,11 +225,88 @@ void MostMBHolding::CheckInvalidateSetup()
         return;
     }
 
+    if (!CandleStickHelper::BrokeFurther(mSetupType, mSetupSymbol, mSetupTimeFrame, 1))
+    {
+        InvalidateSetup(true);
+        return;
+    }
+
     if (mFirstMBInSetupNumber != EMPTY)
     {
         if (mFirstMBInSetupNumber != mSetupMBT.MBsCreated() - 1)
         {
             InvalidateSetup(true);
+            return;
+        }
+
+        if (!EAHelper::MostRecentMBZoneIsHolding<MostMBHolding>(this, mSetupMBT, mFirstMBInSetupNumber))
+        {
+            InvalidateSetup(true);
+            return;
+        }
+
+        MqlTick currentTick;
+        if (!SymbolInfoTick(Symbol(), currentTick))
+        {
+            RecordError(GetLastError());
+            return;
+        }
+
+        int pendingMBStart = EMPTY;
+        double furthestPoint = 0.0;
+        double threshold = 0.0;
+        double percent = 0.5;
+
+        if (mSetupType == OP_BUY)
+        {
+            if (!mSetupMBT.CurrentBullishRetracementIndexIsValid(pendingMBStart))
+            {
+                InvalidateSetup(true);
+                return;
+            }
+
+            if (!MQLHelper::GetLowestLowBetween(mSetupSymbol, mSetupTimeFrame, pendingMBStart, 0, false, furthestPoint))
+            {
+                InvalidateSetup(true);
+                return;
+            }
+
+            threshold = iHigh(mSetupSymbol, mSetupTimeFrame, pendingMBStart) - ((iHigh(mSetupSymbol, mSetupTimeFrame, pendingMBStart) - furthestPoint) * percent);
+            if (currentTick.bid <= threshold)
+            {
+                InvalidateSetup(true);
+                return;
+            }
+        }
+        else if (mSetupType == OP_SELL)
+        {
+            if (!mSetupMBT.CurrentBearishRetracementIndexIsValid(pendingMBStart))
+            {
+                InvalidateSetup(true);
+                return;
+            }
+
+            if (!MQLHelper::GetHighestHighBetween(mSetupSymbol, mSetupTimeFrame, pendingMBStart, 0, false, furthestPoint))
+            {
+                InvalidateSetup(true);
+                return;
+            }
+
+            threshold = iLow(mSetupSymbol, mSetupTimeFrame, pendingMBStart) + ((furthestPoint - iLow(mSetupSymbol, mSetupTimeFrame, pendingMBStart)) * percent);
+            if (currentTick.bid >= threshold)
+            {
+                InvalidateSetup(true);
+                return;
+            }
+        }
+    }
+
+    if (mFirstMBInEntryNumber != EMPTY)
+    {
+        if (mFirstMBInEntryNumber != mEntryMBT.MBsCreated() - 1)
+        {
+            InvalidateSetup(true);
+            return;
         }
     }
 }
@@ -184,41 +314,26 @@ void MostMBHolding::CheckInvalidateSetup()
 void MostMBHolding::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
     EAHelper::InvalidateSetup<MostMBHolding>(this, deletePendingOrder, false, error);
-    EAHelper::ResetSingleMBSetup<MostMBHolding>(this, false);
+
+    mFirstMBInEntryNumber = EMPTY;
+    mFirstMBInSetupNumber = EMPTY;
 }
 
 bool MostMBHolding::Confirmation()
 {
     bool hasTicket = mCurrentSetupTicket.Number() != EMPTY;
-    if (hasTicket)
-    {
-        return true;
-    }
-
     if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
     {
-        return false;
+        return hasTicket;
     }
 
-    MBState *tempMBState;
-    if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, tempMBState))
+    bool furthestInZone = EAHelper::CandleIsInZone<MostMBHolding>(this, mSetupMBT, mFirstMBInEntryNumber, 1, true);
+    if (!furthestInZone)
     {
-        return false;
+        return hasTicket;
     }
 
-    ZoneState *tempZoneState;
-    if (!tempMBState.GetDeepestHoldingZone(tempZoneState))
-    {
-        return false;
-    }
-
-    bool percentIntoMB = EAHelper::PriceIsFurtherThanPercentIntoMB<MostMBHolding>(this, mSetupMBT, mFirstMBInSetupNumber, tempZoneState.ExitPrice(), 0.5);
-    if (!percentIntoMB)
-    {
-        return false;
-    }
-
-    return true;
+    return hasTicket || EAHelper::DojiInsideMostRecentMBsHoldingZone<MostMBHolding>(this, mEntryMBT, mFirstMBInEntryNumber);
 }
 
 void MostMBHolding::PlaceOrders()
@@ -228,10 +343,10 @@ void MostMBHolding::PlaceOrders()
         return;
     }
 
-    if (mFirstMBInSetupNumber == mLastEntryMB)
-    {
-        return;
-    }
+    // if (mFirstMBInSetupNumber == mLastEntryMB)
+    // {
+    //     return;
+    // }
 
     int pendingMBStart = EMPTY;
     double entry = 0.0;
@@ -240,40 +355,20 @@ void MostMBHolding::PlaceOrders()
 
     if (mSetupType == OP_BUY)
     {
-        if (!mSetupMBT.CurrentBullishRetracementIndexIsValid(pendingMBStart))
-        {
-            return;
-        }
-
-        if (!MQLHelper::GetLowestLowBetween(mEntrySymbol, mEntryTimeFrame, pendingMBStart, 0, false, furthestPoint))
-        {
-            return;
-        }
-
-        entry = iHigh(mEntrySymbol, mEntryTimeFrame, pendingMBStart) - ((iHigh(mEntrySymbol, mEntryTimeFrame, pendingMBStart) - furthestPoint) * 0.5);
-        stopLoss = furthestPoint - OrderHelper::PipsToRange(mStopLossPaddingPips);
+        entry = iHigh(mEntrySymbol, mEntryTimeFrame, 1) + OrderHelper::PipsToRange(mEntryPaddingPips + mMaxSpreadPips);
+        stopLoss = iLow(mEntrySymbol, mEntryTimeFrame, 1) - OrderHelper::PipsToRange(mStopLossPaddingPips);
     }
     else if (mSetupType == OP_SELL)
     {
-        if (!mSetupMBT.CurrentBearishRetracementIndexIsValid(pendingMBStart))
-        {
-            return;
-        }
-
-        if (!MQLHelper::GetHighestHighBetween(mEntrySymbol, mEntryTimeFrame, pendingMBStart, 0, false, furthestPoint))
-        {
-            return;
-        }
-
-        entry = iLow(mEntrySymbol, mEntryTimeFrame, pendingMBStart) + ((furthestPoint - iLow(mEntrySymbol, mEntryTimeFrame, pendingMBStart)) * 0.5);
-        stopLoss = furthestPoint + OrderHelper::PipsToRange(mStopLossPaddingPips);
+        entry = iLow(mEntrySymbol, mEntryTimeFrame, 1) - OrderHelper::PipsToRange(mEntryPaddingPips);
+        stopLoss = iHigh(mEntrySymbol, mEntryTimeFrame, 1) + OrderHelper::PipsToRange(mStopLossPaddingPips + mMaxSpreadPips);
     }
 
     EAHelper::PlaceStopOrder<MostMBHolding>(this, entry, stopLoss, 0.0, true, mBEAdditionalPips);
 
     if (mCurrentSetupTicket.Number() != EMPTY)
     {
-        mLastEntryMB = mFirstMBInSetupNumber;
+        mLastEntryMB = mFirstMBInEntryNumber;
         mEntryCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 1);
 
         mFailedImpulseEntryTime = 0;
@@ -283,73 +378,24 @@ void MostMBHolding::PlaceOrders()
 
 void MostMBHolding::ManageCurrentPendingSetupTicket()
 {
-    if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
-    {
-        return;
-    }
-
     int entryCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
     if (mCurrentSetupTicket.Number() == EMPTY)
     {
         return;
     }
 
-    int selectError = mCurrentSetupTicket.SelectIfOpen("Stuff");
-    if (TerminalErrors::IsTerminalError(selectError))
-    {
-        RecordError(selectError);
-        return;
-    }
-
-    int pendingMBStart = EMPTY;
-    double entry = 0.0;
-    double stopLoss = 0.0;
-    double furthestPoint = 0.0;
-
     if (mSetupType == OP_BUY)
     {
-        if (!mSetupMBT.CurrentBullishRetracementIndexIsValid(pendingMBStart))
+        if (iLow(mEntrySymbol, mEntryTimeFrame, 0) < iLow(mEntrySymbol, mEntryTimeFrame, entryCandleIndex))
         {
-            return;
+            InvalidateSetup(true);
         }
-
-        if (!MQLHelper::GetLowestLowBetween(mEntrySymbol, mEntryTimeFrame, pendingMBStart, 0, false, furthestPoint))
-        {
-            return;
-        }
-
-        entry = NormalizeDouble(iHigh(mEntrySymbol, mEntryTimeFrame, pendingMBStart) - ((iHigh(mEntrySymbol, mEntryTimeFrame, pendingMBStart) - furthestPoint) * 0.5), Digits);
-        stopLoss = NormalizeDouble(furthestPoint - OrderHelper::PipsToRange(mStopLossPaddingPips), Digits);
     }
     else if (mSetupType == OP_SELL)
     {
-        if (!mSetupMBT.CurrentBearishRetracementIndexIsValid(pendingMBStart))
+        if (iHigh(mEntrySymbol, mEntryTimeFrame, 0) > iHigh(mEntrySymbol, mEntryTimeFrame, entryCandleIndex))
         {
-            return;
-        }
-
-        if (!MQLHelper::GetHighestHighBetween(mEntrySymbol, mEntryTimeFrame, pendingMBStart, 0, false, furthestPoint))
-        {
-            return;
-        }
-
-        entry = NormalizeDouble(iLow(mEntrySymbol, mEntryTimeFrame, pendingMBStart) + ((furthestPoint - iLow(mEntrySymbol, mEntryTimeFrame, pendingMBStart)) * 0.5), Digits);
-        stopLoss = NormalizeDouble(furthestPoint + OrderHelper::PipsToRange(mStopLossPaddingPips), Digits);
-    }
-
-    if (OrderOpenPrice() != entry || OrderStopLoss() != stopLoss)
-    {
-        mCurrentSetupTicket.Close();
-        mCurrentSetupTicket.SetNewTicket(EMPTY);
-
-        EAHelper::PlaceStopOrder<MostMBHolding>(this, entry, stopLoss, 0.0, true, mBEAdditionalPips);
-        if (mCurrentSetupTicket.Number() != EMPTY)
-        {
-            mLastEntryMB = mFirstMBInSetupNumber;
-            mEntryCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 1);
-
-            mFailedImpulseEntryTime = 0;
-            mClosedOutsideEntry = false;
+            InvalidateSetup(true);
         }
     }
 }
@@ -375,10 +421,10 @@ void MostMBHolding::ManageCurrentActiveSetupTicket()
         return;
     }
 
-    if (EAHelper::CloseIfPercentIntoStopLoss<MostMBHolding>(this, mCurrentSetupTicket, 0.2))
-    {
-        return;
-    }
+    // if (EAHelper::CloseIfPercentIntoStopLoss<MostMBHolding>(this, mCurrentSetupTicket, 0.2))
+    // {
+    //     return;
+    // }
 
     bool movedPips = false;
     int orderPlaceIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
@@ -393,7 +439,7 @@ void MostMBHolding::ManageCurrentActiveSetupTicket()
         movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
 
-    if (movedPips || mLastEntryMB != mSetupMBT.MBsCreated() - 1)
+    if (movedPips || mLastEntryMB != mEntryMBT.MBsCreated() - 1)
     {
         EAHelper::MoveToBreakEvenAsSoonAsPossible<MostMBHolding>(this, mBEAdditionalPips);
     }

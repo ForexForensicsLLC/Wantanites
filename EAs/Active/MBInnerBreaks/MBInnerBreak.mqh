@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                    TheGrannySmith.mqh |
+//|                                                    MBInnerBreak.mqh |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -12,7 +12,7 @@
 #include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
-class TheGrannySmith : public EA<MBEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class MBInnerBreak : public EA<MBEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     MBTracker *mSetupMBT;
@@ -56,10 +56,10 @@ public:
     double mImbalanceCandlePercentChange;
 
 public:
-    TheGrannySmith(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                   CSVRecordWriter<MBEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                   CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT);
-    ~TheGrannySmith();
+    MBInnerBreak(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+                 CSVRecordWriter<MBEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                 CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT);
+    ~MBInnerBreak();
 
     virtual int MagicNumber() { return mSetupType == OP_BUY ? MagicNumbers::BullishKataraSingleMB : MagicNumbers::BearishKataraSingleMB; }
     virtual double RiskPercent();
@@ -78,15 +78,15 @@ public:
     virtual void CheckCurrentSetupTicket();
     virtual void CheckPreviousSetupTicket(int ticketIndex);
     virtual void RecordTicketOpenData();
-    virtual void RecordTicketPartialData(int oldTicketIndex, int newTicketNumber);
+    virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
     virtual void Reset();
 };
 
-TheGrannySmith::TheGrannySmith(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                               CSVRecordWriter<MBEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                               CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT)
+MBInnerBreak::MBInnerBreak(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+                           CSVRecordWriter<MBEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                           CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mSetupMBT = setupMBT;
@@ -99,9 +99,9 @@ TheGrannySmith::TheGrannySmith(int magicNumber, int setupType, int maxCurrentSet
     mLargeBodyPips = 0.0;
     mPushFurtherPips = 0.0;
 
-    EAHelper::FindSetPreviousAndCurrentSetupTickets<TheGrannySmith>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<TheGrannySmith, PartialTradeRecord>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<TheGrannySmith, MultiTimeFrameEntryTradeRecord>(this);
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<MBInnerBreak>(this);
+    EAHelper::UpdatePreviousSetupTicketsRRAcquried<MBInnerBreak, PartialTradeRecord>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<MBInnerBreak, MultiTimeFrameEntryTradeRecord>(this);
 
     mSetupMBsCreated = 0;
 
@@ -138,26 +138,26 @@ TheGrannySmith::TheGrannySmith(int magicNumber, int setupType, int maxCurrentSet
     mLargestAccountBalance = AccountBalance();
 }
 
-TheGrannySmith::~TheGrannySmith()
+MBInnerBreak::~MBInnerBreak()
 {
 }
 
-double TheGrannySmith::RiskPercent()
+double MBInnerBreak::RiskPercent()
 {
     return mRiskPercent;
 }
 
-void TheGrannySmith::Run()
+void MBInnerBreak::Run()
 {
-    EAHelper::RunDrawMBT<TheGrannySmith>(this, mSetupMBT);
+    EAHelper::RunDrawMBT<MBInnerBreak>(this, mSetupMBT);
 }
 
-bool TheGrannySmith::AllowedToTrade()
+bool MBInnerBreak::AllowedToTrade()
 {
-    return EAHelper::BelowSpread<TheGrannySmith>(this) && EAHelper::WithinTradingSession<TheGrannySmith>(this);
+    return EAHelper::BelowSpread<MBInnerBreak>(this) && EAHelper::WithinTradingSession<MBInnerBreak>(this);
 }
 
-void TheGrannySmith::CheckSetSetup()
+void MBInnerBreak::CheckSetSetup()
 {
     if (mLastDay != Day())
     {
@@ -171,13 +171,13 @@ void TheGrannySmith::CheckSetSetup()
         mMBCount += 1;
     }
 
-    if (EAHelper::CheckSetSingleMBSetup<TheGrannySmith>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
+    if (EAHelper::CheckSetSingleMBSetup<MBInnerBreak>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
     {
         mHasSetup = true;
     }
 }
 
-void TheGrannySmith::CheckInvalidateSetup()
+void MBInnerBreak::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
@@ -191,14 +191,14 @@ void TheGrannySmith::CheckInvalidateSetup()
     }
 }
 
-void TheGrannySmith::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void MBInnerBreak::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
-    EAHelper::InvalidateSetup<TheGrannySmith>(this, deletePendingOrder, false, error);
+    EAHelper::InvalidateSetup<MBInnerBreak>(this, deletePendingOrder, false, error);
     mFirstMBInSetupNumber = EMPTY;
     mStopLossCandleTime = 0;
 }
 
-bool TheGrannySmith::Confirmation()
+bool MBInnerBreak::Confirmation()
 {
     bool hasTicket = mCurrentSetupTicket.Number() != EMPTY;
 
@@ -224,7 +224,10 @@ bool TheGrannySmith::Confirmation()
 
     bool inZone = false;
     bool zoneIsHolding = false;
-    int holdingError = EAHelper::MostRecentMBZoneIsHolding<TheGrannySmith>(this, mSetupMBT, mFirstMBInSetupNumber, zoneIsHolding);
+    if (!EAHelper::MostRecentMBZoneIsHolding<MBInnerBreak>(this, mSetupMBT, mFirstMBInSetupNumber))
+    {
+        return false;
+    }
 
     // bool doji = false;
     bool potentialDoji = false;
@@ -536,16 +539,11 @@ bool TheGrannySmith::Confirmation()
         }
     }
 
-    bool hasConfirmation = hasTicket || zoneIsHolding;
-    if (hasConfirmation)
-    {
-        mBreakCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, breakCandleIndex);
-    }
-
-    return hasConfirmation;
+    mBreakCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, breakCandleIndex);
+    return true;
 }
 
-void TheGrannySmith::PlaceOrders()
+void MBInnerBreak::PlaceOrders()
 {
     int currentBars = iBars(mEntrySymbol, mEntryTimeFrame);
     if (currentBars <= mBarCount)
@@ -606,7 +604,7 @@ void TheGrannySmith::PlaceOrders()
                            entry + OrderHelper::PipsToRange(mMinStopLossPips));
     }
 
-    EAHelper::PlaceStopOrder<TheGrannySmith>(this, entry, stopLoss);
+    EAHelper::PlaceStopOrder<MBInnerBreak>(this, entry, stopLoss);
 
     if (mCurrentSetupTicket.Number() != EMPTY)
     {
@@ -617,7 +615,7 @@ void TheGrannySmith::PlaceOrders()
     }
 }
 
-void TheGrannySmith::ManageCurrentPendingSetupTicket()
+void MBInnerBreak::ManageCurrentPendingSetupTicket()
 {
     int entryCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
 
@@ -643,7 +641,7 @@ void TheGrannySmith::ManageCurrentPendingSetupTicket()
     }
 }
 
-void TheGrannySmith::ManageCurrentActiveSetupTicket()
+void MBInnerBreak::ManageCurrentActiveSetupTicket()
 {
     if (mCurrentSetupTicket.Number() == EMPTY)
     {
@@ -777,56 +775,56 @@ void TheGrannySmith::ManageCurrentActiveSetupTicket()
 
     if (movedPips)
     {
-        EAHelper::MoveToBreakEvenAsSoonAsPossible<TheGrannySmith>(this, mBEAdditionalPips);
+        EAHelper::MoveToBreakEvenAsSoonAsPossible<MBInnerBreak>(this, mBEAdditionalPips);
     }
 
     mLastManagedAsk = currentTick.ask;
     mLastManagedBid = currentTick.bid;
 }
 
-bool TheGrannySmith::MoveToPreviousSetupTickets(Ticket &ticket)
+bool MBInnerBreak::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    return EAHelper::TicketStopLossIsMovedToBreakEven<TheGrannySmith>(this, ticket);
+    return EAHelper::TicketStopLossIsMovedToBreakEven<MBInnerBreak>(this, ticket);
 }
 
-void TheGrannySmith::ManagePreviousSetupTicket(int ticketIndex)
+void MBInnerBreak::ManagePreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::CheckPartialPreviousSetupTicket<TheGrannySmith>(this, ticketIndex);
+    EAHelper::CheckPartialTicket<MBInnerBreak>(this, mPreviousSetupTickets[ticketIndex]);
 }
 
-void TheGrannySmith::CheckCurrentSetupTicket()
+void MBInnerBreak::CheckCurrentSetupTicket()
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<TheGrannySmith>(this, mCurrentSetupTicket);
-    EAHelper::CheckCurrentSetupTicket<TheGrannySmith>(this);
+    EAHelper::CheckUpdateHowFarPriceRanFromOpen<MBInnerBreak>(this, mCurrentSetupTicket);
+    EAHelper::CheckCurrentSetupTicket<MBInnerBreak>(this);
 }
 
-void TheGrannySmith::CheckPreviousSetupTicket(int ticketIndex)
+void MBInnerBreak::CheckPreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<TheGrannySmith>(this, mPreviousSetupTickets[ticketIndex]);
-    EAHelper::CheckPreviousSetupTicket<TheGrannySmith>(this, ticketIndex);
+    EAHelper::CheckUpdateHowFarPriceRanFromOpen<MBInnerBreak>(this, mPreviousSetupTickets[ticketIndex]);
+    EAHelper::CheckPreviousSetupTicket<MBInnerBreak>(this, ticketIndex);
 }
 
-void TheGrannySmith::RecordTicketOpenData()
+void MBInnerBreak::RecordTicketOpenData()
 {
-    EAHelper::RecordMBEntryTradeRecord<TheGrannySmith>(this, mSetupMBT.MBsCreated() - 1, mSetupMBT, mMBCount, mLastEntryZone);
+    EAHelper::RecordMBEntryTradeRecord<MBInnerBreak>(this, mSetupMBT.MBsCreated() - 1, mSetupMBT, mMBCount, mLastEntryZone);
 }
 
-void TheGrannySmith::RecordTicketPartialData(int oldTicketIndex, int newTicketNumber)
+void MBInnerBreak::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
-    EAHelper::RecordPartialTradeRecord<TheGrannySmith>(this, oldTicketIndex, newTicketNumber);
+    EAHelper::RecordPartialTradeRecord<MBInnerBreak>(this, partialedTicket, newTicketNumber);
 }
 
-void TheGrannySmith::RecordTicketCloseData(Ticket &ticket)
+void MBInnerBreak::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameExitTradeRecord<TheGrannySmith>(this, ticket, Period());
+    EAHelper::RecordSingleTimeFrameExitTradeRecord<MBInnerBreak>(this, ticket, Period());
 }
 
-void TheGrannySmith::RecordError(int error, string additionalInformation = "")
+void MBInnerBreak::RecordError(int error, string additionalInformation = "")
 {
-    EAHelper::RecordSingleTimeFrameErrorRecord<TheGrannySmith>(this, error, additionalInformation);
+    EAHelper::RecordSingleTimeFrameErrorRecord<MBInnerBreak>(this, error, additionalInformation);
 }
 
-void TheGrannySmith::Reset()
+void MBInnerBreak::Reset()
 {
     mMBCount = 0;
 }

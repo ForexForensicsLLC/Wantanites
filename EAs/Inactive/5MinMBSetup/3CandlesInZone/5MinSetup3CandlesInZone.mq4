@@ -9,13 +9,10 @@
 #property strict
 
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Active/TinyMBGapBreak/MBBreak/TinyMBGapBreak.mqh>
-
-string ForcedSymbol = "US30";
-int ForcedTimeFrame = 1;
+#include <SummitCapital/EAs/Inactive/5minMBSetup/3CandlesInZone/5minSetup3CandlesInZone.mqh>
 
 // --- EA Inputs ---
-double RiskPercent = 1;
+double RiskPercent = 0.01;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
@@ -29,9 +26,9 @@ bool OnlyZonesInMB = false;
 bool PrintErrors = false;
 bool CalculateOnTick = false;
 
-string StrategyName = "TinyMBGapBreak/";
+string StrategyName = "5MinMBSetup/";
 string EAName = "Dow/";
-string SetupTypeName = "MBBreak/";
+string SetupTypeName = "ThreeCandlesInZone/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -41,60 +38,59 @@ CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<S
 
 MBTracker *SetupMBT;
 
-TinyMBGapBreak *TMBBuys;
-TinyMBGapBreak *TMBSells;
+ThreeCandlesInZone *TCIZBuys;
+ThreeCandlesInZone *TCIZSells;
 
 // Dow
-double MaxMBHeight = 500;
-double MinMBGap = 500;
-double MaxEntrySlippage = 150;
+double MinMBHeight = 900;
 double MaxSpreadPips = SymbolConstants::DowSpreadPips;
-double EntryPaddingPips = 20;
+double EntryPaddingPips = 0;
 double MinStopLossPips = 350;
-double StopLossPaddingPips = 100;
-double PipsToWaitBeforeBE = 1500;
+double StopLossPaddingPips = 50;
+double PipsToWaitBeforeBE = 1000;
 double BEAdditionalPips = SymbolConstants::DowSlippagePips;
-double CloseRR = 20;
+double CloseRR = 10;
+
+// Nas
+// double MinMBHeight = 200;
+// double MaxSpreadPips = SymbolConstants::DowSpreadPips;
+// double EntryPaddingPips = 0;
+// double MinStopLossPips = 350;
+// double StopLossPaddingPips = 0;
+// double PipsToWaitBeforeBE = 150;
+// double BEAdditionalPips = SymbolConstants::DowSlippagePips;
+// double CloseRR = 10;
 
 int OnInit()
 {
-    if (!EAHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
-    {
-        return INIT_PARAMETERS_INCORRECT;
-    }
-
     SetupMBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
 
-    TMBBuys = new TinyMBGapBreak(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                 ExitWriter, ErrorWriter, SetupMBT);
+    TCIZBuys = new ThreeCandlesInZone(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                      ExitWriter, ErrorWriter, SetupMBT);
 
-    TMBBuys.SetPartialCSVRecordWriter(PartialWriter);
-    TMBBuys.AddPartial(CloseRR, 100);
+    TCIZBuys.SetPartialCSVRecordWriter(PartialWriter);
+    TCIZBuys.AddPartial(CloseRR, 100);
 
-    TMBBuys.mMaxMBHeight = MaxMBHeight;
-    TMBBuys.mMinMBGap = MinMBGap;
-    TMBBuys.mMaxEntrySlippage = MaxEntrySlippage;
-    TMBBuys.mEntryPaddingPips = EntryPaddingPips;
-    TMBBuys.mMinStopLossPips = MinStopLossPips;
-    TMBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    TMBBuys.mBEAdditionalPips = BEAdditionalPips;
+    TCIZBuys.mMinMBHeight = MinMBHeight;
+    TCIZBuys.mEntryPaddingPips = EntryPaddingPips;
+    TCIZBuys.mMinStopLossPips = MinStopLossPips;
+    TCIZBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    TCIZBuys.mBEAdditionalPips = BEAdditionalPips;
 
-    TMBBuys.AddTradingSession(16, 30, 17, 30);
+    TCIZBuys.AddTradingSession(16, 30, 23, 0);
 
-    TMBSells = new TinyMBGapBreak(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                  ExitWriter, ErrorWriter, SetupMBT);
-    TMBSells.SetPartialCSVRecordWriter(PartialWriter);
-    TMBSells.AddPartial(CloseRR, 100);
+    TCIZSells = new ThreeCandlesInZone(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                       ExitWriter, ErrorWriter, SetupMBT);
+    TCIZSells.SetPartialCSVRecordWriter(PartialWriter);
+    TCIZSells.AddPartial(CloseRR, 100);
 
-    TMBSells.mMaxMBHeight = MaxMBHeight;
-    TMBSells.mMinMBGap = MinMBGap;
-    TMBSells.mMaxEntrySlippage = MaxEntrySlippage;
-    TMBSells.mEntryPaddingPips = EntryPaddingPips;
-    TMBSells.mMinStopLossPips = MinStopLossPips;
-    TMBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    TMBSells.mBEAdditionalPips = BEAdditionalPips;
+    TCIZSells.mMinMBHeight = MinMBHeight;
+    TCIZSells.mEntryPaddingPips = EntryPaddingPips;
+    TCIZSells.mMinStopLossPips = MinStopLossPips;
+    TCIZSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    TCIZSells.mBEAdditionalPips = BEAdditionalPips;
 
-    TMBSells.AddTradingSession(16, 30, 17, 30);
+    TCIZSells.AddTradingSession(16, 30, 23, 0);
 
     return (INIT_SUCCEEDED);
 }
@@ -103,8 +99,8 @@ void OnDeinit(const int reason)
 {
     delete SetupMBT;
 
-    delete TMBBuys;
-    delete TMBSells;
+    delete TCIZBuys;
+    delete TCIZSells;
 
     delete EntryWriter;
     delete PartialWriter;
@@ -114,6 +110,6 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    TMBBuys.Run();
-    TMBSells.Run();
+    TCIZBuys.Run();
+    TCIZSells.Run();
 }

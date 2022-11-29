@@ -60,7 +60,7 @@ public:
     virtual void CheckCurrentSetupTicket();
     virtual void CheckPreviousSetupTicket(int ticketIndex);
     virtual void RecordTicketOpenData();
-    virtual void RecordTicketPartialData(int oldTicketIndex, int newTicketNumber);
+    virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
     virtual void Reset();
@@ -193,7 +193,7 @@ void ImpulseContinuation::CheckInvalidateSetup()
             {
                 if (mSetupType == OP_BUY)
                 {
-                    if (CandleStickHelper::GetLowestBodyPart(mSetupSymbol, mSetupTimeFrame, 1) < EMA(1))
+                    if (CandleStickHelper::LowestBodyPart(mSetupSymbol, mSetupTimeFrame, 1) < EMA(1))
                     {
                         InvalidateSetup(true);
                         return;
@@ -201,7 +201,7 @@ void ImpulseContinuation::CheckInvalidateSetup()
                 }
                 else if (mSetupType == OP_SELL)
                 {
-                    if (CandleStickHelper::GetHighestBodyPart(mSetupSymbol, mSetupTimeFrame, 1) > EMA(1))
+                    if (CandleStickHelper::HighestBodyPart(mSetupSymbol, mSetupTimeFrame, 1) > EMA(1))
                     {
                         InvalidateSetup(true);
                         return;
@@ -426,7 +426,7 @@ bool ImpulseContinuation::MoveToPreviousSetupTickets(Ticket &ticket)
 
 void ImpulseContinuation::ManagePreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::CheckPartialPreviousSetupTicket<ImpulseContinuation>(this, ticketIndex);
+    EAHelper::CheckPartialTicket<ImpulseContinuation>(this, mPreviousSetupTickets[ticketIndex]);
 }
 
 void ImpulseContinuation::CheckCurrentSetupTicket()
@@ -446,9 +446,9 @@ void ImpulseContinuation::RecordTicketOpenData()
     EAHelper::RecordSingleTimeFrameEntryTradeRecord<ImpulseContinuation>(this);
 }
 
-void ImpulseContinuation::RecordTicketPartialData(int oldTicketIndex, int newTicketNumber)
+void ImpulseContinuation::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
-    EAHelper::RecordPartialTradeRecord<ImpulseContinuation>(this, oldTicketIndex, newTicketNumber);
+    EAHelper::RecordPartialTradeRecord<ImpulseContinuation>(this, partialedTicket, newTicketNumber);
 }
 
 void ImpulseContinuation::RecordTicketCloseData(Ticket &ticket)

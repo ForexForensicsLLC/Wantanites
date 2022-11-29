@@ -9,7 +9,9 @@
 #property strict
 
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/5MinMBSetup/5MinMBSetup.mqh>
+#include <SummitCapital/EAs/Inactive/5MinMBSetup/WickFractal/WickFractal.mqh>
+
+int SetupTimeFrame = 5;
 
 // --- EA Inputs ---
 double RiskPercent = 0.01;
@@ -28,7 +30,7 @@ bool CalculateOnTick = false;
 
 string StrategyName = "5MinMBSetup/";
 string EAName = "Dow/";
-string SetupTypeName = "";
+string SetupTypeName = "WickFractal/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<MBEntryTradeRecord> *EntryWriter = new CSVRecordWriter<MBEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -39,16 +41,16 @@ CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<S
 MBTracker *SetupMBT;
 MBTracker *EntryMBT;
 
-FiveMinMBSetup *FMBSBuys;
-FiveMinMBSetup *FMBSSells;
+WickFractal *WFBuys;
+WickFractal *WFSells;
 
 // Dow
 double MaxMBPips = 500;
 double MaxSpreadPips = SymbolConstants::DowSpreadPips;
 double EntryPaddingPips = 20;
-double MinStopLossPips = 350;
+double MinStopLossPips = 0;
 double StopLossPaddingPips = 50;
-double PipsToWaitBeforeBE = 200;
+double PipsToWaitBeforeBE = 500;
 double BEAdditionalPips = SymbolConstants::DowSlippagePips;
 double CloseRR = 15;
 
@@ -60,32 +62,34 @@ int OnInit()
     EntryMBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors,
                              CalculateOnTick);
 
-    FMBSBuys = new FiveMinMBSetup(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                  ExitWriter, ErrorWriter, SetupMBT, EntryMBT);
+    WFBuys = new WickFractal(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                             ExitWriter, ErrorWriter, SetupMBT, EntryMBT);
 
-    FMBSBuys.SetPartialCSVRecordWriter(PartialWriter);
-    FMBSBuys.AddPartial(CloseRR, 100);
+    WFBuys.SetPartialCSVRecordWriter(PartialWriter);
+    WFBuys.AddPartial(CloseRR, 100);
 
-    FMBSBuys.mMaxMBPips = MaxMBPips;
-    FMBSBuys.mEntryPaddingPips = EntryPaddingPips;
-    FMBSBuys.mMinStopLossPips = MinStopLossPips;
-    FMBSBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    FMBSBuys.mBEAdditionalPips = BEAdditionalPips;
+    WFBuys.mSetupTimeFrame = SetupTimeFrame;
+    WFBuys.mMaxMBPips = MaxMBPips;
+    WFBuys.mEntryPaddingPips = EntryPaddingPips;
+    WFBuys.mMinStopLossPips = MinStopLossPips;
+    WFBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    WFBuys.mBEAdditionalPips = BEAdditionalPips;
 
-    FMBSBuys.AddTradingSession(16, 30, 23, 0);
+    WFBuys.AddTradingSession(16, 30, 23, 0);
 
-    FMBSSells = new FiveMinMBSetup(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                   ExitWriter, ErrorWriter, SetupMBT, EntryMBT);
-    FMBSSells.SetPartialCSVRecordWriter(PartialWriter);
-    FMBSSells.AddPartial(CloseRR, 100);
+    WFSells = new WickFractal(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                              ExitWriter, ErrorWriter, SetupMBT, EntryMBT);
+    WFSells.SetPartialCSVRecordWriter(PartialWriter);
+    WFSells.AddPartial(CloseRR, 100);
 
-    FMBSSells.mMaxMBPips = MaxMBPips;
-    FMBSSells.mEntryPaddingPips = EntryPaddingPips;
-    FMBSSells.mMinStopLossPips = MinStopLossPips;
-    FMBSSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    FMBSSells.mBEAdditionalPips = BEAdditionalPips;
+    WFSells.mSetupTimeFrame = SetupTimeFrame;
+    WFSells.mMaxMBPips = MaxMBPips;
+    WFSells.mEntryPaddingPips = EntryPaddingPips;
+    WFSells.mMinStopLossPips = MinStopLossPips;
+    WFSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    WFSells.mBEAdditionalPips = BEAdditionalPips;
 
-    FMBSSells.AddTradingSession(16, 30, 23, 0);
+    WFSells.AddTradingSession(16, 30, 23, 0);
 
     return (INIT_SUCCEEDED);
 }
@@ -95,8 +99,8 @@ void OnDeinit(const int reason)
     delete SetupMBT;
     delete EntryMBT;
 
-    delete FMBSBuys;
-    delete FMBSSells;
+    delete WFBuys;
+    delete WFSells;
 
     delete EntryWriter;
     delete PartialWriter;
@@ -106,6 +110,6 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    FMBSBuys.Run();
-    FMBSSells.Run();
+    WFBuys.Run();
+    WFSells.Run();
 }

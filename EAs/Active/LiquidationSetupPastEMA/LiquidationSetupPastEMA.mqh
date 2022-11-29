@@ -65,7 +65,7 @@ public:
     virtual void CheckCurrentSetupTicket();
     virtual void CheckPreviousSetupTicket(int ticketIndex);
     virtual void RecordTicketOpenData();
-    virtual void RecordTicketPartialData(int oldTicketIndex, int newTicketNumber);
+    virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
     virtual void Reset();
@@ -622,7 +622,7 @@ bool LiquidationMB::MoveToPreviousSetupTickets(Ticket &ticket)
 
 void LiquidationMB::ManagePreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::CheckPartialPreviousSetupTicket<LiquidationMB>(this, ticketIndex);
+    EAHelper::CheckPartialTicket<LiquidationMB>(this, mPreviousSetupTickets[ticketIndex]);
 }
 
 void LiquidationMB::CheckCurrentSetupTicket()
@@ -640,9 +640,9 @@ void LiquidationMB::RecordTicketOpenData()
     EAHelper::RecordSingleTimeFrameEntryTradeRecord<LiquidationMB>(this);
 }
 
-void LiquidationMB::RecordTicketPartialData(int oldTicketIndex, int newTicketNumber)
+void LiquidationMB::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
-    EAHelper::RecordPartialTradeRecord<LiquidationMB>(this, oldTicketIndex, newTicketNumber);
+    EAHelper::RecordPartialTradeRecord<LiquidationMB>(this, partialedTicket, newTicketNumber);
 }
 
 void LiquidationMB::RecordTicketCloseData(Ticket &ticket)

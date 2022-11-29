@@ -15,6 +15,9 @@
 class CandleZone : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
+    MBTracker *mSetupMBT;
+    int mFirstMBInSetupNumber;
+
     string mEntrySymbol;
     int mEntryTimeFrame;
 
@@ -23,26 +26,13 @@ public:
     int mBarCount;
     int mLastEntryMB;
 
-    MBTracker *mSetupMBT;
-
-    int mFirstMBInSetupNumber;
-    int mSecondMBInSetupNumber;
-    int mLiquidationMBInSetupNumber;
-
-    int mMostRecentMB;
     datetime mZoneCandleTime;
     datetime mEntryCandleTime;
 
-    double mMinInitialBreakTotalPips;
     double mEntryPaddingPips;
     double mMinStopLossPips;
     double mPipsToWaitBeforeBE;
     double mBEAdditionalPips;
-
-    bool mBrokeEntryIndex;
-
-    double mLastManagedAsk;
-    double mLastManagedBid;
 
 public:
     CandleZone(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
@@ -50,7 +40,6 @@ public:
                CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT);
     ~CandleZone();
 
-    // virtual int MagicNumber() { return mSetupType == OP_BUY ? MagicNumbers::BullishLiquidationMB : MagicNumbers::BearishLiquidationMB; }
     virtual double RiskPercent() { return mRiskPercent; }
     virtual void Run();
     virtual bool AllowedToTrade();
@@ -70,8 +59,6 @@ public:
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
     virtual void Reset();
-
-    double EMA(int index);
 };
 
 CandleZone::CandleZone(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
@@ -79,43 +66,27 @@ CandleZone::CandleZone(int magicNumber, int setupType, int maxCurrentSetupTrades
                        CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
+    mSetupMBT = setupMBT;
+    mFirstMBInSetupNumber = EMPTY;
+
     mEntrySymbol = Symbol();
     mEntryTimeFrame = Period();
 
     mMinMBHeight = 0.0;
-
     mBarCount = 0;
     mLastEntryMB = EMPTY;
 
-    mSetupMBT = setupMBT;
-
-    mFirstMBInSetupNumber = EMPTY;
-    mSecondMBInSetupNumber = EMPTY;
-    mLiquidationMBInSetupNumber = EMPTY;
-
-    mMostRecentMB = EMPTY;
     mZoneCandleTime = 0;
     mEntryCandleTime = 0;
 
-    mMinInitialBreakTotalPips = 0.0;
     mEntryPaddingPips = 0.0;
     mMinStopLossPips = 0.0;
     mPipsToWaitBeforeBE = 0.0;
     mBEAdditionalPips = 0.0;
 
-    mBrokeEntryIndex = false;
-
-    mLastManagedAsk = 0.0;
-    mLastManagedBid = 0.0;
-
     EAHelper::FindSetPreviousAndCurrentSetupTickets<CandleZone>(this);
     EAHelper::UpdatePreviousSetupTicketsRRAcquried<CandleZone, PartialTradeRecord>(this);
     EAHelper::SetPreviousSetupTicketsOpenData<CandleZone, MultiTimeFrameEntryTradeRecord>(this);
-}
-
-double CandleZone::EMA(int index)
-{
-    return iMA(mEntrySymbol, mEntryTimeFrame, 100, 0, MODE_EMA, PRICE_CLOSE, index);
 }
 
 CandleZone::~CandleZone()
@@ -188,12 +159,6 @@ void CandleZone::CheckSetSetup()
                     return;
                 }
 
-                // make sure low is above ema
-                // if (iLow(mEntrySymbol, mEntryTimeFrame, lowestIndex) < EMA(lowestIndex))
-                // {
-                //     return;
-                // }
-
                 // make sure we broke above
                 if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < iHigh(mEntrySymbol, mEntryTimeFrame, 2))
                 {
@@ -202,7 +167,6 @@ void CandleZone::CheckSetSetup()
 
                 mHasSetup = true;
                 mZoneCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 2);
-                mMostRecentMB = mSetupMBT.MBsCreated() - 1;
             }
             else if (mSetupType == OP_SELL)
             {
@@ -229,12 +193,6 @@ void CandleZone::CheckSetSetup()
                     return;
                 }
 
-                // make sure high is below ema
-                // if (iHigh(mEntrySymbol, mEntryTimeFrame, highestIndex) > EMA(highestIndex))
-                // {
-                //     return;
-                // }
-
                 // make sure we broke below a candle
                 if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > iLow(mEntrySymbol, mEntryTimeFrame, 2))
                 {
@@ -243,7 +201,6 @@ void CandleZone::CheckSetSetup()
 
                 mHasSetup = true;
                 mZoneCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 2);
-                mMostRecentMB = mSetupMBT.MBsCreated() - 1;
             }
         }
     }
@@ -405,8 +362,8 @@ void CandleZone::PlaceOrders()
     else if (mSetupType == OP_SELL)
     {
         double highest = MathMax(iHigh(mEntrySymbol, mEntryTimeFrame, 2), iHigh(mEntrySymbol, mEntryTimeFrame, 1));
-        entry = iLow(mEntrySymbol, mEntryTimeFrame, 1) - OrderHelper::PipsToRange(mEntryPaddingPips);
 
+        entry = iLow(mEntrySymbol, mEntryTimeFrame, 1) - OrderHelper::PipsToRange(mEntryPaddingPips);
         stopLoss = MathMax(highest + OrderHelper::PipsToRange(mStopLossPaddingPips + mMaxSpreadPips), entry + OrderHelper::PipsToRange(mMinStopLossPips));
     }
 
@@ -420,8 +377,6 @@ void CandleZone::PlaceOrders()
 
 void CandleZone::ManageCurrentPendingSetupTicket()
 {
-    mBrokeEntryIndex = false;
-
     int entryCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
     if (mCurrentSetupTicket.Number() == EMPTY)
     {
@@ -446,6 +401,11 @@ void CandleZone::ManageCurrentPendingSetupTicket()
 
 void CandleZone::ManageCurrentActiveSetupTicket()
 {
+    if (mLastEntryMB != mFirstMBInSetupNumber && mFirstMBInSetupNumber != EMPTY)
+    {
+        mLastEntryMB = mFirstMBInSetupNumber;
+    }
+
     if (mCurrentSetupTicket.Number() == EMPTY)
     {
         return;
@@ -465,86 +425,20 @@ void CandleZone::ManageCurrentActiveSetupTicket()
         return;
     }
 
+    if (EAHelper::CloseIfPercentIntoStopLoss<CandleZone>(this, mCurrentSetupTicket, 0.2))
+    {
+        return;
+    }
+
     int entryIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
     bool movedPips = false;
 
     if (mSetupType == OP_BUY)
     {
-        // if (!mBrokeEntryIndex)
-        // {
-        //     for (int i = entryIndex - 1; i >= 0; i--)
-        //     {
-        //         if (iLow(mEntrySymbol, mEntryTimeFrame, i) < iLow(mEntrySymbol, mEntryTimeFrame, entryIndex))
-        //         {
-        //             mBrokeEntryIndex = true;
-        //         }
-        //     }
-        // }
-
-        // if (mBrokeEntryIndex && currentTick.bid >= OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
-        // {
-        //     mCurrentSetupTicket.Close();
-        //     return;
-        // }
-
-        // // get too close to our entry after 10 candles and coming back
-        // if (entryIndex >= 10)
-        // {
-        //     if (mLastManagedBid > OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips) &&
-        //         currentTick.bid <= OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
-        //     {
-        //         mCurrentSetupTicket.Close();
-        //         return;
-        //     }
-        // }
-
-        double percentIntoSL = (OrderOpenPrice() - currentTick.bid) / (OrderOpenPrice() - OrderStopLoss());
-        if (percentIntoSL >= 0.2)
-        {
-            mCurrentSetupTicket.Close();
-            return;
-        }
-
         movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
     else if (mSetupType == OP_SELL)
     {
-        // if (!mBrokeEntryIndex)
-        // {
-        //     for (int i = entryIndex - 1; i >= 0; i--)
-        //     {
-        //         // change to any break lower within our entry
-        //         if (iHigh(mEntrySymbol, mEntryTimeFrame, i) > iHigh(mEntrySymbol, mEntryTimeFrame, entryIndex))
-        //         {
-        //             mBrokeEntryIndex = true;
-        //         }
-        //     }
-        // }
-
-        // if (mBrokeEntryIndex && currentTick.ask <= OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
-        // {
-        //     mCurrentSetupTicket.Close();
-        //     return;
-        // }
-
-        // // get too close to our entry after 10 candles and coming back
-        // if (entryIndex >= 10)
-        // {
-        //     if (mLastManagedAsk < OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips) &&
-        //         currentTick.ask >= OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
-        //     {
-        //         mCurrentSetupTicket.Close();
-        //         return;
-        //     }
-        // }
-
-        double percentIntoSL = (currentTick.ask - OrderOpenPrice()) / (OrderStopLoss() - OrderOpenPrice());
-        if (percentIntoSL >= 0.2)
-        {
-            mCurrentSetupTicket.Close();
-            return;
-        }
-
         movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
 
@@ -552,9 +446,6 @@ void CandleZone::ManageCurrentActiveSetupTicket()
     {
         EAHelper::MoveToBreakEvenAsSoonAsPossible<CandleZone>(this, mBEAdditionalPips);
     }
-
-    mLastManagedAsk = currentTick.ask;
-    mLastManagedBid = currentTick.bid;
 }
 
 bool CandleZone::MoveToPreviousSetupTickets(Ticket &ticket)
