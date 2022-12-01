@@ -52,7 +52,7 @@ double PipsToWaitBeforeBE = 400;
 double BEAdditionalPips = SymbolConstants::DowSlippagePips;
 double LargeBodyPips = 150;
 double PushFurtherPips = 150;
-double CloseRR = 10;
+double CloseRR = 20;
 
 int OnInit()
 {

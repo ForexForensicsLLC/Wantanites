@@ -11,7 +11,7 @@
 #include <SummitCapital/EAs/Inactive/Alligator/FractalBreak/FractalBreak.mqh>
 
 // --- EA Inputs ---
-string ForcedSymbol = "US100";
+string ForcedSymbol = "US30";
 int ForcedTimeFrame = 1;
 
 double RiskPercent = 0.025;
@@ -52,8 +52,8 @@ double PipsToWaitBeforeBE = 100;
 double BEAdditionalPips = 50;
 double MinBreakPips = 0;
 double MaxPipsFromGreenLips = 1200;
-double MinBlueRedAlligatorGap = 10;
-double MinRedGreenAlligatorGap = 10;
+double MinBlueRedAlligatorGap = 5;
+double MinRedGreenAlligatorGap = 20;
 double MinWickLength = 0;
 double CloseRR = 10;
 

@@ -9,7 +9,7 @@
 #property strict
 
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/5minMBSetup/TwoDojisInZone/TwoDojisInZone.mqh>
+#include <SummitCapital/EAs/Inactive/5minMBSetup/NoBodyInZone/NoBodyInZone.mqh>
 
 // --- EA Inputs ---
 double RiskPercent = 0.01;
@@ -28,7 +28,7 @@ bool CalculateOnTick = false;
 
 string StrategyName = "5MinMBSetup/";
 string EAName = "Nas/";
-string SetupTypeName = "TwoDojisInZone/";
+string SetupTypeName = "NoBodyInZone/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -38,8 +38,8 @@ CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<S
 
 MBTracker *SetupMBT;
 
-TwoDojisInZone *TDIZBuys;
-TwoDojisInZone *TDIZSells;
+NoBodyInZone *TDIZBuys;
+NoBodyInZone *TDIZSells;
 
 // Dow
 // double MinMBHeight = 900;
@@ -53,20 +53,20 @@ TwoDojisInZone *TDIZSells;
 
 // Nas
 double MinMBHeight = 200;
-double MaxSpreadPips = SymbolConstants::DowSpreadPips;
+double MaxSpreadPips = SymbolConstants::NasSpreadPips;
 double EntryPaddingPips = 0;
 double MinStopLossPips = 350;
 double StopLossPaddingPips = 0;
 double PipsToWaitBeforeBE = 150;
-double BEAdditionalPips = SymbolConstants::DowSlippagePips;
+double BEAdditionalPips = SymbolConstants::NasSlippagePips;
 double CloseRR = 10;
 
 int OnInit()
 {
     SetupMBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
 
-    TDIZBuys = new TwoDojisInZone(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                  ExitWriter, ErrorWriter, SetupMBT);
+    TDIZBuys = new NoBodyInZone(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                ExitWriter, ErrorWriter, SetupMBT);
 
     TDIZBuys.SetPartialCSVRecordWriter(PartialWriter);
     TDIZBuys.AddPartial(CloseRR, 100);
@@ -77,10 +77,10 @@ int OnInit()
     TDIZBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     TDIZBuys.mBEAdditionalPips = BEAdditionalPips;
 
-    TDIZBuys.AddTradingSession(16, 40, 19, 30);
+    TDIZBuys.AddTradingSession(16, 30, 23, 0);
 
-    TDIZSells = new TwoDojisInZone(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                   ExitWriter, ErrorWriter, SetupMBT);
+    TDIZSells = new NoBodyInZone(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                 ExitWriter, ErrorWriter, SetupMBT);
     TDIZSells.SetPartialCSVRecordWriter(PartialWriter);
     TDIZSells.AddPartial(CloseRR, 100);
 
@@ -90,7 +90,7 @@ int OnInit()
     TDIZSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     TDIZSells.mBEAdditionalPips = BEAdditionalPips;
 
-    TDIZSells.AddTradingSession(16, 40, 19, 30);
+    TDIZSells.AddTradingSession(16, 30, 23, 0);
 
     return (INIT_SUCCEEDED);
 }

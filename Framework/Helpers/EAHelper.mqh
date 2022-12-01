@@ -112,6 +112,8 @@ public:
     static bool CheckSetFirstMBBreakAfterConsecutiveMBs(TEA &ea, MBTracker *&mbt, int conseuctiveMBs, int &firstMBNumber);
 
     template <typename TEA>
+    static bool CandleIsAfterTime(TEA &ea, string symbol, int timeFrame, int hour, int minute, int index);
+    template <typename TEA>
     static bool CandleIsWithinSession(TEA &ea, string symbol, int timeFrame, int index);
     template <typename TEA>
     static bool MBWasCreatedAfterSessionStart(TEA &ea, MBTracker *&mbt, int mbNumber);
@@ -940,12 +942,18 @@ static bool EAHelper::CheckSetFirstMBBreakAfterConsecutiveMBs(TEA &ea, MBTracker
 }
 
 template <typename TEA>
-static bool EAHelper::CandleIsWithinSession(TEA &ea, string symbol, int timeFrame, int index)
+static bool EAHelper::CandleIsAfterTime(TEA &ea, string symbol, int timeFrame, int hour, int minute, int index)
 {
-    string startTimeString = ea.mTradingSessions[0].HourStart() + ":" + ea.mTradingSessions[0].MinuteStart();
+    string startTimeString = hour + ":" + minute;
     datetime startTime = StringToTime(startTimeString);
 
     return iTime(symbol, timeFrame, index) >= startTime;
+}
+
+template <typename TEA>
+static bool EAHelper::CandleIsWithinSession(TEA &ea, string symbol, int timeFrame, int index)
+{
+    return CandleIsAfterTime(ea, symbol, timeFrame, ea.mTradingSessions[0].HourStart(), ea.mTradingSessions[0].MinuteStart(), index);
 }
 
 template <typename TEA>

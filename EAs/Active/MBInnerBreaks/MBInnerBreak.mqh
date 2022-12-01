@@ -677,9 +677,11 @@ void MBInnerBreak::ManageCurrentActiveSetupTicket()
         }
 
         // This is here as a safety net so we aren't running a very expenseive nested for loop. If this returns false something went wrong or I need to change things.
+        // close if we break a low within our stop loss
         if (entryIndex <= 200)
         {
-            for (int i = entryIndex - 1; i >= 0; i--)
+            // do minus 2 so that we don't include the candle that we actually entered on in case it wicked below before entering
+            for (int i = entryIndex - 2; i >= 0; i--)
             {
                 if (iLow(mEntrySymbol, mEntryTimeFrame, i) > OrderOpenPrice())
                 {
@@ -688,12 +690,20 @@ void MBInnerBreak::ManageCurrentActiveSetupTicket()
 
                 for (int j = entryIndex; j > i; j--)
                 {
-
-                    if (iLow(mEntrySymbol, mEntryTimeFrame, i) < iLow(mEntrySymbol, mEntryTimeFrame, j) &&
-                        currentTick.bid >= OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
+                    if (iLow(mEntrySymbol, mEntryTimeFrame, i) < iLow(mEntrySymbol, mEntryTimeFrame, j))
                     {
-                        mCurrentSetupTicket.Close();
-                        return;
+                        // managed to break back out, close at BE
+                        if (currentTick.bid >= OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
+                        {
+                            mCurrentSetupTicket.Close();
+                            return;
+                        }
+
+                        // pushed too far into SL, take the -0.5
+                        if (EAHelper::CloseIfPercentIntoStopLoss<MBInnerBreak>(this, mCurrentSetupTicket, 0.5))
+                        {
+                            return;
+                        }
                     }
                 }
             }
@@ -732,9 +742,11 @@ void MBInnerBreak::ManageCurrentActiveSetupTicket()
 
         // middle close
         // This is here as a safety net so we aren't running a very expenseive nested for loop. If this returns false something went wrong or I need to change things.
+        // close if we break a high within our stop loss
         if (entryIndex <= 200)
         {
-            for (int i = entryIndex - 1; i >= 0; i--)
+            // do minus 2 so that we don't include the candle that we actually entered on in case it wicked below before entering
+            for (int i = entryIndex - 2; i >= 0; i--)
             {
                 if (iHigh(mEntrySymbol, mEntryTimeFrame, i) < OrderOpenPrice())
                 {
@@ -743,11 +755,20 @@ void MBInnerBreak::ManageCurrentActiveSetupTicket()
 
                 for (int j = entryIndex; j > i; j--)
                 {
-                    if (iHigh(mEntrySymbol, mEntryTimeFrame, i) > iHigh(mEntrySymbol, mEntryTimeFrame, j) &&
-                        currentTick.ask <= OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
+                    if (iHigh(mEntrySymbol, mEntryTimeFrame, i) > iHigh(mEntrySymbol, mEntryTimeFrame, j))
                     {
-                        mCurrentSetupTicket.Close();
-                        return;
+                        // managed to break back out, close at BE
+                        if (currentTick.ask <= OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
+                        {
+                            mCurrentSetupTicket.Close();
+                            return;
+                        }
+
+                        // pushed too far into SL, take the -0.5
+                        if (EAHelper::CloseIfPercentIntoStopLoss<MBInnerBreak>(this, mCurrentSetupTicket, 0.5))
+                        {
+                            return;
+                        }
                     }
                 }
             }

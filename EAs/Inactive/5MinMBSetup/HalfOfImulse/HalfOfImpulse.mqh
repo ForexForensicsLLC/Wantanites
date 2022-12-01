@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                    TwoDojisInZone.mqh |
+//|                                                    HalfOfImpulse.mqh |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -12,20 +12,20 @@
 #include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
-class TwoDojisInZone : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class HalfOfImpulse : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     MBTracker *mSetupMBT;
 
     int mFirstMBInSetupNumber;
-    int mSecondMBInSetupNumber;
-    int mThirdMBInSetupNumber;
 
     double mMinMBRatio;
     double mMaxMBRatio;
 
     double mMinMBHeight;
     double mMaxMBHeight;
+
+    datetime mImpulseCandleTime;
 
     double mEntryPaddingPips;
     double mMinStopLossPips;
@@ -46,12 +46,11 @@ public:
     double mLastManagedBid;
 
 public:
-    TwoDojisInZone(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                   CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                   CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT);
-    ~TwoDojisInZone();
+    HalfOfImpulse(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+                  CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                  CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT);
+    ~HalfOfImpulse();
 
-    double EMA(int index) { return iMA(mEntrySymbol, mEntryTimeFrame, 100, 0, MODE_EMA, PRICE_CLOSE, index); }
     virtual double RiskPercent();
 
     virtual void Run();
@@ -74,15 +73,13 @@ public:
     virtual void Reset();
 };
 
-TwoDojisInZone::TwoDojisInZone(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                               CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                               CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT)
+HalfOfImpulse::HalfOfImpulse(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+                             CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                             CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mSetupMBT = setupMBT;
     mFirstMBInSetupNumber = EMPTY;
-    mSecondMBInSetupNumber = EMPTY;
-    mThirdMBInSetupNumber = EMPTY;
 
     mMinMBRatio = 0.0;
     mMaxMBRatio = 0.0;
@@ -90,14 +87,16 @@ TwoDojisInZone::TwoDojisInZone(int magicNumber, int setupType, int maxCurrentSet
     mMinMBHeight = 0.0;
     mMaxMBHeight = 0.0;
 
+    mImpulseCandleTime = 0;
+
     mEntryPaddingPips = 0.0;
     mMinStopLossPips = 0.0;
     mPipsToWaitBeforeBE = 0.0;
     mBEAdditionalPips = 0.0;
 
-    EAHelper::FindSetPreviousAndCurrentSetupTickets<TwoDojisInZone>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<TwoDojisInZone, PartialTradeRecord>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<TwoDojisInZone, MultiTimeFrameEntryTradeRecord>(this);
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<HalfOfImpulse>(this);
+    EAHelper::UpdatePreviousSetupTicketsRRAcquried<HalfOfImpulse, PartialTradeRecord>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<HalfOfImpulse, MultiTimeFrameEntryTradeRecord>(this);
 
     mBarCount = 0;
     mLastEntryMB = EMPTY;
@@ -116,49 +115,40 @@ TwoDojisInZone::TwoDojisInZone(int magicNumber, int setupType, int maxCurrentSet
     mLargestAccountBalance = AccountBalance();
 }
 
-TwoDojisInZone::~TwoDojisInZone()
+HalfOfImpulse::~HalfOfImpulse()
 {
 }
 
-double TwoDojisInZone::RiskPercent()
+double HalfOfImpulse::RiskPercent()
 {
     return mRiskPercent;
 }
 
-void TwoDojisInZone::Run()
+void HalfOfImpulse::Run()
 {
-    EAHelper::RunDrawMBT<TwoDojisInZone>(this, mSetupMBT);
+    EAHelper::RunDrawMBT<HalfOfImpulse>(this, mSetupMBT);
     mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
 }
 
-bool TwoDojisInZone::AllowedToTrade()
+bool HalfOfImpulse::AllowedToTrade()
 {
-    return EAHelper::BelowSpread<TwoDojisInZone>(this) && EAHelper::WithinTradingSession<TwoDojisInZone>(this);
+    return EAHelper::BelowSpread<HalfOfImpulse>(this) && EAHelper::WithinTradingSession<HalfOfImpulse>(this);
 }
 
-void TwoDojisInZone::CheckSetSetup()
+void HalfOfImpulse::CheckSetSetup()
 {
     if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
     {
         return;
     }
 
-    if (EAHelper::CheckSetSingleMBSetup<TwoDojisInZone>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
+    if (EAHelper::CheckSetSingleMBSetup<HalfOfImpulse>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
     {
-        MBState *tempMBState;
-        if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, tempMBState))
-        {
-            return;
-        }
-
-        if (EAHelper::CandleIsAfterTime<TwoDojisInZone>(this, mEntrySymbol, mEntryTimeFrame, 15, 0, tempMBState.StartIndex()))
-        {
-            mHasSetup = true;
-        }
+        mHasSetup = true;
     }
 }
 
-void TwoDojisInZone::CheckInvalidateSetup()
+void HalfOfImpulse::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
@@ -175,15 +165,29 @@ void TwoDojisInZone::CheckInvalidateSetup()
             return;
         }
     }
+
+    if (mHasSetup)
+    {
+        if (mImpulseCandleTime > 0)
+        {
+            int impulseCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mImpulseCandleTime);
+            if (impulseCandleIndex > 4)
+            {
+                InvalidateSetup(true);
+            }
+        }
+    }
 }
 
-void TwoDojisInZone::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void HalfOfImpulse::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
-    EAHelper::InvalidateSetup<TwoDojisInZone>(this, deletePendingOrder, false, error);
-    EAHelper::ResetSingleMBSetup<TwoDojisInZone>(this, false);
+    EAHelper::InvalidateSetup<HalfOfImpulse>(this, deletePendingOrder, false, error);
+    EAHelper::ResetSingleMBSetup<HalfOfImpulse>(this, false);
+
+    mImpulseCandleTime = 0;
 }
 
-bool TwoDojisInZone::Confirmation()
+bool HalfOfImpulse::Confirmation()
 {
     bool hasTicket = mCurrentSetupTicket.Number() != EMPTY;
     if (hasTicket)
@@ -210,8 +214,7 @@ bool TwoDojisInZone::Confirmation()
 
     int pendingMBStart = EMPTY;
     int firstCandleInZone = EMPTY;
-    int lastDojiIndex = EMPTY;
-    int dojiCandleCount = 0;
+    double minPercentChange = 0.2;
 
     if (mSetupType == OP_BUY)
     {
@@ -231,35 +234,32 @@ bool TwoDojisInZone::Confirmation()
 
         if (firstCandleInZone == EMPTY)
         {
+            Print("didn't tap zone");
             return false;
         }
 
-        for (int i = 1; i <= firstCandleInZone - 1; i++)
+        for (int i = 2; i <= firstCandleInZone; i++)
         {
-            if (iLow(mEntrySymbol, mEntryTimeFrame, i) > tempZoneState.EntryPrice())
+            if (CandleStickHelper::PercentChange(mEntrySymbol, mEntryTimeFrame, i) <= (minPercentChange * -1))
             {
-                return false;
-            }
-            else
-            {
-                if (EAHelper::DojiInsideMostRecentMBsHoldingZone<TwoDojisInZone>(this, mSetupMBT, mFirstMBInSetupNumber, i))
+                double fiftyPercentOfCandle = iHigh(mEntrySymbol, mEntryTimeFrame, i) - ((iHigh(mEntrySymbol, mEntryTimeFrame, i) - iLow(mEntrySymbol, mEntryTimeFrame, i)) * 0.5);
+                if (iHigh(mEntrySymbol, mEntryTimeFrame, i - 1) < fiftyPercentOfCandle)
                 {
-                    if (lastDojiIndex - i <= 3)
-                    {
-                        lastDojiIndex = i;
-                        dojiCandleCount += 1;
-                    }
-                    else
-                    {
-                        dojiCandleCount = 0;
-                    }
+                    mImpulseCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, i);
+                    return true;
                 }
+
+                break;
+
+                Print("past 50%");
             }
 
-            if (dojiCandleCount >= 2)
+            Print("no percent change");
+
+            if (i > 4)
             {
-                mEntryCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, i);
-                return true;
+                Print("too long");
+                return false;
             }
         }
     }
@@ -284,32 +284,23 @@ bool TwoDojisInZone::Confirmation()
             return false;
         }
 
-        for (int i = 1; i <= firstCandleInZone - 1; i++)
+        for (int i = 2; i <= firstCandleInZone - 1; i++)
         {
-            if (iHigh(mEntrySymbol, mEntryTimeFrame, i) < tempZoneState.EntryPrice())
+            if (CandleStickHelper::PercentChange(mEntrySymbol, mEntryTimeFrame, i) >= minPercentChange)
             {
-                return false;
-            }
-            else
-            {
-                if (EAHelper::DojiInsideMostRecentMBsHoldingZone<TwoDojisInZone>(this, mSetupMBT, mFirstMBInSetupNumber, i))
+                double fiftyPercentOfCandle = iHigh(mEntrySymbol, mEntryTimeFrame, i) - ((iHigh(mEntrySymbol, mEntryTimeFrame, i) - iLow(mEntrySymbol, mEntryTimeFrame, i)) * 0.5);
+                if (iLow(mEntrySymbol, mEntryTimeFrame, i - 1) > fiftyPercentOfCandle)
                 {
-                    if (lastDojiIndex - i <= 3)
-                    {
-                        lastDojiIndex = i;
-                        dojiCandleCount += 1;
-                    }
-                    else
-                    {
-                        dojiCandleCount = 0;
-                    }
+                    mImpulseCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, i);
+                    return true;
                 }
+
+                break;
             }
 
-            if (dojiCandleCount >= 2)
+            if (i > 4)
             {
-                mEntryCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, i);
-                return true;
+                return false;
             }
         }
     }
@@ -317,7 +308,7 @@ bool TwoDojisInZone::Confirmation()
     return hasTicket;
 }
 
-void TwoDojisInZone::PlaceOrders()
+void HalfOfImpulse::PlaceOrders()
 {
     if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
     {
@@ -359,6 +350,10 @@ void TwoDojisInZone::PlaceOrders()
     double entry = 0.0;
     double stopLoss = 0.0;
 
+    int impulseCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mImpulseCandleTime);
+    double fiftyPercentOfCandle = iHigh(mEntrySymbol, mEntryTimeFrame, impulseCandleIndex) -
+                                  ((iHigh(mEntrySymbol, mEntryTimeFrame, impulseCandleIndex) - iLow(mEntrySymbol, mEntryTimeFrame, impulseCandleIndex)) * 0.5);
+
     if (mSetupType == OP_BUY)
     {
         if (!mSetupMBT.CurrentBullishRetracementIndexIsValid(pendingMBStart))
@@ -371,8 +366,8 @@ void TwoDojisInZone::PlaceOrders()
             return;
         }
 
-        entry = iHigh(mEntrySymbol, mEntryTimeFrame, 1) + OrderHelper::PipsToRange(mMaxSpreadPips + mEntryPaddingPips);
-        stopLoss = MathMin(tempZoneState.ExitPrice() - OrderHelper::PipsToRange(mStopLossPaddingPips), furthestPoint - OrderHelper::PipsToRange(mStopLossPaddingPips));
+        entry = fiftyPercentOfCandle;
+        stopLoss = furthestPoint - OrderHelper::PipsToRange(mStopLossPaddingPips);
     }
     else if (mSetupType == OP_SELL)
     {
@@ -386,12 +381,11 @@ void TwoDojisInZone::PlaceOrders()
             return;
         }
 
-        entry = iLow(mEntrySymbol, mEntryTimeFrame, 1) - OrderHelper::PipsToRange(mEntryPaddingPips);
-        stopLoss = MathMax(tempZoneState.ExitPrice() + OrderHelper::PipsToRange(mStopLossPaddingPips + mMaxSpreadPips),
-                           furthestPoint + OrderHelper::PipsToRange(mStopLossPaddingPips + mMaxSpreadPips));
+        entry = fiftyPercentOfCandle;
+        stopLoss = furthestPoint + OrderHelper::PipsToRange(mStopLossPaddingPips + mMaxSpreadPips);
     }
 
-    EAHelper::PlaceStopOrder<TwoDojisInZone>(this, entry, stopLoss, 0.0, true, mBEAdditionalPips);
+    EAHelper::PlaceStopOrder<HalfOfImpulse>(this, entry, stopLoss, 0.0, true, mBEAdditionalPips);
 
     if (mCurrentSetupTicket.Number() != EMPTY)
     {
@@ -401,7 +395,7 @@ void TwoDojisInZone::PlaceOrders()
     }
 }
 
-void TwoDojisInZone::ManageCurrentPendingSetupTicket()
+void HalfOfImpulse::ManageCurrentPendingSetupTicket()
 {
     int entryCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
     if (mCurrentSetupTicket.Number() == EMPTY)
@@ -436,7 +430,7 @@ void TwoDojisInZone::ManageCurrentPendingSetupTicket()
     }
 }
 
-void TwoDojisInZone::ManageCurrentActiveSetupTicket()
+void HalfOfImpulse::ManageCurrentActiveSetupTicket()
 {
     if (mCurrentSetupTicket.Number() == EMPTY)
     {
@@ -462,7 +456,7 @@ void TwoDojisInZone::ManageCurrentActiveSetupTicket()
         return;
     }
 
-    // if (EAHelper::CloseIfPercentIntoStopLoss<TwoDojisInZone>(this, mCurrentSetupTicket, 0.2))
+    // if (EAHelper::CloseIfPercentIntoStopLoss<HalfOfImpulse>(this, mCurrentSetupTicket, 0.2))
     // {
     //     return;
     // }
@@ -566,62 +560,62 @@ void TwoDojisInZone::ManageCurrentActiveSetupTicket()
     // BE after we validate the MB we entered in
     // if (mSetupMBT.MBsCreated() - 1 != mEntryMB)
     // {
-    //     EAHelper::MoveToBreakEvenAsSoonAsPossible<TwoDojisInZone>(this, mBEAdditionalPips);
+    //     EAHelper::MoveToBreakEvenAsSoonAsPossible<HalfOfImpulse>(this, mBEAdditionalPips);
     // }
 
     if (movedPips || mLastEntryMB != mSetupMBT.MBsCreated() - 1)
     {
-        EAHelper::MoveToBreakEvenAsSoonAsPossible<TwoDojisInZone>(this, mBEAdditionalPips);
+        EAHelper::MoveToBreakEvenAsSoonAsPossible<HalfOfImpulse>(this, mBEAdditionalPips);
     }
 
     mLastManagedAsk = currentTick.ask;
     mLastManagedBid = currentTick.bid;
 
-    EAHelper::CheckPartialTicket<TwoDojisInZone>(this, mCurrentSetupTicket);
+    EAHelper::CheckPartialTicket<HalfOfImpulse>(this, mCurrentSetupTicket);
 }
 
-bool TwoDojisInZone::MoveToPreviousSetupTickets(Ticket &ticket)
+bool HalfOfImpulse::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    return EAHelper::TicketStopLossIsMovedToBreakEven<TwoDojisInZone>(this, ticket);
+    return EAHelper::TicketStopLossIsMovedToBreakEven<HalfOfImpulse>(this, ticket);
 }
 
-void TwoDojisInZone::ManagePreviousSetupTicket(int ticketIndex)
+void HalfOfImpulse::ManagePreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::CheckPartialTicket<TwoDojisInZone>(this, mPreviousSetupTickets[ticketIndex]);
+    EAHelper::CheckPartialTicket<HalfOfImpulse>(this, mPreviousSetupTickets[ticketIndex]);
 }
 
-void TwoDojisInZone::CheckCurrentSetupTicket()
+void HalfOfImpulse::CheckCurrentSetupTicket()
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<TwoDojisInZone>(this, mCurrentSetupTicket);
-    EAHelper::CheckCurrentSetupTicket<TwoDojisInZone>(this);
+    EAHelper::CheckUpdateHowFarPriceRanFromOpen<HalfOfImpulse>(this, mCurrentSetupTicket);
+    EAHelper::CheckCurrentSetupTicket<HalfOfImpulse>(this);
 }
 
-void TwoDojisInZone::CheckPreviousSetupTicket(int ticketIndex)
+void HalfOfImpulse::CheckPreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<TwoDojisInZone>(this, mPreviousSetupTickets[ticketIndex]);
-    EAHelper::CheckPreviousSetupTicket<TwoDojisInZone>(this, ticketIndex);
+    EAHelper::CheckUpdateHowFarPriceRanFromOpen<HalfOfImpulse>(this, mPreviousSetupTickets[ticketIndex]);
+    EAHelper::CheckPreviousSetupTicket<HalfOfImpulse>(this, ticketIndex);
 }
 
-void TwoDojisInZone::RecordTicketOpenData()
+void HalfOfImpulse::RecordTicketOpenData()
 {
-    EAHelper::RecordSingleTimeFrameEntryTradeRecord<TwoDojisInZone>(this);
+    EAHelper::RecordSingleTimeFrameEntryTradeRecord<HalfOfImpulse>(this);
 }
 
-void TwoDojisInZone::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
+void HalfOfImpulse::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
-    EAHelper::RecordPartialTradeRecord<TwoDojisInZone>(this, partialedTicket, newTicketNumber);
+    EAHelper::RecordPartialTradeRecord<HalfOfImpulse>(this, partialedTicket, newTicketNumber);
 }
 
-void TwoDojisInZone::RecordTicketCloseData(Ticket &ticket)
+void HalfOfImpulse::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameExitTradeRecord<TwoDojisInZone>(this, ticket, Period());
+    EAHelper::RecordSingleTimeFrameExitTradeRecord<HalfOfImpulse>(this, ticket, Period());
 }
 
-void TwoDojisInZone::RecordError(int error, string additionalInformation = "")
+void HalfOfImpulse::RecordError(int error, string additionalInformation = "")
 {
-    EAHelper::RecordSingleTimeFrameErrorRecord<TwoDojisInZone>(this, error, additionalInformation);
+    EAHelper::RecordSingleTimeFrameErrorRecord<HalfOfImpulse>(this, error, additionalInformation);
 }
 
-void TwoDojisInZone::Reset()
+void HalfOfImpulse::Reset()
 {
 }

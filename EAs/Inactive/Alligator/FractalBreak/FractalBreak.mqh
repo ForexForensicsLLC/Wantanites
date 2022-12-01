@@ -322,14 +322,14 @@ bool FractalBreak::Confirmation()
             return hasTicket;
         }
 
-        // for (int i = 3; i <= 4; i++)
-        // {
-        // }
-        double fractal = iFractals(mEntrySymbol, mEntryTimeFrame, MODE_UPPER, 4);
-        if (fractal > 0.0)
+        for (int i = 3; i <= 4; i++)
         {
-            mEntryPrice = fractal;
-            return true;
+            double fractal = iFractals(mEntrySymbol, mEntryTimeFrame, MODE_UPPER, i);
+            if (fractal > 0.0)
+            {
+                mEntryPrice = fractal;
+                return true;
+            }
         }
     }
     else if (mSetupType == OP_SELL)
@@ -352,14 +352,14 @@ bool FractalBreak::Confirmation()
             return false;
         }
 
-        // for (int i = 3; i <= 4; i++)
-        // {
-        // }
-        double fractal = iFractals(mEntrySymbol, mEntryTimeFrame, MODE_LOWER, 4);
-        if (fractal > 0.0)
+        for (int i = 3; i <= 4; i++)
         {
-            mEntryPrice = fractal;
-            return true;
+            double fractal = iFractals(mEntrySymbol, mEntryTimeFrame, MODE_LOWER, 4);
+            if (fractal > 0.0)
+            {
+                mEntryPrice = fractal;
+                return true;
+            }
         }
     }
 
@@ -387,6 +387,7 @@ void FractalBreak::PlaceOrders()
     }
 
     double stopLoss = 0.0;
+    double entry = 0.0;
     if (mSetupType == OP_BUY)
     {
         if (!MQLHelper::GetLowestLowBetween(mEntrySymbol, mEntryTimeFrame, 4, 0, false, stopLoss))
@@ -483,7 +484,7 @@ void FractalBreak::ManageCurrentActiveSetupTicket()
         movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
 
-    if (movedPips)
+    if (movedPips || entryIndex > 1)
     {
         EAHelper::MoveToBreakEvenAsSoonAsPossible<FractalBreak>(this, mBEAdditionalPips);
     }

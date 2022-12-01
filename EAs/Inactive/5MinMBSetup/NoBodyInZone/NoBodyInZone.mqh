@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                    TwoDojisInZone.mqh |
+//|                                                    NoBodyInZone.mqh |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -12,14 +12,12 @@
 #include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
-class TwoDojisInZone : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class NoBodyInZone : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     MBTracker *mSetupMBT;
 
     int mFirstMBInSetupNumber;
-    int mSecondMBInSetupNumber;
-    int mThirdMBInSetupNumber;
 
     double mMinMBRatio;
     double mMaxMBRatio;
@@ -46,12 +44,11 @@ public:
     double mLastManagedBid;
 
 public:
-    TwoDojisInZone(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                   CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                   CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT);
-    ~TwoDojisInZone();
+    NoBodyInZone(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+                 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                 CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT);
+    ~NoBodyInZone();
 
-    double EMA(int index) { return iMA(mEntrySymbol, mEntryTimeFrame, 100, 0, MODE_EMA, PRICE_CLOSE, index); }
     virtual double RiskPercent();
 
     virtual void Run();
@@ -74,15 +71,13 @@ public:
     virtual void Reset();
 };
 
-TwoDojisInZone::TwoDojisInZone(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                               CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                               CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT)
+NoBodyInZone::NoBodyInZone(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+                           CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                           CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mSetupMBT = setupMBT;
     mFirstMBInSetupNumber = EMPTY;
-    mSecondMBInSetupNumber = EMPTY;
-    mThirdMBInSetupNumber = EMPTY;
 
     mMinMBRatio = 0.0;
     mMaxMBRatio = 0.0;
@@ -95,9 +90,9 @@ TwoDojisInZone::TwoDojisInZone(int magicNumber, int setupType, int maxCurrentSet
     mPipsToWaitBeforeBE = 0.0;
     mBEAdditionalPips = 0.0;
 
-    EAHelper::FindSetPreviousAndCurrentSetupTickets<TwoDojisInZone>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<TwoDojisInZone, PartialTradeRecord>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<TwoDojisInZone, MultiTimeFrameEntryTradeRecord>(this);
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<NoBodyInZone>(this);
+    EAHelper::UpdatePreviousSetupTicketsRRAcquried<NoBodyInZone, PartialTradeRecord>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<NoBodyInZone, MultiTimeFrameEntryTradeRecord>(this);
 
     mBarCount = 0;
     mLastEntryMB = EMPTY;
@@ -116,49 +111,51 @@ TwoDojisInZone::TwoDojisInZone(int magicNumber, int setupType, int maxCurrentSet
     mLargestAccountBalance = AccountBalance();
 }
 
-TwoDojisInZone::~TwoDojisInZone()
+NoBodyInZone::~NoBodyInZone()
 {
 }
 
-double TwoDojisInZone::RiskPercent()
+double NoBodyInZone::RiskPercent()
 {
     return mRiskPercent;
 }
 
-void TwoDojisInZone::Run()
+void NoBodyInZone::Run()
 {
-    EAHelper::RunDrawMBT<TwoDojisInZone>(this, mSetupMBT);
+    EAHelper::RunDrawMBT<NoBodyInZone>(this, mSetupMBT);
     mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
 }
 
-bool TwoDojisInZone::AllowedToTrade()
+bool NoBodyInZone::AllowedToTrade()
 {
-    return EAHelper::BelowSpread<TwoDojisInZone>(this) && EAHelper::WithinTradingSession<TwoDojisInZone>(this);
+    return EAHelper::BelowSpread<NoBodyInZone>(this) && EAHelper::WithinTradingSession<NoBodyInZone>(this);
 }
 
-void TwoDojisInZone::CheckSetSetup()
+void NoBodyInZone::CheckSetSetup()
 {
     if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
     {
         return;
     }
 
-    if (EAHelper::CheckSetSingleMBSetup<TwoDojisInZone>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
+    if (EAHelper::CheckSetSingleMBSetup<NoBodyInZone>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
     {
-        MBState *tempMBState;
-        if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, tempMBState))
-        {
-            return;
-        }
+        // MBState *tempMBState;
+        // if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, tempMBState))
+        // {
+        //     return;
+        // }
 
-        if (EAHelper::CandleIsAfterTime<TwoDojisInZone>(this, mEntrySymbol, mEntryTimeFrame, 15, 0, tempMBState.StartIndex()))
-        {
-            mHasSetup = true;
-        }
+        // if (EAHelper::CandleIsAfterTime<NoBodyInZone>(this, mEntrySymbol, mEntryTimeFrame, 15, 0, tempMBState.StartIndex()))
+        // {
+        //     mHasSetup = true;
+        // }
+
+        mHasSetup = true;
     }
 }
 
-void TwoDojisInZone::CheckInvalidateSetup()
+void NoBodyInZone::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
@@ -177,13 +174,13 @@ void TwoDojisInZone::CheckInvalidateSetup()
     }
 }
 
-void TwoDojisInZone::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void NoBodyInZone::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
-    EAHelper::InvalidateSetup<TwoDojisInZone>(this, deletePendingOrder, false, error);
-    EAHelper::ResetSingleMBSetup<TwoDojisInZone>(this, false);
+    EAHelper::InvalidateSetup<NoBodyInZone>(this, deletePendingOrder, false, error);
+    EAHelper::ResetSingleMBSetup<NoBodyInZone>(this, false);
 }
 
-bool TwoDojisInZone::Confirmation()
+bool NoBodyInZone::Confirmation()
 {
     bool hasTicket = mCurrentSetupTicket.Number() != EMPTY;
     if (hasTicket)
@@ -210,8 +207,7 @@ bool TwoDojisInZone::Confirmation()
 
     int pendingMBStart = EMPTY;
     int firstCandleInZone = EMPTY;
-    int lastDojiIndex = EMPTY;
-    int dojiCandleCount = 0;
+    int candlesNotEnteredZone = 0;
 
     if (mSetupType == OP_BUY)
     {
@@ -234,33 +230,14 @@ bool TwoDojisInZone::Confirmation()
             return false;
         }
 
-        for (int i = 1; i <= firstCandleInZone - 1; i++)
+        for (int i = 1; i <= firstCandleInZone; i++)
         {
-            if (iLow(mEntrySymbol, mEntryTimeFrame, i) > tempZoneState.EntryPrice())
+            if (CandleStickHelper::LowestBodyPart(mEntrySymbol, mEntryTimeFrame, i) < tempZoneState.EntryPrice())
             {
                 return false;
             }
-            else
-            {
-                if (EAHelper::DojiInsideMostRecentMBsHoldingZone<TwoDojisInZone>(this, mSetupMBT, mFirstMBInSetupNumber, i))
-                {
-                    if (lastDojiIndex - i <= 3)
-                    {
-                        lastDojiIndex = i;
-                        dojiCandleCount += 1;
-                    }
-                    else
-                    {
-                        dojiCandleCount = 0;
-                    }
-                }
-            }
 
-            if (dojiCandleCount >= 2)
-            {
-                mEntryCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, i);
-                return true;
-            }
+            candlesNotEnteredZone += 1;
         }
     }
     else if (mSetupType == OP_SELL)
@@ -286,38 +263,19 @@ bool TwoDojisInZone::Confirmation()
 
         for (int i = 1; i <= firstCandleInZone - 1; i++)
         {
-            if (iHigh(mEntrySymbol, mEntryTimeFrame, i) < tempZoneState.EntryPrice())
+            if (CandleStickHelper::HighestBodyPart(mEntrySymbol, mEntryTimeFrame, i) > tempZoneState.EntryPrice())
             {
                 return false;
             }
-            else
-            {
-                if (EAHelper::DojiInsideMostRecentMBsHoldingZone<TwoDojisInZone>(this, mSetupMBT, mFirstMBInSetupNumber, i))
-                {
-                    if (lastDojiIndex - i <= 3)
-                    {
-                        lastDojiIndex = i;
-                        dojiCandleCount += 1;
-                    }
-                    else
-                    {
-                        dojiCandleCount = 0;
-                    }
-                }
-            }
 
-            if (dojiCandleCount >= 2)
-            {
-                mEntryCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, i);
-                return true;
-            }
+            candlesNotEnteredZone += 1;
         }
     }
 
-    return hasTicket;
+    return hasTicket || candlesNotEnteredZone >= 3;
 }
 
-void TwoDojisInZone::PlaceOrders()
+void NoBodyInZone::PlaceOrders()
 {
     if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
     {
@@ -372,7 +330,7 @@ void TwoDojisInZone::PlaceOrders()
         }
 
         entry = iHigh(mEntrySymbol, mEntryTimeFrame, 1) + OrderHelper::PipsToRange(mMaxSpreadPips + mEntryPaddingPips);
-        stopLoss = MathMin(tempZoneState.ExitPrice() - OrderHelper::PipsToRange(mStopLossPaddingPips), furthestPoint - OrderHelper::PipsToRange(mStopLossPaddingPips));
+        stopLoss = furthestPoint - OrderHelper::PipsToRange(mStopLossPaddingPips);
     }
     else if (mSetupType == OP_SELL)
     {
@@ -387,11 +345,10 @@ void TwoDojisInZone::PlaceOrders()
         }
 
         entry = iLow(mEntrySymbol, mEntryTimeFrame, 1) - OrderHelper::PipsToRange(mEntryPaddingPips);
-        stopLoss = MathMax(tempZoneState.ExitPrice() + OrderHelper::PipsToRange(mStopLossPaddingPips + mMaxSpreadPips),
-                           furthestPoint + OrderHelper::PipsToRange(mStopLossPaddingPips + mMaxSpreadPips));
+        stopLoss = furthestPoint + OrderHelper::PipsToRange(mStopLossPaddingPips + mMaxSpreadPips);
     }
 
-    EAHelper::PlaceStopOrder<TwoDojisInZone>(this, entry, stopLoss, 0.0, true, mBEAdditionalPips);
+    EAHelper::PlaceStopOrder<NoBodyInZone>(this, entry, stopLoss, 0.0, true, mBEAdditionalPips);
 
     if (mCurrentSetupTicket.Number() != EMPTY)
     {
@@ -401,7 +358,7 @@ void TwoDojisInZone::PlaceOrders()
     }
 }
 
-void TwoDojisInZone::ManageCurrentPendingSetupTicket()
+void NoBodyInZone::ManageCurrentPendingSetupTicket()
 {
     int entryCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
     if (mCurrentSetupTicket.Number() == EMPTY)
@@ -414,29 +371,29 @@ void TwoDojisInZone::ManageCurrentPendingSetupTicket()
         return;
     }
 
-    // if (entryCandleIndex > 1)
-    // {
-    //     InvalidateSetup(true);
-    //     return;
-    // }
+    if (entryCandleIndex > 1)
+    {
+        InvalidateSetup(true);
+        return;
+    }
 
-    if (mSetupType == OP_BUY)
-    {
-        if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, entryCandleIndex))
-        {
-            InvalidateSetup(true);
-        }
-    }
-    else if (mSetupType == OP_SELL)
-    {
-        if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > iHigh(mEntrySymbol, mEntryTimeFrame, entryCandleIndex))
-        {
-            InvalidateSetup(true);
-        }
-    }
+    // if (mSetupType == OP_BUY)
+    // {
+    //     if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, entryCandleIndex))
+    //     {
+    //         InvalidateSetup(true);
+    //     }
+    // }
+    // else if (mSetupType == OP_SELL)
+    // {
+    //     if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > iHigh(mEntrySymbol, mEntryTimeFrame, entryCandleIndex))
+    //     {
+    //         InvalidateSetup(true);
+    //     }
+    // }
 }
 
-void TwoDojisInZone::ManageCurrentActiveSetupTicket()
+void NoBodyInZone::ManageCurrentActiveSetupTicket()
 {
     if (mCurrentSetupTicket.Number() == EMPTY)
     {
@@ -462,7 +419,7 @@ void TwoDojisInZone::ManageCurrentActiveSetupTicket()
         return;
     }
 
-    // if (EAHelper::CloseIfPercentIntoStopLoss<TwoDojisInZone>(this, mCurrentSetupTicket, 0.2))
+    // if (EAHelper::CloseIfPercentIntoStopLoss<NoBodyInZone>(this, mCurrentSetupTicket, 0.2))
     // {
     //     return;
     // }
@@ -566,62 +523,62 @@ void TwoDojisInZone::ManageCurrentActiveSetupTicket()
     // BE after we validate the MB we entered in
     // if (mSetupMBT.MBsCreated() - 1 != mEntryMB)
     // {
-    //     EAHelper::MoveToBreakEvenAsSoonAsPossible<TwoDojisInZone>(this, mBEAdditionalPips);
+    //     EAHelper::MoveToBreakEvenAsSoonAsPossible<NoBodyInZone>(this, mBEAdditionalPips);
     // }
 
     if (movedPips || mLastEntryMB != mSetupMBT.MBsCreated() - 1)
     {
-        EAHelper::MoveToBreakEvenAsSoonAsPossible<TwoDojisInZone>(this, mBEAdditionalPips);
+        EAHelper::MoveToBreakEvenAsSoonAsPossible<NoBodyInZone>(this, mBEAdditionalPips);
     }
 
     mLastManagedAsk = currentTick.ask;
     mLastManagedBid = currentTick.bid;
 
-    EAHelper::CheckPartialTicket<TwoDojisInZone>(this, mCurrentSetupTicket);
+    EAHelper::CheckPartialTicket<NoBodyInZone>(this, mCurrentSetupTicket);
 }
 
-bool TwoDojisInZone::MoveToPreviousSetupTickets(Ticket &ticket)
+bool NoBodyInZone::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    return EAHelper::TicketStopLossIsMovedToBreakEven<TwoDojisInZone>(this, ticket);
+    return EAHelper::TicketStopLossIsMovedToBreakEven<NoBodyInZone>(this, ticket);
 }
 
-void TwoDojisInZone::ManagePreviousSetupTicket(int ticketIndex)
+void NoBodyInZone::ManagePreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::CheckPartialTicket<TwoDojisInZone>(this, mPreviousSetupTickets[ticketIndex]);
+    EAHelper::CheckPartialTicket<NoBodyInZone>(this, mPreviousSetupTickets[ticketIndex]);
 }
 
-void TwoDojisInZone::CheckCurrentSetupTicket()
+void NoBodyInZone::CheckCurrentSetupTicket()
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<TwoDojisInZone>(this, mCurrentSetupTicket);
-    EAHelper::CheckCurrentSetupTicket<TwoDojisInZone>(this);
+    EAHelper::CheckUpdateHowFarPriceRanFromOpen<NoBodyInZone>(this, mCurrentSetupTicket);
+    EAHelper::CheckCurrentSetupTicket<NoBodyInZone>(this);
 }
 
-void TwoDojisInZone::CheckPreviousSetupTicket(int ticketIndex)
+void NoBodyInZone::CheckPreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<TwoDojisInZone>(this, mPreviousSetupTickets[ticketIndex]);
-    EAHelper::CheckPreviousSetupTicket<TwoDojisInZone>(this, ticketIndex);
+    EAHelper::CheckUpdateHowFarPriceRanFromOpen<NoBodyInZone>(this, mPreviousSetupTickets[ticketIndex]);
+    EAHelper::CheckPreviousSetupTicket<NoBodyInZone>(this, ticketIndex);
 }
 
-void TwoDojisInZone::RecordTicketOpenData()
+void NoBodyInZone::RecordTicketOpenData()
 {
-    EAHelper::RecordSingleTimeFrameEntryTradeRecord<TwoDojisInZone>(this);
+    EAHelper::RecordSingleTimeFrameEntryTradeRecord<NoBodyInZone>(this);
 }
 
-void TwoDojisInZone::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
+void NoBodyInZone::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
-    EAHelper::RecordPartialTradeRecord<TwoDojisInZone>(this, partialedTicket, newTicketNumber);
+    EAHelper::RecordPartialTradeRecord<NoBodyInZone>(this, partialedTicket, newTicketNumber);
 }
 
-void TwoDojisInZone::RecordTicketCloseData(Ticket &ticket)
+void NoBodyInZone::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameExitTradeRecord<TwoDojisInZone>(this, ticket, Period());
+    EAHelper::RecordSingleTimeFrameExitTradeRecord<NoBodyInZone>(this, ticket, Period());
 }
 
-void TwoDojisInZone::RecordError(int error, string additionalInformation = "")
+void NoBodyInZone::RecordError(int error, string additionalInformation = "")
 {
-    EAHelper::RecordSingleTimeFrameErrorRecord<TwoDojisInZone>(this, error, additionalInformation);
+    EAHelper::RecordSingleTimeFrameErrorRecord<NoBodyInZone>(this, error, additionalInformation);
 }
 
-void TwoDojisInZone::Reset()
+void NoBodyInZone::Reset()
 {
 }
