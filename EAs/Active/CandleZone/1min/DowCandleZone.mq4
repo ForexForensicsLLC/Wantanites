@@ -15,7 +15,7 @@ string ForcedSymbol = "US30";
 int ForcedTimeFrame = 1;
 
 // --- EA Inputs ---
-double RiskPercent = 0.25;
+double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 

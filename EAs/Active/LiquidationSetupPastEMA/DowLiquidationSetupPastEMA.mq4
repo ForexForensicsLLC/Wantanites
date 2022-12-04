@@ -56,7 +56,7 @@ double MinStopLossPips = 250;
 double StopLossPaddingPips = 50;
 double PipsToWaitBeforeBE = 500;
 double BEAdditionalPips = SymbolConstants::DowSlippagePips;
-double CloseRR = 10;
+double CloseRR = 20;
 
 int OnInit()
 {

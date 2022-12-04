@@ -148,13 +148,11 @@ void ImpulseContinuation::CheckSetSetup()
         double percentChange = CandleStickHelper::PercentChange(mSetupSymbol, mSetupTimeFrame, i);
         if (mSetupType == OP_BUY)
         {
-            // do 0.98 since I want 1 but will allow for .02 variance
             hasPercentChange = percentChange >= mMinPercentChange;
             furtherThanEMA = currentTick.bid >= EMA(0);
         }
         else if (mSetupType == OP_SELL)
         {
-            // do 0.98 since I want 1 but will allow for .02 variance
             hasPercentChange = percentChange <= -mMinPercentChange;
             furtherThanEMA = currentTick.ask <= EMA(0);
         }
@@ -169,10 +167,12 @@ void ImpulseContinuation::CheckSetSetup()
 
     if (hasImpulse)
     {
+        Print("impulse");
         if (EAHelper::CheckSetSingleMBSetup<ImpulseContinuation>(this, mConfirmationMBT, mFirstMBInConfirmationNumber, mSetupType))
         {
             if (EAHelper::MBWithinWidth<ImpulseContinuation>(this, mConfirmationMBT, mFirstMBInConfirmationNumber, 0, 100))
             {
+                Print("Setup");
                 mHasSetup = true;
             }
         }
@@ -251,12 +251,7 @@ bool ImpulseContinuation::Confirmation()
         return false;
     }
 
-    bool dojiInZone = false;
-    int error = EAHelper::DojiInsideMostRecentMBsHoldingZone<ImpulseContinuation>(this, mConfirmationMBT, mFirstMBInConfirmationNumber, dojiInZone);
-    if (TerminalErrors::IsTerminalError(error))
-    {
-        RecordError(error);
-    }
+    bool dojiInZone = EAHelper::DojiInsideMostRecentMBsHoldingZone<ImpulseContinuation>(this, mConfirmationMBT, mFirstMBInConfirmationNumber);
 
     bool hasPendingMB = false;
     int width = EMPTY;

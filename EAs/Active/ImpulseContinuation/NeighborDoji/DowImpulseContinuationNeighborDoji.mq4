@@ -9,7 +9,7 @@
 #property strict
 
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Active/ImpulseContinuation/ImpulseContinuation.mqh>
+#include <SummitCapital/EAs/Active/ImpulseContinuation/NeighborDoji/ImpulseContinuation.mqh>
 
 string EntrySymbol = "US30";
 string EntryTimeFrame = 1;
@@ -32,7 +32,7 @@ bool CalculateOnTick = false;
 
 string StrategyName = "ImpulseContinuation/";
 string EAName = "Dow/";
-string SetupTypeName = "";
+string SetupTypeName = "NeighborDoji/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
