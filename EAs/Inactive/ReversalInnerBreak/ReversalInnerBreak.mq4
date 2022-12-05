@@ -11,7 +11,7 @@
 #include <SummitCapital/EAs/Inactive/ReversalInnerBreak/ReversalInnerBreak.mqh>
 
 // --- EA Inputs ---
-double RiskPercent = 0.25;
+double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
@@ -26,7 +26,7 @@ bool PrintErrors = false;
 bool CalculateOnTick = false;
 
 string StrategyName = "ReversalInnerBreak/";
-string EAName = "Dow/";
+string EAName = "Nas/";
 string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
@@ -40,27 +40,28 @@ ReversalInnerBreak *RIBBuys;
 ReversalInnerBreak *RIBSells;
 
 // Nas
-// double MaxSpreadPips = 10;
-// double MinMBPips = 800;
-// double EntryPaddingPips = 0;
-// double MinStopLossPips = 250;
-// double StopLossPaddingPips = 50;
-// double PipsToWaitBeforeBE = 200;
-// double BEAdditionalPips = 50;
-// double LargeBodyPips = 100;
-// double PushFurtherPips = 100;
+double MaxSpreadPips = 10;
+double MinMBPips = 800;
+double MinDistanceFromPreviousMBRun = 600;
+double EntryPaddingPips = 0;
+double MinStopLossPips = 250;
+double StopLossPaddingPips = 50;
+double PipsToWaitBeforeBE = 200;
+double BEAdditionalPips = 10;
+double LargeBodyPips = 100;
+double PushFurtherPips = 200;
 
-// Dow
-double MaxSpreadPips = 19;
-double MinMBPips = 0;
-double MinPendingMBPips = 800;
-double EntryPaddingPips = 20;
-double MinStopLossPips = 0.0;
-double StopLossPaddingPips = 0;
-double PipsToWaitBeforeBE = 1000;
-double BEAdditionalPips = 200;
-double LargeBodyPips = 150;
-double PushFurtherPips = 150;
+// // Dow
+// double MaxSpreadPips = 19;
+// double MinMBPips = 0;
+// double MinPendingMBPips = 800;
+// double EntryPaddingPips = 20;
+// double MinStopLossPips = 0.0;
+// double StopLossPaddingPips = 0;
+// double PipsToWaitBeforeBE = 1000;
+// double BEAdditionalPips = 200;
+// double LargeBodyPips = 150;
+// double PushFurtherPips = 150;
 
 // S&P
 // double EntryPaddingPips = 0;
@@ -82,6 +83,7 @@ int OnInit()
     RIBBuys.AddPartial(1000, 100);
 
     RIBBuys.mMinMBPips = MinMBPips;
+    RIBBuys.mMinDistanceFromPreviousMBRun = MinDistanceFromPreviousMBRun;
     RIBBuys.mEntryPaddingPips = EntryPaddingPips;
     RIBBuys.mMinStopLossPips = MinStopLossPips;
     RIBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
@@ -91,12 +93,13 @@ int OnInit()
 
     RIBBuys.AddTradingSession(16, 30, 23, 0);
 
-    RIBSells = new ReversalInnerBreak(-1, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
+    RIBSells = new ReversalInnerBreak(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
                                       ErrorWriter, SetupMBT);
     RIBSells.SetPartialCSVRecordWriter(PartialWriter);
     RIBSells.AddPartial(1000, 100);
 
     RIBSells.mMinMBPips = MinMBPips;
+    RIBSells.mMinDistanceFromPreviousMBRun = MinDistanceFromPreviousMBRun;
     RIBSells.mEntryPaddingPips = EntryPaddingPips;
     RIBSells.mMinStopLossPips = MinStopLossPips;
     RIBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;

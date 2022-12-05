@@ -63,8 +63,8 @@ int OnInit()
 
     ConfirmationMBT = new MBTracker(Symbol(), EntryTimeFrame, 10, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
 
-    ICBuys = new ImpulseContinuation(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                     ExitWriter, ErrorWriter, ConfirmationMBT);
+    ICBuys = new ImpulseContinuation(MagicNumbers::DowImpulseContinuationNeighborDojiBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
+                                     MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, ConfirmationMBT);
 
     ICBuys.SetPartialCSVRecordWriter(PartialWriter);
     ICBuys.AddPartial(CloseRR, 100);
@@ -77,8 +77,8 @@ int OnInit()
 
     ICBuys.AddTradingSession(16, 30, 23, 0);
 
-    ICSells = new ImpulseContinuation(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                      ExitWriter, ErrorWriter, ConfirmationMBT);
+    ICSells = new ImpulseContinuation(MagicNumbers::DowImpulseContinuationNeighborDojiSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
+                                      MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, ConfirmationMBT);
     ICSells.SetPartialCSVRecordWriter(PartialWriter);
     ICSells.AddPartial(CloseRR, 100);
 

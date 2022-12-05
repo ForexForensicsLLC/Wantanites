@@ -59,6 +59,24 @@ public:
 
     static int DowMBRunBuys;
     static int DowMBRunSells;
+
+    static int DowOneMinuteCandleZoneBuys;
+    static int DowOneMinuteCandleZoneSells;
+
+    static int DowFiveMinuteSetupCandleZoneBuys;
+    static int DowFiveMinuteSetupCandleZoneSells;
+
+    static int DowTinyMBGapBreakCandleBreakBuys;
+    static int DowTinyMBGapBreakCandleBreakSells;
+
+    static int DowImpulseContinuationNeighborDojiBuys;
+    static int DowImpulseContinuationNeighborDojiSells;
+
+    static int DowTinyMBGapBreakMBBreakBuys;
+    static int DowTinyMBGapBreakMBBreakSells;
+
+    static int DowZoneOutsideMBBuys;
+    static int DowZoneOutsideMBSells;
 };
 
 static int MagicNumbers::TheSunriseShatterBearishSingleMB = 10003;
@@ -106,3 +124,21 @@ static int MagicNumbers::SPXLiquidationMBSells = 10032;
 
 static int MagicNumbers::DowMBRunBuys = 10033;
 static int MagicNumbers::DowMBRunSells = 10034;
+
+static int MagicNumbers::DowOneMinuteCandleZoneBuys = 10035;
+static int MagicNumbers::DowOneMinuteCandleZoneSells = 10036;
+
+static int MagicNumbers::DowFiveMinuteSetupCandleZoneBuys = 10037;
+static int MagicNumbers::DowFiveMinuteSetupCandleZoneSells = 10038;
+
+static int MagicNumbers::DowTinyMBGapBreakCandleBreakBuys = 10039;
+static int MagicNumbers::DowTinyMBGapBreakCandleBreakSells = 10040;
+
+static int MagicNumbers::DowImpulseContinuationNeighborDojiBuys = 10041;
+static int MagicNumbers::DowImpulseContinuationNeighborDojiSells = 10042;
+
+static int MagicNumbers::DowTinyMBGapBreakMBBreakBuys = 10043;
+static int MagicNumbers::DowTinyMBGapBreakMBBreakSells = 10044;
+
+static int MagicNumbers::DowZoneOutsideMBBuys = 10045;
+static int MagicNumbers::DowZoneOutsideMBSells = 10046;

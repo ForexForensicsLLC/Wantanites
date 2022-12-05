@@ -65,8 +65,8 @@ int OnInit()
 
     SetupMBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
 
-    TMBBuys = new TinyMBGapBreak(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                 ExitWriter, ErrorWriter, SetupMBT);
+    TMBBuys = new TinyMBGapBreak(MagicNumbers::DowTinyMBGapBreakCandleBreakBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                 RiskPercent, EntryWriter, ExitWriter, ErrorWriter, SetupMBT);
 
     TMBBuys.SetPartialCSVRecordWriter(PartialWriter);
     TMBBuys.AddPartial(CloseRR, 100);
@@ -81,8 +81,8 @@ int OnInit()
 
     TMBBuys.AddTradingSession(16, 30, 23, 0);
 
-    TMBSells = new TinyMBGapBreak(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                  ExitWriter, ErrorWriter, SetupMBT);
+    TMBSells = new TinyMBGapBreak(MagicNumbers::DowTinyMBGapBreakCandleBreakSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                  RiskPercent, EntryWriter, ExitWriter, ErrorWriter, SetupMBT);
     TMBSells.SetPartialCSVRecordWriter(PartialWriter);
     TMBSells.AddPartial(CloseRR, 100);
 

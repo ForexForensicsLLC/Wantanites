@@ -52,7 +52,7 @@ double MinStopLossPips = 350;
 double StopLossPaddingPips = 50;
 double PipsToWaitBeforeBE = 1000;
 double BEAdditionalPips = SymbolConstants::DowSlippagePips;
-double CloseRR = 20;
+double CloseRR = 10;
 
 int OnInit()
 {
@@ -63,8 +63,8 @@ int OnInit()
 
     SetupMBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
 
-    ZOMBBuys = new ZoneOutsideMB(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                 ExitWriter, ErrorWriter, SetupMBT);
+    ZOMBBuys = new ZoneOutsideMB(MagicNumbers::DowZoneOutsideMBBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
+                                 EntryWriter, ExitWriter, ErrorWriter, SetupMBT);
 
     ZOMBBuys.SetPartialCSVRecordWriter(PartialWriter);
     ZOMBBuys.AddPartial(CloseRR, 100);
@@ -77,8 +77,8 @@ int OnInit()
 
     ZOMBBuys.AddTradingSession(16, 30, 23, 0);
 
-    ZOMBSells = new ZoneOutsideMB(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                  ExitWriter, ErrorWriter, SetupMBT);
+    ZOMBSells = new ZoneOutsideMB(MagicNumbers::DowZoneOutsideMBSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
+                                  EntryWriter, ExitWriter, ErrorWriter, SetupMBT);
     ZOMBSells.SetPartialCSVRecordWriter(PartialWriter);
     ZOMBSells.AddPartial(CloseRR, 100);
 

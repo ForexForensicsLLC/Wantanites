@@ -287,6 +287,11 @@ void ZoneOutsideMB::ManageCurrentActiveSetupTicket()
         return;
     }
 
+    if (EAHelper::CloseIfPercentIntoStopLoss<ZoneOutsideMB>(this, mCurrentSetupTicket, 0.5))
+    {
+        return;
+    }
+
     MqlTick currentTick;
     if (!SymbolInfoTick(Symbol(), currentTick))
     {

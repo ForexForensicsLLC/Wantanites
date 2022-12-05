@@ -63,8 +63,8 @@ int OnInit()
 
     SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
 
-    CZBuys = new CandleZone(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
-                            ErrorWriter, SetupMBT);
+    CZBuys = new CandleZone(MagicNumbers::DowOneMinuteCandleZoneBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
+                            EntryWriter, ExitWriter, ErrorWriter, SetupMBT);
     CZBuys.SetPartialCSVRecordWriter(PartialWriter);
     CZBuys.AddPartial(CloseRR, 100);
 
@@ -75,8 +75,8 @@ int OnInit()
 
     CZBuys.AddTradingSession(19, 0, 23, 0);
 
-    CZSells = new CandleZone(-1, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
-                             ErrorWriter, SetupMBT);
+    CZSells = new CandleZone(MagicNumbers::DowOneMinuteCandleZoneSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                             RiskPercent, EntryWriter, ExitWriter, ErrorWriter, SetupMBT);
     CZSells.SetPartialCSVRecordWriter(PartialWriter);
     CZSells.AddPartial(CloseRR, 100);
 
