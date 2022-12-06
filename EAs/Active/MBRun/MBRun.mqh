@@ -81,10 +81,6 @@ MBRun::MBRun(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, in
     mPipsToWaitBeforeBE = 0.0;
     mBEAdditionalPips = 0.0;
 
-    EAHelper::FindSetPreviousAndCurrentSetupTickets<MBRun>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<MBRun, PartialTradeRecord>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<MBRun, MultiTimeFrameEntryTradeRecord>(this);
-
     mBarCount = 0;
     mEntryMB = EMPTY;
     mEntryCandleTime = 0;
@@ -97,8 +93,11 @@ MBRun::MBRun(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, in
     mLastManagedAsk = 0.0;
     mLastManagedBid = 0.0;
 
-    // TODO: Change Back
-    mLargestAccountBalance = AccountBalance();
+    mLargestAccountBalance = 100000;
+
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<MBRun>(this);
+    EAHelper::UpdatePreviousSetupTicketsRRAcquried<MBRun, PartialTradeRecord>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<MBRun, SingleTimeFrameEntryTradeRecord>(this);
 }
 
 MBRun::~MBRun()

@@ -45,12 +45,12 @@ ZoneOutsideMB *ZOMBBuys;
 ZoneOutsideMB *ZOMBSells;
 
 // Dow
-double MinDistanceFromMB = 1500;
+double MinDistanceFromMB = 150;
 double MaxSpreadPips = SymbolConstants::DowSpreadPips;
-double EntryPaddingPips = 20;
-double MinStopLossPips = 350;
-double StopLossPaddingPips = 50;
-double PipsToWaitBeforeBE = 1000;
+double EntryPaddingPips = 2;
+double MinStopLossPips = 35;
+double StopLossPaddingPips = 5;
+double PipsToWaitBeforeBE = 100;
 double BEAdditionalPips = SymbolConstants::DowSlippagePips;
 double CloseRR = 10;
 

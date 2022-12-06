@@ -11,7 +11,7 @@
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
 #include <SummitCapital/EAs/Active/ImpulseContinuation/TinyMBBreak/TinyMBBreak.mqh>
 
-string EntrySymbol = "US100";
+string EntrySymbol = "NAS100";
 string EntryTimeFrame = 1;
 string SetupTimeFrame = 60;
 
@@ -47,12 +47,12 @@ ImpulseContinuation *ICSells;
 
 // Nas
 double MinPercentChange = 1.75;
-double MaxMBHeight = 350;
-double MinGapPips = 600; // maybe up to 750?
-double MaxEntrySlippagePips = 100;
+double MaxMBHeight = 35;
+double MinGapPips = 60;
+double MaxEntrySlippagePips = 10;
 double MaxSpreadPips = SymbolConstants::NasSpreadPips;
-double StopLossPaddingPips = 20;
-double PipsToWaitBeforeBE = 200;
+double StopLossPaddingPips = 2;
+double PipsToWaitBeforeBE = 20;
 double BEAdditionalPips = SymbolConstants::NasSlippagePips;
 double CloseRR = 20;
 

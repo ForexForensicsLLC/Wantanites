@@ -12,7 +12,7 @@
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
 #include <SummitCapital/EAs/Active/LiquidationSetupPastEMA/LiquidationSetupPastEMA.mqh>
 
-string ForcedSymbol = "US100";
+string ForcedSymbol = "NAS100";
 int ForcedTimeFrame = 1;
 
 // --- EA Inputs ---
@@ -49,13 +49,13 @@ LiquidationMB *LMBBuys;
 LiquidationMB *LMBSells;
 
 // Nas
-double MaxSpreadPips = 10;
-double MinInitalBreakTotalPips = 50;
-double EntryPaddingPips = 20;
-double MinStopLossPips = 250;
-double StopLossPaddingPips = 50;
-double PipsToWaitBeforeBE = 500;
-double BEAdditionalPips = 50;
+double MaxSpreadPips = SymbolConstants::NasSpreadPips;
+double MinInitalBreakTotalPips = 5;
+double EntryPaddingPips = 2;
+double MinStopLossPips = 25;
+double StopLossPaddingPips = 5;
+double PipsToWaitBeforeBE = 50;
+double BEAdditionalPips = SymbolConstants::NasSlippagePips;
 double CloseRR = 20;
 
 int OnInit()

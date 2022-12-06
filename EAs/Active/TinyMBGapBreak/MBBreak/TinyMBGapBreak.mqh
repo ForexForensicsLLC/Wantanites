@@ -83,10 +83,6 @@ TinyMBGapBreak::TinyMBGapBreak(int magicNumber, int setupType, int maxCurrentSet
     mPipsToWaitBeforeBE = 0.0;
     mBEAdditionalPips = 0.0;
 
-    EAHelper::FindSetPreviousAndCurrentSetupTickets<TinyMBGapBreak>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<TinyMBGapBreak, PartialTradeRecord>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<TinyMBGapBreak, SingleTimeFrameEntryTradeRecord>(this);
-
     mBarCount = 0;
     mEntryMB = EMPTY;
     mEntryCandleTime = 0;
@@ -94,8 +90,11 @@ TinyMBGapBreak::TinyMBGapBreak(int magicNumber, int setupType, int maxCurrentSet
     mEntrySymbol = Symbol();
     mEntryTimeFrame = Period();
 
-    // TODO: Change Back
-    mLargestAccountBalance = AccountBalance();
+    mLargestAccountBalance = 100000;
+
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<TinyMBGapBreak>(this);
+    EAHelper::UpdatePreviousSetupTicketsRRAcquried<TinyMBGapBreak, PartialTradeRecord>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<TinyMBGapBreak, SingleTimeFrameEntryTradeRecord>(this);
 }
 
 TinyMBGapBreak::~TinyMBGapBreak()

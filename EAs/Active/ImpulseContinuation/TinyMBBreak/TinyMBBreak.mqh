@@ -90,10 +90,6 @@ ImpulseContinuation::ImpulseContinuation(int magicNumber, int setupType, int max
     mPipsToWaitBeforeBE = 0.0;
     mBEAdditionalPips = 0.0;
 
-    EAHelper::FindSetPreviousAndCurrentSetupTickets<ImpulseContinuation>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<ImpulseContinuation, PartialTradeRecord>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<ImpulseContinuation, MultiTimeFrameEntryTradeRecord>(this);
-
     mSetupBarCount = 0;
     mEntryBarCount = 0;
 
@@ -108,7 +104,11 @@ ImpulseContinuation::ImpulseContinuation(int magicNumber, int setupType, int max
     mSetupTimeFrame = Period();
 
     // TODO: Change Back
-    mLargestAccountBalance = AccountBalance();
+    mLargestAccountBalance = 100000;
+
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<ImpulseContinuation>(this);
+    EAHelper::UpdatePreviousSetupTicketsRRAcquried<ImpulseContinuation, PartialTradeRecord>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<ImpulseContinuation, SingleTimeFrameEntryTradeRecord>(this);
 }
 
 ImpulseContinuation::~ImpulseContinuation()
@@ -168,7 +168,6 @@ void ImpulseContinuation::CheckSetSetup()
 
         if (hasPercentChange && furtherThanEMA)
         {
-            Print("setup");
             mHasSetup = true;
             mSetupCandleTime = candleTime;
 
@@ -244,20 +243,17 @@ bool ImpulseContinuation::Confirmation()
 
         if (tempMBState.EndIndex() > 1)
         {
-            Print("not at end");
             return false;
         }
 
         if (tempMBState.Height() > OrderHelper::PipsToRange(mMaxMBHeight))
         {
-            Print("too tall");
             return false;
         }
 
         MBState *prevMBState;
         if (!mConfirmationMBT.GetPreviousMB(tempMBState.Number(), prevMBState))
         {
-            Print("no prev");
             return false;
         }
 
@@ -272,18 +268,12 @@ bool ImpulseContinuation::Confirmation()
         {
             if (currentTick.ask - iHigh(mEntrySymbol, mEntryTimeFrame, tempMBState.HighIndex()) > OrderHelper::PipsToRange(mMaxEntrySlippagePips))
             {
-                Print("too much slipp");
                 return false;
             }
 
             if (iLow(mEntrySymbol, mEntryTimeFrame, tempMBState.LowIndex()) - iHigh(mEntrySymbol, mEntryTimeFrame, prevMBState.HighIndex()) >= OrderHelper::PipsToRange(mMinMBGap))
             {
-                Print("conf");
                 return true;
-            }
-            else
-            {
-                Print("no gap");
             }
         }
         else if (mSetupType == OP_SELL)

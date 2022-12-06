@@ -48,9 +48,9 @@ ImpulseContinuation *ICSells;
 // Dow
 double MinPercentChange = 0.98;
 double MaxSpreadPips = SymbolConstants::DowSpreadPips;
-double EntryPaddingPips = 20;
-double MinStopLossPips = 350;
-double StopLossPaddingPips = 50;
+double EntryPaddingPips = 2;
+double MinStopLossPips = 35;
+double StopLossPaddingPips = 5;
 double BEAdditionalPips = SymbolConstants::DowSlippagePips;
 double CloseRR = 20;
 

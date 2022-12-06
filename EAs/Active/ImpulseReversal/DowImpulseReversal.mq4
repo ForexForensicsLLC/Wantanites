@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
+#include <SummitCapital/EAs/Active/ImpulseReversal/ImpulseReversal.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Active/CandleZone/5MinSetup/CandleZone.mqh>
 
 string ForcedSymbol = "US30";
 int ForcedTimeFrame = 1;
@@ -21,17 +21,17 @@ int MaxTradesPerDay = 5;
 
 // -- MBTracker Inputs
 int MBsToTrack = 10;
-int MaxZonesInMB = 5;
+int MaxZonesInMB = 0;
 bool AllowMitigatedZones = false;
 bool AllowZonesAfterMBValidation = true;
 bool AllowWickBreaks = true;
-bool OnlyZonesInMB = false;
+bool OnlyZonesInMB = true;
 bool PrintErrors = false;
 bool CalculateOnTick = false;
 
-string StrategyName = "CandleZone/";
+string StrategyName = "ImpulseReversal/";
 string EAName = "Dow/";
-string SetupTypeName = "5MinSetup/";
+string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -40,20 +40,17 @@ CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWrite
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
 MBTracker *SetupMBT;
-MBTracker *EntryMBT;
-
-CandleZone *CZBuys;
-CandleZone *CZSells;
+ImpulseReversal *IRBuys;
+ImpulseReversal *IRSells;
 
 // Dow
-double MaxMBPips = 50;
+double MinPercentChange = 0.4;
 double MaxSpreadPips = SymbolConstants::DowSpreadPips;
 double EntryPaddingPips = 2;
-double MinStopLossPips = 35;
 double StopLossPaddingPips = 5;
-double PipsToWaitBeforeBE = 20;
+double PipsToWaitBeforeBE = 200;
 double BEAdditionalPips = SymbolConstants::DowSlippagePips;
-double CloseRR = 15;
+double CloseRR = 10;
 
 int OnInit()
 {
@@ -62,38 +59,32 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    SetupMBT = new MBTracker(Symbol(), 5, MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors,
+    SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors,
                              CalculateOnTick);
 
-    EntryMBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors,
-                             CalculateOnTick);
+    IRBuys = new ImpulseReversal(MagicNumbers::DowImpulseReversalBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
+                                 EntryWriter, ExitWriter, ErrorWriter, SetupMBT);
+    IRBuys.SetPartialCSVRecordWriter(PartialWriter);
+    IRBuys.AddPartial(CloseRR, 100);
 
-    CZBuys = new CandleZone(MagicNumbers::DowFiveMinuteSetupCandleZoneBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
-                            RiskPercent, EntryWriter, ExitWriter, ErrorWriter, SetupMBT, EntryMBT);
+    IRBuys.mMinPercentChange = MinPercentChange;
+    IRBuys.mEntryPaddingPips = EntryPaddingPips;
+    IRBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    IRBuys.mBEAdditionalPip = BEAdditionalPips;
 
-    CZBuys.SetPartialCSVRecordWriter(PartialWriter);
-    CZBuys.AddPartial(CloseRR, 100);
+    IRBuys.AddTradingSession(15, 30, 23, 0);
 
-    CZBuys.mMaxMBPips = MaxMBPips;
-    CZBuys.mEntryPaddingPips = EntryPaddingPips;
-    CZBuys.mMinStopLossPips = MinStopLossPips;
-    CZBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    CZBuys.mBEAdditionalPips = BEAdditionalPips;
+    IRSells = new ImpulseReversal(MagicNumbers::DowImpulseReversalSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
+                                  EntryWriter, ExitWriter, ErrorWriter, SetupMBT);
+    IRSells.SetPartialCSVRecordWriter(PartialWriter);
+    IRSells.AddPartial(CloseRR, 100);
 
-    CZBuys.AddTradingSession(16, 30, 23, 0);
+    IRSells.mMinPercentChange = MinPercentChange;
+    IRSells.mEntryPaddingPips = EntryPaddingPips;
+    IRSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    IRSells.mBEAdditionalPip = BEAdditionalPips;
 
-    CZSells = new CandleZone(MagicNumbers::DowFiveMinuteSetupCandleZoneSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
-                             RiskPercent, EntryWriter, ExitWriter, ErrorWriter, SetupMBT, EntryMBT);
-    CZSells.SetPartialCSVRecordWriter(PartialWriter);
-    CZSells.AddPartial(CloseRR, 100);
-
-    CZSells.mMaxMBPips = MaxMBPips;
-    CZSells.mEntryPaddingPips = EntryPaddingPips;
-    CZSells.mMinStopLossPips = MinStopLossPips;
-    CZSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    CZSells.mBEAdditionalPips = BEAdditionalPips;
-
-    CZSells.AddTradingSession(16, 30, 23, 0);
+    IRSells.AddTradingSession(15, 30, 23, 0);
 
     return (INIT_SUCCEEDED);
 }
@@ -101,10 +92,9 @@ int OnInit()
 void OnDeinit(const int reason)
 {
     delete SetupMBT;
-    delete EntryMBT;
 
-    delete CZBuys;
-    delete CZSells;
+    delete IRBuys;
+    delete IRSells;
 
     delete EntryWriter;
     delete PartialWriter;
@@ -114,6 +104,6 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    CZBuys.Run();
-    CZSells.Run();
+    IRBuys.Run();
+    IRSells.Run();
 }

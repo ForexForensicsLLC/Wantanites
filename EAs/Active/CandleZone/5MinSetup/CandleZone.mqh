@@ -12,7 +12,7 @@
 #include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
-class CandleZone : public EA<MBEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class CandleZone : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     MBTracker *mSetupMBT;
@@ -42,7 +42,7 @@ public:
 
 public:
     CandleZone(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-               CSVRecordWriter<MBEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+               CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
                CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT, MBTracker *&entryMBT);
     ~CandleZone();
 
@@ -69,7 +69,7 @@ public:
 };
 
 CandleZone::CandleZone(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                       CSVRecordWriter<MBEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                       CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
                        CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT, MBTracker *&entryMBT)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
@@ -87,10 +87,6 @@ CandleZone::CandleZone(int magicNumber, int setupType, int maxCurrentSetupTrades
     mPipsToWaitBeforeBE = 0.0;
     mBEAdditionalPips = 0.0;
 
-    EAHelper::FindSetPreviousAndCurrentSetupTickets<CandleZone>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<CandleZone, PartialTradeRecord>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<CandleZone, SingleTimeFrameEntryTradeRecord>(this);
-
     mBarCount = 0;
     mLastEntryMB = EMPTY;
     mEntryCandleTime = 0;
@@ -98,8 +94,11 @@ CandleZone::CandleZone(int magicNumber, int setupType, int maxCurrentSetupTrades
     mEntrySymbol = Symbol();
     mEntryTimeFrame = Period();
 
-    // TODO: Change Back
-    mLargestAccountBalance = AccountBalance();
+    mLargestAccountBalance = 100000;
+
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<CandleZone>(this);
+    EAHelper::UpdatePreviousSetupTicketsRRAcquried<CandleZone, PartialTradeRecord>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<CandleZone, SingleTimeFrameEntryTradeRecord>(this);
 }
 
 CandleZone::~CandleZone()
@@ -488,7 +487,7 @@ void CandleZone::CheckPreviousSetupTicket(int ticketIndex)
 
 void CandleZone::RecordTicketOpenData()
 {
-    EAHelper::RecordMBEntryTradeRecord<CandleZone>(this, mFirstMBInEntryNumber, mEntryMBT, 0, 0);
+    EAHelper::RecordSingleTimeFrameEntryTradeRecord<CandleZone>(this);
 }
 
 void CandleZone::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)

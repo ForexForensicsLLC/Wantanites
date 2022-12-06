@@ -12,7 +12,7 @@
 #include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
-class MBInnerBreak : public EA<MBEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class MBInnerBreak : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     MBTracker *mSetupMBT;
@@ -26,43 +26,25 @@ public:
     double mLargeBodyPips;
     double mPushFurtherPips;
 
-    int mSetupMBsCreated;
-
     datetime mEntryCandleTime;
-    datetime mStopLossCandleTime;
     datetime mBreakCandleTime;
     int mBarCount;
-    int mManageCurrentSetupBarCount;
-    int mConfirmationBarCount;
-    int mSetupBarCount;
-    int mCheckInvalidateSetupBarCount;
 
     int mEntryTimeFrame;
     string mEntrySymbol;
 
-    int mSetupTimeFrame;
-    string mSetupSymbol;
-
     int mLastEntryMB;
-    int mLastEntryZone;
-
-    int mMBCount;
-    int mLastDay;
-    int mEntryMBNumber;
 
     double mLastManagedBid;
     double mLastManagedAsk;
 
-    double mImbalanceCandlePercentChange;
-
 public:
     MBInnerBreak(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                 CSVRecordWriter<MBEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
                  CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT);
     ~MBInnerBreak();
 
-    virtual int MagicNumber() { return mSetupType == OP_BUY ? MagicNumbers::BullishKataraSingleMB : MagicNumbers::BearishKataraSingleMB; }
-    virtual double RiskPercent();
+    virtual double RiskPercent() { return mRiskPercent; }
 
     virtual void Run();
     virtual bool AllowedToTrade();
@@ -85,12 +67,16 @@ public:
 };
 
 MBInnerBreak::MBInnerBreak(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                           CSVRecordWriter<MBEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                           CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
                            CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mSetupMBT = setupMBT;
     mFirstMBInSetupNumber = EMPTY;
+
+    mBarCount = 0;
+    mEntryCandleTime = 0;
+    mBreakCandleTime = 0;
 
     mEntryPaddingPips = 0.0;
     mMinStopLossPips = 0.0;
@@ -99,57 +85,29 @@ MBInnerBreak::MBInnerBreak(int magicNumber, int setupType, int maxCurrentSetupTr
     mLargeBodyPips = 0.0;
     mPushFurtherPips = 0.0;
 
-    EAHelper::FindSetPreviousAndCurrentSetupTickets<MBInnerBreak>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<MBInnerBreak, PartialTradeRecord>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<MBInnerBreak, MultiTimeFrameEntryTradeRecord>(this);
-
-    mSetupMBsCreated = 0;
-
-    mBreakCandleTime = 0;
-
-    mConfirmationBarCount = 0;
-    mBarCount = 0;
-    mManageCurrentSetupBarCount = 0;
-    mCheckInvalidateSetupBarCount = 0;
-    mSetupBarCount = 0;
-    mEntryCandleTime = 0;
-    mStopLossCandleTime = 0;
-
     mLastEntryMB = EMPTY;
-    mLastEntryZone = EMPTY;
-
-    mMBCount = 0;
-    mLastDay = 0;
-
-    mImbalanceCandlePercentChange = 0.0;
 
     mEntrySymbol = Symbol();
     mEntryTimeFrame = Period();
 
-    mSetupSymbol = Symbol();
-    mSetupTimeFrame = 15;
-
-    mEntryMBNumber = EMPTY;
-
     mLastManagedBid = 0.0;
     mLastManagedAsk = 0.0;
 
-    // TODO: Change Back
-    mLargestAccountBalance = AccountBalance();
+    mLargestAccountBalance = 100000;
+
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<MBInnerBreak>(this);
+    EAHelper::UpdatePreviousSetupTicketsRRAcquried<MBInnerBreak, PartialTradeRecord>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<MBInnerBreak, SingleTimeFrameEntryTradeRecord>(this);
 }
 
 MBInnerBreak::~MBInnerBreak()
 {
 }
 
-double MBInnerBreak::RiskPercent()
-{
-    return mRiskPercent;
-}
-
 void MBInnerBreak::Run()
 {
     EAHelper::RunDrawMBT<MBInnerBreak>(this, mSetupMBT);
+    mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
 }
 
 bool MBInnerBreak::AllowedToTrade()
@@ -159,18 +117,6 @@ bool MBInnerBreak::AllowedToTrade()
 
 void MBInnerBreak::CheckSetSetup()
 {
-    if (mLastDay != Day())
-    {
-        mMBCount = 0;
-        mLastDay = Day();
-    }
-
-    if (mSetupMBT.MBsCreated() > mSetupMBsCreated)
-    {
-        mSetupMBsCreated = mSetupMBT.MBsCreated();
-        mMBCount += 1;
-    }
-
     if (EAHelper::CheckSetSingleMBSetup<MBInnerBreak>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
     {
         mHasSetup = true;
@@ -195,20 +141,16 @@ void MBInnerBreak::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_E
 {
     EAHelper::InvalidateSetup<MBInnerBreak>(this, deletePendingOrder, false, error);
     mFirstMBInSetupNumber = EMPTY;
-    mStopLossCandleTime = 0;
 }
 
 bool MBInnerBreak::Confirmation()
 {
     bool hasTicket = mCurrentSetupTicket.Number() != EMPTY;
 
-    int bars = iBars(mEntrySymbol, mEntryTimeFrame);
-    if (bars <= mConfirmationBarCount)
+    if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
     {
         return hasTicket;
     }
-
-    mConfirmationBarCount = bars;
 
     MBState *tempMBState;
     if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, tempMBState))
@@ -609,9 +551,7 @@ void MBInnerBreak::PlaceOrders()
     if (mCurrentSetupTicket.Number() != EMPTY)
     {
         mLastEntryMB = mostRecentMB.Number();
-        mLastEntryZone = holdingZone.Number();
         mEntryCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 1);
-        mBarCount = currentBars;
     }
 }
 
@@ -827,7 +767,7 @@ void MBInnerBreak::CheckPreviousSetupTicket(int ticketIndex)
 
 void MBInnerBreak::RecordTicketOpenData()
 {
-    EAHelper::RecordMBEntryTradeRecord<MBInnerBreak>(this, mSetupMBT.MBsCreated() - 1, mSetupMBT, mMBCount, mLastEntryZone);
+    EAHelper::RecordSingleTimeFrameEntryTradeRecord<MBInnerBreak>(this);
 }
 
 void MBInnerBreak::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
@@ -847,5 +787,4 @@ void MBInnerBreak::RecordError(int error, string additionalInformation = "")
 
 void MBInnerBreak::Reset()
 {
-    mMBCount = 0;
 }

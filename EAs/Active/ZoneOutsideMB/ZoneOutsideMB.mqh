@@ -79,10 +79,6 @@ ZoneOutsideMB::ZoneOutsideMB(int magicNumber, int setupType, int maxCurrentSetup
     mPipsToWaitBeforeBE = 0.0;
     mBEAdditionalPips = 0.0;
 
-    EAHelper::FindSetPreviousAndCurrentSetupTickets<ZoneOutsideMB>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<ZoneOutsideMB, PartialTradeRecord>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<ZoneOutsideMB, SingleTimeFrameEntryTradeRecord>(this);
-
     mBarCount = 0;
     mEntryMB = EMPTY;
     mEntryCandleTime = 0;
@@ -93,8 +89,11 @@ ZoneOutsideMB::ZoneOutsideMB(int magicNumber, int setupType, int maxCurrentSetup
     mLastManagedAsk = 0.0;
     mLastManagedBid = 0.0;
 
-    // TODO: Change Back
-    mLargestAccountBalance = AccountBalance();
+    mLargestAccountBalance = 100000;
+
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<ZoneOutsideMB>(this);
+    EAHelper::UpdatePreviousSetupTicketsRRAcquried<ZoneOutsideMB, PartialTradeRecord>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<ZoneOutsideMB, SingleTimeFrameEntryTradeRecord>(this);
 }
 
 ZoneOutsideMB::~ZoneOutsideMB()

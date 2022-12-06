@@ -84,9 +84,11 @@ CandleZone::CandleZone(int magicNumber, int setupType, int maxCurrentSetupTrades
     mPipsToWaitBeforeBE = 0.0;
     mBEAdditionalPips = 0.0;
 
+    mLargestAccountBalance = 100000;
+
     EAHelper::FindSetPreviousAndCurrentSetupTickets<CandleZone>(this);
     EAHelper::UpdatePreviousSetupTicketsRRAcquried<CandleZone, PartialTradeRecord>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<CandleZone, MultiTimeFrameEntryTradeRecord>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<CandleZone, SingleTimeFrameEntryTradeRecord>(this);
 }
 
 CandleZone::~CandleZone()

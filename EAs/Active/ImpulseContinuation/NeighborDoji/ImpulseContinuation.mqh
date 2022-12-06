@@ -80,10 +80,6 @@ ImpulseContinuation::ImpulseContinuation(int magicNumber, int setupType, int max
     mMinStopLossPips = 0.0;
     mBEAdditionalPips = 0.0;
 
-    EAHelper::FindSetPreviousAndCurrentSetupTickets<ImpulseContinuation>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<ImpulseContinuation, PartialTradeRecord>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<ImpulseContinuation, MultiTimeFrameEntryTradeRecord>(this);
-
     mSetupBarCount = 0;
     mEntryBarCount = 0;
 
@@ -97,8 +93,11 @@ ImpulseContinuation::ImpulseContinuation(int magicNumber, int setupType, int max
     mSetupSymbol = Symbol();
     mSetupTimeFrame = Period();
 
-    // TODO: Change Back
-    mLargestAccountBalance = AccountBalance();
+    mLargestAccountBalance = 100000;
+
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<ImpulseContinuation>(this);
+    EAHelper::UpdatePreviousSetupTicketsRRAcquried<ImpulseContinuation, PartialTradeRecord>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<ImpulseContinuation, SingleTimeFrameEntryTradeRecord>(this);
 }
 
 ImpulseContinuation::~ImpulseContinuation()

@@ -35,7 +35,7 @@ string EAName = "Dow/";
 string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
-CSVRecordWriter<MBEntryTradeRecord> *EntryWriter = new CSVRecordWriter<MBEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
+CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
 CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>(Directory + "Partials/", "Partials.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
@@ -45,13 +45,13 @@ MBInnerBreak *MBInnerBreakBuys;
 MBInnerBreak *MBInnerBreakSells;
 
 double MaxSpreadPips = SymbolConstants::DowSpreadPips;
-double EntryPaddingPips = 20;
-double MinStopLossPips = 250;
-double StopLossPaddingPips = 50;
-double PipsToWaitBeforeBE = 400;
+double EntryPaddingPips = 2;
+double MinStopLossPips = 25;
+double StopLossPaddingPips = 5;
+double PipsToWaitBeforeBE = 40;
 double BEAdditionalPips = SymbolConstants::DowSlippagePips;
-double LargeBodyPips = 150;
-double PushFurtherPips = 150;
+double LargeBodyPips = 15;
+double PushFurtherPips = 15;
 double CloseRR = 20;
 
 int OnInit()

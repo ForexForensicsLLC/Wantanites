@@ -46,14 +46,14 @@ MBRun *MBRunBuys;
 MBRun *MBRunSells;
 
 // Dow
-double MaxFirstMBHeightPips = 600;
-double MaxSecondMBHeightPips = 800;
-double MaxSpreadPips = 18;
-double EntryPaddingPips = 20;
-double MinStopLossPips = 350;
-double StopLossPaddingPips = 20;
-double PipsToWaitBeforeBE = 500;
-double BEAdditionalPips = 50;
+double MaxFirstMBHeightPips = 60;
+double MaxSecondMBHeightPips = 80;
+double MaxSpreadPips = SymbolConstants::DowSpreadPips;
+double EntryPaddingPips = 2;
+double MinStopLossPips = 35;
+double StopLossPaddingPips = 2;
+double PipsToWaitBeforeBE = 50;
+double BEAdditionalPips = SymbolConstants::DowSlippagePips;
 double CloseRR = 20;
 
 int OnInit()

@@ -77,6 +77,9 @@ public:
 
     static int DowZoneOutsideMBBuys;
     static int DowZoneOutsideMBSells;
+
+    static int DowImpulseReversalBuys;
+    static int DowImpulseReversalSells;
 };
 
 static int MagicNumbers::TheSunriseShatterBearishSingleMB = 10003;
@@ -142,3 +145,6 @@ static int MagicNumbers::DowTinyMBGapBreakMBBreakSells = 10044;
 
 static int MagicNumbers::DowZoneOutsideMBBuys = 10045;
 static int MagicNumbers::DowZoneOutsideMBSells = 10046;
+
+static int MagicNumbers::DowImpulseReversalBuys = 10047;
+static int MagicNumbers::DowImpulseReversalSells = 10048;

@@ -26,7 +26,7 @@ bool PrintErrors = false;
 bool CalculateOnTick = false;
 
 string StrategyName = "ReversalInnerBreak/";
-string EAName = "Nas/";
+string EAName = "Dow/";
 string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
@@ -40,28 +40,29 @@ ReversalInnerBreak *RIBBuys;
 ReversalInnerBreak *RIBSells;
 
 // Nas
-double MaxSpreadPips = 10;
-double MinMBPips = 800;
-double MinDistanceFromPreviousMBRun = 600;
-double EntryPaddingPips = 0;
-double MinStopLossPips = 250;
-double StopLossPaddingPips = 50;
-double PipsToWaitBeforeBE = 200;
-double BEAdditionalPips = 10;
-double LargeBodyPips = 100;
-double PushFurtherPips = 200;
+// double MaxSpreadPips = 10;
+// double MinMBPips = 800;
+// double MinDistanceFromPreviousMBRun = 600;
+// double EntryPaddingPips = 0;
+// double MinStopLossPips = 250;
+// double StopLossPaddingPips = 50;
+// double PipsToWaitBeforeBE = 200;
+// double BEAdditionalPips = 10;
+// double LargeBodyPips = 100;
+// double PushFurtherPips = 200;
 
-// // Dow
-// double MaxSpreadPips = 19;
-// double MinMBPips = 0;
-// double MinPendingMBPips = 800;
-// double EntryPaddingPips = 20;
-// double MinStopLossPips = 0.0;
-// double StopLossPaddingPips = 0;
-// double PipsToWaitBeforeBE = 1000;
-// double BEAdditionalPips = 200;
-// double LargeBodyPips = 150;
-// double PushFurtherPips = 150;
+// Dow
+double MaxSpreadPips = 19;
+double MinMBPips = 600;
+double MinDistanceFromPreviousMBRun = 600;
+double MinPendingMBPips = 800;
+double EntryPaddingPips = 0;
+double MinStopLossPips = 0.0;
+double StopLossPaddingPips = 50;
+double PipsToWaitBeforeBE = 1000;
+double BEAdditionalPips = 20;
+double LargeBodyPips = 150;
+double PushFurtherPips = 150;
 
 // S&P
 // double EntryPaddingPips = 0;

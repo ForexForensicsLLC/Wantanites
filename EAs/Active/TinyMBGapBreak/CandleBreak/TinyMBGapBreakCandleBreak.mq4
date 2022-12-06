@@ -45,14 +45,14 @@ TinyMBGapBreak *TMBBuys;
 TinyMBGapBreak *TMBSells;
 
 // Dow
-double MaxMBHeight = 500;
-double MinMBGap = 500;
-double MaxEntrySlippage = 150;
+double MaxMBHeight = 50;
+double MinMBGap = 50;
+double MaxEntrySlippage = 15;
 double MaxSpreadPips = SymbolConstants::DowSpreadPips;
-double EntryPaddingPips = 20;
-double MinStopLossPips = 350;
-double StopLossPaddingPips = 100;
-double PipsToWaitBeforeBE = 1500;
+double EntryPaddingPips = 2;
+double MinStopLossPips = 35;
+double StopLossPaddingPips = 10;
+double PipsToWaitBeforeBE = 150;
 double BEAdditionalPips = SymbolConstants::DowSlippagePips;
 double CloseRR = 15;
 

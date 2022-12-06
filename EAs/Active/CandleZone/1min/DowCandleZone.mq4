@@ -45,12 +45,12 @@ CandleZone *CZBuys;
 CandleZone *CZSells;
 
 // Dow
-double MinMBHeight = 900;
+double MinMBHeight = 90;
 double MaxSpreadPips = SymbolConstants::DowSpreadPips;
 double EntryPaddingPips = 0;
-double MinStopLossPips = 250;
-double StopLossPaddingPips = 50;
-double PipsToWaitBeforeBE = 500;
+double MinStopLossPips = 25;
+double StopLossPaddingPips = 5;
+double PipsToWaitBeforeBE = 50;
 double BEAdditionalPips = SymbolConstants::DowSlippagePips;
 double CloseRR = 20;
 

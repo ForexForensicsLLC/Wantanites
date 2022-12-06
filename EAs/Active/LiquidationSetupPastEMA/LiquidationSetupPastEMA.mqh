@@ -49,8 +49,8 @@ public:
                   CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT, LiquidationSetupTracker *&lst);
     ~LiquidationMB();
 
-    // virtual int MagicNumber() { return mSetupType == OP_BUY ? MagicNumbers::BullishLiquidationMB : MagicNumbers::BearishLiquidationMB; }
     virtual double RiskPercent() { return mRiskPercent; }
+
     virtual void Run();
     virtual bool AllowedToTrade();
     virtual void CheckSetSetup();
@@ -106,9 +106,11 @@ LiquidationMB::LiquidationMB(int magicNumber, int setupType, int maxCurrentSetup
     mLastManagedAsk = 0.0;
     mLastManagedBid = 0.0;
 
+    mLargestAccountBalance = 100000;
+
     EAHelper::FindSetPreviousAndCurrentSetupTickets<LiquidationMB>(this);
     EAHelper::UpdatePreviousSetupTicketsRRAcquried<LiquidationMB, PartialTradeRecord>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<LiquidationMB, MultiTimeFrameEntryTradeRecord>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<LiquidationMB, SingleTimeFrameEntryTradeRecord>(this);
 }
 
 double LiquidationMB::EMA(int index)

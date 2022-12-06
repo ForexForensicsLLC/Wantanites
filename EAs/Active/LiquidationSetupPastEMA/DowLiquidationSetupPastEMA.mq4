@@ -50,11 +50,11 @@ LiquidationMB *LMBSells;
 
 // Dow
 double MaxSpreadPips = SymbolConstants::DowSpreadPips;
-double MinInitalBreakTotalPips = 50;
-double EntryPaddingPips = 20;
-double MinStopLossPips = 250;
-double StopLossPaddingPips = 50;
-double PipsToWaitBeforeBE = 500;
+double MinInitalBreakTotalPips = 5;
+double EntryPaddingPips = 2;
+double MinStopLossPips = 25;
+double StopLossPaddingPips = 5;
+double PipsToWaitBeforeBE = 50;
 double BEAdditionalPips = SymbolConstants::DowSlippagePips;
 double CloseRR = 20;
 
