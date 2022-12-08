@@ -544,7 +544,7 @@ static int SetupHelper::BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker 
 static bool SetupHelper::HammerCandleStickPattern(string symbol, int timeFrame, int startingCandle)
 {
     // bool HighNotAbovePreviuos = iHigh(symbol, timeFrame, startingCandle) < iHigh(symbol, timeFrame, startingCandle + 1);
-    bool bodyNotBelowPrevious = MathMin(iOpen(symbol, timeFrame, startingCandle), iClose(symbol, timeFrame, startingCandle)) > iLow(symbol, timeFrame, startingCandle + 1);
+    bool bodyNotBelowPrevious = MathMin(iOpen(symbol, timeFrame, startingCandle), iClose(symbol, timeFrame, startingCandle)) >= iLow(symbol, timeFrame, startingCandle + 1);
     bool wickBelowPreviuos = iLow(symbol, timeFrame, startingCandle) < iLow(symbol, timeFrame, startingCandle + 1);
 
     return bodyNotBelowPrevious && wickBelowPreviuos;
@@ -566,7 +566,7 @@ static bool SetupHelper::HammerCandleStickPatternBreak(string symbol, int timeFr
 static bool SetupHelper::ShootingStarCandleStickPattern(string symbol, int timeFrame, int startingCandle)
 {
     // bool lowNotBelowPrevious = iLow(symbol, timeFrame, startingCandle) > iLow(symbol, timeFrame, startingCandle + 1);
-    bool bodyNotAbovePrevious = MathMax(iOpen(symbol, timeFrame, startingCandle), iClose(symbol, timeFrame, startingCandle)) < iHigh(symbol, timeFrame, startingCandle + 1);
+    bool bodyNotAbovePrevious = MathMax(iOpen(symbol, timeFrame, startingCandle), iClose(symbol, timeFrame, startingCandle)) <= iHigh(symbol, timeFrame, startingCandle + 1);
     bool wickAbovePrevious = iHigh(symbol, timeFrame, startingCandle) > iHigh(symbol, timeFrame, startingCandle + 1);
 
     return bodyNotAbovePrevious && wickAbovePrevious;

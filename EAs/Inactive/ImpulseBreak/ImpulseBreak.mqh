@@ -12,7 +12,7 @@
 #include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
-class ImpulseBreak : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class ImpulseBreak : public EA<MBEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     string mEntrySymbol;
@@ -34,11 +34,10 @@ public:
 
 public:
     ImpulseBreak(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                 CSVRecordWriter<MBEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
                  CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT);
     ~ImpulseBreak();
 
-    // virtual int MagicNumber() { return mSetupType == OP_BUY ? MagicNumbers::BullishImpulseBreak : MagicNumbers::BearishImpulseBreak; }
     virtual double RiskPercent() { return mRiskPercent; }
     virtual void Run();
     virtual bool AllowedToTrade();
@@ -54,14 +53,14 @@ public:
     virtual void CheckCurrentSetupTicket();
     virtual void CheckPreviousSetupTicket(int ticketIndex);
     virtual void RecordTicketOpenData();
-    virtual void RecordTicketPartialData(int oldTicketIndex, int newTicketNumber);
+    virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
     virtual void Reset();
 };
 
 ImpulseBreak::ImpulseBreak(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                           CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                           CSVRecordWriter<MBEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
                            CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
@@ -111,51 +110,7 @@ void ImpulseBreak::CheckSetSetup()
 
     if (EAHelper::CheckSetSingleMBSetup<ImpulseBreak>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
     {
-        double minPercentChange = 0.3;
-
-        MBState *tempMBState;
-        if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, tempMBState))
-        {
-            return;
-        }
-
-        // if (!EAHelper::MBWithinWidth<ImpulseBreak>(this, mSetupMBT, mFirstMBInSetupNumber, 7))
-        // {
-        //     return;
-        // }
-
-        // if (!EAHelper::MBWithinHeight<ImpulseBreak>(this, mSetupMBT, mFirstMBInSetupNumber, 300))
-        // {
-        //     return;
-        // }
-
-        double candleBeforeEndPercentChange = CandleStickHelper::PercentChange(mEntrySymbol, mEntryTimeFrame, tempMBState.EndIndex() + 1);
-        double endPercentChange = CandleStickHelper::PercentChange(mEntrySymbol, mEntryTimeFrame, tempMBState.EndIndex());
-        double candleAfterEndPercentChange = CandleStickHelper::PercentChange(mEntrySymbol, mEntryTimeFrame, tempMBState.EndIndex() - 1);
-
-        if (mSetupType == OP_BUY)
-        {
-            bool singleCandlePercentChange = endPercentChange >= minPercentChange;
-            bool doubleCandlePercentChange = (candleBeforeEndPercentChange >= (minPercentChange / 2) && endPercentChange >= (minPercentChange / 2)) ||
-                                             (endPercentChange >= (minPercentChange / 2) && candleAfterEndPercentChange >= (minPercentChange / 2));
-
-            if (singleCandlePercentChange || doubleCandlePercentChange)
-            {
-                mHasSetup = true;
-            }
-        }
-        else if (mSetupType == OP_SELL)
-        {
-            double negativePercentChange = minPercentChange * -1;
-            bool singleCandlePercentChange = endPercentChange <= negativePercentChange;
-            bool doubleCandlePercentChange = (candleBeforeEndPercentChange <= (negativePercentChange / 2) && endPercentChange <= (negativePercentChange / 2)) ||
-                                             (endPercentChange <= (negativePercentChange / 2) && candleAfterEndPercentChange <= (negativePercentChange / 2));
-
-            if (singleCandlePercentChange || doubleCandlePercentChange)
-            {
-                mHasSetup = true;
-            }
-        }
+        mHasSetup = true;
     }
 }
 
@@ -189,7 +144,7 @@ bool ImpulseBreak::Confirmation()
         return hasTicket;
     }
 
-    bool inZone = EAHelper::CandleIsInZone(this, mSetupMBT, mFirstMBInSetupNumber, 2);
+    bool inZone = EAHelper::CandleIsInZone(this, mSetupMBT, mFirstMBInSetupNumber, 1);
     if (!inZone)
     {
         return hasTicket;
@@ -207,67 +162,69 @@ bool ImpulseBreak::Confirmation()
         return false;
     }
 
-    // bool exitWithinPercentOfMB = EAHelper::PriceIsFurtherThanPercentIntoMB<ImpulseBreak>(this, mSetupMBT, mFirstMBInSetupNumber, tempZoneState.ExitPrice(), 0.8);
-    // if (!exitWithinPercentOfMB)
-    // {
-    //     return false;
-    // }
-
-    bool entryWithinMB = EAHelper::PriceIsFurtherThanPercentIntoMB<ImpulseBreak>(this, mSetupMBT, mFirstMBInSetupNumber, tempZoneState.ExitPrice(), 0);
+    bool entryWithinMB = EAHelper::PriceIsFurtherThanPercentIntoMB<ImpulseBreak>(this, mSetupMBT, mFirstMBInSetupNumber, tempZoneState.ExitPrice(), 0.5);
     if (!entryWithinMB)
     {
         return false;
     }
 
-    // only take zones that actually caused the impulse break
-    if (tempZoneState.StartIndex() - tempZoneState.EntryOffset() - tempMBState.EndIndex() > 0)
+    int zoneImbalanceCandle = tempZoneState.StartIndex() - tempZoneState.EntryOffset();
+    int maxCandlesBeforeBreak = 3;
+
+    if (zoneImbalanceCandle - tempMBState.EndIndex() > maxCandlesBeforeBreak)
     {
         return false;
     }
 
-    bool candleBreak = false;
+    double singleImpulsePercentChange = 0.17;
+    double doubleImpulsePercentChange = 0.12;
+    int doubleImpulsePercentChangeCount = 0;
+    bool hasImpusleValidation = false;
+
     if (mSetupType == OP_BUY)
     {
-        // don't allow any inner breaks back into the zone
-        for (int i = tempMBState.EndIndex() - 1; i >= 0; i--)
+        for (int i = zoneImbalanceCandle; i >= tempMBState.EndIndex() - 1; i--)
         {
-            if (iHigh(mEntrySymbol, mEntryTimeFrame, i) > iHigh(mEntrySymbol, mEntryTimeFrame, i + 1) &&
-                iHigh(mEntrySymbol, mEntryTimeFrame, i) > iHigh(mEntrySymbol, mEntryTimeFrame, i - 1))
+            if (CandleStickHelper::PercentChange(mEntrySymbol, mEntryTimeFrame, i) >= singleImpulsePercentChange)
             {
-                for (int j = i; j >= 0; j--)
-                {
-                    if (iHigh(mEntrySymbol, mEntryTimeFrame, j) > iHigh(mEntrySymbol, mEntryTimeFrame, i))
-                    {
-                        return false;
-                    }
-                }
+                hasImpusleValidation = true;
+                break;
+            }
+            else if (CandleStickHelper::PercentChange(mEntrySymbol, mEntryTimeFrame, i) >= doubleImpulsePercentChange)
+            {
+                doubleImpulsePercentChangeCount += 1;
+            }
+
+            if (doubleImpulsePercentChangeCount >= 2)
+            {
+                hasImpusleValidation = true;
+                break;
             }
         }
-
-        candleBreak = iClose(mEntrySymbol, mEntryTimeFrame, 1) > iHigh(mEntrySymbol, mEntryTimeFrame, 2);
     }
     else if (mSetupType == OP_SELL)
     {
-        // don't allow any inner breaks back into the zone
-        for (int i = tempMBState.EndIndex() - 1; i >= 0; i--)
+        for (int i = zoneImbalanceCandle; i >= tempMBState.EndIndex() - 1 - 1; i--)
         {
-            if (iLow(mEntrySymbol, mEntryTimeFrame, i) < iLow(mEntrySymbol, mEntryTimeFrame, i + 1) &&
-                iLow(mEntrySymbol, mEntryTimeFrame, i) < iLow(mEntrySymbol, mEntryTimeFrame, i - 1))
+            if (CandleStickHelper::PercentChange(mEntrySymbol, mEntryTimeFrame, i) <= (singleImpulsePercentChange * -1))
             {
-                for (int j = i; j >= 0; j--)
-                {
-                    if (iLow(mEntrySymbol, mEntryTimeFrame, j) < iLow(mEntrySymbol, mEntryTimeFrame, i))
-                    {
-                        return false;
-                    }
-                }
+                hasImpusleValidation = true;
+                break;
+            }
+            else if (CandleStickHelper::PercentChange(mEntrySymbol, mEntryTimeFrame, i) <= (doubleImpulsePercentChange * -1))
+            {
+                doubleImpulsePercentChangeCount += 1;
+            }
+
+            if (doubleImpulsePercentChangeCount >= 2)
+            {
+                hasImpusleValidation = true;
+                break;
             }
         }
-
-        candleBreak = iClose(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, 2);
     }
 
-    return hasTicket || candleBreak;
+    return hasTicket || hasImpusleValidation;
 }
 
 void ImpulseBreak::PlaceOrders()
@@ -289,20 +246,22 @@ void ImpulseBreak::PlaceOrders()
 
     if (mSetupType == OP_BUY)
     {
-        double lowest = MathMin(iLow(mEntrySymbol, mEntryTimeFrame, 2), iLow(mEntrySymbol, mEntryTimeFrame, 1));
+        // double lowest = MathMin(iLow(mEntrySymbol, mEntryTimeFrame, 2), iLow(mEntrySymbol, mEntryTimeFrame, 1));
 
         entry = iHigh(mEntrySymbol, mEntryTimeFrame, 1) + OrderHelper::PipsToRange(mMaxSpreadPips + mEntryPaddingPips);
-        stopLoss = MathMin(lowest - OrderHelper::PipsToRange(mMinStopLossPips), entry - OrderHelper::PipsToRange(mMinStopLossPips));
+        // stopLoss = MathMin(lowest - OrderHelper::PipsToRange(mMinStopLossPips), entry - OrderHelper::PipsToRange(mMinStopLossPips));
+        stopLoss = iLow(mEntrySymbol, mEntryTimeFrame, 1) - OrderHelper::PipsToRange(mStopLossPaddingPips);
     }
     else if (mSetupType == OP_SELL)
     {
         double highest = MathMax(iHigh(mEntrySymbol, mEntryTimeFrame, 2), iHigh(mEntrySymbol, mEntryTimeFrame, 1));
-        entry = iLow(mEntrySymbol, mEntryTimeFrame, 1) - OrderHelper::PipsToRange(mEntryPaddingPips);
 
-        stopLoss = MathMax(highest + OrderHelper::PipsToRange(mStopLossPaddingPips + mMaxSpreadPips), entry + OrderHelper::PipsToRange(mMinStopLossPips));
+        entry = iLow(mEntrySymbol, mEntryTimeFrame, 1) - OrderHelper::PipsToRange(mEntryPaddingPips);
+        // stopLoss = MathMax(highest + OrderHelper::PipsToRange(mStopLossPaddingPips + mMaxSpreadPips), entry + OrderHelper::PipsToRange(mMinStopLossPips));
+        stopLoss = iHigh(mEntrySymbol, mEntryTimeFrame, 1) + OrderHelper::PipsToRange(mMaxSpreadPips + mStopLossPaddingPips);
     }
 
-    EAHelper::PlaceStopOrder<ImpulseBreak>(this, entry, stopLoss);
+    EAHelper::PlaceStopOrder<ImpulseBreak>(this, entry, stopLoss, 0.0, true, mBEAdditionalPips);
 
     if (mCurrentSetupTicket.Number() != EMPTY)
     {
@@ -361,14 +320,14 @@ void ImpulseBreak::ManageCurrentActiveSetupTicket()
 
     if (mSetupType == OP_BUY)
     {
-        if (entryIndex > 2)
-        {
-            // close if we are still opening within our entry and get the chance to close at BE
-            if (iOpen(mEntrySymbol, mEntryTimeFrame, 1) < iHigh(mEntrySymbol, mEntryTimeFrame, orderPlaceIndex) && currentTick.bid >= OrderOpenPrice())
-            {
-                mCurrentSetupTicket.Close();
-            }
-        }
+        // if (entryIndex > 2)
+        // {
+        //     // close if we are still opening within our entry and get the chance to close at BE
+        //     if (iOpen(mEntrySymbol, mEntryTimeFrame, 1) < iHigh(mEntrySymbol, mEntryTimeFrame, orderPlaceIndex) && currentTick.bid >= OrderOpenPrice())
+        //     {
+        //         mCurrentSetupTicket.Close();
+        //     }
+        // }
 
         // if (!mBrokeorderPlaceIndex)
         // {
@@ -388,29 +347,29 @@ void ImpulseBreak::ManageCurrentActiveSetupTicket()
         // }
 
         // get too close to our entry after 5 candles and coming back
-        if (entryIndex >= 10)
-        {
-            if (mLastManagedBid > OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips) &&
-                currentTick.bid <= OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
-            {
-                mCurrentSetupTicket.Close();
-                return;
-            }
-        }
+        // if (entryIndex >= 10)
+        // {
+        //     if (mLastManagedBid > OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips) &&
+        //         currentTick.bid <= OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
+        //     {
+        //         mCurrentSetupTicket.Close();
+        //         return;
+        //     }
+        // }
 
         movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
     else if (mSetupType == OP_SELL)
     {
         // early close
-        if (entryIndex > 2)
-        {
-            // close if we are still opening above our entry and we get the chance to close at BE
-            if (iOpen(mEntrySymbol, mEntryTimeFrame, 1) > iLow(mEntrySymbol, mEntryTimeFrame, orderPlaceIndex) && currentTick.ask <= OrderOpenPrice())
-            {
-                mCurrentSetupTicket.Close();
-            }
-        }
+        // if (entryIndex > 2)
+        // {
+        //     // close if we are still opening above our entry and we get the chance to close at BE
+        //     if (iOpen(mEntrySymbol, mEntryTimeFrame, 1) > iLow(mEntrySymbol, mEntryTimeFrame, orderPlaceIndex) && currentTick.ask <= OrderOpenPrice())
+        //     {
+        //         mCurrentSetupTicket.Close();
+        //     }
+        // }
 
         // if (!mBrokeorderPlaceIndex)
         // {
@@ -431,15 +390,15 @@ void ImpulseBreak::ManageCurrentActiveSetupTicket()
         // }
 
         // get too close to our entry after 5 candles and coming back
-        if (entryIndex >= 10)
-        {
-            if (mLastManagedAsk < OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips) &&
-                currentTick.ask >= OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
-            {
-                mCurrentSetupTicket.Close();
-                return;
-            }
-        }
+        // if (entryIndex >= 10)
+        // {
+        //     if (mLastManagedAsk < OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips) &&
+        //         currentTick.ask >= OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
+        //     {
+        //         mCurrentSetupTicket.Close();
+        //         return;
+        //     }
+        // }
 
         movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
@@ -460,7 +419,7 @@ bool ImpulseBreak::MoveToPreviousSetupTickets(Ticket &ticket)
 
 void ImpulseBreak::ManagePreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::CheckPartialPreviousSetupTicket<ImpulseBreak>(this, ticketIndex);
+    EAHelper::CheckPartialTicket<ImpulseBreak>(this, mPreviousSetupTickets[ticketIndex]);
 }
 
 void ImpulseBreak::CheckCurrentSetupTicket()
@@ -475,12 +434,12 @@ void ImpulseBreak::CheckPreviousSetupTicket(int ticketIndex)
 
 void ImpulseBreak::RecordTicketOpenData()
 {
-    EAHelper::RecordSingleTimeFrameEntryTradeRecord<ImpulseBreak>(this);
+    EAHelper::RecordMBEntryTradeRecord<ImpulseBreak>(this, mFirstMBInSetupNumber, mSetupMBT, 0, 0);
 }
 
-void ImpulseBreak::RecordTicketPartialData(int oldTicketIndex, int newTicketNumber)
+void ImpulseBreak::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
-    EAHelper::RecordPartialTradeRecord<ImpulseBreak>(this, oldTicketIndex, newTicketNumber);
+    EAHelper::RecordPartialTradeRecord<ImpulseBreak>(this, partialedTicket, newTicketNumber);
 }
 
 void ImpulseBreak::RecordTicketCloseData(Ticket &ticket)

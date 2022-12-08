@@ -8,6 +8,8 @@
 #property version "1.00"
 #property strict
 
+#include <SummitCapital\Framework\Helpers\EAErrorHelper.mqh>
+
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\Index.mqh>
 #include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\ErrorRecords\Index.mqh>
 
@@ -110,7 +112,14 @@ public:
     static bool CheckSetFirstMBBreakAfterConsecutiveMBs(TEA &ea, MBTracker *&mbt, int conseuctiveMBs, int &firstMBNumber);
 
     template <typename TEA>
+    static bool CandleIsAfterTime(TEA &ea, string symbol, int timeFrame, int hour, int minute, int index);
+    template <typename TEA>
+    static bool CandleIsWithinSession(TEA &ea, string symbol, int timeFrame, int index);
+    template <typename TEA>
     static bool MBWasCreatedAfterSessionStart(TEA &ea, MBTracker *&mbt, int mbNumber);
+
+    template <typename TEA>
+    static bool RunningBigDipperSetup(TEA &ea, datetime startTime);
 
     // =========================================================================
     // Check Invalidate Setup
@@ -134,16 +143,16 @@ public:
     // Confirmation
     // =========================================================================
     template <typename TEA>
-    static int MostRecentMBZoneIsHolding(TEA &ea, MBTracker *&mbt, int mbNumber, bool &hasConfirmation);
+    static bool MostRecentMBZoneIsHolding(TEA &ea, MBTracker *&mbt, int mbNumber);
     template <typename TEA>
     static int LiquidationMBZoneIsHolding(TEA &ea, MBTracker *&mbt, int firstMBNumber, int secondMBNumber, bool &hasConfirmation);
 
     template <typename TEA>
-    static int DojiInsideMostRecentMBsHoldingZone(TEA &ea, MBTracker *&mbt, int mbNumber, bool &hasConfirmation, int dojiCandleIndex);
+    static bool DojiInsideMostRecentMBsHoldingZone(TEA &ea, MBTracker *&mbt, int mbNumber, int dojiCandleIndex);
     template <typename TEA>
     static int DojiBreakInsideMostRecentMBsHoldingZone(TEA &ea, MBTracker *&mbt, int mbNumber, bool &hasConfirmation);
     template <typename TEA>
-    static int DojiBreakInsideLiquidationSetupMBsHoldingZone(TEA &ea, MBTracker *&mbt, int firstMBNumber, int secondMBNumber, bool &hasConfirmation);
+    static bool DojiInsideLiquidationSetupMBsHoldingZone(TEA &ea, MBTracker *&mbt, int firstMBNumber, int secondMBNumber);
     template <typename TEA>
     static int ImbalanceDojiInZone(TEA &ea, MBTracker *&mbt, int mbNumber, int numberOfCandlesBackForPossibleImbalance, double minPercentROC, bool &hasConfirmation);
     template <typename TEA>
@@ -162,6 +171,8 @@ public:
     template <typename TEA>
     static bool PriceIsFurtherThanPercentIntoMB(TEA &ea, MBTracker *mbt, int mbNumber, double price, double percentAsDecimal);
     template <typename TEA>
+    static bool PriceIsFurtherThanPercentIntoHoldingZone(TEA &ea, MBTracker *&mbt, int mbNumber, double price, double percentAsDecimal);
+    template <typename TEA>
     static bool CandleIsInZone(TEA &ea, MBTracker *mbt, int mbNumber, int candleIndex, bool furthest);
     // =========================================================================
     // Place Order
@@ -176,7 +187,7 @@ public:
     template <typename TEA>
     static void PlaceMarketOrder(TEA &ea, double entry, double stopLoss, double lots);
     template <typename TEA>
-    static void PlaceStopOrder(TEA &ea, double entry, double stopLoss, double lots);
+    static void PlaceStopOrder(TEA &ea, double entry, double stopLoss, double lots, bool fallbackMarketOrder, double maxMarketOrderSlippage);
 
     template <typename TEA>
     static void PlaceStopOrderForPendingMBValidation(TEA &ea, MBTracker *&mbt, int mbNumber);
@@ -220,13 +231,15 @@ public:
     template <typename TEA>
     static void MoveToBreakEvenAfterNextSameTypeMBValidation(TEA &ea, Ticket &ticket, MBTracker *&mbt, int entryMB);
     template <typename TEA>
-    static void CheckPartialPreviousSetupTicket(TEA &ea, int ticketIndex);
+    static void CheckPartialTicket(TEA &ea, Ticket &ticket);
     template <typename TEA>
     static void CloseIfPriceCrossedTicketOpen(TEA &ea, int candlesAfterBeforeChecking);
     template <typename TEA>
     static void MoveToBreakEvenAsSoonAsPossible(TEA &ea, double waitForAdditionalPips);
     template <typename TEA>
     static void MoveStopLossToCoverCommissions(TEA &ea);
+    template <typename TEA>
+    static bool CloseIfPercentIntoStopLoss(TEA &ea, Ticket &ticket, double percent);
 
     template <typename TEA>
     static bool TicketStopLossIsMovedToBreakEven(TEA &ea, Ticket &ticket);
@@ -270,7 +283,7 @@ public:
     static void RecordMBEntryTradeRecord(TEA &ea, int mbNumber, MBTracker *&mbt, int mbCount, int zoneNumber);
 
     template <typename TEA>
-    static void RecordPartialTradeRecord(TEA &ea, int oldTicketIndex, int newTicketNumber);
+    static void RecordPartialTradeRecord(TEA &ea, Ticket &partialedTicket, int newTicketNumber);
 
     template <typename TEA, typename TRecord>
     static void SetDefaultErrorRecordData(TEA &ea, TRecord &record, int error, string additionalInformation);
@@ -543,7 +556,7 @@ static void EAHelper::ManageCurrentSetupTicket(TEA &ea)
         ea.CheckCurrentSetupTicket();
     }
 
-    // Re check since the ticket could have closed between the here and the last call.
+    // Re check since the ticket could have closed between here and the last call.
     if (ea.mCurrentSetupTicket.Number() != EMPTY)
     {
         bool isActive;
@@ -593,12 +606,12 @@ static void EAHelper::Run(TEA &ea)
         return;
     }
 
-    ea.mWasReset = false;
-
     if (ea.mStopTrading)
     {
         return;
     }
+
+    ea.mWasReset = false;
 
     if (!ea.mHasSetup)
     {
@@ -740,7 +753,6 @@ static bool EAHelper::CheckSetFirstMB(TEA &ea, MBTracker *&mbt, int &mbNumber, i
     else
     {
         mbNumber = mbOneTempState.Number();
-        ea.mSetupType = mbOneTempState.Type();
     }
 
     return true;
@@ -930,11 +942,23 @@ static bool EAHelper::CheckSetFirstMBBreakAfterConsecutiveMBs(TEA &ea, MBTracker
 }
 
 template <typename TEA>
+static bool EAHelper::CandleIsAfterTime(TEA &ea, string symbol, int timeFrame, int hour, int minute, int index)
+{
+    string startTimeString = hour + ":" + minute;
+    datetime startTime = StringToTime(startTimeString);
+
+    return iTime(symbol, timeFrame, index) >= startTime;
+}
+
+template <typename TEA>
+static bool EAHelper::CandleIsWithinSession(TEA &ea, string symbol, int timeFrame, int index)
+{
+    return CandleIsAfterTime(ea, symbol, timeFrame, ea.mTradingSessions[0].HourStart(), ea.mTradingSessions[0].MinuteStart(), index);
+}
+
+template <typename TEA>
 static bool EAHelper::MBWasCreatedAfterSessionStart(TEA &ea, MBTracker *&mbt, int mbNumber)
 {
-    string minCreatedTimeString = ea.mTradingSessions[0].HourStart() + ":" + ea.mTradingSessions[0].MinuteStart();
-    datetime minCreatedTime = StringToTime(minCreatedTimeString);
-
     MBState *tempMBState;
     if (!mbt.GetMB(mbNumber, tempMBState))
     {
@@ -942,8 +966,9 @@ static bool EAHelper::MBWasCreatedAfterSessionStart(TEA &ea, MBTracker *&mbt, in
         return false;
     }
 
-    return iTime(tempMBState.Symbol(), tempMBState.TimeFrame(), tempMBState.StartIndex()) >= minCreatedTime;
+    return CandleIsWithinSession(ea, tempMBState.Symbol(), tempMBState.TimeFrame(), tempMBState.StartIndex());
 }
+
 /*
 
     ____ _               _      ___                 _ _     _       _         ____       _
@@ -1072,17 +1097,18 @@ static void EAHelper::InvalidateSetup(TEA &ea, bool deletePendingOrder, bool sto
 
 */
 template <typename TEA>
-static int EAHelper::MostRecentMBZoneIsHolding(TEA &ea, MBTracker *&mbt, int mbNumber, bool &hasConfirmation)
+static bool EAHelper::MostRecentMBZoneIsHolding(TEA &ea, MBTracker *&mbt, int mbNumber)
 {
     ea.mLastState = EAStates::CHECKING_FOR_CONFIRMATION;
 
-    int confirmationError = SetupHelper::MostRecentMBPlusHoldingZone(mbNumber, mbt, hasConfirmation);
+    bool isHolding = false;
+    int confirmationError = SetupHelper::MostRecentMBPlusHoldingZone(mbNumber, mbt, isHolding);
     if (confirmationError != ERR_NO_ERROR)
     {
-        return confirmationError;
+        ea.RecordError(confirmationError);
     }
 
-    return ERR_NO_ERROR;
+    return isHolding;
 }
 
 template <typename TEA>
@@ -1100,45 +1126,46 @@ static int EAHelper::LiquidationMBZoneIsHolding(TEA &ea, MBTracker *&mbt, int fi
 }
 
 template <typename TEA>
-static int EAHelper::DojiInsideMostRecentMBsHoldingZone(TEA &ea, MBTracker *&mbt, int mbNumber, bool &hasConfirmation, int dojiCandleIndex = 1)
+static bool EAHelper::DojiInsideMostRecentMBsHoldingZone(TEA &ea, MBTracker *&mbt, int mbNumber, int dojiCandleIndex = 1)
 {
     ea.mLastState = EAStates::CHECKING_FOR_CONFIRMATION;
 
-    hasConfirmation = false;
-
     if (!mbt.MBIsMostRecent(mbNumber))
     {
-        return ExecutionErrors::MB_IS_NOT_MOST_RECENT;
+        EAErrorHelper::RecordFailedMBRetrievalError(ea, mbt, mbNumber, ExecutionErrors::MB_IS_NOT_MOST_RECENT);
+        return false;
     }
 
     MBState *tempMBState;
     if (!mbt.GetMB(mbNumber, tempMBState))
     {
-        return TerminalErrors::MB_DOES_NOT_EXIST;
+        EAErrorHelper::RecordFailedMBRetrievalError(ea, mbt, mbNumber);
+        return false;
     }
 
     ZoneState *tempZoneState;
     if (!tempMBState.GetDeepestHoldingZone(tempZoneState))
     {
-        return ERR_NO_ERROR;
+        return false;
     }
 
+    bool dojiInZone = false;
     if (tempMBState.Type() == OP_BUY)
     {
         double low = iLow(tempMBState.Symbol(), tempMBState.TimeFrame(), dojiCandleIndex);
         double bodyLow = MathMin(iOpen(tempMBState.Symbol(), tempMBState.TimeFrame(), dojiCandleIndex), iClose(tempMBState.Symbol(), tempMBState.TimeFrame(), dojiCandleIndex));
-        hasConfirmation = SetupHelper::HammerCandleStickPattern(tempMBState.Symbol(), tempMBState.TimeFrame(), dojiCandleIndex) &&
-                          (low <= tempZoneState.EntryPrice() && bodyLow >= tempZoneState.ExitPrice());
+        dojiInZone = SetupHelper::HammerCandleStickPattern(tempMBState.Symbol(), tempMBState.TimeFrame(), dojiCandleIndex) &&
+                     (low <= tempZoneState.EntryPrice() && bodyLow >= tempZoneState.ExitPrice());
     }
     else if (tempZoneState.Type() == OP_SELL)
     {
         double high = iHigh(tempMBState.Symbol(), tempMBState.TimeFrame(), dojiCandleIndex);
         double bodyHigh = MathMax(iOpen(tempMBState.Symbol(), tempMBState.TimeFrame(), dojiCandleIndex), iClose(tempMBState.Symbol(), tempMBState.TimeFrame(), dojiCandleIndex));
-        hasConfirmation = SetupHelper::ShootingStarCandleStickPattern(tempMBState.Symbol(), tempMBState.TimeFrame(), dojiCandleIndex) &&
-                          (high >= tempZoneState.EntryPrice() && bodyHigh <= tempZoneState.ExitPrice());
+        dojiInZone = SetupHelper::ShootingStarCandleStickPattern(tempMBState.Symbol(), tempMBState.TimeFrame(), dojiCandleIndex) &&
+                     (high >= tempZoneState.EntryPrice() && bodyHigh <= tempZoneState.ExitPrice());
     }
 
-    return ERR_NO_ERROR;
+    return dojiInZone;
 }
 
 template <typename TEA>
@@ -1182,46 +1209,54 @@ static int EAHelper::DojiBreakInsideMostRecentMBsHoldingZone(TEA &ea, MBTracker 
 }
 
 template <typename TEA>
-static int EAHelper::DojiBreakInsideLiquidationSetupMBsHoldingZone(TEA &ea, MBTracker *&mbt, int firstMBNumber, int secondMBNumber, bool &hasConfirmation)
+static bool EAHelper::DojiInsideLiquidationSetupMBsHoldingZone(TEA &ea, MBTracker *&mbt, int firstMBNumber, int secondMBNumber)
 {
     ea.mLastState = EAStates::CHECKING_FOR_CONFIRMATION;
 
-    int confirmationError = SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(firstMBNumber, secondMBNumber, mbt, hasConfirmation);
+    bool holdingZone = false;
+    int confirmationError = SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(firstMBNumber, secondMBNumber, mbt, holdingZone);
     if (confirmationError == ExecutionErrors::MB_IS_NOT_MOST_RECENT)
     {
-        return confirmationError;
+        return false;
+    }
+
+    if (!holdingZone)
+    {
+        return false;
     }
 
     MBState *tempMBState;
     if (!mbt.GetMB(firstMBNumber, tempMBState))
     {
-        return TerminalErrors::MB_DOES_NOT_EXIST;
+        EAErrorHelper::RecordFailedMBRetrievalError(ea, mbt, firstMBNumber);
+        return false;
     }
 
     ZoneState *tempZoneState;
     if (!tempMBState.GetDeepestHoldingZone(tempZoneState))
     {
-        return ERR_NO_ERROR;
+        return false;
     }
 
+    bool dojiInLiqudiationSetupZone = false;
     if (tempMBState.Type() == OP_BUY)
     {
         double dojiLow = iLow(tempMBState.Symbol(), tempMBState.TimeFrame(), 1);
         double bodyLow = MathMin(iOpen(tempMBState.Symbol(), tempMBState.TimeFrame(), 1), iClose(tempMBState.Symbol(), tempMBState.TimeFrame(), 1));
 
-        hasConfirmation = SetupHelper::HammerCandleStickPattern(tempMBState.Symbol(), tempMBState.TimeFrame(), 1) &&
-                          (dojiLow <= tempZoneState.EntryPrice() && bodyLow >= tempZoneState.ExitPrice());
+        dojiInLiqudiationSetupZone = SetupHelper::HammerCandleStickPattern(tempMBState.Symbol(), tempMBState.TimeFrame(), 1) &&
+                                     (dojiLow <= tempZoneState.EntryPrice() && bodyLow >= tempZoneState.ExitPrice());
     }
     else if (tempZoneState.Type() == OP_SELL)
     {
         double dojiHigh = iHigh(tempMBState.Symbol(), tempMBState.TimeFrame(), 1);
         double bodyHigh = MathMax(iOpen(tempMBState.Symbol(), tempMBState.TimeFrame(), 1), iClose(tempMBState.Symbol(), tempMBState.TimeFrame(), 1));
 
-        hasConfirmation = SetupHelper::ShootingStarCandleStickPattern(tempMBState.Symbol(), tempMBState.TimeFrame(), 1) &&
-                          (dojiHigh >= tempZoneState.EntryPrice() && bodyHigh <= tempZoneState.ExitPrice());
+        dojiInLiqudiationSetupZone = SetupHelper::ShootingStarCandleStickPattern(tempMBState.Symbol(), tempMBState.TimeFrame(), 1) &&
+                                     (dojiHigh >= tempZoneState.EntryPrice() && bodyHigh <= tempZoneState.ExitPrice());
     }
 
-    return ERR_NO_ERROR;
+    return dojiInLiqudiationSetupZone;
 }
 
 template <typename TEA>
@@ -1418,6 +1453,7 @@ static int EAHelper::DojiConsecutiveCandles(TEA &ea, MBTracker *&mbt, int mbNumb
     return ERR_NO_ERROR;
 }
 
+// single big dipper candle
 template <typename TEA>
 static bool EAHelper::CandleIsBigDipper(TEA &ea, int bigDipperIndex = 1)
 {
@@ -1443,6 +1479,56 @@ static bool EAHelper::CandleIsBigDipper(TEA &ea, int bigDipperIndex = 1)
     }
 
     return hasConfirmation;
+}
+
+// can be multiple candels as long as they keep retracing
+template <typename TEA>
+static bool EAHelper::RunningBigDipperSetup(TEA &ea, datetime startTime)
+{
+    ea.mLastState = EAStates::CHECKING_FOR_CONFIRMATION;
+
+    int startIndex = iBarShift(ea.mEntrySymbol, ea.mEntryTimeFrame, startTime);
+    bool brokeFurtherThanCandle = false;
+    int oppositeCandleIndex = EMPTY;
+
+    if (ea.mSetupType == OP_BUY)
+    {
+        for (int i = startIndex; i > 0; i--)
+        {
+            if (!brokeFurtherThanCandle &&
+                iClose(ea.mEntrySymbol, ea.mEntryTimeFrame, i) > iHigh(ea.mEntrySymbol, ea.mEntryTimeFrame, i + 1))
+            {
+                brokeFurtherThanCandle = true;
+                continue;
+            }
+
+            if (brokeFurtherThanCandle && CandleStickHelper::IsBearish(ea.mEntrySymbol, ea.mEntryTimeFrame, i))
+            {
+                ea.mFirstOppositeCandleTime = iTime(ea.mEntrySymbol, ea.mEntryTimeFrame, i);
+                return true;
+            }
+        }
+    }
+    else if (ea.mSetupType == OP_SELL)
+    {
+        for (int i = startIndex; i > 0; i--)
+        {
+            if (!brokeFurtherThanCandle &&
+                iClose(ea.mEntrySymbol, ea.mEntryTimeFrame, i) < iLow(ea.mEntrySymbol, ea.mEntryTimeFrame, i + 1))
+            {
+                brokeFurtherThanCandle = true;
+                continue;
+            }
+
+            if (brokeFurtherThanCandle && CandleStickHelper::IsBullish(ea.mEntrySymbol, ea.mEntryTimeFrame, i))
+            {
+                ea.mFirstOppositeCandleTime = iTime(ea.mEntrySymbol, ea.mEntryTimeFrame, i);
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 template <typename TEA>
@@ -1524,7 +1610,7 @@ static bool EAHelper::PriceIsFurtherThanPercentIntoMB(TEA &ea, MBTracker *mbt, i
     MBState *tempMBState;
     if (!mbt.GetMB(mbNumber, tempMBState))
     {
-        ea.RecordError(TerminalErrors::MB_DOES_NOT_EXIST);
+        EAErrorHelper::RecordFailedMBRetrievalError(ea, mbt, mbNumber);
         return false;
     }
 
@@ -1535,6 +1621,36 @@ static bool EAHelper::PriceIsFurtherThanPercentIntoMB(TEA &ea, MBTracker *mbt, i
     else if (tempMBState.Type() == OP_SELL)
     {
         return price >= tempMBState.PercentOfMBPrice(percentAsDecimal);
+    }
+
+    return false;
+}
+
+template <typename TEA>
+static bool EAHelper::PriceIsFurtherThanPercentIntoHoldingZone(TEA &ea, MBTracker *&mbt, int mbNumber, double price, double percentAsDecimal)
+{
+    ea.mLastState = EAStates::CHECKING_FOR_CONFIRMATION;
+
+    MBState *tempMBState;
+    if (!mbt.GetMB(mbNumber, tempMBState))
+    {
+        EAErrorHelper::RecordFailedMBRetrievalError(ea, mbt, mbNumber);
+        return false;
+    }
+
+    ZoneState *tempZoneState;
+    if (!tempMBState.GetDeepestHoldingZone(tempZoneState))
+    {
+        return false;
+    }
+
+    if (tempMBState.Type() == OP_BUY)
+    {
+        return price <= tempZoneState.PercentOfZonePrice(percentAsDecimal);
+    }
+    else if (tempMBState.Type() == OP_SELL)
+    {
+        return price >= tempZoneState.PercentOfZonePrice(percentAsDecimal);
     }
 
     return false;
@@ -1684,18 +1800,15 @@ static void EAHelper::PlaceMarketOrder(TEA &ea, double entry, double stopLoss, d
 }
 
 template <typename TEA>
-static void EAHelper::PlaceStopOrder(TEA &ea, double entry, double stopLoss, double lots = 0.0)
+static void EAHelper::PlaceStopOrder(TEA &ea, double entry, double stopLoss, double lots = 0.0, bool fallbackMarketOrder = false, double maxMarketOrderSlippage = 0.0)
 {
     ea.mLastState = EAStates::PLACING_ORDER;
 
-    int type;
-    if (ea.mSetupType == OP_BUY)
+    MqlTick currentTick;
+    if (!SymbolInfoTick(Symbol(), currentTick))
     {
-        type = OP_BUYSTOP;
-    }
-    else if (ea.mSetupType == OP_SELL)
-    {
-        type = OP_SELLSTOP;
+        ea.RecordError(GetLastError());
+        return;
     }
 
     if (lots == 0.0)
@@ -1703,10 +1816,34 @@ static void EAHelper::PlaceStopOrder(TEA &ea, double entry, double stopLoss, dou
         lots = OrderHelper::GetLotSize(OrderHelper::RangeToPips(MathAbs(entry - stopLoss)), ea.RiskPercent());
     }
 
-    int ticketNumber = EMPTY;
-    int orderPlaceError = OrderHelper::PlaceStopOrder(type, lots, entry, stopLoss, 0, ea.MagicNumber(), ticketNumber);
+    int ticket = EMPTY;
+    int orderPlaceError = ERR_NO_ERROR;
+    int stopType = ea.mSetupType + 4;
 
-    PostPlaceOrderChecks<TEA>(ea, ticketNumber, orderPlaceError);
+    if (ea.mSetupType == OP_BUY)
+    {
+        if (fallbackMarketOrder && entry <= currentTick.ask && currentTick.ask - entry <= OrderHelper::PipsToRange(maxMarketOrderSlippage))
+        {
+            orderPlaceError = OrderHelper::PlaceMarketOrder(ea.mSetupType, lots, currentTick.ask, stopLoss, 0, ea.MagicNumber(), ticket);
+        }
+        else if (entry > currentTick.ask)
+        {
+            orderPlaceError = OrderHelper::PlaceStopOrder(stopType, lots, entry, stopLoss, 0, ea.MagicNumber(), ticket);
+        }
+    }
+    else if (ea.mSetupType == OP_SELL)
+    {
+        if (fallbackMarketOrder && entry >= currentTick.bid && entry - currentTick.bid <= OrderHelper::PipsToRange(maxMarketOrderSlippage))
+        {
+            orderPlaceError = OrderHelper::PlaceMarketOrder(ea.mSetupType, lots, currentTick.bid, stopLoss, 0, ea.MagicNumber(), ticket);
+        }
+        else if (entry < currentTick.bid)
+        {
+            orderPlaceError = OrderHelper::PlaceStopOrder(stopType, lots, entry, stopLoss, 0, ea.MagicNumber(), ticket);
+        }
+    }
+
+    PostPlaceOrderChecks<TEA>(ea, ticket, orderPlaceError);
 }
 
 template <typename TEA>
@@ -1937,11 +2074,6 @@ static void EAHelper::CheckEditStopLossForTheLittleDipper(TEA &ea)
     }
 }
 
-// template <typename TEA>
-// static void EAHelepr::MoveToBreakEvenWhenPriceCrossesOpen(TEA &ea)
-// {
-// }
-
 /*
 
    __  __                                   _        _   _             _____ _      _        _
@@ -2100,13 +2232,11 @@ static void EAHelper::MoveToBreakEvenWithCandleFurtherThanEntry(TEA &ea, bool wa
  * @param ticketIndex
  */
 template <typename TEA>
-static void EAHelper::CheckPartialPreviousSetupTicket(TEA &ea, int ticketIndex)
+static void EAHelper::CheckPartialTicket(TEA &ea, Ticket &ticket)
 {
     ea.mLastState = EAStates::CHECKING_TO_PARTIAL;
 
-    Ticket *tempTicket = ea.mPreviousSetupTickets[ticketIndex];
-
-    int selectError = tempTicket.SelectIfOpen("Trying To Partial");
+    int selectError = ticket.SelectIfOpen("Trying To Partial");
     if (selectError != ERR_NO_ERROR)
     {
         return;
@@ -2122,41 +2252,68 @@ static void EAHelper::CheckPartialPreviousSetupTicket(TEA &ea, int ticketIndex)
 
     // if we are in a buy, we look to sell which occurs at the bid. If we are in a sell, we look to buy which occurs at the ask
     double currentPrice = ea.mSetupType == OP_BUY ? currentTick.bid : currentTick.ask;
-    double rr = MathAbs(currentPrice - tempTicket.OpenPrice()) / MathAbs(tempTicket.OpenPrice() - tempTicket.mOriginalStopLoss);
+    double rr = MathAbs(currentPrice - ticket.OpenPrice()) / MathAbs(ticket.OpenPrice() - ticket.mOriginalStopLoss);
 
-    if (rr < tempTicket.mPartials[0].mRR)
+    if (rr < ticket.mPartials[0].mRR)
     {
         return;
     }
 
-    int partialError = OrderHelper::PartialTicket(tempTicket.Number(), currentPrice, OrderLots(), tempTicket.mPartials[0].PercentAsDecimal());
+    // store lots since I don't think i'll be able to access it once I partial the ticket
+    double currentTicketLots = OrderLots();
+    double lotsToPartial = 0.0;
+
+    // if we are planning on closing the ticket we need to make sure we do or else this will break
+    // aka don't risk a potential rounding issue and just use the current lots
+    if (ticket.mPartials[0].PercentAsDecimal() >= 1)
+    {
+        lotsToPartial = currentTicketLots;
+    }
+    else
+    {
+        lotsToPartial = OrderHelper::CleanLotSize(currentTicketLots * ticket.mPartials[0].PercentAsDecimal());
+    }
+
+    int partialError = OrderHelper::PartialTicket(ticket.Number(), currentPrice, lotsToPartial);
     if (partialError != ERR_NO_ERROR)
     {
         ea.RecordError(partialError);
         return;
     }
 
-    // TODO: Account for closing 100% of ticket, don't need to find it
-    int newTicket = EMPTY;
-    int searchError = OrderHelper::FindNewTicketAfterPartial(ea.MagicNumber(), tempTicket.OpenPrice(), tempTicket.OpenTime(), newTicket);
-    if (searchError != ERR_NO_ERROR)
+    ticket.mRRAcquired = rr * ticket.mPartials[0].PercentAsDecimal();
+    int newTicket = 0;
+
+    // this is probably the safest way of checking if the order was closed
+    // can't use partial percent since closing less than 100% could still result in the whole ticket being closed due to min lot size
+    // can't check to see if the ticket is opened since we don't know what ticket it is anymore
+    // can't rely on not being able to find it because something else could go wrong
+    if (lotsToPartial != currentTicketLots)
     {
-        ea.RecordError(searchError);
+        int searchError = OrderHelper::FindNewTicketAfterPartial(ea.MagicNumber(), ticket.OpenPrice(), ticket.OpenTime(), newTicket);
+        if (searchError != ERR_NO_ERROR)
+        {
+            ea.RecordError(searchError);
+        }
+
+        // record before setting the new ticket or altering the old tickets partials
+        ea.RecordTicketPartialData(ticket, newTicket);
+
+        if (newTicket == EMPTY)
+        {
+            ea.RecordError(TerminalErrors::UNABLE_TO_FIND_PARTIALED_TICKET);
+        }
+        else
+        {
+            ticket.UpdateTicketNumber(newTicket);
+        }
+
+        ticket.mPartials.Remove(0);
     }
-
-    tempTicket.mRRAcquired = rr * tempTicket.mPartials[0].PercentAsDecimal();
-    ea.RecordTicketPartialData(ticketIndex, newTicket);
-
-    if (newTicket == EMPTY)
+    else
     {
-        ea.RecordError(TerminalErrors::UNABLE_TO_FIND_PARTIALED_TICKET);
-        tempTicket.mPartials.Remove(0);
-
-        return;
+        ea.RecordTicketPartialData(ticket, newTicket);
     }
-
-    tempTicket.mPartials.Remove(0);
-    tempTicket.UpdateTicketNumber(newTicket);
 }
 
 template <typename TEA>
@@ -2299,6 +2456,42 @@ void EAHelper::MoveStopLossToCoverCommissions(TEA &ea)
             ea.RecordError(GetLastError());
         }
     }
+}
+
+template <typename TEA>
+static bool EAHelper::CloseIfPercentIntoStopLoss(TEA &ea, Ticket &ticket, double percentAsDecimal)
+{
+    int selectError = ticket.SelectIfOpen("Checking percent into stoplos");
+    if (TerminalErrors::IsTerminalError(selectError))
+    {
+        ea.RecordError(selectError);
+        return false;
+    }
+
+    MqlTick currentTick;
+    if (!SymbolInfoTick(Symbol(), currentTick))
+    {
+        ea.RecordError(GetLastError());
+        return false;
+    }
+
+    bool isPercentIntoStopLoss = false;
+    if (OrderType() == OP_BUY)
+    {
+        isPercentIntoStopLoss = (OrderOpenPrice() - currentTick.bid) / (OrderOpenPrice() - OrderStopLoss()) >= percentAsDecimal;
+    }
+    else if (OrderType() == OP_SELL)
+    {
+        isPercentIntoStopLoss = (currentTick.ask - OrderOpenPrice()) / (OrderStopLoss() - OrderOpenPrice()) >= percentAsDecimal;
+    }
+
+    if (isPercentIntoStopLoss)
+    {
+        ticket.Close();
+        return true;
+    }
+
+    return false;
 }
 /*
 
@@ -2574,50 +2767,40 @@ static void EAHelper::RecordMBEntryTradeRecord(TEA &ea, int mbNumber, MBTracker 
     MBState *tempMBState;
     mbt.GetMB(mbNumber, tempMBState);
 
-    MBState *prevMBState;
-    mbt.GetPreviousMB(tempMBState.Number(), prevMBState);
+    ea.mCurrentSetupTicket.SelectIfOpen("Recording Open");
 
-    ZoneState *tempZoneState;
-    tempMBState.GetDeepestHoldingZone(tempZoneState);
+    int pendingMBStart = EMPTY;
+    double furthestPoint = EMPTY;
+    double pendingHeight = -1.0;
+    double percentOfPendingMBInPrevious = -1.0;
+    double rrToPendingMBVal = 0.0;
 
-    double mbHeight = NormalizeDouble(MathAbs(iHigh(Symbol(), Period(), tempMBState.HighIndex()) - iLow(Symbol(), Period(), tempMBState.LowIndex())), Digits);
-    double entryFromLastMB;
-    if (OrderType() == OP_BUY)
+    if (ea.mSetupType == OP_BUY)
     {
-        if (tempMBState.Type() == OP_BUY)
-        {
-            entryFromLastMB = MathAbs(iHigh(Symbol(), Period(), prevMBState.HighIndex()) - iHigh(Symbol(), Period(), tempMBState.HighIndex()));
-        }
-        else if (tempMBState.Type() == OP_SELL)
-        {
-            entryFromLastMB = 0.0;
-        }
+        mbt.CurrentBullishRetracementIndexIsValid(pendingMBStart);
+        MQLHelper::GetLowestLowBetween(ea.mEntrySymbol, ea.mEntryTimeFrame, pendingMBStart, 0, true, furthestPoint);
+
+        pendingHeight = iHigh(ea.mEntrySymbol, ea.mEntryTimeFrame, pendingMBStart) - furthestPoint;
+        percentOfPendingMBInPrevious = (iHigh(ea.mEntrySymbol, ea.mEntryTimeFrame, tempMBState.HighIndex()) - furthestPoint) / pendingHeight;
+        rrToPendingMBVal = (iHigh(ea.mEntrySymbol, ea.mEntryTimeFrame, pendingMBStart) - OrderOpenPrice()) / (OrderOpenPrice() - OrderStopLoss());
     }
-    else if (OrderType() == OP_SELL)
+    else if (ea.mSetupType == OP_SELL)
     {
-        if (tempMBState.Type() == OP_BUY)
-        {
-            entryFromLastMB = 0.0;
-        }
-        else if (tempMBState.Type() == OP_SELL)
-        {
-            entryFromLastMB = MathAbs(iLow(Symbol(), Period(), prevMBState.HighIndex()) - iLow(Symbol(), Period(), tempMBState.HighIndex()));
-        }
-    }
+        mbt.CurrentBearishRetracementIndexIsValid(pendingMBStart);
+        MQLHelper::GetHighestHighBetween(ea.mEntrySymbol, ea.mEntryTimeFrame, pendingMBStart, 0, true, furthestPoint);
 
-    double zoneImbalanceChange = -1.0;
-    if (CheckPointer(tempZoneState) != POINTER_INVALID)
-    {
-        int zoneImbalance = tempZoneState.StartIndex() - tempZoneState.EntryOffset();
-        zoneImbalanceChange = MathAbs((iClose(ea.mEntrySymbol, ea.mEntryTimeFrame, zoneImbalance) - iOpen(ea.mEntrySymbol, ea.mEntryTimeFrame, zoneImbalance)) /
-                                      iClose(ea.mEntrySymbol, ea.mEntryTimeFrame, zoneImbalance));
+        pendingHeight = furthestPoint - iLow(ea.mEntrySymbol, ea.mEntryTimeFrame, pendingMBStart);
+        percentOfPendingMBInPrevious = (furthestPoint - iLow(ea.mEntrySymbol, ea.mEntryTimeFrame, tempMBState.LowIndex())) / pendingHeight;
+        rrToPendingMBVal = (OrderOpenPrice() - iLow(ea.mEntrySymbol, ea.mEntryTimeFrame, pendingMBStart)) / (OrderStopLoss() - OrderOpenPrice());
     }
 
     record.EntryImage = ScreenShotHelper::TryTakeScreenShot(ea.mEntryCSVRecordWriter.Directory());
-    record.MBHeight = mbHeight;
-    record.MBWidth = tempMBState.StartIndex() - tempMBState.EndIndex();
-    record.EntryDistanceFromPreviousMB = entryFromLastMB;
-    record.ZoneImbalancePercentChange = zoneImbalanceChange;
+    record.RRToMBValidation = rrToPendingMBVal;
+    record.MBHeight = tempMBState.Height();
+    record.MBWidth = tempMBState.Width();
+    record.PendingMBHeight = pendingHeight;
+    record.PendingMBWidth = pendingMBStart;
+    record.PercentOfPendingMBInPrevious = percentOfPendingMBInPrevious;
     record.MBCount = mbCount;
     record.ZoneNumber = zoneNumber;
 
@@ -2627,17 +2810,17 @@ static void EAHelper::RecordMBEntryTradeRecord(TEA &ea, int mbNumber, MBTracker 
 }
 
 template <typename TEA>
-static void EAHelper::RecordPartialTradeRecord(TEA &ea, int oldTicketIndex, int newTicketNumber)
+static void EAHelper::RecordPartialTradeRecord(TEA &ea, Ticket &partialedTicket, int newTicketNumber)
 {
     ea.mLastState = EAStates::RECORDING_PARTIAL_DATA;
 
     PartialTradeRecord *record = new PartialTradeRecord();
 
     record.MagicNumber = ea.MagicNumber();
-    record.TicketNumber = ea.mPreviousSetupTickets[oldTicketIndex].Number();
+    record.TicketNumber = partialedTicket.Number();
     record.NewTicketNumber = newTicketNumber;
-    record.ExpectedPartialRR = ea.mPreviousSetupTickets[oldTicketIndex].mPartials[0].mRR;
-    record.ActualPartialRR = ea.mPreviousSetupTickets[oldTicketIndex].mRRAcquired;
+    record.ExpectedPartialRR = partialedTicket.mPartials[0].mRR;
+    record.ActualPartialRR = partialedTicket.mRRAcquired;
 
     ea.mPartialCSVRecordWriter.WriteRecord(record);
     delete record;

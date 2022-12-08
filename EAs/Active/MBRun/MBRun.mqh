@@ -60,7 +60,7 @@ public:
     virtual void CheckCurrentSetupTicket();
     virtual void CheckPreviousSetupTicket(int ticketIndex);
     virtual void RecordTicketOpenData();
-    virtual void RecordTicketPartialData(int oldTicketIndex, int newTicketNumber);
+    virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
     virtual void Reset();
@@ -81,10 +81,6 @@ MBRun::MBRun(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, in
     mPipsToWaitBeforeBE = 0.0;
     mBEAdditionalPips = 0.0;
 
-    EAHelper::FindSetPreviousAndCurrentSetupTickets<MBRun>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<MBRun, PartialTradeRecord>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<MBRun, MultiTimeFrameEntryTradeRecord>(this);
-
     mBarCount = 0;
     mEntryMB = EMPTY;
     mEntryCandleTime = 0;
@@ -97,8 +93,11 @@ MBRun::MBRun(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, in
     mLastManagedAsk = 0.0;
     mLastManagedBid = 0.0;
 
-    // TODO: Change Back
-    mLargestAccountBalance = AccountBalance();
+    mLargestAccountBalance = 100000;
+
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<MBRun>(this);
+    EAHelper::UpdatePreviousSetupTicketsRRAcquried<MBRun, PartialTradeRecord>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<MBRun, SingleTimeFrameEntryTradeRecord>(this);
 }
 
 MBRun::~MBRun()
@@ -575,7 +574,7 @@ bool MBRun::MoveToPreviousSetupTickets(Ticket &ticket)
 
 void MBRun::ManagePreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::CheckPartialPreviousSetupTicket<MBRun>(this, ticketIndex);
+    EAHelper::CheckPartialTicket<MBRun>(this, mPreviousSetupTickets[ticketIndex]);
 }
 
 void MBRun::CheckCurrentSetupTicket()
@@ -595,9 +594,9 @@ void MBRun::RecordTicketOpenData()
     EAHelper::RecordSingleTimeFrameEntryTradeRecord<MBRun>(this);
 }
 
-void MBRun::RecordTicketPartialData(int oldTicketIndex, int newTicketNumber)
+void MBRun::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
-    EAHelper::RecordPartialTradeRecord<MBRun>(this, oldTicketIndex, newTicketNumber);
+    EAHelper::RecordPartialTradeRecord<MBRun>(this, partialedTicket, newTicketNumber);
 }
 
 void MBRun::RecordTicketCloseData(Ticket &ticket)

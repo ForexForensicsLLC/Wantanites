@@ -70,7 +70,7 @@ public:
     virtual void CheckCurrentSetupTicket() = NULL;
     virtual void CheckPreviousSetupTicket(int ticketIndex) = NULL;
     virtual void RecordTicketOpenData() = NULL;
-    virtual void RecordTicketPartialData(int oldTicketIndex, int newTicketNumber) = NULL;
+    virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber) = NULL;
     virtual void RecordTicketCloseData(Ticket &ticket) = NULL;
     virtual void RecordError(int error, string additionalInformation) = NULL;
     virtual void Reset() = NULL;

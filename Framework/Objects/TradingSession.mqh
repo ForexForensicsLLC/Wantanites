@@ -26,6 +26,9 @@ public:
     int InclusiveHourEnd() { return mInclusiveHourEnd; }
     int InclusiveMinuteEnd() { return mInclusiveMinuteEnd; }
 
+    int StartIndex(string symbol, int timeFrame);
+    int EndIndex();
+
     bool CurrentlyWithinSession();
 };
 
@@ -47,6 +50,12 @@ TradingSession::TradingSession(TradingSession &ts)
 
 TradingSession::~TradingSession()
 {
+}
+
+int TradingSession::StartIndex(string symbol, int timeFrame)
+{
+    datetime startTime = StringToTime(HourStart() + ":" + MinuteStart());
+    return iBarShift(symbol, timeFrame, startTime);
 }
 
 bool TradingSession::CurrentlyWithinSession()

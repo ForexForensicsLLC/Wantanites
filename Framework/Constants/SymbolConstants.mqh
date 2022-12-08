@@ -27,16 +27,16 @@ public:
     static double GoldSlippagePips;
 };
 
-double SymbolConstants::NasSpreadPips = 10;
-double SymbolConstants::NasSlippagePips = 50;
-double SymbolConstants::NasMinStopLossPips = 250;
+double SymbolConstants::NasSpreadPips = 1;
+double SymbolConstants::NasSlippagePips = 5;
+double SymbolConstants::NasMinStopLossPips = 25;
 
 double SymbolConstants::SPXSpreadPips = 3;
 double SymbolConstants::SPXSlippagePips = 10;
 
-double SymbolConstants::DowSpreadPips = 18;
-double SymbolConstants::DowSlippagePips = 50;
-double SymbolConstants::DowMinStopLossPips = 350;
+double SymbolConstants::DowSpreadPips = 1.8;
+double SymbolConstants::DowSlippagePips = 5;
+double SymbolConstants::DowMinStopLossPips = 35;
 
 double SymbolConstants::GoldSpreadPips = 3;
 double SymbolConstants::GoldSlippagePips = 3;

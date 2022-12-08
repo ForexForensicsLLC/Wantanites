@@ -55,6 +55,7 @@ public:
     bool WasRetrieved() { return mWasRetrieved; }
 
     double Height();
+    double PercentOfZonePrice(double percent);
 
     bool CandleIsInZone(int index);
 
@@ -96,6 +97,20 @@ double ZoneState::Height()
     return mHeight;
 }
 
+double ZoneState::PercentOfZonePrice(double percent)
+{
+    if (Type() == OP_BUY)
+    {
+        return EntryPrice() - (Height() * percent);
+    }
+    else if (Type() == OP_SELL)
+    {
+        return EntryPrice() + (Height() * percent);
+    }
+
+    return 0.0;
+}
+
 bool ZoneState::CandleIsInZone(int index)
 {
     if (Type() == OP_BUY)
@@ -110,14 +125,14 @@ bool ZoneState::CandleIsInZone(int index)
     return false;
 }
 
-/// @brief This will return return if you are caclculating on every tick and a wick breaks below the zone
+/// @brief This will return true if you are caclculating on every tick and a wick breaks below the zone
 bool ZoneState::BelowDemandZone(int barIndex)
 {
     return (mAllowWickBreaks && MathMin(iOpen(mSymbol, mTimeFrame, barIndex), iClose(mSymbol, mTimeFrame, barIndex)) < mExitPrice) ||
            (!mAllowWickBreaks && iLow(mSymbol, mTimeFrame, barIndex) < mExitPrice);
 }
 
-/// @brief This will return return if you are caclculating on every tick and a wick breaks above the zone
+/// @brief This will return true if you are caclculating on every tick and a wick breaks above the zone
 bool ZoneState::AboveSupplyZone(int barIndex)
 {
     return (mAllowWickBreaks && MathMax(iOpen(mSymbol, mTimeFrame, barIndex), iClose(mSymbol, mTimeFrame, barIndex)) > mExitPrice) ||
@@ -157,28 +172,46 @@ bool ZoneState::IsHoldingFromStart()
 }
 
 // checks if a zone was broken from its entry index to the current bar
-// TODO: Do I need to add offset to this that matches the offset when the zone was created?
 bool ZoneState::IsBroken()
 {
+    double price = 0.0;
     if (mType == OP_BUY)
     {
-        int lowestIndex;
-        if (!MQLHelper::GetLowest(mSymbol, mTimeFrame, MODE_LOW, StartIndex(), 0, false, lowestIndex))
+        if (mAllowWickBreaks)
         {
-            return false;
+            if (!MQLHelper::GetLowestBodyBetween(Symbol(), TimeFrame(), StartIndex(), 0, false, price))
+            {
+                return false;
+            }
+        }
+        else
+        {
+            if (!MQLHelper::GetLowestLowBetween(Symbol(), TimeFrame(), StartIndex(), 0, false, price))
+            {
+                return false;
+            }
         }
 
-        return BelowDemandZone(lowestIndex);
+        return price <= ExitPrice();
     }
     else if (mType == OP_SELL)
     {
-        int highestIndex;
-        if (!MQLHelper::GetHighest(mSymbol, mTimeFrame, MODE_HIGH, StartIndex(), 0, false, highestIndex))
+        if (mAllowWickBreaks)
         {
-            return false;
+            if (!MQLHelper::GetHighestBodyBetween(Symbol(), TimeFrame(), StartIndex(), 0, false, price))
+            {
+                return false;
+            }
+        }
+        else
+        {
+            if (!MQLHelper::GetHighestHighBetween(Symbol(), TimeFrame(), StartIndex(), 0, false, price))
+            {
+                return false;
+            }
         }
 
-        return AboveSupplyZone(highestIndex);
+        return price >= ExitPrice();
     }
 
     return false;

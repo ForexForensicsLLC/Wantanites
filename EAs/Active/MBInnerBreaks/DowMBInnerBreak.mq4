@@ -10,7 +10,10 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/InnerBreaks/MB/TheGrannySmith.mqh>
+#include <SummitCapital/EAs/Active/MBInnerBreaks/MBInnerBreak.mqh>
+
+string ForcedSymbol = "US30";
+int ForcedTimeFrame = 1;
 
 // --- EA Inputs ---
 double RiskPercent = 1;
@@ -23,6 +26,7 @@ int MaxZonesInMB = 5;
 bool AllowMitigatedZones = false;
 bool AllowZonesAfterMBValidation = true;
 bool AllowWickBreaks = true;
+bool OnlyZonesInMB = true;
 bool PrintErrors = false;
 bool CalculateOnTick = false;
 
@@ -31,31 +35,36 @@ string EAName = "Dow/";
 string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
-CSVRecordWriter<MBEntryTradeRecord> *EntryWriter = new CSVRecordWriter<MBEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
+CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
 CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>(Directory + "Partials/", "Partials.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
 MBTracker *SetupMBT;
-TheGrannySmith *MBInnerBreakBuys;
-TheGrannySmith *MBInnerBreakSells;
+MBInnerBreak *MBInnerBreakBuys;
+MBInnerBreak *MBInnerBreakSells;
 
 double MaxSpreadPips = SymbolConstants::DowSpreadPips;
-double EntryPaddingPips = 20;
-double MinStopLossPips = 250;
-double StopLossPaddingPips = 50;
-double PipsToWaitBeforeBE = 400;
+double EntryPaddingPips = 2;
+double MinStopLossPips = 25;
+double StopLossPaddingPips = 5;
+double PipsToWaitBeforeBE = 40;
 double BEAdditionalPips = SymbolConstants::DowSlippagePips;
-double LargeBodyPips = 150;
-double PushFurtherPips = 150;
-double CloseRR = 10;
+double LargeBodyPips = 15;
+double PushFurtherPips = 15;
+double CloseRR = 20;
 
 int OnInit()
 {
-    SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
+    if (!EAHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
+    {
+        return INIT_PARAMETERS_INCORRECT;
+    }
 
-    MBInnerBreakBuys = new TheGrannySmith(MagicNumbers::DowInnerBreakBigDipperBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                          ExitWriter, ErrorWriter, SetupMBT);
+    SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
+
+    MBInnerBreakBuys = new MBInnerBreak(MagicNumbers::DowInnerBreakBigDipperBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                        ExitWriter, ErrorWriter, SetupMBT);
 
     MBInnerBreakBuys.SetPartialCSVRecordWriter(PartialWriter);
     MBInnerBreakBuys.AddPartial(CloseRR, 100);
@@ -69,8 +78,8 @@ int OnInit()
 
     MBInnerBreakBuys.AddTradingSession(16, 30, 23, 0);
 
-    MBInnerBreakSells = new TheGrannySmith(MagicNumbers::DowInnerBreakBigDipperSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                           ExitWriter, ErrorWriter, SetupMBT);
+    MBInnerBreakSells = new MBInnerBreak(MagicNumbers::DowInnerBreakBigDipperSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                         ExitWriter, ErrorWriter, SetupMBT);
     MBInnerBreakSells.SetPartialCSVRecordWriter(PartialWriter);
     MBInnerBreakSells.AddPartial(CloseRR, 100);
 
