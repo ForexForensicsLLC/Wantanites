@@ -80,6 +80,12 @@ public:
 
     static int DowImpulseReversalBuys;
     static int DowImpulseReversalSells;
+
+    static int NasReversalInnerBreakBuys;
+    static int NasReversalInnerBreakSells;
+
+    static int DowMBClusterCandleZoneBuys;
+    static int DowMBClusterCandleZoneSells;
 };
 
 static int MagicNumbers::TheSunriseShatterBearishSingleMB = 10003;
@@ -148,3 +154,9 @@ static int MagicNumbers::DowZoneOutsideMBSells = 10046;
 
 static int MagicNumbers::DowImpulseReversalBuys = 10047;
 static int MagicNumbers::DowImpulseReversalSells = 10048;
+
+static int MagicNumbers::NasReversalInnerBreakBuys = 10049;
+static int MagicNumbers::NasReversalInnerBreakSells = 10050;
+
+static int MagicNumbers::DowMBClusterCandleZoneBuys = 10051;
+static int MagicNumbers::DowMBClusterCandleZoneSells = 10052;

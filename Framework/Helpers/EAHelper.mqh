@@ -1817,7 +1817,7 @@ static void EAHelper::PlaceStopOrder(TEA &ea, double entry, double stopLoss, dou
     }
 
     int ticket = EMPTY;
-    int orderPlaceError = EMPTY;
+    int orderPlaceError = ERR_NO_ERROR;
     int stopType = ea.mSetupType + 4;
 
     if (ea.mSetupType == OP_BUY)

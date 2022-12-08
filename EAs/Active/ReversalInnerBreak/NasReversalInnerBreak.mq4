@@ -8,7 +8,12 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/EAs/Inactive/ReversalInnerBreak/ReversalInnerBreak.mqh>
+string ForcedSymbol = "NAS100";
+int ForcedTimeFrame = 1;
+
+#include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
+#include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
+#include <SummitCapital/EAs/Active/ReversalInnerBreak/ReversalInnerBreak.mqh>
 
 // --- EA Inputs ---
 double RiskPercent = 1;
@@ -26,11 +31,11 @@ bool PrintErrors = false;
 bool CalculateOnTick = false;
 
 string StrategyName = "ReversalInnerBreak/";
-string EAName = "Dow/";
+string EAName = "Nas/";
 string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
-CSVRecordWriter<MBEntryTradeRecord> *EntryWriter = new CSVRecordWriter<MBEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
+CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
 CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>(Directory + "Partials/", "Partials.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
@@ -40,71 +45,49 @@ ReversalInnerBreak *RIBBuys;
 ReversalInnerBreak *RIBSells;
 
 // Nas
-// double MaxSpreadPips = 10;
-// double MinMBPips = 800;
-// double MinDistanceFromPreviousMBRun = 600;
-// double EntryPaddingPips = 0;
-// double MinStopLossPips = 250;
-// double StopLossPaddingPips = 50;
-// double PipsToWaitBeforeBE = 200;
-// double BEAdditionalPips = 10;
-// double LargeBodyPips = 100;
-// double PushFurtherPips = 200;
-
-// Dow
-double MaxSpreadPips = 19;
-double MinMBPips = 600;
-double MinDistanceFromPreviousMBRun = 600;
-double MinPendingMBPips = 800;
+double MaxSpreadPips = SymbolConstants::NasSpreadPips;
+double MinDistanceFromPreviousMBRun = 60;
 double EntryPaddingPips = 0;
-double MinStopLossPips = 0.0;
-double StopLossPaddingPips = 50;
-double PipsToWaitBeforeBE = 1000;
-double BEAdditionalPips = 20;
-double LargeBodyPips = 150;
-double PushFurtherPips = 150;
-
-// S&P
-// double EntryPaddingPips = 0;
-// double MinStopLossPips = 100;
-// double StopLossPaddingPips = 0;
-// double PipsToWaitBeforeBE = 200;
-// double BEAdditionalPips = 50;
-// double LargeBodyPips = 0;
-// double PushFurtherPips = 0;
+double StopLossPaddingPips = 5;
+double PipsToWaitBeforeBE = 20;
+double BEAdditionalPips = 1;
+double LargeBodyPips = 10;
+double PushFurtherPips = 20;
+double CloseRR = 20;
 
 int OnInit()
 {
+    if (!EAHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
+    {
+        return INIT_PARAMETERS_INCORRECT;
+    }
+
     SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors,
                              CalculateOnTick);
 
-    RIBBuys = new ReversalInnerBreak(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
-                                     ErrorWriter, SetupMBT);
+    RIBBuys = new ReversalInnerBreak(MagicNumbers::NasReversalInnerBreakBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                     RiskPercent, EntryWriter, ExitWriter, ErrorWriter, SetupMBT);
     RIBBuys.SetPartialCSVRecordWriter(PartialWriter);
-    RIBBuys.AddPartial(1000, 100);
+    RIBBuys.AddPartial(CloseRR, 100);
 
-    RIBBuys.mMinMBPips = MinMBPips;
     RIBBuys.mMinDistanceFromPreviousMBRun = MinDistanceFromPreviousMBRun;
     RIBBuys.mEntryPaddingPips = EntryPaddingPips;
-    RIBBuys.mMinStopLossPips = MinStopLossPips;
     RIBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    RIBBuys.mBEAdditionalPip = BEAdditionalPips;
+    RIBBuys.mBEAdditionalPips = BEAdditionalPips;
     RIBBuys.mLargeBodyPips = LargeBodyPips;
     RIBBuys.mPushFurtherPips = PushFurtherPips;
 
     RIBBuys.AddTradingSession(16, 30, 23, 0);
 
-    RIBSells = new ReversalInnerBreak(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
-                                      ErrorWriter, SetupMBT);
+    RIBSells = new ReversalInnerBreak(MagicNumbers::NasReversalInnerBreakSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                      RiskPercent, EntryWriter, ExitWriter, ErrorWriter, SetupMBT);
     RIBSells.SetPartialCSVRecordWriter(PartialWriter);
-    RIBSells.AddPartial(1000, 100);
+    RIBSells.AddPartial(CloseRR, 100);
 
-    RIBSells.mMinMBPips = MinMBPips;
     RIBSells.mMinDistanceFromPreviousMBRun = MinDistanceFromPreviousMBRun;
     RIBSells.mEntryPaddingPips = EntryPaddingPips;
-    RIBSells.mMinStopLossPips = MinStopLossPips;
     RIBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    RIBSells.mBEAdditionalPip = BEAdditionalPips;
+    RIBSells.mBEAdditionalPips = BEAdditionalPips;
     RIBSells.mLargeBodyPips = LargeBodyPips;
     RIBSells.mPushFurtherPips = PushFurtherPips;
 

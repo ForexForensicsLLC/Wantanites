@@ -8,8 +8,12 @@
 #property version "1.00"
 #property strict
 
+#include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Active/MBInnerBreaks/MBInnerBreak.mqh>
+#include <SummitCapital/EAs/Inactive/MBInnerBreak/MiddleCandleBreak/MiddleCandleBreak.mqh>
+
+string ForcedSymbol = "NAS100";
+int ForcedTimeFrame = 1;
 
 // --- EA Inputs ---
 double RiskPercent = 1;
@@ -28,10 +32,10 @@ bool CalculateOnTick = false;
 
 string StrategyName = "MBInnerBreak/";
 string EAName = "Nas/";
-string SetupTypeName = "";
+string SetupTypeName = "MiddleCandleBreak/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
-CSVRecordWriter<MBEntryTradeRecord> *EntryWriter = new CSVRecordWriter<MBEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
+CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
 CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>(Directory + "Partials/", "Partials.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
@@ -40,6 +44,18 @@ MBTracker *SetupMBT;
 MBInnerBreak *MBInnerBreakBuys;
 MBInnerBreak *MBInnerBreakSells;
 
+// Dow
+// double MaxSpreadPips = SymbolConstants::DowSpreadPips;
+// double EntryPaddingPips = 0;
+// double MinStopLossPips = 25;
+// double StopLossPaddingPips = 5;
+// double PipsToWaitBeforeBE = 40;
+// double BEAdditionalPips = SymbolConstants::DowSlippagePips;
+// double LargeBodyPips = 15;
+// double PushFurtherPips = 15;
+// double CloseRR = 5;
+
+// Nas
 double MaxSpreadPips = SymbolConstants::NasSpreadPips;
 double EntryPaddingPips = 1;
 double MinStopLossPips = 25;
@@ -48,13 +64,18 @@ double PipsToWaitBeforeBE = 20;
 double BEAdditionalPips = SymbolConstants::NasSlippagePips;
 double LargeBodyPips = 10;
 double PushFurtherPips = 10;
-double CloseRR = 10;
+double CloseRR = 20;
 
 int OnInit()
 {
+    if (!EAHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
+    {
+        return INIT_PARAMETERS_INCORRECT;
+    }
+
     SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
 
-    MBInnerBreakBuys = new MBInnerBreak(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+    MBInnerBreakBuys = new MBInnerBreak(MagicNumbers::DowInnerBreakBigDipperBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                                         ExitWriter, ErrorWriter, SetupMBT);
 
     MBInnerBreakBuys.SetPartialCSVRecordWriter(PartialWriter);
@@ -69,7 +90,7 @@ int OnInit()
 
     MBInnerBreakBuys.AddTradingSession(16, 30, 23, 0);
 
-    MBInnerBreakSells = new MBInnerBreak(-1, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+    MBInnerBreakSells = new MBInnerBreak(MagicNumbers::DowInnerBreakBigDipperSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                                          ExitWriter, ErrorWriter, SetupMBT);
     MBInnerBreakSells.SetPartialCSVRecordWriter(PartialWriter);
     MBInnerBreakSells.AddPartial(CloseRR, 100);

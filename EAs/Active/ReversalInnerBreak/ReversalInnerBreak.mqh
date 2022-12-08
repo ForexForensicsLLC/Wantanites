@@ -12,57 +12,33 @@
 #include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
-class ReversalInnerBreak : public EA<MBEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class ReversalInnerBreak : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     MBTracker *mSetupMBT;
-
     int mFirstMBInSetupNumber;
 
-    double mMinDistanceFromPreviousMBRun;
-
-    bool mEnteredOnSetup;
-
-    double mMinMBPips;
-    double mEntryPaddingPips;
-    double mMinStopLossPips;
-    double mPipsToWaitBeforeBE;
-    double mBEAdditionalPip;
-    double mLargeBodyPips;
-    double mPushFurtherPips;
-
-    int mSetupMBsCreated;
-
-    datetime mFirstOppositeCandleTime;
-    datetime mSetupCandleStartTime;
-
-    datetime mEntryCandleTime;
-    datetime mStopLossCandleTime;
-    datetime mBreakCandleTime;
     int mBarCount;
-    int mManageCurrentSetupBarCount;
-    int mConfirmationBarCount;
-    int mSetupBarCount;
-    int mCheckInvalidateSetupBarCount;
-
     int mEntryTimeFrame;
     string mEntrySymbol;
 
-    int mSetupTimeFrame;
-    string mSetupSymbol;
+    double mMinDistanceFromPreviousMBRun;
+
+    double mEntryPaddingPips;
+    double mPipsToWaitBeforeBE;
+    double mBEAdditionalPips;
+    double mLargeBodyPips;
+    double mPushFurtherPips;
 
     int mLastEntryMB;
-    int mLastEntryZone;
+    datetime mEntryCandleTime;
 
-    int mMBCount;
-    int mLastDay;
-    int mEntryMBNumber;
-
-    double mImbalanceCandlePercentChange;
+    double mLastManagedAsk;
+    double mLastManagedBid;
 
 public:
     ReversalInnerBreak(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                       CSVRecordWriter<MBEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                       CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
                        CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT);
     ~ReversalInnerBreak();
 
@@ -89,61 +65,36 @@ public:
 };
 
 ReversalInnerBreak::ReversalInnerBreak(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                                       CSVRecordWriter<MBEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                                       CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
                                        CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mSetupMBT = setupMBT;
     mFirstMBInSetupNumber = EMPTY;
 
-    mMinDistanceFromPreviousMBRun = 0.0;
-
-    mEnteredOnSetup = false;
-
-    mMinMBPips = 0.0;
-    mEntryPaddingPips = 0.0;
-    mMinStopLossPips = 0.0;
-    mPipsToWaitBeforeBE = 0.0;
-    mBEAdditionalPip = 0.0;
-    mLargeBodyPips = 0.0;
-    mPushFurtherPips = 0.0;
-
-    EAHelper::FindSetPreviousAndCurrentSetupTickets<ReversalInnerBreak>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<ReversalInnerBreak, PartialTradeRecord>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<ReversalInnerBreak, MultiTimeFrameEntryTradeRecord>(this);
-
-    mSetupMBsCreated = 0;
-
-    mFirstOppositeCandleTime = 0;
-    mSetupCandleStartTime = 0;
-    mBreakCandleTime = 0;
-
-    mConfirmationBarCount = 0;
     mBarCount = 0;
-    mManageCurrentSetupBarCount = 0;
-    mCheckInvalidateSetupBarCount = 0;
-    mSetupBarCount = 0;
-    mEntryCandleTime = 0;
-    mStopLossCandleTime = 0;
-
-    mLastEntryMB = EMPTY;
-    mLastEntryZone = EMPTY;
-
-    mMBCount = 0;
-    mLastDay = 0;
-
-    mImbalanceCandlePercentChange = 0.0;
-
     mEntrySymbol = Symbol();
     mEntryTimeFrame = Period();
 
-    mSetupSymbol = Symbol();
-    mSetupTimeFrame = 15;
+    mMinDistanceFromPreviousMBRun = 0.0;
 
-    mEntryMBNumber = EMPTY;
+    mEntryPaddingPips = 0.0;
+    mPipsToWaitBeforeBE = 0.0;
+    mBEAdditionalPips = 0.0;
+    mLargeBodyPips = 0.0;
+    mPushFurtherPips = 0.0;
 
-    // TODO: Change Back
-    mLargestAccountBalance = AccountBalance();
+    mEntryCandleTime = 0;
+    mLastEntryMB = EMPTY;
+
+    mLastManagedAsk = 0.0;
+    mLastManagedBid = 0.0;
+
+    mLargestAccountBalance = 100000;
+
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<ReversalInnerBreak>(this);
+    EAHelper::UpdatePreviousSetupTicketsRRAcquried<ReversalInnerBreak, PartialTradeRecord>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<ReversalInnerBreak, SingleTimeFrameEntryTradeRecord>(this);
 }
 
 ReversalInnerBreak::~ReversalInnerBreak()
@@ -194,8 +145,6 @@ void ReversalInnerBreak::CheckInvalidateSetup()
 void ReversalInnerBreak::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
     EAHelper::InvalidateSetup<ReversalInnerBreak>(this, deletePendingOrder, false, error);
-    mStopLossCandleTime = 0;
-
     mFirstMBInSetupNumber = EMPTY;
 }
 
@@ -366,9 +315,9 @@ bool ReversalInnerBreak::Confirmation()
         // Big Dipper Entry
         bool twoPreviousIsBullish = iOpen(mEntrySymbol, mEntryTimeFrame, 2) < iClose(mEntrySymbol, mEntryTimeFrame, 2);
         bool previousIsBearish = iOpen(mEntrySymbol, mEntryTimeFrame, 1) > iClose(mEntrySymbol, mEntryTimeFrame, 1);
-        bool previousDoesNotBreakBelowTwoPrevious = iClose(mEntrySymbol, mEntryTimeFrame, 1) >= iLow(mEntrySymbol, mEntryTimeFrame, 2);
+        // bool previousDoesNotBreakBelowTwoPrevious = iClose(mEntrySymbol, mEntryTimeFrame, 1) >= iLow(mEntrySymbol, mEntryTimeFrame, 2);
 
-        if (!twoPreviousIsBullish || !previousIsBearish || !previousDoesNotBreakBelowTwoPrevious)
+        if (!twoPreviousIsBullish || !previousIsBearish /*|| !previousDoesNotBreakBelowTwoPrevious*/)
         {
             return hasTicket;
         }
@@ -513,9 +462,9 @@ bool ReversalInnerBreak::Confirmation()
         // Need Bullish -> Bearish - > Bullish after inner break
         bool twoPreviousIsBearish = iOpen(mEntrySymbol, mEntryTimeFrame, 2) > iClose(mEntrySymbol, mEntryTimeFrame, 2);
         bool previousIsBullish = iOpen(mEntrySymbol, mEntryTimeFrame, 1) < iClose(mEntrySymbol, mEntryTimeFrame, 1);
-        bool previousDoesNotBreakAboveTwoPrevious = iClose(mEntrySymbol, mEntryTimeFrame, 1) <= iHigh(mEntrySymbol, mEntryTimeFrame, 2);
+        // bool previousDoesNotBreakAboveTwoPrevious = iClose(mEntrySymbol, mEntryTimeFrame, 1) <= iHigh(mEntrySymbol, mEntryTimeFrame, 2);
 
-        if (!twoPreviousIsBearish || !previousIsBullish || !previousDoesNotBreakAboveTwoPrevious)
+        if (!twoPreviousIsBearish || !previousIsBullish /*|| !previousDoesNotBreakAboveTwoPrevious*/)
         {
             return hasTicket;
         }
@@ -563,7 +512,6 @@ void ReversalInnerBreak::PlaceOrders()
     if (mCurrentSetupTicket.Number() != EMPTY)
     {
         mEntryCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 1);
-        // InvalidateSetup(false);
     }
 }
 
@@ -579,7 +527,6 @@ void ReversalInnerBreak::ManageCurrentPendingSetupTicket()
     {
         if (iLow(mEntrySymbol, mEntryTimeFrame, 0) < iLow(mEntrySymbol, mEntryTimeFrame, entryCandleIndex))
         {
-            // InvalidateSetup(true);
             mCurrentSetupTicket.Close();
             mCurrentSetupTicket.SetNewTicket(EMPTY);
         }
@@ -588,7 +535,6 @@ void ReversalInnerBreak::ManageCurrentPendingSetupTicket()
     {
         if (iHigh(mEntrySymbol, mEntryTimeFrame, 0) > iHigh(mEntrySymbol, mEntryTimeFrame, entryCandleIndex))
         {
-            // InvalidateSetup(true);
             mCurrentSetupTicket.Close();
             mCurrentSetupTicket.SetNewTicket(EMPTY);
         }
@@ -602,12 +548,48 @@ void ReversalInnerBreak::ManageCurrentActiveSetupTicket()
         mLastEntryMB = mFirstMBInSetupNumber;
     }
 
-    if (mCurrentSetupTicket.Number() == EMPTY)
-    {
-        return;
-    }
+    // if (mCurrentSetupTicket.Number() == EMPTY)
+    // {
+    //     return;
+    // }
 
-    if (EAHelper::CloseIfPercentIntoStopLoss<ReversalInnerBreak>(this, mCurrentSetupTicket, 0.5))
+    // if (EAHelper::CloseIfPercentIntoStopLoss<ReversalInnerBreak>(this, mCurrentSetupTicket, 0.5))
+    // {
+    //     return;
+    // }
+
+    // int selectError = mCurrentSetupTicket.SelectIfOpen("Stuff");
+    // if (TerminalErrors::IsTerminalError(selectError))
+    // {
+    //     RecordError(selectError);
+    //     return;
+    // }
+
+    // MqlTick currentTick;
+    // if (!SymbolInfoTick(Symbol(), currentTick))
+    // {
+    //     RecordError(GetLastError());
+    //     return;
+    // }
+
+    // int entryIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
+    // bool movedPips = false;
+
+    // if (mSetupType == OP_BUY)
+    // {
+    //     movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
+    // }
+    // else if (mSetupType == OP_SELL)
+    // {
+    //     movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
+    // }
+
+    // if (movedPips)
+    // {
+    //     EAHelper::MoveToBreakEvenAsSoonAsPossible<ReversalInnerBreak>(this, mBEAdditionalPip);
+    // }
+
+    if (mCurrentSetupTicket.Number() == EMPTY)
     {
         return;
     }
@@ -631,17 +613,140 @@ void ReversalInnerBreak::ManageCurrentActiveSetupTicket()
 
     if (mSetupType == OP_BUY)
     {
+        if (entryIndex > 5)
+        {
+            // close if we are still opening within our entry and get the chance to close at BE
+            if (iOpen(mEntrySymbol, mEntryTimeFrame, 1) < iHigh(mEntrySymbol, mEntryTimeFrame, entryIndex) && currentTick.bid >= OrderOpenPrice())
+            {
+                mCurrentSetupTicket.Close();
+            }
+        }
+
+        // This is here as a safety net so we aren't running a very expenseive nested for loop. If this returns false something went wrong or I need to change things.
+        // close if we break a low within our stop loss
+        if (entryIndex <= 200)
+        {
+            // do minus 2 so that we don't include the candle that we actually entered on in case it wicked below before entering
+            for (int i = entryIndex - 2; i >= 0; i--)
+            {
+                if (iLow(mEntrySymbol, mEntryTimeFrame, i) > OrderOpenPrice())
+                {
+                    break;
+                }
+
+                for (int j = entryIndex; j > i; j--)
+                {
+                    if (iLow(mEntrySymbol, mEntryTimeFrame, i) < iLow(mEntrySymbol, mEntryTimeFrame, j))
+                    {
+                        // managed to break back out, close at BE
+                        if (currentTick.bid >= OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
+                        {
+                            mCurrentSetupTicket.Close();
+                            return;
+                        }
+
+                        // pushed too far into SL, take the -0.5
+                        if (EAHelper::CloseIfPercentIntoStopLoss<ReversalInnerBreak>(this, mCurrentSetupTicket, 0.5))
+                        {
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            // TOD: Create error code
+            string additionalInformation = "Entry Index: " + entryIndex;
+            RecordError(-1, additionalInformation);
+        }
+
+        // get too close to our entry after 5 candles and coming back
+        if (entryIndex >= 5)
+        {
+            if (mLastManagedBid > OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips) &&
+                currentTick.bid <= OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
+            {
+                mCurrentSetupTicket.Close();
+                return;
+            }
+        }
+
         movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
     else if (mSetupType == OP_SELL)
     {
+        // early close
+        if (entryIndex > 5)
+        {
+            // close if we are still opening above our entry and we get the chance to close at BE
+            if (iOpen(mEntrySymbol, mEntryTimeFrame, 1) > iLow(mEntrySymbol, mEntryTimeFrame, entryIndex) && currentTick.ask <= OrderOpenPrice())
+            {
+                mCurrentSetupTicket.Close();
+            }
+        }
+
+        // middle close
+        // This is here as a safety net so we aren't running a very expenseive nested for loop. If this returns false something went wrong or I need to change things.
+        // close if we break a high within our stop loss
+        if (entryIndex <= 200)
+        {
+            // do minus 2 so that we don't include the candle that we actually entered on in case it wicked below before entering
+            for (int i = entryIndex - 2; i >= 0; i--)
+            {
+                if (iHigh(mEntrySymbol, mEntryTimeFrame, i) < OrderOpenPrice())
+                {
+                    break;
+                }
+
+                for (int j = entryIndex; j > i; j--)
+                {
+                    if (iHigh(mEntrySymbol, mEntryTimeFrame, i) > iHigh(mEntrySymbol, mEntryTimeFrame, j))
+                    {
+                        // managed to break back out, close at BE
+                        if (currentTick.ask <= OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
+                        {
+                            mCurrentSetupTicket.Close();
+                            return;
+                        }
+
+                        // pushed too far into SL, take the -0.5
+                        if (EAHelper::CloseIfPercentIntoStopLoss<ReversalInnerBreak>(this, mCurrentSetupTicket, 0.5))
+                        {
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        else
+        {
+            // TOD: Create error code
+            string additionalInformation = "Entry Index: " + entryIndex;
+            RecordError(-1, additionalInformation);
+        }
+
+        // get too close to our entry after 5 candles and coming back
+        if (entryIndex >= 5)
+        {
+            if (mLastManagedAsk < OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips) &&
+                currentTick.ask >= OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
+            {
+                mCurrentSetupTicket.Close();
+                return;
+            }
+        }
+
         movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
 
     if (movedPips)
     {
-        EAHelper::MoveToBreakEvenAsSoonAsPossible<ReversalInnerBreak>(this, mBEAdditionalPip);
+        EAHelper::MoveToBreakEvenAsSoonAsPossible<ReversalInnerBreak>(this, mBEAdditionalPips);
     }
+
+    mLastManagedAsk = currentTick.ask;
+    mLastManagedBid = currentTick.bid;
 }
 
 bool ReversalInnerBreak::MoveToPreviousSetupTickets(Ticket &ticket)
@@ -668,7 +773,7 @@ void ReversalInnerBreak::CheckPreviousSetupTicket(int ticketIndex)
 
 void ReversalInnerBreak::RecordTicketOpenData()
 {
-    EAHelper::RecordMBEntryTradeRecord<ReversalInnerBreak>(this, mSetupMBT.MBsCreated() - 1, mSetupMBT, mMBCount, mLastEntryZone);
+    EAHelper::RecordSingleTimeFrameEntryTradeRecord<ReversalInnerBreak>(this);
 }
 
 void ReversalInnerBreak::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
@@ -688,5 +793,4 @@ void ReversalInnerBreak::RecordError(int error, string additionalInformation = "
 
 void ReversalInnerBreak::Reset()
 {
-    mMBCount = 0;
 }
