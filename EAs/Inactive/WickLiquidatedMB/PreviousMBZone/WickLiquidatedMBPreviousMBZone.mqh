@@ -18,6 +18,10 @@ public:
     MBTracker *mSetupMBT;
 
     int mFirstMBInSetupNumber;
+    int mSecondMBInSetupNumber;
+
+    double mMinWickLength;
+
     datetime mLiquidatedMBCandleTime;
 
     double mMinMBRatio;
@@ -77,7 +81,12 @@ WickLiquidatedMB::WickLiquidatedMB(int magicNumber, int setupType, int maxCurren
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mSetupMBT = setupMBT;
+
     mFirstMBInSetupNumber = EMPTY;
+    mSecondMBInSetupNumber = EMPTY;
+
+    mMinWickLength = 0.0;
+
     mLiquidatedMBCandleTime = 0;
 
     mMinMBRatio = 0.0;
@@ -139,10 +148,10 @@ void WickLiquidatedMB::CheckSetSetup()
         return;
     }
 
-    if (EAHelper::CheckSetSingleMBSetup<WickLiquidatedMB>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
+    if (EAHelper::CheckSetDoubleMBSetup<WickLiquidatedMB>(this, mSetupMBT, mFirstMBInSetupNumber, mSecondMBInSetupNumber, mSetupType))
     {
         MBState *tempMBState;
-        if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, tempMBState))
+        if (!mSetupMBT.GetMB(mSecondMBInSetupNumber, tempMBState))
         {
             return;
         }
@@ -152,6 +161,7 @@ void WickLiquidatedMB::CheckSetSetup()
             return;
         }
 
+        Print("SEtup");
         mHasSetup = true;
     }
 }
@@ -165,7 +175,7 @@ void WickLiquidatedMB::CheckInvalidateSetup()
         return;
     }
 
-    if (mFirstMBInSetupNumber != EMPTY && mFirstMBInSetupNumber != mSetupMBT.MBsCreated() - 1)
+    if (mSecondMBInSetupNumber != EMPTY && mSecondMBInSetupNumber != mSetupMBT.MBsCreated() - 1)
     {
         InvalidateSetup(true);
         return;
@@ -175,7 +185,9 @@ void WickLiquidatedMB::CheckInvalidateSetup()
 void WickLiquidatedMB::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
     EAHelper::InvalidateSetup<WickLiquidatedMB>(this, deletePendingOrder, false, error);
-    EAHelper::ResetSingleMBSetup<WickLiquidatedMB>(this, false);
+
+    mFirstMBInSetupNumber = EMPTY;
+    mSecondMBInSetupNumber = EMPTY;
 
     mLiquidatedMBCandleTime = 0;
 }
@@ -193,8 +205,25 @@ bool WickLiquidatedMB::Confirmation()
         return false;
     }
 
-    MBState *tempMBState;
-    if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, tempMBState))
+    MBState *firstMBState;
+    if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, firstMBState))
+    {
+        return false;
+    }
+
+    ZoneState *tempZoneState;
+    if (!firstMBState.GetDeepestHoldingZone(tempZoneState))
+    {
+        return false;
+    }
+
+    MBState *secondMBState;
+    if (!mSetupMBT.GetMB(mSecondMBInSetupNumber, secondMBState))
+    {
+        return false;
+    }
+
+    if (!tempZoneState.IsHolding(secondMBState.EndIndex()))
     {
         return false;
     }
@@ -203,69 +232,31 @@ bool WickLiquidatedMB::Confirmation()
 
     if (mSetupType == OP_BUY)
     {
-        if (mLiquidatedMBCandleTime == 0)
+        if (iLow(mEntrySymbol, mEntryTimeFrame, 1) > tempZoneState.EntryPrice())
         {
-            double mbLow = iLow(mEntrySymbol, mEntryTimeFrame, tempMBState.LowIndex());
-
-            // liquidate the previous mb with a doji wick that is longer than 50% of the mb
-            if (CandleStickHelper::LowestBodyPart(mEntrySymbol, mEntryTimeFrame, 1) > mbLow &&
-                iLow(mEntrySymbol, mEntryTimeFrame, 1) < mbLow)
-            {
-                mLiquidatedMBCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 1);
-            }
+            return false;
         }
 
-        if (mLiquidatedMBCandleTime > 0)
-        {
-            int liquidationCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mLiquidatedMBCandleTime);
-            for (int i = liquidationCandleIndex; i >= 1; i--)
-            {
-                if (iLow(mEntrySymbol, mEntryTimeFrame, i) < iLow(mEntrySymbol, mEntryTimeFrame, liquidationCandleIndex))
-                {
-                    mLastEntryMB = mFirstMBInSetupNumber;
-                    InvalidateSetup(true);
-                }
-            }
+        double mbLow = iLow(mEntrySymbol, mEntryTimeFrame, secondMBState.LowIndex());
 
-            double wickLength = CandleStickHelper::LowestBodyPart(mEntrySymbol, mEntryTimeFrame, liquidationCandleIndex) -
-                                iLow(mEntrySymbol, mEntryTimeFrame, liquidationCandleIndex);
-
-            return wickLength > tempMBState.Height() / 2 &&
-                   iClose(mEntrySymbol, mEntryTimeFrame, liquidationCandleIndex - 1) > iHigh(mEntrySymbol, mEntryTimeFrame, liquidationCandleIndex);
-        }
+        return CandleStickHelper::PercentBody(mEntrySymbol, mEntryTimeFrame, 1) < 0.5 &&
+               CandleStickHelper::LowestBodyPart(mEntrySymbol, mEntryTimeFrame, 1) - iLow(mEntrySymbol, mEntryTimeFrame, 1) > OrderHelper::PipsToRange(mMinWickLength) &&
+               CandleStickHelper::LowestBodyPart(mEntrySymbol, mEntryTimeFrame, 1) > mbLow &&
+               iLow(mEntrySymbol, mEntryTimeFrame, 1) < mbLow;
     }
     else if (mSetupType == OP_SELL)
     {
-        if (mLiquidatedMBCandleTime == 0)
+        if (iHigh(mEntrySymbol, mEntryTimeFrame, 1) < tempZoneState.EntryPrice())
         {
-            double mbHigh = iHigh(mEntrySymbol, mEntryTimeFrame, tempMBState.HighIndex());
-
-            // liquidate the previous mb with a doji wick that is longer than 50% of the mb
-            if (CandleStickHelper::HighestBodyPart(mEntrySymbol, mEntryTimeFrame, 1) < mbHigh &&
-                iHigh(mEntrySymbol, mEntryTimeFrame, 1) > mbHigh)
-            {
-                mLiquidatedMBCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 1);
-            }
+            return false;
         }
 
-        if (mLiquidatedMBCandleTime > 0)
-        {
-            int liquidationCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mLiquidatedMBCandleTime);
-            for (int i = liquidationCandleIndex; i >= 1; i--)
-            {
-                if (iHigh(mEntrySymbol, mEntryTimeFrame, i) > iHigh(mEntrySymbol, mEntryTimeFrame, liquidationCandleIndex))
-                {
-                    mLastEntryMB = mFirstMBInSetupNumber;
-                    InvalidateSetup(true);
-                }
-            }
+        double mbHigh = iHigh(mEntrySymbol, mEntryTimeFrame, secondMBState.HighIndex());
 
-            double wickLength = iHigh(mEntrySymbol, mEntryTimeFrame, liquidationCandleIndex) -
-                                CandleStickHelper::HighestBodyPart(mEntrySymbol, mEntryTimeFrame, liquidationCandleIndex);
-
-            return wickLength > tempMBState.Height() / 2 &&
-                   iClose(mEntrySymbol, mEntryTimeFrame, liquidationCandleIndex - 1) < iLow(mEntrySymbol, mEntryTimeFrame, liquidationCandleIndex);
-        }
+        return CandleStickHelper::PercentBody(mEntrySymbol, mEntryTimeFrame, 1) < 0.5 &&
+               iHigh(mEntrySymbol, mEntryTimeFrame, 1) - CandleStickHelper::HighestBodyPart(mEntrySymbol, mEntryTimeFrame, 1) > OrderHelper::PipsToRange(mMinWickLength) &&
+               CandleStickHelper::HighestBodyPart(mEntrySymbol, mEntryTimeFrame, 1) < mbHigh &&
+               iHigh(mEntrySymbol, mEntryTimeFrame, 1) > mbHigh;
     }
 
     return false;
@@ -364,137 +355,18 @@ void WickLiquidatedMB::ManageCurrentActiveSetupTicket()
         return;
     }
 
-    int orderPlaceIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
-    int entryIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, OrderOpenTime());
+    if (EAHelper::CloseIfPercentIntoStopLoss<WickLiquidatedMB>(this, mCurrentSetupTicket, 0.5))
+    {
+        return;
+    }
 
     bool movedPips = false;
-
     if (mSetupType == OP_BUY)
     {
-        if (entryIndex > 5)
-        {
-            // close if we are still opening within our entry and get the chance to close at BE
-            if (iOpen(mEntrySymbol, mEntryTimeFrame, 1) < iHigh(mEntrySymbol, mEntryTimeFrame, orderPlaceIndex) && currentTick.bid >= OrderOpenPrice())
-            {
-                mCurrentSetupTicket.Close();
-            }
-        }
-
-        // This is here as a safety net so we aren't running a very expenseive nested for loop. If this returns false something went wrong or I need to change things.
-        // close if we break a low within our stop loss
-        if (entryIndex <= 200)
-        {
-            // do minus 2 so that we don't include the candle that we actually entered on in case it wicked below before entering
-            for (int i = entryIndex - 2; i >= 0; i--)
-            {
-                if (iLow(mEntrySymbol, mEntryTimeFrame, i) > OrderOpenPrice())
-                {
-                    break;
-                }
-
-                for (int j = entryIndex; j > i; j--)
-                {
-                    if (iLow(mEntrySymbol, mEntryTimeFrame, i) < iLow(mEntrySymbol, mEntryTimeFrame, j))
-                    {
-                        // managed to break back out, close at BE
-                        if (currentTick.bid >= OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
-                        {
-                            mCurrentSetupTicket.Close();
-                            return;
-                        }
-
-                        // pushed too far into SL, take the -0.5
-                        if (EAHelper::CloseIfPercentIntoStopLoss<WickLiquidatedMB>(this, mCurrentSetupTicket, 0.5))
-                        {
-                            return;
-                        }
-                    }
-                }
-            }
-        }
-        else
-        {
-            // TOD: Create error code
-            string additionalInformation = "Entry Index: " + entryIndex;
-            RecordError(-1, additionalInformation);
-        }
-
-        // get too close to our entry after 5 candles and coming back
-        if (entryIndex >= 5)
-        {
-            if (mLastManagedBid > OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips) &&
-                currentTick.bid <= OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
-            {
-                mCurrentSetupTicket.Close();
-                return;
-            }
-        }
-
         movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
     else if (mSetupType == OP_SELL)
     {
-        // early close
-        if (entryIndex > 5)
-        {
-            // close if we are still opening above our entry and we get the chance to close at BE
-            if (iOpen(mEntrySymbol, mEntryTimeFrame, 1) > iLow(mEntrySymbol, mEntryTimeFrame, orderPlaceIndex) && currentTick.ask <= OrderOpenPrice())
-            {
-                mCurrentSetupTicket.Close();
-            }
-        }
-
-        // middle close
-        // This is here as a safety net so we aren't running a very expenseive nested for loop. If this returns false something went wrong or I need to change things.
-        // close if we break a high within our stop loss
-        if (entryIndex <= 200)
-        {
-            // do minus 2 so that we don't include the candle that we actually entered on in case it wicked below before entering
-            for (int i = entryIndex - 2; i >= 0; i--)
-            {
-                if (iHigh(mEntrySymbol, mEntryTimeFrame, i) < OrderOpenPrice())
-                {
-                    break;
-                }
-
-                for (int j = entryIndex; j > i; j--)
-                {
-                    if (iHigh(mEntrySymbol, mEntryTimeFrame, i) > iHigh(mEntrySymbol, mEntryTimeFrame, j))
-                    {
-                        // managed to break back out, close at BE
-                        if (currentTick.ask <= OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
-                        {
-                            mCurrentSetupTicket.Close();
-                            return;
-                        }
-
-                        // pushed too far into SL, take the -0.5
-                        if (EAHelper::CloseIfPercentIntoStopLoss<WickLiquidatedMB>(this, mCurrentSetupTicket, 0.5))
-                        {
-                            return;
-                        }
-                    }
-                }
-            }
-        }
-        else
-        {
-            // TOD: Create error code
-            string additionalInformation = "Entry Index: " + orderPlaceIndex;
-            RecordError(-1, additionalInformation);
-        }
-
-        // get too close to our entry after 5 candles and coming back
-        if (entryIndex >= 5)
-        {
-            if (mLastManagedAsk < OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips) &&
-                currentTick.ask >= OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
-            {
-                mCurrentSetupTicket.Close();
-                return;
-            }
-        }
-
         movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
 
@@ -502,9 +374,6 @@ void WickLiquidatedMB::ManageCurrentActiveSetupTicket()
     {
         EAHelper::MoveToBreakEvenAsSoonAsPossible<WickLiquidatedMB>(this, mBEAdditionalPips);
     }
-
-    mLastManagedAsk = currentTick.ask;
-    mLastManagedBid = currentTick.bid;
 }
 
 bool WickLiquidatedMB::MoveToPreviousSetupTickets(Ticket &ticket)

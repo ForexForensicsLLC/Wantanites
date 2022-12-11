@@ -86,6 +86,9 @@ public:
 
     static int DowMBClusterCandleZoneBuys;
     static int DowMBClusterCandleZoneSells;
+
+    static int DowCandleStallBreakBuys;
+    static int DowCandleStallBreakSells;
 };
 
 static int MagicNumbers::TheSunriseShatterBearishSingleMB = 10003;
@@ -160,3 +163,6 @@ static int MagicNumbers::NasReversalInnerBreakSells = 10050;
 
 static int MagicNumbers::DowMBClusterCandleZoneBuys = 10051;
 static int MagicNumbers::DowMBClusterCandleZoneSells = 10052;
+
+static int MagicNumbers::DowCandleStallBreakBuys = 10053;
+static int MagicNumbers::DowCandleStallBreakSells = 10054;

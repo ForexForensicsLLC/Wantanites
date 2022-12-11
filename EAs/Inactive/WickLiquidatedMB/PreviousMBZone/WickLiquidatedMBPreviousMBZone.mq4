@@ -9,7 +9,7 @@
 #property strict
 
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/WickLiquidatedMB/WickLiquidatedMB.mqh>
+#include <SummitCapital/EAs/Inactive/WickLiquidatedMB/PreviousMBZone/WickLiquidatedMBPreviousMBZone.mqh>
 
 // --- EA Inputs ---
 double RiskPercent = 1;
@@ -18,7 +18,7 @@ int MaxTradesPerDay = 5;
 
 // -- MBTracker Inputs
 int MBsToTrack = 10;
-int MaxZonesInMB = 0;
+int MaxZonesInMB = 5;
 bool AllowMitigatedZones = false;
 bool AllowZonesAfterMBValidation = true;
 bool AllowWickBreaks = true;
@@ -28,7 +28,7 @@ bool CalculateOnTick = false;
 
 string StrategyName = "WickLiquidatedMB/";
 string EAName = "Dow/";
-string SetupTypeName = "";
+string SetupTypeName = "1minPreviousMBZone/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -41,14 +41,27 @@ MBTracker *SetupMBT;
 WickLiquidatedMB *WLMBBuys;
 WickLiquidatedMB *WLMBSells;
 
-double MinMBHeight = 10;
+// Dow 5 min
+// double MinMBHeight = 100;
+// double MinWickLength = 20;
+// double MaxSpreadPips = SymbolConstants::DowSpreadPips;
+// double EntryPaddingPips = 0;
+// double MinStopLossPips = 0;
+// double StopLossPaddingPips = 2;
+// double PipsToWaitBeforeBE = 40;
+// double BEAdditionalPips = 2;
+// double CloseRR = 15;
+
+// Dow 1 min
+double MinMBHeight = 40;
+double MinWickLength = 10;
 double MaxSpreadPips = SymbolConstants::DowSpreadPips;
 double EntryPaddingPips = 0;
 double MinStopLossPips = 0;
 double StopLossPaddingPips = 2;
 double PipsToWaitBeforeBE = 40;
 double BEAdditionalPips = 2;
-double CloseRR = 20;
+double CloseRR = 15;
 
 int OnInit()
 {
@@ -61,6 +74,7 @@ int OnInit()
     WLMBBuys.AddPartial(CloseRR, 100);
 
     WLMBBuys.mMinMBHeight = MinMBHeight;
+    WLMBBuys.mMinWickLength = MinWickLength;
     WLMBBuys.mEntryPaddingPips = EntryPaddingPips;
     WLMBBuys.mMinStopLossPips = MinStopLossPips;
     WLMBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
@@ -74,6 +88,7 @@ int OnInit()
     WLMBSells.AddPartial(CloseRR, 100);
 
     WLMBSells.mMinMBHeight = MinMBHeight;
+    WLMBSells.mMinWickLength = MinWickLength;
     WLMBSells.mEntryPaddingPips = EntryPaddingPips;
     WLMBSells.mMinStopLossPips = MinStopLossPips;
     WLMBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
