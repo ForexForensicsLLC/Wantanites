@@ -1828,7 +1828,7 @@ static void EAHelper::PlaceStopOrder(TEA &ea, double entry, double stopLoss, dou
         }
         else if (entry > currentTick.ask)
         {
-            orderPlaceError = OrderHelper::PlaceStopOrder(stopType, lots, entry, stopLoss, 0, ea.MagicNumber(), ticket);
+            orderPlaceError = OrderHelper::PlaceStopOrder(stopType, lots, NormalizeDouble(entry, Digits), stopLoss, 0, ea.MagicNumber(), ticket);
         }
     }
     else if (ea.mSetupType == OP_SELL)
