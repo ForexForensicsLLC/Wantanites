@@ -158,7 +158,6 @@ void EntryRulesMB::CheckSetSetup()
 
         if (EAHelper::MBWasCreatedAfterSessionStart<EntryRulesMB>(this, mSetupMBT, mFirstMBInSetupNumber))
         {
-
             mHasSetup = true;
         }
     }

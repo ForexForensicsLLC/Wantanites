@@ -20,6 +20,8 @@ public:
 
     MBTracker *mSetupMBT;
 
+    double mMinMBHeight;
+
     int mBarCount;
     int mFirstMBInSetupNumber;
     datetime mEntryCandleTime;
@@ -41,7 +43,6 @@ public:
               CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT);
     ~MorningMB();
 
-    // virtual int MagicNumber() { return mSetupType == OP_BUY ? MagicNumbers::BullishMorningMB : MagicNumbers::BearishMorningMB; }
     virtual double RiskPercent() { return mRiskPercent; }
     virtual void Run();
     virtual bool AllowedToTrade();
@@ -57,7 +58,7 @@ public:
     virtual void CheckCurrentSetupTicket();
     virtual void CheckPreviousSetupTicket(int ticketIndex);
     virtual void RecordTicketOpenData();
-    virtual void RecordTicketPartialData(int oldTicketIndex, int newTicketNumber);
+    virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
     virtual void Reset();
@@ -72,6 +73,8 @@ MorningMB::MorningMB(int magicNumber, int setupType, int maxCurrentSetupTradesAt
     mEntryTimeFrame = Period();
 
     mSetupMBT = setupMBT;
+
+    mMinMBHeight = 0.0;
 
     mBarCount = 0;
     mFirstMBInSetupNumber = EMPTY;
@@ -117,7 +120,10 @@ void MorningMB::CheckSetSetup()
 
     if (EAHelper::CheckSetSingleMBSetup<MorningMB>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
     {
-        mHasSetup = true;
+        if (EAHelper::MBWithinHeight<MorningMB>(this, mSetupMBT, mFirstMBInSetupNumber, mMinMBHeight, 0.0))
+        {
+            mHasSetup = true;
+        }
     }
 }
 
@@ -145,31 +151,15 @@ void MorningMB::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERRO
 bool MorningMB::Confirmation()
 {
     bool hasTicket = mCurrentSetupTicket.Number() != EMPTY;
+    if (hasTicket)
+    {
+        return true;
+    }
 
     if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
     {
-        return hasTicket;
+        return false;
     }
-
-    bool inZone = EAHelper::CandleIsInZone<MorningMB>(this, mSetupMBT, mFirstMBInSetupNumber, 2) ||
-                  EAHelper::CandleIsInZone<MorningMB>(this, mSetupMBT, mFirstMBInSetupNumber, 3);
-    if (!inZone)
-    {
-        return hasTicket;
-    }
-
-    // bool dojiInZone = false;
-    // int error = EAHelper::DojiInsideMostRecentMBsHoldingZone<MorningMB>(this, mSetupMBT, mFirstMBInSetupNumber, dojiInZone);
-    // if (TerminalErrors::IsTerminalError(error))
-    // {
-    //     RecordError(error);
-    //     return false;
-    // }
-
-    // if (!dojiInZone)
-    // {
-    //     return false;
-    // }
 
     MBState *tempMBState;
     if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, tempMBState))
@@ -179,11 +169,6 @@ bool MorningMB::Confirmation()
 
     ZoneState *tempZoneState;
     if (!tempMBState.GetDeepestHoldingZone(tempZoneState))
-    {
-        return false;
-    }
-
-    if (tempZoneState.Height() >= tempMBState.Height() * 0.95)
     {
         return false;
     }
@@ -198,35 +183,51 @@ bool MorningMB::Confirmation()
         }
     }
 
-    // bool exitWithinPercentOfMB = EAHelper::PriceIsFurtherThanPercentIntoMB<MorningMB>(this, mSetupMBT, mFirstMBInSetupNumber, tempZoneState.ExitPrice(), 0.8);
-    // if (!exitWithinPercentOfMB)
-    // {
-    //     return false;
-    // }
-
-    bool entryWithinMB = EAHelper::PriceIsFurtherThanPercentIntoMB<MorningMB>(this, mSetupMBT, mFirstMBInSetupNumber, tempZoneState.EntryPrice(), 0);
-    if (!entryWithinMB)
+    bool furthestInZone = EAHelper::CandleIsInZone<MorningMB>(this, mSetupMBT, mFirstMBInSetupNumber, 1, true);
+    if (!furthestInZone)
     {
         return false;
     }
 
-    // only take zones that actually caused the impulse break
-    // if (tempZoneState.StartIndex() - tempZoneState.EntryOffset() - tempMBState.EndIndex() > 0)
+    // bool furthestWithinFiftyPercent = EAHelper::PriceIsFurtherThanPercentIntoMB<MorningMB>(this, mSetupMBT, mFirstMBInSetupNumber, tempZoneState.EntryPrice(), 0);
+    // if (!entryWithinMB)
     // {
     //     return false;
     // }
 
-    bool candleBreak = false;
+    int pendingMBStart = EMPTY;
     if (mSetupType == OP_BUY)
     {
-        candleBreak = iClose(mEntrySymbol, mEntryTimeFrame, 1) > iHigh(mEntrySymbol, mEntryTimeFrame, 2);
+        if (!mSetupMBT.CurrentBullishRetracementIndexIsValid(pendingMBStart))
+        {
+            return false;
+        }
+
+        for (int i = pendingMBStart - 1; i >= 1; i--)
+        {
+            if (CandleStickHelper::IsBullish(mEntrySymbol, mEntryTimeFrame, i))
+            {
+                return false;
+            }
+        }
     }
     else if (mSetupType == OP_SELL)
     {
-        candleBreak = iClose(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, 2);
+        if (!mSetupMBT.CurrentBearishRetracementIndexIsValid(pendingMBStart))
+        {
+            return false;
+        }
+
+        for (int i = pendingMBStart - 1; i >= 1; i--)
+        {
+            if (CandleStickHelper::IsBearish(mEntrySymbol, mEntryTimeFrame, i))
+            {
+                return false;
+            }
+        }
     }
 
-    return hasTicket || candleBreak;
+    return true;
 }
 
 void MorningMB::PlaceOrders()
@@ -344,19 +345,19 @@ void MorningMB::ManageCurrentActiveSetupTicket()
         //     }
         // }
 
-        if (currentBars > mBarCount)
-        {
-            if (iHigh(mEntrySymbol, mEntryTimeFrame, 1) < iHigh(mEntrySymbol, mEntryTimeFrame, 2))
-            {
-                mFailToContinue = true;
-            }
-        }
+        // if (currentBars > mBarCount)
+        // {
+        //     if (iHigh(mEntrySymbol, mEntryTimeFrame, 1) < iHigh(mEntrySymbol, mEntryTimeFrame, 2))
+        //     {
+        //         mFailToContinue = true;
+        //     }
+        // }
 
-        if (mFailToContinue && currentTick.bid >= OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
-        {
-            mCurrentSetupTicket.Close();
-            return;
-        }
+        // if (mFailToContinue && currentTick.bid >= OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
+        // {
+        //     mCurrentSetupTicket.Close();
+        //     return;
+        // }
 
         // if (!mBrokeEntryIndex)
         // {
@@ -407,19 +408,19 @@ void MorningMB::ManageCurrentActiveSetupTicket()
         //     }
         // }
 
-        if (currentBars > mBarCount)
-        {
-            if (iLow(mEntrySymbol, mEntryTimeFrame, 1) > iLow(mEntrySymbol, mEntryTimeFrame, 2))
-            {
-                mFailToContinue = true;
-            }
-        }
+        // if (currentBars > mBarCount)
+        // {
+        //     if (iLow(mEntrySymbol, mEntryTimeFrame, 1) > iLow(mEntrySymbol, mEntryTimeFrame, 2))
+        //     {
+        //         mFailToContinue = true;
+        //     }
+        // }
 
-        if (mFailToContinue && currentTick.ask <= OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
-        {
-            mCurrentSetupTicket.Close();
-            return;
-        }
+        // if (mFailToContinue && currentTick.ask <= OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
+        // {
+        //     mCurrentSetupTicket.Close();
+        //     return;
+        // }
         // if (!mBrokeEntryIndex)
         // {
         //     for (int i = entryIndex - 1; i >= 0; i--)
@@ -463,13 +464,12 @@ void MorningMB::ManageCurrentActiveSetupTicket()
 
 bool MorningMB::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    // return mSetupMBT.MBsCreated() - 1 != mEntryMB;
     return EAHelper::TicketStopLossIsMovedToBreakEven<MorningMB>(this, ticket);
 }
 
 void MorningMB::ManagePreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::CheckPartialPreviousSetupTicket<MorningMB>(this, ticketIndex);
+    EAHelper::CheckPartialTicket<MorningMB>(this, mPreviousSetupTickets[ticketIndex]);
 }
 
 void MorningMB::CheckCurrentSetupTicket()
@@ -487,9 +487,9 @@ void MorningMB::RecordTicketOpenData()
     EAHelper::RecordSingleTimeFrameEntryTradeRecord<MorningMB>(this);
 }
 
-void MorningMB::RecordTicketPartialData(int oldTicketIndex, int newTicketNumber)
+void MorningMB::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
-    EAHelper::RecordPartialTradeRecord<MorningMB>(this, oldTicketIndex, newTicketNumber);
+    EAHelper::RecordPartialTradeRecord<MorningMB>(this, partialedTicket, newTicketNumber);
 }
 
 void MorningMB::RecordTicketCloseData(Ticket &ticket)

@@ -9,7 +9,7 @@
 #property strict
 
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/MorningMB/MorningMB.mqh>
+#include <SummitCapital/EAs/Inactive/MorningMB/MorningMB.mqh>
 
 // --- EA Inputs ---
 double RiskPercent = 1;
@@ -22,11 +22,12 @@ int MaxZonesInMB = 5;
 bool AllowMitigatedZones = false;
 bool AllowZonesAfterMBValidation = true;
 bool AllowWickBreaks = true;
+bool OnlyZonesInMB = true;
 bool PrintErrors = false;
 bool CalculateOnTick = false;
 
 string StrategyName = "MorningMB/";
-string EAName = "Nas/";
+string EAName = "Dow/";
 string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
@@ -41,50 +42,54 @@ MorningMB *MMBBuys;
 MorningMB *MMBSells;
 
 // Nas
-double MaxSpreadPips = 10;
-double EntryPaddingPips = 20;
-double MinStopLossPips = 250;
-double StopLossPaddingPips = 50;
-double PipsToWaitBeforeBE = 500;
-double BEAdditionalPips = 50;
-double CloseRR = 100;
+// double MinMBHeight = 30;
+// double MaxSpreadPips = 1;
+// double EntryPaddingPips = 2;
+// double MinStopLossPips = 25;
+// double StopLossPaddingPips = 5;
+// double PipsToWaitBeforeBE = 50;
+// double BEAdditionalPips = 5;
+// double CloseRR = 100;
 
 // Dow
-// double MaxSpreadPips = SymbolConstants::DowSpreadPips;
-// double EntryPaddingPips = 20;
-// double MinStopLossPips = 250;
-// double StopLossPaddingPips = 50;
-// double PipsToWaitBeforeBE = 500;
-// double BEAdditionalPips = SymbolConstants::DowSlippagePips;
-// double CloseRR = 8;
+double MinMBHeight = 40;
+double MaxSpreadPips = SymbolConstants::DowSpreadPips;
+double EntryPaddingPips = 2;
+double MinStopLossPips = 0;
+double StopLossPaddingPips = 5;
+double PipsToWaitBeforeBE = 50;
+double BEAdditionalPips = SymbolConstants::DowSlippagePips;
+double CloseRR = 20;
 
 int OnInit()
 {
-    SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
+    SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
 
     MMBBuys = new MorningMB(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
                             ErrorWriter, SetupMBT);
     MMBBuys.SetPartialCSVRecordWriter(PartialWriter);
     MMBBuys.AddPartial(CloseRR, 100);
 
+    MMBBuys.mMinMBHeight = MinMBHeight;
     MMBBuys.mEntryPaddingPips = EntryPaddingPips;
     MMBBuys.mMinStopLossPips = MinStopLossPips;
     MMBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     MMBBuys.mBEAdditionalPips = BEAdditionalPips;
 
-    MMBBuys.AddTradingSession(16, 30, 17, 0);
+    MMBBuys.AddTradingSession(10, 0, 23, 0);
 
     MMBSells = new MorningMB(-1, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
                              ErrorWriter, SetupMBT);
     MMBSells.SetPartialCSVRecordWriter(PartialWriter);
     MMBSells.AddPartial(CloseRR, 100);
 
+    MMBSells.mMinMBHeight = MinMBHeight;
     MMBSells.mEntryPaddingPips = EntryPaddingPips;
     MMBSells.mMinStopLossPips = MinStopLossPips;
     MMBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     MMBSells.mBEAdditionalPips = BEAdditionalPips;
 
-    MMBSells.AddTradingSession(16, 30, 17, 0);
+    MMBSells.AddTradingSession(10, 0, 23, 0);
 
     return (INIT_SUCCEEDED);
 }
