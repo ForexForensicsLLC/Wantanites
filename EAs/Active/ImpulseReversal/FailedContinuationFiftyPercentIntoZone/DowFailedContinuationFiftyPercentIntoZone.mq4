@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/EAs/Active/ImpulseReversal/ImpulseReversal.mqh>
+#include <SummitCapital/EAs/Active/ImpulseReversal/FailedContinuationFiftyPercentIntoZone/ImpulseReversal.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
 
 string ForcedSymbol = "US30";
@@ -31,7 +31,7 @@ bool CalculateOnTick = false;
 
 string StrategyName = "ImpulseReversal/";
 string EAName = "Dow/";
-string SetupTypeName = "";
+string SetupTypeName = "FailedContinuationFiftyPercentIntoZone/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");

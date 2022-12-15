@@ -166,12 +166,10 @@ void ImpulseContinuation::CheckSetSetup()
 
     if (hasImpulse)
     {
-        Print("impulse");
         if (EAHelper::CheckSetSingleMBSetup<ImpulseContinuation>(this, mConfirmationMBT, mFirstMBInConfirmationNumber, mSetupType))
         {
             if (EAHelper::MBWithinWidth<ImpulseContinuation>(this, mConfirmationMBT, mFirstMBInConfirmationNumber, 0, 100))
             {
-                Print("Setup");
                 mHasSetup = true;
             }
         }
