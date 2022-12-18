@@ -27,7 +27,7 @@ bool PrintErrors = false;
 bool CalculateOnTick = false;
 
 string StrategyName = "5MinMBSetup/";
-string EAName = "AU/";
+string EAName = "Dow/";
 string SetupTypeName = "ImpulseAway/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
@@ -41,15 +41,15 @@ MBTracker *SetupMBT;
 ImpulseAway *IABuys;
 ImpulseAway *IASells;
 
-// AU - 5min
-double MinDistanceFromZone = 20;
-double MaxSpreadPips = 1;
+// Dow 5 min
+double MinBreakBodyPips = 10;
+double MaxSpreadPips = SymbolConstants::DowSpreadPips;
 double EntryPaddingPips = 0;
 double MinStopLossPips = 0;
 double StopLossPaddingPips = 0;
 double PipsToWaitBeforeBE = 30;
 double BEAdditionalPips = 3;
-double CloseRR = 2;
+double CloseRR = 10;
 
 int OnInit()
 {
@@ -61,26 +61,26 @@ int OnInit()
     IABuys.SetPartialCSVRecordWriter(PartialWriter);
     IABuys.AddPartial(CloseRR, 100);
 
-    IABuys.mMinDistanceFromZone = MinDistanceFromZone;
+    IABuys.mMinBreakBodyPips = MinBreakBodyPips;
     IABuys.mEntryPaddingPips = EntryPaddingPips;
     IABuys.mMinStopLossPips = MinStopLossPips;
     IABuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     IABuys.mBEAdditionalPips = BEAdditionalPips;
 
-    IABuys.AddTradingSession(10, 30, 23, 0);
+    IABuys.AddTradingSession(14, 0, 16, 0);
 
     IASells = new ImpulseAway(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                               ExitWriter, ErrorWriter, SetupMBT);
     IASells.SetPartialCSVRecordWriter(PartialWriter);
     IASells.AddPartial(CloseRR, 100);
 
-    IASells.mMinDistanceFromZone = MinDistanceFromZone;
+    IASells.mMinBreakBodyPips = MinBreakBodyPips;
     IASells.mEntryPaddingPips = EntryPaddingPips;
     IASells.mMinStopLossPips = MinStopLossPips;
     IASells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     IASells.mBEAdditionalPips = BEAdditionalPips;
 
-    IASells.AddTradingSession(10, 30, 23, 0);
+    IASells.AddTradingSession(14, 0, 16, 0);
 
     return (INIT_SUCCEEDED);
 }

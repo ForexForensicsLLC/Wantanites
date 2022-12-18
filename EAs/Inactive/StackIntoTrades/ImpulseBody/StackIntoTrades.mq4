@@ -10,7 +10,7 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/MBInnerBreak/InnerStructureAfterFurthest/InnerStructureAfterFurthest.mqh>
+#include <SummitCapital/EAs/Inactive/StackIntoTrades/ImpulseBody/StackIntoTrades.mqh>
 
 string ForcedSymbol = "US30";
 int ForcedTimeFrame = 1;
@@ -30,9 +30,9 @@ bool OnlyZonesInMB = true;
 bool PrintErrors = false;
 bool CalculateOnTick = false;
 
-string StrategyName = "MBInnerBreak/";
+string StrategyName = "StatckIntoTrades/";
 string EAName = "Dow/";
-string SetupTypeName = "InnerStructureAfterFurthest/";
+string SetupTypeName = "ImpulseBody/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -41,18 +41,17 @@ CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWrite
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
 MBTracker *SetupMBT;
-MBInnerBreak *MBInnerBreakBuys;
-MBInnerBreak *MBInnerBreakSells;
+StackIntoTrades *SITBuys;
+StackIntoTrades *SITSells;
 
+// Dow
 double MaxSpreadPips = SymbolConstants::DowSpreadPips;
 double EntryPaddingPips = 2;
-double MinStopLossPips = 0;
-double StopLossPaddingPips = 5;
-double PipsToWaitBeforeBE = 40;
-double BEAdditionalPips = SymbolConstants::DowSlippagePips;
-double LargeBodyPips = 15;
-double PushFurtherPips = 15;
-double CloseRR = 20;
+double MaxEntrySlippage = 5;
+double StopLossPaddingPips = 0;
+double PipsToWaitBeforeBE = 50;
+double BEAdditionalPips = 2;
+double CloseRR = 5;
 
 int OnInit()
 {
@@ -63,34 +62,30 @@ int OnInit()
 
     SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
 
-    MBInnerBreakBuys = new MBInnerBreak(MagicNumbers::DowInnerBreakBigDipperBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                        ExitWriter, ErrorWriter, SetupMBT);
+    SITBuys = new StackIntoTrades(MagicNumbers::DowCandleStallBreakBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                  ExitWriter, ErrorWriter, SetupMBT);
 
-    MBInnerBreakBuys.SetPartialCSVRecordWriter(PartialWriter);
-    MBInnerBreakBuys.AddPartial(CloseRR, 100);
+    SITBuys.SetPartialCSVRecordWriter(PartialWriter);
+    SITBuys.AddPartial(CloseRR, 100);
 
-    MBInnerBreakBuys.mEntryPaddingPips = EntryPaddingPips;
-    MBInnerBreakBuys.mMinStopLossPips = MinStopLossPips;
-    MBInnerBreakBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    MBInnerBreakBuys.mBEAdditionalPips = BEAdditionalPips;
-    MBInnerBreakBuys.mLargeBodyPips = LargeBodyPips;
-    MBInnerBreakBuys.mPushFurtherPips = PushFurtherPips;
+    SITBuys.mEntryPaddingPips = EntryPaddingPips;
+    SITBuys.mMaxEntrySlippage = MaxEntrySlippage;
+    SITBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    SITBuys.mBEAdditionalPips = BEAdditionalPips;
 
-    MBInnerBreakBuys.AddTradingSession(10, 30, 23, 0);
+    SITBuys.AddTradingSession(16, 30, 23, 0);
 
-    MBInnerBreakSells = new MBInnerBreak(MagicNumbers::DowInnerBreakBigDipperSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                         ExitWriter, ErrorWriter, SetupMBT);
-    MBInnerBreakSells.SetPartialCSVRecordWriter(PartialWriter);
-    MBInnerBreakSells.AddPartial(CloseRR, 100);
+    SITSells = new StackIntoTrades(MagicNumbers::DowCandleStallBreakSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                   ExitWriter, ErrorWriter, SetupMBT);
+    SITSells.SetPartialCSVRecordWriter(PartialWriter);
+    SITSells.AddPartial(CloseRR, 100);
 
-    MBInnerBreakSells.mEntryPaddingPips = EntryPaddingPips;
-    MBInnerBreakSells.mMinStopLossPips = MinStopLossPips;
-    MBInnerBreakSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    MBInnerBreakSells.mBEAdditionalPips = BEAdditionalPips;
-    MBInnerBreakSells.mLargeBodyPips = LargeBodyPips;
-    MBInnerBreakSells.mPushFurtherPips = PushFurtherPips;
+    SITSells.mEntryPaddingPips = EntryPaddingPips;
+    SITSells.mMaxEntrySlippage = MaxEntrySlippage;
+    SITSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    SITSells.mBEAdditionalPips = BEAdditionalPips;
 
-    MBInnerBreakSells.AddTradingSession(10, 30, 23, 0);
+    SITSells.AddTradingSession(16, 30, 23, 0);
 
     return (INIT_SUCCEEDED);
 }
@@ -99,8 +94,8 @@ void OnDeinit(const int reason)
 {
     delete SetupMBT;
 
-    delete MBInnerBreakBuys;
-    delete MBInnerBreakSells;
+    delete SITBuys;
+    delete SITSells;
 
     delete EntryWriter;
     delete PartialWriter;
@@ -110,6 +105,6 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    MBInnerBreakBuys.Run();
-    MBInnerBreakSells.Run();
+    SITBuys.Run();
+    SITSells.Run();
 }

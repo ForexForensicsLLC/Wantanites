@@ -227,6 +227,8 @@ public:
     template <typename TEA>
     static void CheckTrailStopLossWithMBs(TEA &ea, MBTracker *&mbt, int lastMBNumberInSetup);
     template <typename TEA>
+    static void MoveTicketToBreakEven(TEA &ea, Ticket &ticket, double additionalPips);
+    template <typename TEA>
     static void MoveToBreakEvenWithCandleFurtherThanEntry(TEA &ea, bool waitForCandleClose);
     template <typename TEA>
     static void MoveToBreakEvenAfterNextSameTypeMBValidation(TEA &ea, Ticket &ticket, MBTracker *&mbt, int entryMB);
@@ -2116,6 +2118,49 @@ static void EAHelper::CheckTrailStopLossWithMBs(TEA &ea, MBTracker *&mbt, int la
     if (TerminalErrors::IsTerminalError(trailError))
     {
         ea.InvalidateSetup(false, trailError);
+    }
+}
+
+template <typename TEA>
+static void EAHelper::MoveTicketToBreakEven(TEA &ea, Ticket &ticket, double additionalPips)
+{
+    ea.mLastState = EAStates::ATTEMPTING_TO_MANAGE_ORDER;
+
+    if (ticket.Number() == EMPTY)
+    {
+        return;
+    }
+
+    bool isActive = false;
+    int isActiveError = ticket.IsActive(isActive);
+    if (TerminalErrors::IsTerminalError(isActiveError))
+    {
+        ea.RecordError(isActiveError);
+        return;
+    }
+
+    if (!isActive)
+    {
+        return;
+    }
+
+    bool stopLossIsMovedBreakEven;
+    int stopLossIsMovedToBreakEvenError = ticket.StopLossIsMovedToBreakEven(stopLossIsMovedBreakEven);
+    if (TerminalErrors::IsTerminalError(stopLossIsMovedToBreakEvenError))
+    {
+        ea.RecordError(stopLossIsMovedToBreakEvenError);
+        return;
+    }
+
+    if (stopLossIsMovedBreakEven)
+    {
+        return;
+    }
+
+    int breakEvenError = OrderHelper::MoveTicketToBreakEven(ticket, additionalPips);
+    if (TerminalErrors::IsTerminalError(breakEvenError))
+    {
+        ea.RecordError(breakEvenError);
     }
 }
 

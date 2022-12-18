@@ -222,7 +222,7 @@ bool TinyMBValidation::Confirmation()
         return false;
     }
 
-    double maxDistanceFromMBVal = 150;
+    double maxDistanceFromMBVal = 30;
     bool closeEnoughToMBVal = false;
     if (mSetupType == OP_BUY)
     {

@@ -43,10 +43,10 @@ WickZone *WZSells;
 
 // Dow
 double MaxSpreadPips = SymbolConstants::DowSpreadPips;
-double EntryPaddingPips = 20;
-double MinStopLossPips = 350;
-double StopLossPaddingPips = 0;
-double PipsToWaitBeforeBE = 500;
+double EntryPaddingPips = 0;
+double MinStopLossPips = 35;
+double StopLossPaddingPips = 5;
+double PipsToWaitBeforeBE = 50;
 double BEAdditionalPips = SymbolConstants::DowSlippagePips;
 double CloseRR = 10;
 

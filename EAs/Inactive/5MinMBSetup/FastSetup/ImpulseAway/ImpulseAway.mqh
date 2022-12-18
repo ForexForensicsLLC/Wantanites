@@ -19,7 +19,7 @@ public:
 
     int mFirstMBInSetupNumber;
 
-    double mMinDistanceFromZone;
+    double mMinBreakBodyPips;
 
     double mMinMBHeight;
     double mMaxMBHeight;
@@ -78,7 +78,7 @@ ImpulseAway::ImpulseAway(int magicNumber, int setupType, int maxCurrentSetupTrad
     mSetupMBT = setupMBT;
     mFirstMBInSetupNumber = EMPTY;
 
-    mMinDistanceFromZone = 0.0;
+    mMinBreakBodyPips = 0.0;
 
     mMinMBHeight = 0.0;
     mMaxMBHeight = 0.0;
@@ -138,6 +138,22 @@ void ImpulseAway::CheckSetSetup()
 
     if (EAHelper::CheckSetSingleMBSetup<ImpulseAway>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
     {
+        if (mLastEntryMB == mFirstMBInSetupNumber)
+        {
+            return;
+        }
+
+        MBState *tempMBState;
+        if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, tempMBState))
+        {
+            return;
+        }
+
+        if (CandleStickHelper::BodyLength(mEntrySymbol, mEntryTimeFrame, tempMBState.EndIndex()) < OrderHelper::PipsToRange(mMinBreakBodyPips))
+        {
+            return;
+        }
+
         mHasSetup = true;
     }
 }
@@ -175,11 +191,6 @@ bool ImpulseAway::Confirmation()
         return true;
     }
 
-    if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
-    {
-        return false;
-    }
-
     MBState *tempMBState;
     if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, tempMBState))
     {
@@ -188,6 +199,12 @@ bool ImpulseAway::Confirmation()
 
     ZoneState *tempZoneState;
     if (!tempMBState.GetDeepestHoldingZone(tempZoneState))
+    {
+        return false;
+    }
+
+    // zone needs to be on the candle that broke the mb
+    if (tempZoneState.StartIndex() - tempZoneState.EntryOffset() - tempMBState.EndIndex() != 0)
     {
         return false;
     }
@@ -204,45 +221,14 @@ bool ImpulseAway::Confirmation()
             return false;
         }
 
-        for (int i = tempZoneState.StartIndex() - tempZoneState.EntryOffset(); i > pendingMBStart; i--)
-        {
-            // need to have all bullish candles after the zone
-            if (CandleStickHelper::IsBearish(mEntrySymbol, mEntryTimeFrame, i))
-            {
-                return false;
-            }
-        }
-
-        if (iHigh(mEntrySymbol, mEntryTimeFrame, pendingMBStart) - tempZoneState.EntryPrice() < OrderHelper::PipsToRange(mMinDistanceFromZone))
-        {
-            return false;
-        }
-
         // have to re tap in the zone soon after the retracement starts
-        if (pendingMBStart > 6)
-        {
-            return false;
-        }
+        // if (pendingMBStart > 6)
+        // {
+        //     return false;
+        // }
 
-        for (int i = pendingMBStart - 1; i >= 1; i--)
-        {
-            if (iLow(mEntrySymbol, mEntryTimeFrame, i) <= tempZoneState.EntryPrice())
-            {
-                firstCandleInZone = i;
-                break;
-            }
-        }
-
-        if (firstCandleInZone == EMPTY || firstCandleInZone >= 4)
-        {
-            return false;
-        }
-
-        // failed to break lower
-        if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > iLow(mEntrySymbol, mEntryTimeFrame, 2))
-        {
-            return true;
-        }
+        return CandleStickHelper::LowestBodyPart(mEntrySymbol, mEntryTimeFrame, 1) > tempZoneState.EntryPrice() &&
+               iLow(mEntrySymbol, mEntryTimeFrame, 1) < tempZoneState.EntryPrice();
     }
     else if (mSetupType == OP_SELL)
     {
@@ -251,45 +237,14 @@ bool ImpulseAway::Confirmation()
             return false;
         }
 
-        for (int i = tempZoneState.StartIndex() - tempZoneState.EntryOffset(); i > pendingMBStart; i--)
-        {
-            // need to have all bearish candles after the zone
-            if (CandleStickHelper::IsBullish(mEntrySymbol, mEntryTimeFrame, i))
-            {
-                return false;
-            }
-        }
-
-        if (tempZoneState.EntryPrice() - iLow(mEntrySymbol, mEntryTimeFrame, pendingMBStart) < OrderHelper::PipsToRange(mMinDistanceFromZone))
-        {
-            return false;
-        }
-
         // have to re tap in the zone soon after the retracement starts
-        if (pendingMBStart > 6)
-        {
-            return false;
-        }
+        // if (pendingMBStart > 6)
+        // {
+        //     return false;
+        // }
 
-        for (int i = pendingMBStart - 1; i >= 1; i--)
-        {
-            if (iHigh(mEntrySymbol, mEntryTimeFrame, i) >= tempZoneState.EntryPrice())
-            {
-                firstCandleInZone = i;
-                break;
-            }
-        }
-
-        if (firstCandleInZone == EMPTY || firstCandleInZone >= 4)
-        {
-            return false;
-        }
-
-        // fail to go higher
-        if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < iHigh(mEntrySymbol, mEntryTimeFrame, 2))
-        {
-            return true;
-        }
+        return CandleStickHelper::HighestBodyPart(mEntrySymbol, mEntryTimeFrame, 1) < tempZoneState.EntryPrice() &&
+               iHigh(mEntrySymbol, mEntryTimeFrame, 1) > tempZoneState.EntryPrice();
     }
 
     return false;
@@ -303,11 +258,6 @@ void ImpulseAway::PlaceOrders()
     }
 
     if (mCurrentSetupTicket.Number() != EMPTY)
-    {
-        return;
-    }
-
-    if (mFirstMBInSetupNumber == mLastEntryMB)
     {
         return;
     }
@@ -337,46 +287,22 @@ void ImpulseAway::PlaceOrders()
     double entry = 0.0;
     double stopLoss = 0.0;
 
-    // entry = tempZoneState.EntryPrice();
-    stopLoss = tempZoneState.ExitPrice();
-
     if (mSetupType == OP_BUY)
     {
-        if (!mSetupMBT.CurrentBullishRetracementIndexIsValid(pendingMBStart))
-        {
-            return;
-        }
-
-        if (!MQLHelper::GetLowestLowBetween(mEntrySymbol, mEntryTimeFrame, pendingMBStart, 0, false, furthestPoint))
-        {
-            return;
-        }
-
         entry = iHigh(mEntrySymbol, mEntryTimeFrame, 1) + OrderHelper::PipsToRange(mMaxSpreadPips + mEntryPaddingPips);
-        // stopLoss = furthestPoint - OrderHelper::PipsToRange(mStopLossPaddingPips);
+        stopLoss = iLow(mEntrySymbol, mEntryTimeFrame, 1) - OrderHelper::PipsToRange(mStopLossPaddingPips);
     }
     else if (mSetupType == OP_SELL)
     {
-        if (!mSetupMBT.CurrentBearishRetracementIndexIsValid(pendingMBStart))
-        {
-            return;
-        }
-
-        if (!MQLHelper::GetHighestHighBetween(mEntrySymbol, mEntryTimeFrame, pendingMBStart, 0, false, furthestPoint))
-        {
-            return;
-        }
-
         entry = iLow(mEntrySymbol, mEntryTimeFrame, 1) - OrderHelper::PipsToRange(mEntryPaddingPips);
-        // stopLoss = furthestPoint + OrderHelper::PipsToRange(mStopLossPaddingPips + mMaxSpreadPips);
+        stopLoss = iHigh(mEntrySymbol, mEntryTimeFrame, 1) + OrderHelper::PipsToRange(mStopLossPaddingPips + mMaxSpreadPips);
     }
 
     EAHelper::PlaceStopOrder<ImpulseAway>(this, entry, stopLoss, 0.0, true, mBEAdditionalPips);
 
     if (mCurrentSetupTicket.Number() != EMPTY)
     {
-        mEntryZone = tempZoneState.Number();
-
+        mLastEntryMB = mFirstMBInSetupNumber;
         mFailedImpulseEntryTime = 0;
     }
 }
@@ -400,20 +326,20 @@ void ImpulseAway::ManageCurrentPendingSetupTicket()
         return;
     }
 
-    // if (mSetupType == OP_BUY)
-    // {
-    //     if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, entryCandleIndex))
-    //     {
-    //         InvalidateSetup(true);
-    //     }
-    // }
-    // else if (mSetupType == OP_SELL)
-    // {
-    //     if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > iHigh(mEntrySymbol, mEntryTimeFrame, entryCandleIndex))
-    //     {
-    //         InvalidateSetup(true);
-    //     }
-    // }
+    if (mSetupType == OP_BUY)
+    {
+        if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, entryCandleIndex))
+        {
+            InvalidateSetup(true);
+        }
+    }
+    else if (mSetupType == OP_SELL)
+    {
+        if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > iHigh(mEntrySymbol, mEntryTimeFrame, entryCandleIndex))
+        {
+            InvalidateSetup(true);
+        }
+    }
 }
 
 void ImpulseAway::ManageCurrentActiveSetupTicket()
@@ -460,7 +386,7 @@ void ImpulseAway::ManageCurrentActiveSetupTicket()
         movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
 
-    if (movedPips || mLastEntryMB != mSetupMBT.MBsCreated() - 1)
+    if (movedPips)
     {
         EAHelper::MoveToBreakEvenAsSoonAsPossible<ImpulseAway>(this, mBEAdditionalPips);
     }

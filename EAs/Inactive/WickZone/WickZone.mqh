@@ -165,11 +165,6 @@ bool WickZone::Confirmation()
         return hasTicket;
     }
 
-    if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
-    {
-        return false;
-    }
-
     MBState *tempMBState;
     if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, tempMBState))
     {
@@ -195,22 +190,18 @@ bool WickZone::Confirmation()
 
     if (mSetupType == OP_BUY)
     {
-        firstCandleWickedThroughZone = CandleStickHelper::LowestBodyPart(mEntrySymbol, mEntryTimeFrame, 2) > (tempZoneState.EntryPrice() + OrderHelper::PipsToRange(minWickPips)) &&
-                                       iLow(mEntrySymbol, mEntryTimeFrame, 2) < tempZoneState.ExitPrice();
-
-        secondCandleDidNotGoFurther = CandleStickHelper::LowestBodyPart(mEntrySymbol, mEntryTimeFrame, 1) > tempZoneState.ExitPrice() &&
-                                      iLow(mEntrySymbol, mEntryTimeFrame, 1) > iLow(mEntrySymbol, mEntryTimeFrame, 2);
+        return CandleStickHelper::LowestBodyPart(mEntrySymbol, mEntryTimeFrame, 0) > tempZoneState.EntryPrice() &&
+               iLow(mEntrySymbol, mEntryTimeFrame, 0) < tempZoneState.ExitPrice() &&
+               CandleStickHelper::LowestBodyPart(mEntrySymbol, mEntryTimeFrame, 0) - iLow(mEntrySymbol, mEntryTimeFrame, 0) > OrderHelper::PipsToRange(minWickPips);
     }
     else if (mSetupType == OP_SELL)
     {
-        firstCandleWickedThroughZone = CandleStickHelper::HighestBodyPart(mEntrySymbol, mEntryTimeFrame, 2) < (tempZoneState.EntryPrice() - OrderHelper::PipsToRange(minWickPips)) &&
-                                       iHigh(mEntrySymbol, mEntryTimeFrame, 2) > tempZoneState.ExitPrice();
-
-        secondCandleDidNotGoFurther = CandleStickHelper::HighestBodyPart(mEntrySymbol, mEntryTimeFrame, 1) < tempZoneState.ExitPrice() &&
-                                      iHigh(mEntrySymbol, mEntryTimeFrame, 1) < iHigh(mEntrySymbol, mEntryTimeFrame, 2);
+        return CandleStickHelper::HighestBodyPart(mEntrySymbol, mEntryTimeFrame, 0) < tempZoneState.EntryPrice() &&
+               iHigh(mEntrySymbol, mEntryTimeFrame, 0) > tempZoneState.ExitPrice() &&
+               iHigh(mEntrySymbol, mEntryTimeFrame, 0) - CandleStickHelper::HighestBodyPart(mEntrySymbol, mEntryTimeFrame, 0) > OrderHelper::PipsToRange(minWickPips);
     }
 
-    return firstCandleWickedThroughZone && secondCandleDidNotGoFurther;
+    return false;
 }
 
 void WickZone::PlaceOrders()
@@ -244,19 +235,19 @@ void WickZone::PlaceOrders()
 
     if (mSetupType == OP_BUY)
     {
-        entry = iHigh(mEntrySymbol, mEntryTimeFrame, 1) + OrderHelper::PipsToRange(mMaxSpreadPips);
-        // entry = currentTick.ask;
-        stopLoss = MathMin(iLow(mEntrySymbol, mEntryTimeFrame, 2), iLow(mEntrySymbol, mEntryTimeFrame, 1)) - OrderHelper::PipsToRange(mStopLossPaddingPips);
+        // entry = iHigh(mEntrySymbol, mEntryTimeFrame, 1) + OrderHelper::PipsToRange(mMaxSpreadPips);
+        entry = currentTick.ask;
+        stopLoss = iLow(mEntrySymbol, mEntryTimeFrame, 0) - OrderHelper::PipsToRange(mStopLossPaddingPips);
     }
     else if (mSetupType == OP_SELL)
     {
-        entry = iLow(mEntrySymbol, mEntryTimeFrame, 1);
-        // entry = currentTick.bid;
-        stopLoss = MathMax(iHigh(mEntrySymbol, mEntryTimeFrame, 2), iHigh(mEntrySymbol, mEntryTimeFrame, 1)) + OrderHelper::PipsToRange(mStopLossPaddingPips + mMaxSpreadPips);
+        // entry = iLow(mEntrySymbol, mEntryTimeFrame, 1);
+        entry = currentTick.bid;
+        stopLoss = iHigh(mEntrySymbol, mEntryTimeFrame, 0) + OrderHelper::PipsToRange(mStopLossPaddingPips + mMaxSpreadPips);
     }
 
-    EAHelper::PlaceStopOrder<WickZone>(this, entry, stopLoss, 0.0, true, mBEAdditionalPips);
-    // EAHelper::PlaceMarketOrder<WickZone>(this, entry, stopLoss);
+    // EAHelper::PlaceStopOrder<WickZone>(this, entry, stopLoss, 0.0, true, mBEAdditionalPips);
+    EAHelper::PlaceMarketOrder<WickZone>(this, entry, stopLoss);
 
     if (mCurrentSetupTicket.Number() != EMPTY)
     {
@@ -281,25 +272,25 @@ void WickZone::ManageCurrentPendingSetupTicket()
     //     InvalidateSetup(true);
     // }
 
-    if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
-    {
-        return;
-    }
+    // if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
+    // {
+    //     return;
+    // }
 
-    if (mSetupType == OP_BUY)
-    {
-        if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, entryCandleIndex))
-        {
-            InvalidateSetup(true);
-        }
-    }
-    else if (mSetupType == OP_SELL)
-    {
-        if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > iHigh(mEntrySymbol, mEntryTimeFrame, entryCandleIndex))
-        {
-            InvalidateSetup(true);
-        }
-    }
+    // if (mSetupType == OP_BUY)
+    // {
+    //     if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, entryCandleIndex))
+    //     {
+    //         InvalidateSetup(true);
+    //     }
+    // }
+    // else if (mSetupType == OP_SELL)
+    // {
+    //     if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > iHigh(mEntrySymbol, mEntryTimeFrame, entryCandleIndex))
+    //     {
+    //         InvalidateSetup(true);
+    //     }
+    // }
 }
 
 void WickZone::ManageCurrentActiveSetupTicket()

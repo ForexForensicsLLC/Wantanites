@@ -42,12 +42,12 @@ TinyMBValidation *TMBVBuys;
 TinyMBValidation *TMBVSells;
 
 // Dow
-double MaxMBPips = 300;
+double MaxMBPips = 30;
 double MaxSpreadPips = SymbolConstants::DowSpreadPips;
-double EntryPaddingPips = 20;
-double MinStopLossPips = 350;
-double StopLossPaddingPips = 50;
-double PipsToWaitBeforeBE = 200;
+double EntryPaddingPips = 0;
+double MinStopLossPips = 0;
+double StopLossPaddingPips = 5;
+double PipsToWaitBeforeBE = 20;
 double BEAdditionalPips = SymbolConstants::DowSlippagePips;
 double CloseRR = 1000;
 
