@@ -9,7 +9,7 @@
 #property strict
 
 #include <SummitCapital\Framework\Constants\ConstantValues.mqh>
-#include <SummitCapital\Framework\Helpers\TimeHelper.mqh>
+#include <SummitCapital\Framework\Helpers\DateTimeHelper.mqh>
 
 class TimeRangeBreakout
 {
@@ -27,8 +27,14 @@ private:
     datetime mRangeStartTime;
     datetime mRangeEndTime;
 
+    bool mUpdateRangeStart;
+    bool mUpdateRangeEnd;
+
     double mRangeHigh;
     double mRangeLow;
+
+    bool mUpdateRangeHigh;
+    bool mUpdateRangeLow;
 
     bool mBrokeRangeHigh;
     bool mBrokeRangeLow;
@@ -43,6 +49,7 @@ public:
 
     double RangeHigh() { return mRangeHigh; }
     double RangeLow() { return mRangeLow; }
+    double RangeWidth() { return mRangeHigh - mRangeLow; }
 
     bool BrokeRangeHigh();
     bool BrokeRangeLow();
@@ -55,7 +62,7 @@ TimeRangeBreakout::TimeRangeBreakout(int rangeHourStartTime, int rangeMinuteStar
     mObjectNamePrefix = "TimeRangeBreakout";
 
     mBarsCalculated = 0;
-    mLastDay = DayOfYear();
+    mLastDay = Day();
 
     mRangeHourStartTime = rangeHourStartTime;
     mRangeMinuteStartTime = rangeMinuteStartTime;
@@ -155,22 +162,30 @@ void TimeRangeBreakout::Calculate(int barIndex)
         if (currentTick.ask > mRangeHigh || mRangeHigh == ConstantValues::EmptyDouble)
         {
             mRangeHigh = currentTick.ask;
+            mUpdateRangeHigh = true;
         }
 
         if (currentTick.bid < mRangeLow || mRangeLow == ConstantValues::EmptyDouble)
         {
             mRangeLow = currentTick.bid;
+            mUpdateRangeLow = true;
         }
     }
 }
 
 void TimeRangeBreakout::Reset()
 {
-    mRangeStartTime = TimeHelper::HourMinuteToDateTime(mRangeHourStartTime, mRangeMinuteStartTime);
-    mRangeEndTime = TimeHelper::HourMinuteToDateTime(mRangeHourEndTime, mRangeMinuteEndTime);
+    mRangeStartTime = DateTimeHelper::HourMinuteToDateTime(mRangeHourStartTime, mRangeMinuteStartTime);
+    mRangeEndTime = DateTimeHelper::HourMinuteToDateTime(mRangeHourEndTime, mRangeMinuteEndTime);
+
+    mUpdateRangeStart = true;
+    mUpdateRangeEnd = true;
 
     mRangeHigh = ConstantValues::EmptyDouble;
     mRangeLow = ConstantValues::EmptyDouble;
+
+    mUpdateRangeHigh = false;
+    mUpdateRangeLow = false;
 
     mBrokeRangeHigh = false;
     mBrokeRangeLow = false;
@@ -180,27 +195,47 @@ void TimeRangeBreakout::Draw()
 {
     Update();
 
-    ObjectsDeleteAll(NULL, mObjectNamePrefix);
-
-    ObjectCreate(NULL, mObjectNamePrefix + "_start", OBJ_VLINE, 0, mRangeStartTime, 0);
-    ObjectSetInteger(NULL, mObjectNamePrefix + "_start", OBJPROP_COLOR, clrBlue);
-    ObjectSetInteger(NULL, mObjectNamePrefix + "_start", OBJPROP_WIDTH, 2);
-
-    ObjectCreate(NULL, mObjectNamePrefix + "_end", OBJ_VLINE, 0, mRangeEndTime, 0);
-    ObjectSetInteger(NULL, mObjectNamePrefix + "_end", OBJPROP_COLOR, clrBlue);
-    ObjectSetInteger(NULL, mObjectNamePrefix + "_end", OBJPROP_WIDTH, 2);
-
-    if (mRangeHigh > 0)
+    if (mUpdateRangeStart)
     {
+        ObjectDelete(NULL, mObjectNamePrefix + "_start");
+
+        ObjectCreate(NULL, mObjectNamePrefix + "_start", OBJ_VLINE, 0, mRangeStartTime, 0);
+        ObjectSetInteger(NULL, mObjectNamePrefix + "_start", OBJPROP_COLOR, clrBlue);
+        ObjectSetInteger(NULL, mObjectNamePrefix + "_start", OBJPROP_WIDTH, 2);
+
+        mUpdateRangeStart = false;
+    }
+
+    if (mUpdateRangeEnd)
+    {
+        ObjectDelete(NULL, mObjectNamePrefix + "_end");
+
+        ObjectCreate(NULL, mObjectNamePrefix + "_end", OBJ_VLINE, 0, mRangeEndTime, 0);
+        ObjectSetInteger(NULL, mObjectNamePrefix + "_end", OBJPROP_COLOR, clrBlue);
+        ObjectSetInteger(NULL, mObjectNamePrefix + "_end", OBJPROP_WIDTH, 2);
+
+        mUpdateRangeEnd = false;
+    }
+
+    if (mRangeHigh > 0 && mUpdateRangeHigh)
+    {
+        ObjectDelete(NULL, mObjectNamePrefix + "_high");
+
         ObjectCreate(NULL, mObjectNamePrefix + "_high", OBJ_TREND, 0, mRangeStartTime, mRangeHigh, mRangeEndTime, mRangeHigh);
         ObjectSetInteger(NULL, mObjectNamePrefix + "_high", OBJPROP_COLOR, clrBlue);
         ObjectSetInteger(NULL, mObjectNamePrefix + "_high", OBJPROP_WIDTH, 2);
+
+        mUpdateRangeHigh = false;
     }
 
-    if (mRangeLow > 0)
+    if (mRangeLow > 0 && mUpdateRangeLow)
     {
+        ObjectDelete(NULL, mObjectNamePrefix + "_low");
+
         ObjectCreate(NULL, mObjectNamePrefix + "_low", OBJ_TREND, 0, mRangeStartTime, mRangeLow, mRangeEndTime, mRangeLow);
         ObjectSetInteger(NULL, mObjectNamePrefix + "_low", OBJPROP_COLOR, clrBlue);
         ObjectSetInteger(NULL, mObjectNamePrefix + "_low", OBJPROP_WIDTH, 2);
+
+        mUpdateRangeLow = false;
     }
 }

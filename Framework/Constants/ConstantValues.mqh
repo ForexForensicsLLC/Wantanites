@@ -11,5 +11,7 @@
 class ConstantValues
 {
 public:
-    static double EmptyDouble = -1.0;
+    static double EmptyDouble;
 };
+
+static double ConstantValues::EmptyDouble = -1.0;

@@ -18,6 +18,8 @@
 #include <SummitCapital\Framework\Helpers\ScreenShotHelper.mqh>
 #include <SummitCapital\Framework\Helpers\CandleStickHelper.mqh>
 
+#include <SummitCapital\Framework\Objects\TimeRangeBreakout.mqh>
+
 #include <SummitCapital\Framework\Trackers\LiquidationSetupTracker.mqh>
 
 class EAHelper
@@ -66,6 +68,9 @@ public:
     static void RunDrawMBTs(TEA &ea, MBTracker *&mbtOne, MBTracker *&mbtTwo);
     template <typename TEA>
     static void RunDrawMBTAndMRFTS(TEA &ea, MBTracker *&mbt);
+
+    template <typename TEA>
+    static void RunDrawTimeRange(TEA &ea, TimeRangeBreakout *&trb);
 
     // =========================================================================
     // Allowed To Trade
@@ -120,6 +125,9 @@ public:
 
     template <typename TEA>
     static bool RunningBigDipperSetup(TEA &ea, datetime startTime);
+
+    template <typename TEA>
+    static bool HasTimeRangeBreakout(TEA &ea, TimeRangeBreakout *&trb);
 
     // =========================================================================
     // Check Invalidate Setup
@@ -245,6 +253,9 @@ public:
 
     template <typename TEA>
     static bool TicketStopLossIsMovedToBreakEven(TEA &ea, Ticket &ticket);
+
+    template <typename TEA>
+    static bool CloseTicketIfAtTime(TEA &ea, Ticket &ticket, int hour, int minute);
 
     // =========================================================================
     // Checking Tickets
@@ -678,6 +689,13 @@ static void EAHelper::RunDrawMBTAndMRFTS(TEA &ea, MBTracker *&mbt)
     mbt.DrawZonesForNMostRecentMBs(1);
     ea.mMRFTS.Draw();
 
+    Run(ea);
+}
+
+template <typename TEA>
+static void EAHelper::RunDrawTimeRange(TEA &ea, TimeRangeBreakout *&trb)
+{
+    trb.Draw();
     Run(ea);
 }
 /*
@@ -1528,6 +1546,21 @@ static bool EAHelper::RunningBigDipperSetup(TEA &ea, datetime startTime)
                 return true;
             }
         }
+    }
+
+    return false;
+}
+
+template <typename TEA>
+static bool EAHelper::HasTimeRangeBreakout(TEA &ea, TimeRangeBreakout *&trb)
+{
+    if (ea.mSetupType == OP_BUY)
+    {
+        return trb.BrokeRangeHigh();
+    }
+    else if (ea.mSetupType == OP_SELL)
+    {
+        return trb.BrokeRangeLow();
     }
 
     return false;
@@ -2531,6 +2564,18 @@ static bool EAHelper::CloseIfPercentIntoStopLoss(TEA &ea, Ticket &ticket, double
     }
 
     if (isPercentIntoStopLoss)
+    {
+        ticket.Close();
+        return true;
+    }
+
+    return false;
+}
+
+template <typename TEA>
+static bool EAHelper::CloseTicketIfAtTime(TEA &ea, Ticket &ticket, int hour, int minute)
+{
+    if (Hour() >= hour && Minute() >= minute)
     {
         ticket.Close();
         return true;
