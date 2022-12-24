@@ -10,7 +10,7 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/TimeRangeBreakout/StartOfDayTimeRangeBreakout.mqh>
+#include <SummitCapital/EAs/Inactive/TimeRange/TimeRangeBreakout/StartOfDayTimeRangeBreakout.mqh>
 
 string ForcedSymbol = "USDJPY";
 int ForcedTimeFrame = 5;

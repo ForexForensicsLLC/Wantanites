@@ -1765,7 +1765,7 @@ template <typename TEA>
 static double EAHelper::GetReducedRiskPerPercentLost(TEA &ea, double perPercentLost, double reduceBy)
 {
     double calculatedRiskPercent = ea.mRiskPercent;
-    double totalPercentLost = (AccountBalance() - ea.mLargestAccountBalance) / ea.mLargestAccountBalance * 100;
+    double totalPercentLost = MathAbs((AccountBalance() - ea.mLargestAccountBalance) / ea.mLargestAccountBalance * 100);
 
     while (totalPercentLost >= perPercentLost)
     {

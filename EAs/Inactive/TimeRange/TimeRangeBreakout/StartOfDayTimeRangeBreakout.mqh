@@ -82,7 +82,7 @@ StartOfDayTimeRangeBreakout::StartOfDayTimeRangeBreakout(int magicNumber, int se
 
     mEntryCandleTime = 0;
 
-    mLargestAccountBalance = 100000;
+    mLargestAccountBalance = 200000;
 
     EAHelper::FindSetPreviousAndCurrentSetupTickets<StartOfDayTimeRangeBreakout>(this);
     EAHelper::UpdatePreviousSetupTicketsRRAcquried<StartOfDayTimeRangeBreakout, PartialTradeRecord>(this);
@@ -92,7 +92,8 @@ StartOfDayTimeRangeBreakout::StartOfDayTimeRangeBreakout(int magicNumber, int se
 double StartOfDayTimeRangeBreakout::RiskPercent()
 {
     // reduce risk by half if we lose 5%
-    return EAHelper::GetReducedRiskPerPercentLost<StartOfDayTimeRangeBreakout>(this, 5, 0.5);
+    // return EAHelper::GetReducedRiskPerPercentLost<StartOfDayTimeRangeBreakout>(this, 10, 0.25);
+    return mRiskPercent;
 }
 
 StartOfDayTimeRangeBreakout::~StartOfDayTimeRangeBreakout()
@@ -148,19 +149,20 @@ void StartOfDayTimeRangeBreakout::PlaceOrders()
     if (mSetupType == OP_BUY)
     {
         entry = currentTick.ask;
-        stopLoss = mTRB.RangeLow() - (mTRB.RangeWidth() * 0.5); // 150% of the range
+        stopLoss = mTRB.RangeLow(); /* - (mTRB.RangeWidth() * 0.5);*/ // 150% of the range
+        Print("Range Low: ", mTRB.RangeLow(), ", SL: ", stopLoss);
     }
     else if (mSetupType == OP_SELL)
     {
         entry = currentTick.bid;
-        stopLoss = mTRB.RangeHigh() + (mTRB.RangeWidth() * 0.5); // 150% of the range
+        stopLoss = mTRB.RangeHigh(); /* + (mTRB.RangeWidth() * 0.5); */ // 150% of the range
+        Print("Range High: ", mTRB.RangeHigh(), ", SL: ", stopLoss);
     }
 
     EAHelper::PlaceMarketOrder<StartOfDayTimeRangeBreakout>(this, entry, stopLoss);
 
     if (mCurrentSetupTicket.Number() != EMPTY)
     {
-        Print("done trading");
         mStopTrading = true;
         mEntryCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 1);
     }
@@ -177,36 +179,36 @@ void StartOfDayTimeRangeBreakout::ManageCurrentActiveSetupTicket()
     //     return;
     // }
 
-    // int selectError = mCurrentSetupTicket.SelectIfOpen("Stuff");
-    // if (TerminalErrors::IsTerminalError(selectError))
-    // {
-    //     RecordError(selectError);
-    //     return;
-    // }
+    int selectError = mCurrentSetupTicket.SelectIfOpen("Stuff");
+    if (TerminalErrors::IsTerminalError(selectError))
+    {
+        RecordError(selectError);
+        return;
+    }
 
-    // MqlTick currentTick;
-    // if (!SymbolInfoTick(Symbol(), currentTick))
-    // {
-    //     RecordError(GetLastError());
-    //     return;
-    // }
+    MqlTick currentTick;
+    if (!SymbolInfoTick(Symbol(), currentTick))
+    {
+        RecordError(GetLastError());
+        return;
+    }
 
     // int entryIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, OrderOpenTime());
-    // bool movedPips = false;
+    bool movedPips = false;
 
-    // if (mSetupType == OP_BUY)
-    // {
-    //     movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
-    // }
-    // else if (mSetupType == OP_SELL)
-    // {
-    //     movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
-    // }
+    if (mSetupType == OP_BUY)
+    {
+        movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
+    }
+    else if (mSetupType == OP_SELL)
+    {
+        movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
+    }
 
-    // if (movedPips)
-    // {
-    //     EAHelper::MoveToBreakEvenAsSoonAsPossible<StartOfDayTimeRangeBreakout>(this, mBEAdditionalPips);
-    // }
+    if (movedPips / OrderStopLoss() >= 1)
+    {
+        EAHelper::MoveTicketToBreakEven<StartOfDayTimeRangeBreakout>(this, mCurrentSetupTicket, mBEAdditionalPips);
+    }
 
     EAHelper::CloseTicketIfAtTime<StartOfDayTimeRangeBreakout>(this, mCurrentSetupTicket, mCloseHour, mCloseMinute);
 }
@@ -256,6 +258,5 @@ void StartOfDayTimeRangeBreakout::RecordError(int error, string additionalInform
 
 void StartOfDayTimeRangeBreakout::Reset()
 {
-    Print("Resetting");
     mStopTrading = false;
 }

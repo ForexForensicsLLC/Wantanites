@@ -231,10 +231,22 @@ static double OrderHelper::PipsToRange(double pips)
 static double OrderHelper::GetLotSize(double stopLossPips, double riskPercent)
 {
     double pipValue = MarketInfo(Symbol(), MODE_TICKSIZE) * 10 * MarketInfo(Symbol(), MODE_LOTSIZE);
-    double lotSize = NormalizeDouble((AccountBalance() * riskPercent / 100) / (stopLossPips * pipValue), 2);
 
-    lotSize = MathMax(lotSize, MarketInfo(Symbol(), MODE_MINLOT));
-    return lotSize;
+    // the actual pip value for JPY fluctuates based on the current price so it needs to be adjusted
+    if (StringFind(Symbol(), "JPY") != -1)
+    {
+        MqlTick currentTick;
+        if (!SymbolInfoTick(Symbol(), currentTick))
+        {
+            Print("Can't get tick during lot size calculation");
+            return 0.1;
+        }
+
+        pipValue = pipValue / currentTick.bid;
+    }
+
+    double lotSize = NormalizeDouble((AccountBalance() * riskPercent / 100) / (stopLossPips * pipValue), 2);
+    return CleanLotSize(lotSize);
 }
 
 /**
@@ -538,6 +550,8 @@ static int OrderHelper::PlaceMarketOrder(int orderType, double lots, double entr
     {
         return TerminalErrors::WRONG_ORDER_TYPE;
     }
+
+    lots = CleanLotSize(lots);
 
     int newTicket = OrderSend(Symbol(), orderType, lots, entry, 0, stopLoss, takeProfit, NULL, magicNumber, 0, clrNONE);
 
