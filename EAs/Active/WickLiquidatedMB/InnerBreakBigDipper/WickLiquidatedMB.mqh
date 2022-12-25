@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                    MBInnerBreak.mqh |
+//|                                                    WickLiquidatedMB.mqh |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -12,12 +12,16 @@
 #include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
-class MBInnerBreak : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class WickLiquidatedMB : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     MBTracker *mSetupMBT;
 
     int mFirstMBInSetupNumber;
+
+    datetime mWickLiquidatedMBTime;
+    datetime mInnerStructureTime;
+    bool mDecentPushAfterInnerStructure;
 
     double mEntryPaddingPips;
     double mMinStopLossPips;
@@ -39,10 +43,10 @@ public:
     double mLastManagedAsk;
 
 public:
-    MBInnerBreak(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                 CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT);
-    ~MBInnerBreak();
+    WickLiquidatedMB(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+                     CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                     CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT);
+    ~WickLiquidatedMB();
 
     virtual double RiskPercent() { return mRiskPercent; }
 
@@ -66,13 +70,17 @@ public:
     virtual void Reset();
 };
 
-MBInnerBreak::MBInnerBreak(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                           CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                           CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT)
+WickLiquidatedMB::WickLiquidatedMB(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+                                   CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                                   CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mSetupMBT = setupMBT;
     mFirstMBInSetupNumber = EMPTY;
+
+    mWickLiquidatedMBTime = 0;
+    mInnerStructureTime = 0;
+    mDecentPushAfterInnerStructure = false;
 
     mBarCount = 0;
     mEntryCandleTime = 0;
@@ -95,37 +103,70 @@ MBInnerBreak::MBInnerBreak(int magicNumber, int setupType, int maxCurrentSetupTr
 
     mLargestAccountBalance = 100000;
 
-    EAHelper::FindSetPreviousAndCurrentSetupTickets<MBInnerBreak>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<MBInnerBreak, PartialTradeRecord>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<MBInnerBreak, SingleTimeFrameEntryTradeRecord>(this);
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<WickLiquidatedMB>(this);
+    EAHelper::UpdatePreviousSetupTicketsRRAcquried<WickLiquidatedMB, PartialTradeRecord>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<WickLiquidatedMB, SingleTimeFrameEntryTradeRecord>(this);
 }
 
-MBInnerBreak::~MBInnerBreak()
+WickLiquidatedMB::~WickLiquidatedMB()
 {
 }
 
-void MBInnerBreak::Run()
+void WickLiquidatedMB::Run()
 {
-    EAHelper::RunDrawMBT<MBInnerBreak>(this, mSetupMBT);
+    EAHelper::RunDrawMBT<WickLiquidatedMB>(this, mSetupMBT);
     mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
 }
 
-bool MBInnerBreak::AllowedToTrade()
+bool WickLiquidatedMB::AllowedToTrade()
 {
-    return EAHelper::BelowSpread<MBInnerBreak>(this) && EAHelper::WithinTradingSession<MBInnerBreak>(this);
+    return EAHelper::BelowSpread<WickLiquidatedMB>(this) && EAHelper::WithinTradingSession<WickLiquidatedMB>(this);
 }
 
-void MBInnerBreak::CheckSetSetup()
+void WickLiquidatedMB::CheckSetSetup()
 {
-    if (EAHelper::CheckSetSingleMBSetup<MBInnerBreak>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
+    if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
     {
-        mHasSetup = true;
+        return;
+    }
+
+    if (EAHelper::CheckSetSingleMBSetup<WickLiquidatedMB>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
+    {
+        MBState *tempMBState;
+        if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, tempMBState))
+        {
+            return;
+        }
+
+        if (mSetupType == OP_BUY)
+        {
+            if (iLow(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, tempMBState.LowIndex()) &&
+                CandleStickHelper::LowestBodyPart(mEntrySymbol, mEntryTimeFrame, 1) > iLow(mEntrySymbol, mEntryTimeFrame, tempMBState.LowIndex()))
+            {
+                mWickLiquidatedMBTime = iTime(mEntrySymbol, mEntryTimeFrame, 1);
+                mHasSetup = true;
+            }
+        }
+        else if (mSetupType == OP_SELL)
+        {
+            if (iHigh(mEntrySymbol, mEntryTimeFrame, 1) > iHigh(mEntrySymbol, mEntryTimeFrame, tempMBState.HighIndex()) &&
+                CandleStickHelper::HighestBodyPart(mEntrySymbol, mEntryTimeFrame, 1) < iHigh(mEntrySymbol, mEntryTimeFrame, tempMBState.HighIndex()))
+            {
+                mWickLiquidatedMBTime = iTime(mEntrySymbol, mEntryTimeFrame, 1);
+                mHasSetup = true;
+            }
+        }
     }
 }
 
-void MBInnerBreak::CheckInvalidateSetup()
+void WickLiquidatedMB::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
+
+    if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
+    {
+        return;
+    }
 
     if (mFirstMBInSetupNumber != EMPTY)
     {
@@ -133,17 +174,37 @@ void MBInnerBreak::CheckInvalidateSetup()
         if (mSetupMBT.MBsCreated() - 1 != mFirstMBInSetupNumber)
         {
             InvalidateSetup(true);
+            return;
+        }
+    }
+
+    if (mWickLiquidatedMBTime != 0)
+    {
+        int wickLiquidatedMBIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mWickLiquidatedMBTime);
+        if (mSetupType == OP_BUY && iLow(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, wickLiquidatedMBIndex))
+        {
+            InvalidateSetup(true);
+            return;
+        }
+        else if (mSetupType == OP_SELL && iHigh(mEntrySymbol, mEntryTimeFrame, 1) > iHigh(mEntrySymbol, mEntryTimeFrame, wickLiquidatedMBIndex))
+        {
+            InvalidateSetup(true);
+            return;
         }
     }
 }
 
-void MBInnerBreak::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void WickLiquidatedMB::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
-    EAHelper::InvalidateSetup<MBInnerBreak>(this, deletePendingOrder, false, error);
+    EAHelper::InvalidateSetup<WickLiquidatedMB>(this, deletePendingOrder, false, error);
+
     mFirstMBInSetupNumber = EMPTY;
+    mWickLiquidatedMBTime = 0;
+    mInnerStructureTime = 0;
+    mDecentPushAfterInnerStructure = false;
 }
 
-bool MBInnerBreak::Confirmation()
+bool WickLiquidatedMB::Confirmation()
 {
     bool hasTicket = mCurrentSetupTicket.Number() != EMPTY;
 
@@ -158,99 +219,93 @@ bool MBInnerBreak::Confirmation()
         return false;
     }
 
-    ZoneState *tempZoneState;
-    if (!tempMBState.GetDeepestHoldingZone(tempZoneState))
-    {
-        return false;
-    }
-
-    // bool doji = false;
-    bool potentialDoji = false;
-    bool brokeCandle = false;
-    bool furthestCandle = false;
-
-    int dojiCandleIndex = EMPTY;
+    int wickLiquidatedMBIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mWickLiquidatedMBTime);
     int breakCandleIndex = EMPTY;
-
     if (mSetupType == OP_BUY)
     {
-        int currentBullishRetracementIndex = EMPTY;
-        if (!mSetupMBT.CurrentBullishRetracementIndexIsValid(currentBullishRetracementIndex))
-        {
-            return false;
-        }
-
-        int lowestIndex = EMPTY;
-        if (!MQLHelper::GetLowestIndexBetween(mEntrySymbol, mEntryTimeFrame, currentBullishRetracementIndex, 1, true, lowestIndex))
-        {
-            return false;
-        }
-
         // find most recent push up
-        int mostRecentPushUp = EMPTY;
-        int bullishCandleIndex = EMPTY;
-        int fractalCandleIndex = EMPTY;
-        bool pushedBelowMostRecentPushUp = false;
-
-        for (int i = lowestIndex + 1; i <= currentBullishRetracementIndex; i++)
+        if (mInnerStructureTime == 0)
         {
-            if (bullishCandleIndex == EMPTY && iClose(mEntrySymbol, mEntryTimeFrame, i) > iOpen(mEntrySymbol, mEntryTimeFrame, i))
+            int mostRecentPushUp = EMPTY;
+            int bullishCandleIndex = EMPTY;
+            int fractalCandleIndex = EMPTY;
+            bool pushedBelowMostRecentPushUp = false;
+
+            for (int i = wickLiquidatedMBIndex - 1; i >= 1; i--)
             {
-                bullishCandleIndex = i;
+                if (bullishCandleIndex == EMPTY && iClose(mEntrySymbol, mEntryTimeFrame, i) > iOpen(mEntrySymbol, mEntryTimeFrame, i))
+                {
+                    bullishCandleIndex = i;
+                }
+
+                if (fractalCandleIndex == EMPTY &&
+                    iHigh(mEntrySymbol, mEntryTimeFrame, i) > iHigh(mEntrySymbol, mEntryTimeFrame, i + 1) &&
+                    iHigh(mEntrySymbol, mEntryTimeFrame, i) > iHigh(mEntrySymbol, mEntryTimeFrame, i - 1))
+                {
+                    fractalCandleIndex = i;
+                }
+
+                if (bullishCandleIndex != EMPTY && fractalCandleIndex != EMPTY)
+                {
+                    break;
+                }
             }
 
-            if (fractalCandleIndex == EMPTY &&
-                iHigh(mEntrySymbol, mEntryTimeFrame, i) > iHigh(mEntrySymbol, mEntryTimeFrame, i + 1) &&
-                iHigh(mEntrySymbol, mEntryTimeFrame, i) > iHigh(mEntrySymbol, mEntryTimeFrame, i - 1))
+            if (bullishCandleIndex == EMPTY && fractalCandleIndex == EMPTY)
             {
-                fractalCandleIndex = i;
+                return false;
             }
 
-            if (bullishCandleIndex != EMPTY && fractalCandleIndex != EMPTY)
+            if (fractalCandleIndex == EMPTY)
             {
+                mostRecentPushUp = bullishCandleIndex;
+            }
+            else if (bullishCandleIndex == EMPTY)
+            {
+                mostRecentPushUp = fractalCandleIndex;
+            }
+            else if (fractalCandleIndex > bullishCandleIndex)
+            {
+                mostRecentPushUp = bullishCandleIndex;
+            }
+            else if (iHigh(mEntrySymbol, mEntryTimeFrame, bullishCandleIndex) > iHigh(mEntrySymbol, mEntryTimeFrame, fractalCandleIndex))
+            {
+                mostRecentPushUp = bullishCandleIndex;
+            }
+            else
+            {
+                mostRecentPushUp = fractalCandleIndex;
+            }
+
+            if (CandleStickHelper::HighestBodyPart(mEntrySymbol, mEntryTimeFrame, mostRecentPushUp) > iHigh(mEntrySymbol, mEntryTimeFrame, wickLiquidatedMBIndex))
+            {
+                return false;
+            }
+
+            mInnerStructureTime = iTime(mEntrySymbol, mEntryTimeFrame, mostRecentPushUp);
+        }
+
+        int mostRecentPushUp = iBarShift(mEntrySymbol, mEntryTimeFrame, mInnerStructureTime);
+
+        // make sure we pushed below
+        // needs to be 2 since we are looking for an imbalance as well
+        for (int i = mostRecentPushUp; i >= 2; i--)
+        {
+            bool pushedFurther = (CandleStickHelper::LowestBodyPart(mEntrySymbol, mEntryTimeFrame, mostRecentPushUp) -
+                                  CandleStickHelper::LowestBodyPart(mEntrySymbol, mEntryTimeFrame, i)) >= OrderHelper::PipsToRange(mPushFurtherPips);
+
+            bool largeBody = CandleStickHelper::IsBearish(mEntrySymbol, mEntryTimeFrame, i) &&
+                             CandleStickHelper::HasImbalance(OP_SELL, mEntrySymbol, mEntryTimeFrame, i) &&
+                             CandleStickHelper::BodyLength(mEntrySymbol, mEntryTimeFrame, i) >= OrderHelper::PipsToRange(mLargeBodyPips);
+
+            if (pushedFurther || largeBody)
+            {
+                mDecentPushAfterInnerStructure = true;
                 break;
             }
         }
 
-        if (bullishCandleIndex == EMPTY && fractalCandleIndex == EMPTY)
-        {
-            return false;
-        }
-
-        if (fractalCandleIndex > bullishCandleIndex)
-        {
-            mostRecentPushUp = bullishCandleIndex;
-        }
-        else if (iHigh(mEntrySymbol, mEntryTimeFrame, bullishCandleIndex) > iHigh(mEntrySymbol, mEntryTimeFrame, fractalCandleIndex))
-        {
-            mostRecentPushUp = bullishCandleIndex;
-        }
-        else
-        {
-            mostRecentPushUp = fractalCandleIndex;
-        }
-
-        // make sure we pushed below
-        bool bullish = iClose(mEntrySymbol, mEntryTimeFrame, mostRecentPushUp) > iOpen(mEntrySymbol, mEntryTimeFrame, mostRecentPushUp);
-        for (int i = mostRecentPushUp; i >= lowestIndex; i--)
-        {
-            if (iClose(mEntrySymbol, mEntryTimeFrame, i) < iLow(mEntrySymbol, mEntryTimeFrame, mostRecentPushUp))
-            {
-                // double percentBody = CandleStickHelper::PercentBody(mEntrySymbol, mEntryTimeFrame, i);
-                double bodyLength = CandleStickHelper::BodyLength(mEntrySymbol, mEntryTimeFrame, i);
-                bool singleCandleImpulse = /* percentBody >= 0.9*/ !bullish && bodyLength >= OrderHelper::PipsToRange(mLargeBodyPips);
-
-                bool pushedFurther = iLow(mEntrySymbol, mEntryTimeFrame, mostRecentPushUp) - iLow(mEntrySymbol, mEntryTimeFrame, i) >= OrderHelper::PipsToRange(mPushFurtherPips);
-
-                if (singleCandleImpulse || pushedFurther)
-                {
-                    pushedBelowMostRecentPushUp = true;
-                    break;
-                }
-            }
-        }
-
-        if (!pushedBelowMostRecentPushUp)
+        if (!mDecentPushAfterInnerStructure)
         {
             return false;
         }
@@ -261,12 +316,6 @@ bool MBInnerBreak::Confirmation()
         {
             if (iClose(mEntrySymbol, mEntryTimeFrame, i) > iHigh(mEntrySymbol, mEntryTimeFrame, mostRecentPushUp))
             {
-                // don't enter if the break happened more than 5 candles prior
-                if (i > 5)
-                {
-                    return hasTicket;
-                }
-
                 bool largeBody = CandleStickHelper::BodyLength(mEntrySymbol, mEntryTimeFrame, i) >= OrderHelper::PipsToRange(mLargeBodyPips);
                 bool hasImpulse = CandleStickHelper::HasImbalance(OP_BUY, mEntrySymbol, mEntryTimeFrame, i) ||
                                   CandleStickHelper::HasImbalance(OP_BUY, mEntrySymbol, mEntryTimeFrame, i + 1);
@@ -302,7 +351,7 @@ bool MBInnerBreak::Confirmation()
                 bearishCandleCount += 1;
             }
 
-            if (bearishCandleCount > 1 || (bearishCandleCount == 1 && breakCandleIndex > 2))
+            if (bearishCandleCount > 1)
             {
                 return false;
             }
@@ -320,81 +369,89 @@ bool MBInnerBreak::Confirmation()
     }
     else if (mSetupType == OP_SELL)
     {
-        int currentBearishRetracementIndex = EMPTY;
-        if (!mSetupMBT.CurrentBearishRetracementIndexIsValid(currentBearishRetracementIndex))
-        {
-            return false;
-        }
-
-        int highestIndex = EMPTY;
-        if (!MQLHelper::GetHighestIndexBetween(mEntrySymbol, mEntryTimeFrame, currentBearishRetracementIndex, 1, true, highestIndex))
-        {
-            return false;
-        }
-
         // find most recent push up
-        int mostRecentPushDown = EMPTY;
-        int bearishCandleIndex = EMPTY;
-        int fractalCandleIndex = EMPTY;
-        bool pushedAboveMostRecentPushDown = false;
-
-        for (int i = highestIndex + 1; i <= currentBearishRetracementIndex; i++)
+        if (mInnerStructureTime == 0)
         {
-            if (bearishCandleIndex == EMPTY && iClose(mEntrySymbol, mEntryTimeFrame, i) < iOpen(mEntrySymbol, mEntryTimeFrame, i))
+            // find most recent push up
+            int mostRecentPushDown = EMPTY;
+            int bearishCandleIndex = EMPTY;
+            int fractalCandleIndex = EMPTY;
+            bool pushedAboveMostRecentPushDown = false;
+
+            for (int i = wickLiquidatedMBIndex - 1; i >= 1; i--)
             {
-                bearishCandleIndex = i;
+                if (bearishCandleIndex == EMPTY && iClose(mEntrySymbol, mEntryTimeFrame, i) < iOpen(mEntrySymbol, mEntryTimeFrame, i))
+                {
+                    bearishCandleIndex = i;
+                }
+
+                if (fractalCandleIndex == EMPTY &&
+                    iLow(mEntrySymbol, mEntryTimeFrame, i) < iLow(mEntrySymbol, mEntryTimeFrame, i + 1) &&
+                    iLow(mEntrySymbol, mEntryTimeFrame, i) < iLow(mEntrySymbol, mEntryTimeFrame, i - 1))
+                {
+                    fractalCandleIndex = i;
+                }
+
+                if (bearishCandleIndex != EMPTY && fractalCandleIndex != EMPTY)
+                {
+                    break;
+                }
             }
 
-            if (fractalCandleIndex == EMPTY &&
-                iLow(mEntrySymbol, mEntryTimeFrame, i) < iLow(mEntrySymbol, mEntryTimeFrame, i + 1) &&
-                iLow(mEntrySymbol, mEntryTimeFrame, i) < iLow(mEntrySymbol, mEntryTimeFrame, i - 1))
+            if (bearishCandleIndex == EMPTY && fractalCandleIndex == EMPTY)
             {
-                fractalCandleIndex = i;
+                return false;
             }
 
-            if (bearishCandleIndex != EMPTY && fractalCandleIndex != EMPTY)
+            if (fractalCandleIndex == EMPTY)
             {
+                mostRecentPushDown = bearishCandleIndex;
+            }
+            else if (bearishCandleIndex == EMPTY)
+            {
+                mostRecentPushDown = fractalCandleIndex;
+            }
+            else if (fractalCandleIndex > bearishCandleIndex)
+            {
+                mostRecentPushDown = bearishCandleIndex;
+            }
+            else if (iLow(mEntrySymbol, mEntryTimeFrame, bearishCandleIndex) < iLow(mEntrySymbol, mEntryTimeFrame, fractalCandleIndex))
+            {
+                mostRecentPushDown = bearishCandleIndex;
+            }
+            else
+            {
+                mostRecentPushDown = fractalCandleIndex;
+            }
+
+            if (CandleStickHelper::LowestBodyPart(mEntrySymbol, mEntryTimeFrame, mostRecentPushDown) < iLow(mEntrySymbol, mEntryTimeFrame, wickLiquidatedMBIndex))
+            {
+                return false;
+            }
+
+            mInnerStructureTime = iTime(mEntrySymbol, mEntryTimeFrame, mostRecentPushDown);
+        }
+
+        int mostRecentPushDown = iBarShift(mEntrySymbol, mEntryTimeFrame, mInnerStructureTime);
+
+        // make sure we pushed back up
+        for (int i = mostRecentPushDown - 1; i >= 2; i--)
+        {
+            bool pushedFurther = (CandleStickHelper::HighestBodyPart(mEntrySymbol, mEntryTimeFrame, i) -
+                                  CandleStickHelper::HighestBodyPart(mEntrySymbol, mEntryTimeFrame, mostRecentPushDown)) >= OrderHelper::PipsToRange(mPushFurtherPips);
+
+            bool largeBody = CandleStickHelper::IsBullish(mEntrySymbol, mEntryTimeFrame, i) &&
+                             CandleStickHelper::HasImbalance(OP_BUY, mEntrySymbol, mEntryTimeFrame, i) &&
+                             CandleStickHelper::BodyLength(mEntrySymbol, mEntryTimeFrame, i) >= OrderHelper::PipsToRange(mLargeBodyPips);
+
+            if (pushedFurther || largeBody)
+            {
+                mDecentPushAfterInnerStructure = true;
                 break;
             }
         }
 
-        if (bearishCandleIndex == EMPTY && fractalCandleIndex == EMPTY)
-        {
-            return false;
-        }
-
-        if (fractalCandleIndex > bearishCandleIndex)
-        {
-            mostRecentPushDown = bearishCandleIndex;
-        }
-        else if (iLow(mEntrySymbol, mEntryTimeFrame, bearishCandleIndex) < iLow(mEntrySymbol, mEntryTimeFrame, fractalCandleIndex))
-        {
-            mostRecentPushDown = bearishCandleIndex;
-        }
-        else
-        {
-            mostRecentPushDown = fractalCandleIndex;
-        }
-
-        // make sure we pushed below
-        bool bearish = iClose(mEntrySymbol, mEntryTimeFrame, mostRecentPushDown) < iOpen(mEntrySymbol, mEntryTimeFrame, mostRecentPushDown);
-        for (int i = mostRecentPushDown; i >= highestIndex; i--)
-        {
-            if (iClose(mEntrySymbol, mEntryTimeFrame, i) > iHigh(mEntrySymbol, mEntryTimeFrame, mostRecentPushDown))
-            {
-                double percentBody = CandleStickHelper::PercentBody(mEntrySymbol, mEntryTimeFrame, i);
-                double bodyLength = CandleStickHelper::BodyLength(mEntrySymbol, mEntryTimeFrame, i);
-                bool singleCandleImpulse = /*percentBody >= 0.9*/ !bearish && bodyLength >= OrderHelper::PipsToRange(mLargeBodyPips);
-
-                bool pushedFurther = iHigh(mEntrySymbol, mEntryTimeFrame, i) - iHigh(mEntrySymbol, mEntryTimeFrame, mostRecentPushDown) >= OrderHelper::PipsToRange(mPushFurtherPips);
-                if (singleCandleImpulse || pushedFurther)
-                {
-                    pushedAboveMostRecentPushDown = true;
-                }
-            }
-        }
-
-        if (!pushedAboveMostRecentPushDown)
+        if (!mDecentPushAfterInnerStructure)
         {
             return false;
         }
@@ -405,11 +462,6 @@ bool MBInnerBreak::Confirmation()
         {
             if (iClose(mEntrySymbol, mEntryTimeFrame, i) < iLow(mEntrySymbol, mEntryTimeFrame, mostRecentPushDown))
             {
-                if (i > 5)
-                {
-                    return hasTicket;
-                }
-
                 bool largeBody = CandleStickHelper::BodyLength(mEntrySymbol, mEntryTimeFrame, i) >= OrderHelper::PipsToRange(mLargeBodyPips);
                 bool hasImpulse = CandleStickHelper::HasImbalance(OP_SELL, mEntrySymbol, mEntryTimeFrame, i) ||
                                   CandleStickHelper::HasImbalance(OP_SELL, mEntrySymbol, mEntryTimeFrame, i + 1);
@@ -445,7 +497,7 @@ bool MBInnerBreak::Confirmation()
                 bullishCandleCount += 1;
             }
 
-            if (bullishCandleCount > 1 || (bullishCandleCount == 1 && breakCandleIndex > 2))
+            if (bullishCandleCount > 1)
             {
                 return false;
             }
@@ -467,7 +519,7 @@ bool MBInnerBreak::Confirmation()
     return true;
 }
 
-void MBInnerBreak::PlaceOrders()
+void WickLiquidatedMB::PlaceOrders()
 {
     int currentBars = iBars(mEntrySymbol, mEntryTimeFrame);
     if (currentBars <= mBarCount)
@@ -486,12 +538,6 @@ void MBInnerBreak::PlaceOrders()
         return;
     }
 
-    ZoneState *holdingZone;
-    if (!mostRecentMB.GetClosestValidZone(holdingZone))
-    {
-        return;
-    }
-
     MqlTick currentTick;
     if (!SymbolInfoTick(Symbol(), currentTick))
     {
@@ -504,31 +550,16 @@ void MBInnerBreak::PlaceOrders()
 
     if (mSetupType == OP_BUY)
     {
-        int breakCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mBreakCandleTime);
-        double lowest = -1.0;
-        if (!MQLHelper::GetLowestLowBetween(mEntrySymbol, mEntryTimeFrame, breakCandleIndex - 1, 0, true, lowest))
-        {
-            return;
-        }
-
         entry = iHigh(mEntrySymbol, mEntryTimeFrame, 1) + OrderHelper::PipsToRange(mMaxSpreadPips + mEntryPaddingPips);
-        stopLoss = MathMin(lowest - OrderHelper::PipsToRange(mStopLossPaddingPips), entry - OrderHelper::PipsToRange(mMinStopLossPips));
+        stopLoss = iLow(mEntrySymbol, mEntryTimeFrame, 1);
     }
     else if (mSetupType == OP_SELL)
     {
-        int breakCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mBreakCandleTime);
-        double highest = -1.0;
-        if (!MQLHelper::GetHighestHighBetween(mEntrySymbol, mEntryTimeFrame, breakCandleIndex - 1, 0, true, highest))
-        {
-            return;
-        }
-
         entry = iLow(mEntrySymbol, mEntryTimeFrame, 1) - OrderHelper::PipsToRange(mEntryPaddingPips);
-        stopLoss = MathMax(highest + OrderHelper::PipsToRange(mStopLossPaddingPips) + OrderHelper::PipsToRange(mMaxSpreadPips),
-                           entry + OrderHelper::PipsToRange(mMinStopLossPips));
+        stopLoss = iHigh(mEntrySymbol, mEntryTimeFrame, 1) + OrderHelper::PipsToRange(mMaxSpreadPips);
     }
 
-    EAHelper::PlaceStopOrder<MBInnerBreak>(this, entry, stopLoss);
+    EAHelper::PlaceStopOrder<WickLiquidatedMB>(this, entry, stopLoss);
 
     if (mCurrentSetupTicket.Number() != EMPTY)
     {
@@ -537,7 +568,7 @@ void MBInnerBreak::PlaceOrders()
     }
 }
 
-void MBInnerBreak::ManageCurrentPendingSetupTicket()
+void WickLiquidatedMB::ManageCurrentPendingSetupTicket()
 {
     int entryCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
 
@@ -550,7 +581,6 @@ void MBInnerBreak::ManageCurrentPendingSetupTicket()
     {
         if (iLow(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, entryCandleIndex))
         {
-            // Print("Broke Below Invalidatino");
             InvalidateSetup(true);
         }
     }
@@ -563,7 +593,7 @@ void MBInnerBreak::ManageCurrentPendingSetupTicket()
     }
 }
 
-void MBInnerBreak::ManageCurrentActiveSetupTicket()
+void WickLiquidatedMB::ManageCurrentActiveSetupTicket()
 {
     if (mCurrentSetupTicket.Number() == EMPTY)
     {
@@ -622,7 +652,7 @@ void MBInnerBreak::ManageCurrentActiveSetupTicket()
                         }
 
                         // pushed too far into SL, take the -0.5
-                        if (EAHelper::CloseIfPercentIntoStopLoss<MBInnerBreak>(this, mCurrentSetupTicket, 0.5))
+                        if (EAHelper::CloseIfPercentIntoStopLoss<WickLiquidatedMB>(this, mCurrentSetupTicket, 0.5))
                         {
                             return;
                         }
@@ -635,17 +665,6 @@ void MBInnerBreak::ManageCurrentActiveSetupTicket()
             // TOD: Create error code
             string additionalInformation = "Entry Index: " + entryIndex;
             RecordError(-1, additionalInformation);
-        }
-
-        // get too close to our entry after 5 candles and coming back
-        if (entryIndex >= 5)
-        {
-            if (mLastManagedBid > OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips) &&
-                currentTick.bid <= OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
-            {
-                mCurrentSetupTicket.Close();
-                return;
-            }
         }
 
         movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
@@ -687,7 +706,7 @@ void MBInnerBreak::ManageCurrentActiveSetupTicket()
                         }
 
                         // pushed too far into SL, take the -0.5
-                        if (EAHelper::CloseIfPercentIntoStopLoss<MBInnerBreak>(this, mCurrentSetupTicket, 0.5))
+                        if (EAHelper::CloseIfPercentIntoStopLoss<WickLiquidatedMB>(this, mCurrentSetupTicket, 0.5))
                         {
                             return;
                         }
@@ -702,71 +721,60 @@ void MBInnerBreak::ManageCurrentActiveSetupTicket()
             RecordError(-1, additionalInformation);
         }
 
-        // get too close to our entry after 5 candles and coming back
-        if (entryIndex >= 5)
-        {
-            if (mLastManagedAsk < OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips) &&
-                currentTick.ask >= OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
-            {
-                mCurrentSetupTicket.Close();
-                return;
-            }
-        }
-
         movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
 
     if (movedPips)
     {
-        EAHelper::MoveToBreakEvenAsSoonAsPossible<MBInnerBreak>(this, mBEAdditionalPips);
+        EAHelper::MoveToBreakEvenAsSoonAsPossible<WickLiquidatedMB>(this, mBEAdditionalPips);
     }
 
     mLastManagedAsk = currentTick.ask;
     mLastManagedBid = currentTick.bid;
 }
 
-bool MBInnerBreak::MoveToPreviousSetupTickets(Ticket &ticket)
+bool WickLiquidatedMB::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    return EAHelper::TicketStopLossIsMovedToBreakEven<MBInnerBreak>(this, ticket);
+    return EAHelper::TicketStopLossIsMovedToBreakEven<WickLiquidatedMB>(this, ticket);
 }
 
-void MBInnerBreak::ManagePreviousSetupTicket(int ticketIndex)
+void WickLiquidatedMB::ManagePreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::CheckPartialTicket<MBInnerBreak>(this, mPreviousSetupTickets[ticketIndex]);
+    EAHelper::CheckPartialTicket<WickLiquidatedMB>(this, mPreviousSetupTickets[ticketIndex]);
 }
 
-void MBInnerBreak::CheckCurrentSetupTicket()
+void WickLiquidatedMB::CheckCurrentSetupTicket()
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<MBInnerBreak>(this, mCurrentSetupTicket);
-    EAHelper::CheckCurrentSetupTicket<MBInnerBreak>(this);
+    EAHelper::CheckUpdateHowFarPriceRanFromOpen<WickLiquidatedMB>(this, mCurrentSetupTicket);
+    EAHelper::CheckCurrentSetupTicket<WickLiquidatedMB>(this);
 }
 
-void MBInnerBreak::CheckPreviousSetupTicket(int ticketIndex)
+void WickLiquidatedMB::CheckPreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<MBInnerBreak>(this, mPreviousSetupTickets[ticketIndex]);
-    EAHelper::CheckPreviousSetupTicket<MBInnerBreak>(this, ticketIndex);
+    EAHelper::CheckUpdateHowFarPriceRanFromOpen<WickLiquidatedMB>(this, mPreviousSetupTickets[ticketIndex]);
+    EAHelper::CheckPreviousSetupTicket<WickLiquidatedMB>(this, ticketIndex);
 }
 
-void MBInnerBreak::RecordTicketOpenData()
+void WickLiquidatedMB::RecordTicketOpenData()
 {
-    EAHelper::RecordSingleTimeFrameEntryTradeRecord<MBInnerBreak>(this);
+    EAHelper::RecordSingleTimeFrameEntryTradeRecord<WickLiquidatedMB>(this);
 }
 
-void MBInnerBreak::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
+void WickLiquidatedMB::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
-    EAHelper::RecordPartialTradeRecord<MBInnerBreak>(this, partialedTicket, newTicketNumber);
+    EAHelper::RecordPartialTradeRecord<WickLiquidatedMB>(this, partialedTicket, newTicketNumber);
 }
 
-void MBInnerBreak::RecordTicketCloseData(Ticket &ticket)
+void WickLiquidatedMB::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameExitTradeRecord<MBInnerBreak>(this, ticket, Period());
+    EAHelper::RecordSingleTimeFrameExitTradeRecord<WickLiquidatedMB>(this, ticket, Period());
 }
 
-void MBInnerBreak::RecordError(int error, string additionalInformation = "")
+void WickLiquidatedMB::RecordError(int error, string additionalInformation = "")
 {
-    EAHelper::RecordSingleTimeFrameErrorRecord<MBInnerBreak>(this, error, additionalInformation);
+    EAHelper::RecordSingleTimeFrameErrorRecord<WickLiquidatedMB>(this, error, additionalInformation);
 }
 
-void MBInnerBreak::Reset()
+void WickLiquidatedMB::Reset()
 {
 }

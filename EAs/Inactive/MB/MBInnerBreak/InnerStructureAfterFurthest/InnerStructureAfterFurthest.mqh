@@ -19,6 +19,10 @@ public:
 
     int mFirstMBInSetupNumber;
 
+    datetime mFurthestCandleTime;
+    datetime mInnerStructureTime;
+    bool mDecentPushAfterInnerStructure;
+
     double mEntryPaddingPips;
     double mMinStopLossPips;
     double mPipsToWaitBeforeBE;
@@ -73,6 +77,10 @@ MBInnerBreak::MBInnerBreak(int magicNumber, int setupType, int maxCurrentSetupTr
 {
     mSetupMBT = setupMBT;
     mFirstMBInSetupNumber = EMPTY;
+
+    mFurthestCandleTime = 0;
+    mInnerStructureTime = 0;
+    mDecentPushAfterInnerStructure = false;
 
     mBarCount = 0;
     mEntryCandleTime = 0;
@@ -133,6 +141,38 @@ void MBInnerBreak::CheckInvalidateSetup()
         if (mSetupMBT.MBsCreated() - 1 != mFirstMBInSetupNumber)
         {
             InvalidateSetup(true);
+            return;
+        }
+    }
+
+    if (mInnerStructureTime != 0)
+    {
+        int innerStructureIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mInnerStructureTime);
+        if (!mDecentPushAfterInnerStructure)
+        {
+            if (mSetupType == OP_BUY && iHigh(mEntrySymbol, mEntryTimeFrame, 0) > iHigh(mEntrySymbol, mEntryTimeFrame, innerStructureIndex))
+            {
+                InvalidateSetup(true);
+                return;
+            }
+            else if (mSetupType == OP_SELL && iLow(mEntrySymbol, mEntryTimeFrame, 0) < iLow(mEntrySymbol, mEntryTimeFrame, innerStructureIndex))
+            {
+                InvalidateSetup(true);
+                return;
+            }
+        }
+    }
+
+    if (mFurthestCandleTime != 0)
+    {
+        int furthestCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mFurthestCandleTime);
+        if (mSetupType == OP_BUY && iLow(mEntrySymbol, mEntryTimeFrame, 0) < iLow(mEntrySymbol, mEntryTimeFrame, furthestCandleIndex))
+        {
+            InvalidateSetup(true);
+        }
+        else if (mSetupType == OP_SELL && iHigh(mEntrySymbol, mEntryTimeFrame, 0) > iHigh(mEntrySymbol, mEntryTimeFrame, furthestCandleIndex))
+        {
+            InvalidateSetup(true);
         }
     }
 }
@@ -140,7 +180,11 @@ void MBInnerBreak::CheckInvalidateSetup()
 void MBInnerBreak::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
     EAHelper::InvalidateSetup<MBInnerBreak>(this, deletePendingOrder, false, error);
+
     mFirstMBInSetupNumber = EMPTY;
+    mFurthestCandleTime = 0;
+    mInnerStructureTime = 0;
+    mDecentPushAfterInnerStructure = false;
 }
 
 bool MBInnerBreak::Confirmation()
@@ -164,93 +208,98 @@ bool MBInnerBreak::Confirmation()
         return false;
     }
 
-    // bool doji = false;
-    bool potentialDoji = false;
-    bool brokeCandle = false;
-    bool furthestCandle = false;
-
-    int dojiCandleIndex = EMPTY;
     int breakCandleIndex = EMPTY;
-
     if (mSetupType == OP_BUY)
     {
-        int currentBullishRetracementIndex = EMPTY;
-        if (!mSetupMBT.CurrentBullishRetracementIndexIsValid(currentBullishRetracementIndex))
+        if (mFurthestCandleTime == 0)
         {
-            return false;
+            int currentBullishRetracementIndex = EMPTY;
+            if (!mSetupMBT.CurrentBullishRetracementIndexIsValid(currentBullishRetracementIndex))
+            {
+                return false;
+            }
+
+            int tempLowestIndex = EMPTY;
+            if (!MQLHelper::GetLowestIndexBetween(mEntrySymbol, mEntryTimeFrame, currentBullishRetracementIndex, 1, true, tempLowestIndex))
+            {
+                return false;
+            }
+
+            mFurthestCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, tempLowestIndex);
         }
 
-        int lowestIndex = EMPTY;
-        if (!MQLHelper::GetLowestIndexBetween(mEntrySymbol, mEntryTimeFrame, currentBullishRetracementIndex, 1, true, lowestIndex))
-        {
-            return false;
-        }
+        int lowestIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mFurthestCandleTime);
 
         // find most recent push up
-        int mostRecentPushUp = EMPTY;
-        int bullishCandleIndex = EMPTY;
-        int fractalCandleIndex = EMPTY;
-        bool pushedBelowMostRecentPushUp = false;
-
-        for (int i = lowestIndex + 1; i <= currentBullishRetracementIndex; i++)
+        if (mInnerStructureTime == 0)
         {
-            if (bullishCandleIndex == EMPTY && iClose(mEntrySymbol, mEntryTimeFrame, i) > iOpen(mEntrySymbol, mEntryTimeFrame, i))
+            int mostRecentPushUp = EMPTY;
+            int bullishCandleIndex = EMPTY;
+            int fractalCandleIndex = EMPTY;
+            bool pushedBelowMostRecentPushUp = false;
+
+            for (int i = lowestIndex - 1; i >= 1; i--)
             {
-                bullishCandleIndex = i;
+                if (bullishCandleIndex == EMPTY && iClose(mEntrySymbol, mEntryTimeFrame, i) > iOpen(mEntrySymbol, mEntryTimeFrame, i))
+                {
+                    bullishCandleIndex = i;
+                }
+
+                if (fractalCandleIndex == EMPTY &&
+                    iHigh(mEntrySymbol, mEntryTimeFrame, i) > iHigh(mEntrySymbol, mEntryTimeFrame, i + 1) &&
+                    iHigh(mEntrySymbol, mEntryTimeFrame, i) > iHigh(mEntrySymbol, mEntryTimeFrame, i - 1))
+                {
+                    fractalCandleIndex = i;
+                }
+
+                if (bullishCandleIndex != EMPTY && fractalCandleIndex != EMPTY)
+                {
+                    break;
+                }
             }
 
-            if (fractalCandleIndex == EMPTY &&
-                iHigh(mEntrySymbol, mEntryTimeFrame, i) > iHigh(mEntrySymbol, mEntryTimeFrame, i + 1) &&
-                iHigh(mEntrySymbol, mEntryTimeFrame, i) > iHigh(mEntrySymbol, mEntryTimeFrame, i - 1))
+            if (bullishCandleIndex == EMPTY && fractalCandleIndex == EMPTY)
             {
-                fractalCandleIndex = i;
+                return false;
             }
 
-            if (bullishCandleIndex != EMPTY && fractalCandleIndex != EMPTY)
+            if (fractalCandleIndex > bullishCandleIndex)
             {
+                mostRecentPushUp = bullishCandleIndex;
+            }
+            else if (iHigh(mEntrySymbol, mEntryTimeFrame, bullishCandleIndex) > iHigh(mEntrySymbol, mEntryTimeFrame, fractalCandleIndex))
+            {
+                mostRecentPushUp = bullishCandleIndex;
+            }
+            else
+            {
+                mostRecentPushUp = fractalCandleIndex;
+            }
+
+            mInnerStructureTime = iTime(mEntrySymbol, mEntryTimeFrame, mostRecentPushUp);
+        }
+
+        int mostRecentPushUp = iBarShift(mEntrySymbol, mEntryTimeFrame, mInnerStructureTime);
+
+        // make sure we pushed below
+        // needs to be 2 since we are looking for an imbalance as well
+        for (int i = mostRecentPushUp; i >= 2; i--)
+        {
+            bool pushedFurther = (CandleStickHelper::LowestBodyPart(mEntrySymbol, mEntryTimeFrame, mostRecentPushUp) -
+                                  CandleStickHelper::LowestBodyPart(mEntrySymbol, mEntryTimeFrame, i)) >= OrderHelper::PipsToRange(mPushFurtherPips);
+
+            bool largeBody = CandleStickHelper::IsBearish(mEntrySymbol, mEntryTimeFrame, i) &&
+                             CandleStickHelper::HasImbalance(OP_SELL, mEntrySymbol, mEntryTimeFrame, i) &&
+                             CandleStickHelper::BodyLength(mEntrySymbol, mEntryTimeFrame, i) >= OrderHelper::PipsToRange(mLargeBodyPips);
+
+            if (pushedFurther || largeBody)
+            {
+                mDecentPushAfterInnerStructure = true;
                 break;
             }
         }
 
-        if (bullishCandleIndex == EMPTY && fractalCandleIndex == EMPTY)
-        {
-            return false;
-        }
-
-        if (fractalCandleIndex > bullishCandleIndex)
-        {
-            mostRecentPushUp = bullishCandleIndex;
-        }
-        else if (iHigh(mEntrySymbol, mEntryTimeFrame, bullishCandleIndex) > iHigh(mEntrySymbol, mEntryTimeFrame, fractalCandleIndex))
-        {
-            mostRecentPushUp = bullishCandleIndex;
-        }
-        else
-        {
-            mostRecentPushUp = fractalCandleIndex;
-        }
-
-        // make sure we pushed below
-        bool bullish = iClose(mEntrySymbol, mEntryTimeFrame, mostRecentPushUp) > iOpen(mEntrySymbol, mEntryTimeFrame, mostRecentPushUp);
-        for (int i = mostRecentPushUp; i >= lowestIndex; i--)
-        {
-            if (iClose(mEntrySymbol, mEntryTimeFrame, i) < iLow(mEntrySymbol, mEntryTimeFrame, mostRecentPushUp))
-            {
-                // double percentBody = CandleStickHelper::PercentBody(mEntrySymbol, mEntryTimeFrame, i);
-                double bodyLength = CandleStickHelper::BodyLength(mEntrySymbol, mEntryTimeFrame, i);
-                bool singleCandleImpulse = /* percentBody >= 0.9*/ !bullish && bodyLength >= OrderHelper::PipsToRange(mLargeBodyPips);
-
-                bool pushedFurther = iLow(mEntrySymbol, mEntryTimeFrame, mostRecentPushUp) - iLow(mEntrySymbol, mEntryTimeFrame, i) >= OrderHelper::PipsToRange(mPushFurtherPips);
-
-                if (singleCandleImpulse || pushedFurther)
-                {
-                    pushedBelowMostRecentPushUp = true;
-                    break;
-                }
-            }
-        }
-
-        if (!pushedBelowMostRecentPushUp)
+        if (!mDecentPushAfterInnerStructure)
         {
             return false;
         }
@@ -261,12 +310,6 @@ bool MBInnerBreak::Confirmation()
         {
             if (iClose(mEntrySymbol, mEntryTimeFrame, i) > iHigh(mEntrySymbol, mEntryTimeFrame, mostRecentPushUp))
             {
-                // don't enter if the break happened more than 5 candles prior
-                if (i > 5)
-                {
-                    return hasTicket;
-                }
-
                 bool largeBody = CandleStickHelper::BodyLength(mEntrySymbol, mEntryTimeFrame, i) >= OrderHelper::PipsToRange(mLargeBodyPips);
                 bool hasImpulse = CandleStickHelper::HasImbalance(OP_BUY, mEntrySymbol, mEntryTimeFrame, i) ||
                                   CandleStickHelper::HasImbalance(OP_BUY, mEntrySymbol, mEntryTimeFrame, i + 1);
@@ -302,7 +345,7 @@ bool MBInnerBreak::Confirmation()
                 bearishCandleCount += 1;
             }
 
-            if (bearishCandleCount > 1 || (bearishCandleCount == 1 && breakCandleIndex > 2))
+            if (bearishCandleCount > 1)
             {
                 return false;
             }
@@ -320,81 +363,95 @@ bool MBInnerBreak::Confirmation()
     }
     else if (mSetupType == OP_SELL)
     {
-        int currentBearishRetracementIndex = EMPTY;
-        if (!mSetupMBT.CurrentBearishRetracementIndexIsValid(currentBearishRetracementIndex))
+        if (mFurthestCandleTime == 0)
         {
-            return false;
+            int currentBearishRetracementIndex = EMPTY;
+            if (!mSetupMBT.CurrentBearishRetracementIndexIsValid(currentBearishRetracementIndex))
+            {
+                return false;
+            }
+
+            int tempHighestIndex = EMPTY;
+            if (!MQLHelper::GetHighestIndexBetween(mEntrySymbol, mEntryTimeFrame, currentBearishRetracementIndex, 1, true, tempHighestIndex))
+            {
+                return false;
+            }
+
+            mFurthestCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, tempHighestIndex);
         }
 
-        int highestIndex = EMPTY;
-        if (!MQLHelper::GetHighestIndexBetween(mEntrySymbol, mEntryTimeFrame, currentBearishRetracementIndex, 1, true, highestIndex))
-        {
-            return false;
-        }
+        int highestIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mFurthestCandleTime);
 
         // find most recent push up
-        int mostRecentPushDown = EMPTY;
-        int bearishCandleIndex = EMPTY;
-        int fractalCandleIndex = EMPTY;
-        bool pushedAboveMostRecentPushDown = false;
-
-        for (int i = highestIndex + 1; i <= currentBearishRetracementIndex; i++)
+        if (mInnerStructureTime == 0)
         {
-            if (bearishCandleIndex == EMPTY && iClose(mEntrySymbol, mEntryTimeFrame, i) < iOpen(mEntrySymbol, mEntryTimeFrame, i))
+            // find most recent push up
+            int mostRecentPushDown = EMPTY;
+            int bearishCandleIndex = EMPTY;
+            int fractalCandleIndex = EMPTY;
+            bool pushedAboveMostRecentPushDown = false;
+
+            for (int i = highestIndex - 1; i >= 1; i--)
             {
-                bearishCandleIndex = i;
+                if (bearishCandleIndex == EMPTY && iClose(mEntrySymbol, mEntryTimeFrame, i) < iOpen(mEntrySymbol, mEntryTimeFrame, i))
+                {
+                    bearishCandleIndex = i;
+                }
+
+                if (fractalCandleIndex == EMPTY &&
+                    iLow(mEntrySymbol, mEntryTimeFrame, i) < iLow(mEntrySymbol, mEntryTimeFrame, i + 1) &&
+                    iLow(mEntrySymbol, mEntryTimeFrame, i) < iLow(mEntrySymbol, mEntryTimeFrame, i - 1))
+                {
+                    fractalCandleIndex = i;
+                }
+
+                if (bearishCandleIndex != EMPTY && fractalCandleIndex != EMPTY)
+                {
+                    break;
+                }
             }
 
-            if (fractalCandleIndex == EMPTY &&
-                iLow(mEntrySymbol, mEntryTimeFrame, i) < iLow(mEntrySymbol, mEntryTimeFrame, i + 1) &&
-                iLow(mEntrySymbol, mEntryTimeFrame, i) < iLow(mEntrySymbol, mEntryTimeFrame, i - 1))
+            if (bearishCandleIndex == EMPTY && fractalCandleIndex == EMPTY)
             {
-                fractalCandleIndex = i;
+                return false;
             }
 
-            if (bearishCandleIndex != EMPTY && fractalCandleIndex != EMPTY)
+            if (fractalCandleIndex > bearishCandleIndex)
             {
+                mostRecentPushDown = bearishCandleIndex;
+            }
+            else if (iLow(mEntrySymbol, mEntryTimeFrame, bearishCandleIndex) < iLow(mEntrySymbol, mEntryTimeFrame, fractalCandleIndex))
+            {
+                mostRecentPushDown = bearishCandleIndex;
+            }
+            else
+            {
+                mostRecentPushDown = fractalCandleIndex;
+            }
+
+            mInnerStructureTime = iTime(mEntrySymbol, mEntryTimeFrame, mostRecentPushDown);
+        }
+
+        int mostRecentPushDown = iBarShift(mEntrySymbol, mEntryTimeFrame, mInnerStructureTime);
+
+        // make sure we pushed back up
+        for (int i = mostRecentPushDown - 1; i >= 2; i--)
+        {
+            bool pushedFurther = (CandleStickHelper::HighestBodyPart(mEntrySymbol, mEntryTimeFrame, i) -
+                                  CandleStickHelper::HighestBodyPart(mEntrySymbol, mEntryTimeFrame, mostRecentPushDown)) >= OrderHelper::PipsToRange(mPushFurtherPips);
+
+            bool largeBody = CandleStickHelper::IsBullish(mEntrySymbol, mEntryTimeFrame, i) &&
+                             CandleStickHelper::HasImbalance(OP_BUY, mEntrySymbol, mEntryTimeFrame, i) &&
+                             CandleStickHelper::BodyLength(mEntrySymbol, mEntryTimeFrame, i) >= OrderHelper::PipsToRange(mLargeBodyPips);
+
+            if (pushedFurther || largeBody)
+            {
+                mDecentPushAfterInnerStructure = true;
                 break;
             }
         }
 
-        if (bearishCandleIndex == EMPTY && fractalCandleIndex == EMPTY)
-        {
-            return false;
-        }
-
-        if (fractalCandleIndex > bearishCandleIndex)
-        {
-            mostRecentPushDown = bearishCandleIndex;
-        }
-        else if (iLow(mEntrySymbol, mEntryTimeFrame, bearishCandleIndex) < iLow(mEntrySymbol, mEntryTimeFrame, fractalCandleIndex))
-        {
-            mostRecentPushDown = bearishCandleIndex;
-        }
-        else
-        {
-            mostRecentPushDown = fractalCandleIndex;
-        }
-
-        // make sure we pushed below
-        bool bearish = iClose(mEntrySymbol, mEntryTimeFrame, mostRecentPushDown) < iOpen(mEntrySymbol, mEntryTimeFrame, mostRecentPushDown);
-        for (int i = mostRecentPushDown; i >= highestIndex; i--)
-        {
-            if (iClose(mEntrySymbol, mEntryTimeFrame, i) > iHigh(mEntrySymbol, mEntryTimeFrame, mostRecentPushDown))
-            {
-                double percentBody = CandleStickHelper::PercentBody(mEntrySymbol, mEntryTimeFrame, i);
-                double bodyLength = CandleStickHelper::BodyLength(mEntrySymbol, mEntryTimeFrame, i);
-                bool singleCandleImpulse = /*percentBody >= 0.9*/ !bearish && bodyLength >= OrderHelper::PipsToRange(mLargeBodyPips);
-
-                bool pushedFurther = iHigh(mEntrySymbol, mEntryTimeFrame, i) - iHigh(mEntrySymbol, mEntryTimeFrame, mostRecentPushDown) >= OrderHelper::PipsToRange(mPushFurtherPips);
-                if (singleCandleImpulse || pushedFurther)
-                {
-                    pushedAboveMostRecentPushDown = true;
-                }
-            }
-        }
-
-        if (!pushedAboveMostRecentPushDown)
+        if (!mDecentPushAfterInnerStructure)
         {
             return false;
         }
@@ -405,11 +462,6 @@ bool MBInnerBreak::Confirmation()
         {
             if (iClose(mEntrySymbol, mEntryTimeFrame, i) < iLow(mEntrySymbol, mEntryTimeFrame, mostRecentPushDown))
             {
-                if (i > 5)
-                {
-                    return hasTicket;
-                }
-
                 bool largeBody = CandleStickHelper::BodyLength(mEntrySymbol, mEntryTimeFrame, i) >= OrderHelper::PipsToRange(mLargeBodyPips);
                 bool hasImpulse = CandleStickHelper::HasImbalance(OP_SELL, mEntrySymbol, mEntryTimeFrame, i) ||
                                   CandleStickHelper::HasImbalance(OP_SELL, mEntrySymbol, mEntryTimeFrame, i + 1);
@@ -445,7 +497,7 @@ bool MBInnerBreak::Confirmation()
                 bullishCandleCount += 1;
             }
 
-            if (bullishCandleCount > 1 || (bullishCandleCount == 1 && breakCandleIndex > 2))
+            if (bullishCandleCount > 1)
             {
                 return false;
             }
@@ -504,15 +556,8 @@ void MBInnerBreak::PlaceOrders()
 
     if (mSetupType == OP_BUY)
     {
-        int breakCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mBreakCandleTime);
-        double lowest = -1.0;
-        if (!MQLHelper::GetLowestLowBetween(mEntrySymbol, mEntryTimeFrame, breakCandleIndex - 1, 0, true, lowest))
-        {
-            return;
-        }
-
         entry = iHigh(mEntrySymbol, mEntryTimeFrame, 1) + OrderHelper::PipsToRange(mMaxSpreadPips + mEntryPaddingPips);
-        stopLoss = MathMin(lowest - OrderHelper::PipsToRange(mStopLossPaddingPips), entry - OrderHelper::PipsToRange(mMinStopLossPips));
+        stopLoss = iLow(mEntrySymbol, mEntryTimeFrame, 1);
     }
     else if (mSetupType == OP_SELL)
     {
@@ -524,8 +569,7 @@ void MBInnerBreak::PlaceOrders()
         }
 
         entry = iLow(mEntrySymbol, mEntryTimeFrame, 1) - OrderHelper::PipsToRange(mEntryPaddingPips);
-        stopLoss = MathMax(highest + OrderHelper::PipsToRange(mStopLossPaddingPips) + OrderHelper::PipsToRange(mMaxSpreadPips),
-                           entry + OrderHelper::PipsToRange(mMinStopLossPips));
+        stopLoss = iHigh(mEntrySymbol, mEntryTimeFrame, 1) + OrderHelper::PipsToRange(mMaxSpreadPips);
     }
 
     EAHelper::PlaceStopOrder<MBInnerBreak>(this, entry, stopLoss);
@@ -638,15 +682,15 @@ void MBInnerBreak::ManageCurrentActiveSetupTicket()
         }
 
         // get too close to our entry after 5 candles and coming back
-        if (entryIndex >= 5)
-        {
-            if (mLastManagedBid > OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips) &&
-                currentTick.bid <= OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
-            {
-                mCurrentSetupTicket.Close();
-                return;
-            }
-        }
+        // if (entryIndex >= 5)
+        // {
+        //     if (mLastManagedBid > OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips) &&
+        //         currentTick.bid <= OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
+        //     {
+        //         mCurrentSetupTicket.Close();
+        //         return;
+        //     }
+        // }
 
         movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
@@ -703,15 +747,15 @@ void MBInnerBreak::ManageCurrentActiveSetupTicket()
         }
 
         // get too close to our entry after 5 candles and coming back
-        if (entryIndex >= 5)
-        {
-            if (mLastManagedAsk < OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips) &&
-                currentTick.ask >= OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
-            {
-                mCurrentSetupTicket.Close();
-                return;
-            }
-        }
+        // if (entryIndex >= 5)
+        // {
+        //     if (mLastManagedAsk < OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips) &&
+        //         currentTick.ask >= OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
+        //     {
+        //         mCurrentSetupTicket.Close();
+        //         return;
+        //     }
+        // }
 
         movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }

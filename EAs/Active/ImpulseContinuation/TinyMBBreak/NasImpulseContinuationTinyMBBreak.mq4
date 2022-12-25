@@ -8,6 +8,7 @@
 #property version "1.00"
 #property strict
 
+#include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
 #include <SummitCapital/EAs/Active/ImpulseContinuation/TinyMBBreak/TinyMBBreak.mqh>
 
@@ -54,7 +55,7 @@ double MaxSpreadPips = SymbolConstants::NasSpreadPips;
 double StopLossPaddingPips = 2;
 double PipsToWaitBeforeBE = 20;
 double BEAdditionalPips = SymbolConstants::NasSlippagePips;
-double CloseRR = 20;
+double CloseRR = 10;
 
 int OnInit()
 {
@@ -65,8 +66,8 @@ int OnInit()
 
     ConfirmationMBT = new MBTracker(Symbol(), EntryTimeFrame, 10, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
 
-    ICBuys = new ImpulseContinuation(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                     ExitWriter, ErrorWriter, ConfirmationMBT);
+    ICBuys = new ImpulseContinuation(MagicNumbers::NasImpulseContinuationTinyMBBreakBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
+                                     MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, ConfirmationMBT);
 
     ICBuys.SetPartialCSVRecordWriter(PartialWriter);
     ICBuys.AddPartial(CloseRR, 100);
@@ -81,8 +82,8 @@ int OnInit()
 
     ICBuys.AddTradingSession(16, 30, 23, 0);
 
-    ICSells = new ImpulseContinuation(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                      ExitWriter, ErrorWriter, ConfirmationMBT);
+    ICSells = new ImpulseContinuation(MagicNumbers::NasImpulseContinuationTinyMBBreakSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
+                                      MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, ConfirmationMBT);
     ICSells.SetPartialCSVRecordWriter(PartialWriter);
     ICSells.AddPartial(CloseRR, 100);
 

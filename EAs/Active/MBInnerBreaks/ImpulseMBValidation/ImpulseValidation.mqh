@@ -23,6 +23,7 @@ public:
     double mMinStopLossPips;
     double mPipsToWaitBeforeBE;
     double mBEAdditionalPips;
+    double mMinMBValidationPercentChange;
     double mLargeBodyPips;
     double mPushFurtherPips;
 
@@ -82,6 +83,7 @@ MBInnerBreak::MBInnerBreak(int magicNumber, int setupType, int maxCurrentSetupTr
     mMinStopLossPips = 0.0;
     mPipsToWaitBeforeBE = 0.0;
     mBEAdditionalPips = 0.0;
+    mMinMBValidationPercentChange = 0.0;
     mLargeBodyPips = 0.0;
     mPushFurtherPips = 0.0;
 
@@ -119,6 +121,18 @@ void MBInnerBreak::CheckSetSetup()
 {
     if (EAHelper::CheckSetSingleMBSetup<MBInnerBreak>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
     {
+        MBState *tempMBState;
+        if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, tempMBState))
+        {
+            return;
+        }
+
+        if (MathAbs(CandleStickHelper::PercentChange(mEntrySymbol, mEntryTimeFrame, tempMBState.EndIndex())) < mMinMBValidationPercentChange)
+        {
+            return;
+        }
+
+        Print("Setup");
         mHasSetup = true;
     }
 }
@@ -174,6 +188,12 @@ bool MBInnerBreak::Confirmation()
 
     if (mSetupType == OP_BUY)
     {
+        // make sure zone is within mb
+        if (tempZoneState.EntryPrice() > iHigh(mEntrySymbol, mEntryTimeFrame, tempMBState.HighIndex()))
+        {
+            return false;
+        }
+
         int currentBullishRetracementIndex = EMPTY;
         if (!mSetupMBT.CurrentBullishRetracementIndexIsValid(currentBullishRetracementIndex))
         {
@@ -181,7 +201,7 @@ bool MBInnerBreak::Confirmation()
         }
 
         int lowestIndex = EMPTY;
-        if (!MQLHelper::GetLowestIndexBetween(mEntrySymbol, mEntryTimeFrame, currentBullishRetracementIndex, 1, true, lowestIndex))
+        if (!MQLHelper::GetLowestIndexBetween(mEntrySymbol, mEntryTimeFrame, currentBullishRetracementIndex, 1, false, lowestIndex))
         {
             return false;
         }
@@ -245,7 +265,6 @@ bool MBInnerBreak::Confirmation()
                 if (singleCandleImpulse || pushedFurther)
                 {
                     pushedBelowMostRecentPushUp = true;
-                    break;
                 }
             }
         }
@@ -320,6 +339,12 @@ bool MBInnerBreak::Confirmation()
     }
     else if (mSetupType == OP_SELL)
     {
+        // make sure zone is in mb
+        if (tempZoneState.EntryPrice() < iLow(mEntrySymbol, mEntryTimeFrame, tempMBState.LowIndex()))
+        {
+            return false;
+        }
+
         int currentBearishRetracementIndex = EMPTY;
         if (!mSetupMBT.CurrentBearishRetracementIndexIsValid(currentBearishRetracementIndex))
         {
@@ -327,7 +352,7 @@ bool MBInnerBreak::Confirmation()
         }
 
         int highestIndex = EMPTY;
-        if (!MQLHelper::GetHighestIndexBetween(mEntrySymbol, mEntryTimeFrame, currentBearishRetracementIndex, 1, true, highestIndex))
+        if (!MQLHelper::GetHighestIndexBetween(mEntrySymbol, mEntryTimeFrame, currentBearishRetracementIndex, 1, false, highestIndex))
         {
             return false;
         }
@@ -718,7 +743,7 @@ void MBInnerBreak::ManageCurrentActiveSetupTicket()
 
     if (movedPips)
     {
-        EAHelper::MoveToBreakEvenAsSoonAsPossible<MBInnerBreak>(this, mBEAdditionalPips);
+        EAHelper::MoveToBreakEvenAsSoonAsPossible<MBInnerBreak>(this);
     }
 
     mLastManagedAsk = currentTick.ask;

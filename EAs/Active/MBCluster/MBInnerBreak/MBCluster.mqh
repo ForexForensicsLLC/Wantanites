@@ -17,6 +17,7 @@ class MBInnerBreak : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeReco
 public:
     MBTracker *mSetupMBT;
 
+    int mSecondMBInSetupNumber;
     int mFirstMBInSetupNumber;
 
     double mEntryPaddingPips;
@@ -24,6 +25,7 @@ public:
     double mPipsToWaitBeforeBE;
     double mBEAdditionalPips;
     double mLargeBodyPips;
+    double mMaxBigDipperBodyPips;
     double mPushFurtherPips;
 
     datetime mEntryCandleTime;
@@ -72,6 +74,8 @@ MBInnerBreak::MBInnerBreak(int magicNumber, int setupType, int maxCurrentSetupTr
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mSetupMBT = setupMBT;
+
+    mSecondMBInSetupNumber = EMPTY;
     mFirstMBInSetupNumber = EMPTY;
 
     mBarCount = 0;
@@ -83,6 +87,7 @@ MBInnerBreak::MBInnerBreak(int magicNumber, int setupType, int maxCurrentSetupTr
     mPipsToWaitBeforeBE = 0.0;
     mBEAdditionalPips = 0.0;
     mLargeBodyPips = 0.0;
+    mMaxBigDipperBodyPips = 0.0;
     mPushFurtherPips = 0.0;
 
     mLastEntryMB = EMPTY;
@@ -117,8 +122,30 @@ bool MBInnerBreak::AllowedToTrade()
 
 void MBInnerBreak::CheckSetSetup()
 {
-    if (EAHelper::CheckSetSingleMBSetup<MBInnerBreak>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
+    if (EAHelper::CheckSetDoubleMBSetup<MBInnerBreak>(this, mSetupMBT, mFirstMBInSetupNumber, mSecondMBInSetupNumber, mSetupType))
     {
+        MBState *firstMBState;
+        if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, firstMBState))
+        {
+            return;
+        }
+
+        if (!firstMBState.ClosestValidZoneIsHolding(firstMBState.EndIndex()))
+        {
+            return;
+        }
+
+        MBState *secondMBState;
+        if (!mSetupMBT.GetMB(mSecondMBInSetupNumber, secondMBState))
+        {
+            return;
+        }
+
+        if (firstMBState.EndIndex() - secondMBState.StartIndex() > 2)
+        {
+            return;
+        }
+
         mHasSetup = true;
     }
 }
@@ -127,10 +154,10 @@ void MBInnerBreak::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
-    if (mFirstMBInSetupNumber != EMPTY)
+    if (mSecondMBInSetupNumber != EMPTY)
     {
         // invalidate if we are not the most recent MB
-        if (mSetupMBT.MBsCreated() - 1 != mFirstMBInSetupNumber)
+        if (mSetupMBT.MBsCreated() - 1 != mSecondMBInSetupNumber)
         {
             InvalidateSetup(true);
         }
@@ -141,6 +168,7 @@ void MBInnerBreak::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_E
 {
     EAHelper::InvalidateSetup<MBInnerBreak>(this, deletePendingOrder, false, error);
     mFirstMBInSetupNumber = EMPTY;
+    mSecondMBInSetupNumber = EMPTY;
 }
 
 bool MBInnerBreak::Confirmation()
@@ -153,7 +181,7 @@ bool MBInnerBreak::Confirmation()
     }
 
     MBState *tempMBState;
-    if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, tempMBState))
+    if (!mSetupMBT.GetMB(mSecondMBInSetupNumber, tempMBState))
     {
         return false;
     }
@@ -176,6 +204,11 @@ bool MBInnerBreak::Confirmation()
     {
         int currentBullishRetracementIndex = EMPTY;
         if (!mSetupMBT.CurrentBullishRetracementIndexIsValid(currentBullishRetracementIndex))
+        {
+            return false;
+        }
+
+        if (tempMBState.EndIndex() - currentBullishRetracementIndex > 2)
         {
             return false;
         }
@@ -245,7 +278,6 @@ bool MBInnerBreak::Confirmation()
                 if (singleCandleImpulse || pushedFurther)
                 {
                     pushedBelowMostRecentPushUp = true;
-                    break;
                 }
             }
         }
@@ -294,7 +326,7 @@ bool MBInnerBreak::Confirmation()
         {
             if (CandleStickHelper::IsBearish(mEntrySymbol, mEntryTimeFrame, i))
             {
-                if (CandleStickHelper::BodyLength(mEntrySymbol, mEntryTimeFrame, i) > OrderHelper::PipsToRange(mLargeBodyPips))
+                if (CandleStickHelper::BodyLength(mEntrySymbol, mEntryTimeFrame, i) > OrderHelper::PipsToRange(mMaxBigDipperBodyPips))
                 {
                     return false;
                 }
@@ -302,7 +334,7 @@ bool MBInnerBreak::Confirmation()
                 bearishCandleCount += 1;
             }
 
-            if (bearishCandleCount > 1 || (bearishCandleCount == 1 && breakCandleIndex > 2))
+            if (bearishCandleCount > 1)
             {
                 return false;
             }
@@ -322,6 +354,11 @@ bool MBInnerBreak::Confirmation()
     {
         int currentBearishRetracementIndex = EMPTY;
         if (!mSetupMBT.CurrentBearishRetracementIndexIsValid(currentBearishRetracementIndex))
+        {
+            return false;
+        }
+
+        if (tempMBState.EndIndex() - currentBearishRetracementIndex > 2)
         {
             return false;
         }
@@ -437,7 +474,7 @@ bool MBInnerBreak::Confirmation()
         {
             if (CandleStickHelper::IsBullish(mEntrySymbol, mEntryTimeFrame, i))
             {
-                if (CandleStickHelper::BodyLength(mEntrySymbol, mEntryTimeFrame, i) > OrderHelper::PipsToRange(mLargeBodyPips))
+                if (CandleStickHelper::BodyLength(mEntrySymbol, mEntryTimeFrame, i) > OrderHelper::PipsToRange(mMaxBigDipperBodyPips))
                 {
                     return false;
                 }
@@ -550,7 +587,6 @@ void MBInnerBreak::ManageCurrentPendingSetupTicket()
     {
         if (iLow(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, entryCandleIndex))
         {
-            // Print("Broke Below Invalidatino");
             InvalidateSetup(true);
         }
     }
@@ -637,17 +673,6 @@ void MBInnerBreak::ManageCurrentActiveSetupTicket()
             RecordError(-1, additionalInformation);
         }
 
-        // get too close to our entry after 5 candles and coming back
-        if (entryIndex >= 5)
-        {
-            if (mLastManagedBid > OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips) &&
-                currentTick.bid <= OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
-            {
-                mCurrentSetupTicket.Close();
-                return;
-            }
-        }
-
         movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
     else if (mSetupType == OP_SELL)
@@ -702,23 +727,12 @@ void MBInnerBreak::ManageCurrentActiveSetupTicket()
             RecordError(-1, additionalInformation);
         }
 
-        // get too close to our entry after 5 candles and coming back
-        if (entryIndex >= 5)
-        {
-            if (mLastManagedAsk < OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips) &&
-                currentTick.ask >= OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
-            {
-                mCurrentSetupTicket.Close();
-                return;
-            }
-        }
-
         movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
 
     if (movedPips)
     {
-        EAHelper::MoveToBreakEvenAsSoonAsPossible<MBInnerBreak>(this, mBEAdditionalPips);
+        EAHelper::MoveToBreakEvenAsSoonAsPossible<MBInnerBreak>(this, 0);
     }
 
     mLastManagedAsk = currentTick.ask;

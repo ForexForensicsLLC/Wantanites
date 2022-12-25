@@ -86,6 +86,27 @@ public:
 
     static int DowMBClusterCandleZoneBuys;
     static int DowMBClusterCandleZoneSells;
+
+    static int DowCandleStallBreakBuys;
+    static int DowCandleStallBreakSells;
+
+    static int DowNeighborMBNoBodiesCandleZoneBuys;
+    static int DowNeighborMBNoBodiesCandleZoneSells;
+
+    static int DowMBClusterMBInnerBreakBuys;
+    static int DowMBClusterMBInnerBreakSells;
+
+    static int DowImpulseReversalInnerBreakBigDipperBuys;
+    static int DowImpulseReversalInnerBreakBigDipperSells;
+
+    static int DowWickLiquidatedMBInnerBreakBigDipperBuys;
+    static int DowWickLiquidatedMBInnerBreakBigDipperSells;
+
+    static int DowLoneDojiBuys;
+    static int DowLoneDojiSells;
+
+    static int NasImpulseContinuationTinyMBBreakBuys;
+    static int NasImpulseContinuationTinyMBBreakSells;
 };
 
 static int MagicNumbers::TheSunriseShatterBearishSingleMB = 10003;
@@ -160,3 +181,24 @@ static int MagicNumbers::NasReversalInnerBreakSells = 10050;
 
 static int MagicNumbers::DowMBClusterCandleZoneBuys = 10051;
 static int MagicNumbers::DowMBClusterCandleZoneSells = 10052;
+
+static int MagicNumbers::DowCandleStallBreakBuys = 10053;
+static int MagicNumbers::DowCandleStallBreakSells = 10054;
+
+static int MagicNumbers::DowNeighborMBNoBodiesCandleZoneBuys = 10055;
+static int MagicNumbers::DowNeighborMBNoBodiesCandleZoneSells = 10056;
+
+static int MagicNumbers::DowMBClusterMBInnerBreakBuys = 10057;
+static int MagicNumbers::DowMBClusterMBInnerBreakSells = 10058;
+
+static int MagicNumbers::DowImpulseReversalInnerBreakBigDipperBuys = 10059;
+static int MagicNumbers::DowImpulseReversalInnerBreakBigDipperSells = 10060;
+
+static int MagicNumbers::DowWickLiquidatedMBInnerBreakBigDipperBuys = 10061;
+static int MagicNumbers::DowWickLiquidatedMBInnerBreakBigDipperSells = 10062;
+
+static int MagicNumbers::DowLoneDojiBuys = 10063;
+static int MagicNumbers::DowLoneDojiSells = 10064;
+
+static int MagicNumbers::NasImpulseContinuationTinyMBBreakBuys = 10065;
+static int MagicNumbers::NasImpulseContinuationTinyMBBreakSells = 10066;

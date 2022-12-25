@@ -18,6 +18,8 @@
 #include <SummitCapital\Framework\Helpers\ScreenShotHelper.mqh>
 #include <SummitCapital\Framework\Helpers\CandleStickHelper.mqh>
 
+#include <SummitCapital\Framework\Objects\TimeRangeBreakout.mqh>
+
 #include <SummitCapital\Framework\Trackers\LiquidationSetupTracker.mqh>
 
 class EAHelper
@@ -66,6 +68,9 @@ public:
     static void RunDrawMBTs(TEA &ea, MBTracker *&mbtOne, MBTracker *&mbtTwo);
     template <typename TEA>
     static void RunDrawMBTAndMRFTS(TEA &ea, MBTracker *&mbt);
+
+    template <typename TEA>
+    static void RunDrawTimeRange(TEA &ea, TimeRangeBreakout *&trb);
 
     // =========================================================================
     // Allowed To Trade
@@ -120,6 +125,9 @@ public:
 
     template <typename TEA>
     static bool RunningBigDipperSetup(TEA &ea, datetime startTime);
+
+    template <typename TEA>
+    static bool HasTimeRangeBreakout(TEA &ea, TimeRangeBreakout *&trb);
 
     // =========================================================================
     // Check Invalidate Setup
@@ -227,6 +235,8 @@ public:
     template <typename TEA>
     static void CheckTrailStopLossWithMBs(TEA &ea, MBTracker *&mbt, int lastMBNumberInSetup);
     template <typename TEA>
+    static void MoveTicketToBreakEven(TEA &ea, Ticket &ticket, double additionalPips);
+    template <typename TEA>
     static void MoveToBreakEvenWithCandleFurtherThanEntry(TEA &ea, bool waitForCandleClose);
     template <typename TEA>
     static void MoveToBreakEvenAfterNextSameTypeMBValidation(TEA &ea, Ticket &ticket, MBTracker *&mbt, int entryMB);
@@ -243,6 +253,9 @@ public:
 
     template <typename TEA>
     static bool TicketStopLossIsMovedToBreakEven(TEA &ea, Ticket &ticket);
+
+    template <typename TEA>
+    static bool CloseTicketIfAtTime(TEA &ea, Ticket &ticket, int hour, int minute);
 
     // =========================================================================
     // Checking Tickets
@@ -676,6 +689,13 @@ static void EAHelper::RunDrawMBTAndMRFTS(TEA &ea, MBTracker *&mbt)
     mbt.DrawZonesForNMostRecentMBs(1);
     ea.mMRFTS.Draw();
 
+    Run(ea);
+}
+
+template <typename TEA>
+static void EAHelper::RunDrawTimeRange(TEA &ea, TimeRangeBreakout *&trb)
+{
+    trb.Draw();
     Run(ea);
 }
 /*
@@ -1532,6 +1552,21 @@ static bool EAHelper::RunningBigDipperSetup(TEA &ea, datetime startTime)
 }
 
 template <typename TEA>
+static bool EAHelper::HasTimeRangeBreakout(TEA &ea, TimeRangeBreakout *&trb)
+{
+    if (ea.mSetupType == OP_BUY)
+    {
+        return trb.BrokeRangeHigh();
+    }
+    else if (ea.mSetupType == OP_SELL)
+    {
+        return trb.BrokeRangeLow();
+    }
+
+    return false;
+}
+
+template <typename TEA>
 static bool EAHelper::MBWithinWidth(TEA &ea, MBTracker *mbt, int mbNumber, int minWidth = 0, int maxWidth = 0)
 {
     ea.mLastState = EAStates::CHECKING_FOR_CONFIRMATION;
@@ -1730,7 +1765,7 @@ template <typename TEA>
 static double EAHelper::GetReducedRiskPerPercentLost(TEA &ea, double perPercentLost, double reduceBy)
 {
     double calculatedRiskPercent = ea.mRiskPercent;
-    double totalPercentLost = (AccountBalance() - ea.mLargestAccountBalance) / ea.mLargestAccountBalance * 100;
+    double totalPercentLost = MathAbs((AccountBalance() - ea.mLargestAccountBalance) / ea.mLargestAccountBalance * 100);
 
     while (totalPercentLost >= perPercentLost)
     {
@@ -2120,6 +2155,49 @@ static void EAHelper::CheckTrailStopLossWithMBs(TEA &ea, MBTracker *&mbt, int la
 }
 
 template <typename TEA>
+static void EAHelper::MoveTicketToBreakEven(TEA &ea, Ticket &ticket, double additionalPips)
+{
+    ea.mLastState = EAStates::ATTEMPTING_TO_MANAGE_ORDER;
+
+    if (ticket.Number() == EMPTY)
+    {
+        return;
+    }
+
+    bool isActive = false;
+    int isActiveError = ticket.IsActive(isActive);
+    if (TerminalErrors::IsTerminalError(isActiveError))
+    {
+        ea.RecordError(isActiveError);
+        return;
+    }
+
+    if (!isActive)
+    {
+        return;
+    }
+
+    bool stopLossIsMovedBreakEven;
+    int stopLossIsMovedToBreakEvenError = ticket.StopLossIsMovedToBreakEven(stopLossIsMovedBreakEven);
+    if (TerminalErrors::IsTerminalError(stopLossIsMovedToBreakEvenError))
+    {
+        ea.RecordError(stopLossIsMovedToBreakEvenError);
+        return;
+    }
+
+    if (stopLossIsMovedBreakEven)
+    {
+        return;
+    }
+
+    int breakEvenError = OrderHelper::MoveTicketToBreakEven(ticket, additionalPips);
+    if (TerminalErrors::IsTerminalError(breakEvenError))
+    {
+        ea.RecordError(breakEvenError);
+    }
+}
+
+template <typename TEA>
 static void EAHelper::MoveToBreakEvenAfterNextSameTypeMBValidation(TEA &ea, Ticket &ticket, MBTracker *&mbt, int entryMB)
 {
     ea.mLastState = EAStates::ATTEMPTING_TO_MANAGE_ORDER;
@@ -2486,6 +2564,18 @@ static bool EAHelper::CloseIfPercentIntoStopLoss(TEA &ea, Ticket &ticket, double
     }
 
     if (isPercentIntoStopLoss)
+    {
+        ticket.Close();
+        return true;
+    }
+
+    return false;
+}
+
+template <typename TEA>
+static bool EAHelper::CloseTicketIfAtTime(TEA &ea, Ticket &ticket, int hour, int minute)
+{
+    if (Hour() >= hour && Minute() >= minute)
     {
         ticket.Close();
         return true;
