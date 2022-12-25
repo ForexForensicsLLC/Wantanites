@@ -47,9 +47,9 @@ public:
     TimeRangeBreakout(int rangeHourStartTime, int rangeMinuteStartTime, int rangeHourEndTime, int rangeMinuteEndTime);
     ~TimeRangeBreakout();
 
-    double RangeHigh() { return mRangeHigh; }
-    double RangeLow() { return mRangeLow; }
-    double RangeWidth() { return mRangeHigh - mRangeLow; }
+    double RangeHigh();
+    double RangeLow();
+    double RangeWidth() { return RangeHigh() - RangeLow(); }
 
     bool BrokeRangeHigh();
     bool BrokeRangeLow();
@@ -76,6 +76,18 @@ TimeRangeBreakout::TimeRangeBreakout(int rangeHourStartTime, int rangeMinuteStar
 TimeRangeBreakout::~TimeRangeBreakout()
 {
     ObjectsDeleteAll(ChartID(), mObjectNamePrefix);
+}
+
+double TimeRangeBreakout::RangeHigh()
+{
+    Update();
+    return mRangeHigh;
+}
+
+double TimeRangeBreakout::RangeLow()
+{
+    Update();
+    return mRangeLow;
 }
 
 bool TimeRangeBreakout::BrokeRangeHigh()
