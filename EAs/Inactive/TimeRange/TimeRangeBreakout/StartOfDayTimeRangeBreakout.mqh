@@ -110,7 +110,7 @@ bool StartOfDayTimeRangeBreakout::AllowedToTrade()
 
 void StartOfDayTimeRangeBreakout::CheckSetSetup()
 {
-    if (EAHelper::HasTimeRangeBreakout<StartOfDayTimeRangeBreakout>(this, mTRB))
+    if (EAHelper::HasTimeRangeBreakout<StartOfDayTimeRangeBreakout>(this))
     {
         mHasSetup = true;
     }

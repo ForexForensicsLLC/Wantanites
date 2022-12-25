@@ -114,7 +114,7 @@ bool ReEnterReversal::AllowedToTrade()
 
 void ReEnterReversal::CheckSetSetup()
 {
-    if (EAHelper::HasTimeRangeBreakout<ReEnterReversal>(this, mTRB))
+    if (EAHelper::HasTimeRangeBreakoutReversal<ReEnterReversal>(this))
     {
         mHasSetup = true;
         mBrokeRangeCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 0);
@@ -154,13 +154,13 @@ bool ReEnterReversal::Confirmation()
     if (!SymbolInfoTick(Symbol(), currentTick))
     {
         RecordError(GetLastError());
-        return;
+        return false;
     }
 
     double furthestBody = 0.0;
     if (mSetupType == OP_BUY)
     {
-        if (!MQLHelper::GetLowestBodyBetween(mEntrySymbol, mEntryTimeFrame, brokeRangeCandleIndex, 0, true, furthestBody))
+        if (!MQLHelper::GetLowestBodyBetween(mEntrySymbol, mEntryTimeFrame, brokeRangeCandleIndex, 1, true, furthestBody))
         {
             return false;
         }
@@ -174,7 +174,7 @@ bool ReEnterReversal::Confirmation()
     }
     else if (mSetupType == OP_SELL)
     {
-        if (!MQLHelper::GetHighestBodyBetween(mEntrySymbol, mEntryTimeFrame, brokeRangeCandleIndex, 0, true, furthestBody))
+        if (!MQLHelper::GetHighestBodyBetween(mEntrySymbol, mEntryTimeFrame, brokeRangeCandleIndex, 1, true, furthestBody))
         {
             return false;
         }

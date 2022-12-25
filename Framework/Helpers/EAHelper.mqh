@@ -127,7 +127,9 @@ public:
     static bool RunningBigDipperSetup(TEA &ea, datetime startTime);
 
     template <typename TEA>
-    static bool HasTimeRangeBreakout(TEA &ea, TimeRangeBreakout *&trb);
+    static bool HasTimeRangeBreakout(TEA &ea);
+    template <typename TEA>
+    static bool HasTimeRangeBreakoutReversal(TEA &ea);
 
     // =========================================================================
     // Check Invalidate Setup
@@ -1552,15 +1554,30 @@ static bool EAHelper::RunningBigDipperSetup(TEA &ea, datetime startTime)
 }
 
 template <typename TEA>
-static bool EAHelper::HasTimeRangeBreakout(TEA &ea, TimeRangeBreakout *&trb)
+static bool EAHelper::HasTimeRangeBreakout(TEA &ea)
 {
     if (ea.mSetupType == OP_BUY)
     {
-        return trb.BrokeRangeHigh();
+        return ea.mTRB.BrokeRangeHigh();
     }
     else if (ea.mSetupType == OP_SELL)
     {
-        return trb.BrokeRangeLow();
+        return ea.mTRB.BrokeRangeLow();
+    }
+
+    return false;
+}
+
+template <typename TEA>
+static bool EAHelper::HasTimeRangeBreakoutReversal(TEA &ea)
+{
+    if (ea.mSetupType == OP_BUY)
+    {
+        return ea.mTRB.BrokeRangeLow();
+    }
+    else if (ea.mSetupType == OP_SELL)
+    {
+        return ea.mTRB.BrokeRangeHigh();
     }
 
     return false;
