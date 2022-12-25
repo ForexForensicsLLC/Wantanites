@@ -21,6 +21,7 @@ public:
     string mEntrySymbol;
 
     int mBarCount;
+    int mLastDay;
 
     int mCloseHour;
     int mCloseMinute;
@@ -38,7 +39,7 @@ public:
                                 CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, TimeRangeBreakout *&trb);
     ~StartOfDayTimeRangeBreakout();
 
-    virtual double RiskPercent();
+    virtual double RiskPercent() { return mRiskPercent; }
 
     virtual void Run();
     virtual bool AllowedToTrade();
@@ -71,9 +72,10 @@ StartOfDayTimeRangeBreakout::StartOfDayTimeRangeBreakout(int magicNumber, int se
     mEntryTimeFrame = Period();
 
     mBarCount = 0;
+    mLastDay = Day();
 
-    mCloseHour;
-    mCloseMinute;
+    mCloseHour = 0;
+    mCloseMinute = 0;
 
     mEntryPaddingPips = 0.0;
     mMinStopLossPips = 0.0;
@@ -89,13 +91,6 @@ StartOfDayTimeRangeBreakout::StartOfDayTimeRangeBreakout(int magicNumber, int se
     EAHelper::SetPreviousSetupTicketsOpenData<StartOfDayTimeRangeBreakout, SingleTimeFrameEntryTradeRecord>(this);
 }
 
-double StartOfDayTimeRangeBreakout::RiskPercent()
-{
-    // reduce risk by half if we lose 5%
-    // return EAHelper::GetReducedRiskPerPercentLost<StartOfDayTimeRangeBreakout>(this, 10, 0.25);
-    return mRiskPercent;
-}
-
 StartOfDayTimeRangeBreakout::~StartOfDayTimeRangeBreakout()
 {
 }
@@ -103,7 +98,9 @@ StartOfDayTimeRangeBreakout::~StartOfDayTimeRangeBreakout()
 void StartOfDayTimeRangeBreakout::Run()
 {
     EAHelper::RunDrawTimeRange<StartOfDayTimeRangeBreakout>(this, mTRB);
+
     mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
+    mLastDay = Day();
 }
 
 bool StartOfDayTimeRangeBreakout::AllowedToTrade()
@@ -122,6 +119,11 @@ void StartOfDayTimeRangeBreakout::CheckSetSetup()
 void StartOfDayTimeRangeBreakout::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
+
+    if (mLastDay != Day())
+    {
+        InvalidateSetup(true);
+    }
 }
 
 void StartOfDayTimeRangeBreakout::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
@@ -149,23 +151,16 @@ void StartOfDayTimeRangeBreakout::PlaceOrders()
     if (mSetupType == OP_BUY)
     {
         entry = currentTick.ask;
-        stopLoss = mTRB.RangeLow(); /* - (mTRB.RangeWidth() * 0.5);*/ // 150% of the range
-        Print("Range Low: ", mTRB.RangeLow(), ", SL: ", stopLoss);
+        stopLoss = mTRB.RangeLow();
     }
     else if (mSetupType == OP_SELL)
     {
         entry = currentTick.bid;
-        stopLoss = mTRB.RangeHigh(); /* + (mTRB.RangeWidth() * 0.5); */ // 150% of the range
-        Print("Range High: ", mTRB.RangeHigh(), ", SL: ", stopLoss);
+        stopLoss = mTRB.RangeHigh();
     }
 
     EAHelper::PlaceMarketOrder<StartOfDayTimeRangeBreakout>(this, entry, stopLoss);
-
-    if (mCurrentSetupTicket.Number() != EMPTY)
-    {
-        mStopTrading = true;
-        mEntryCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 1);
-    }
+    mStopTrading = true;
 }
 
 void StartOfDayTimeRangeBreakout::ManageCurrentPendingSetupTicket()
@@ -174,54 +169,16 @@ void StartOfDayTimeRangeBreakout::ManageCurrentPendingSetupTicket()
 
 void StartOfDayTimeRangeBreakout::ManageCurrentActiveSetupTicket()
 {
-    // if (mCurrentSetupTicket.Number() == EMPTY)
-    // {
-    //     return;
-    // }
-
-    int selectError = mCurrentSetupTicket.SelectIfOpen("Stuff");
-    if (TerminalErrors::IsTerminalError(selectError))
-    {
-        RecordError(selectError);
-        return;
-    }
-
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
-    {
-        RecordError(GetLastError());
-        return;
-    }
-
-    // int entryIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, OrderOpenTime());
-    bool movedPips = false;
-
-    if (mSetupType == OP_BUY)
-    {
-        movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
-    }
-    else if (mSetupType == OP_SELL)
-    {
-        movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
-    }
-
-    if (movedPips / OrderStopLoss() >= 1)
-    {
-        EAHelper::MoveTicketToBreakEven<StartOfDayTimeRangeBreakout>(this, mCurrentSetupTicket, mBEAdditionalPips);
-    }
-
-    EAHelper::CloseTicketIfAtTime<StartOfDayTimeRangeBreakout>(this, mCurrentSetupTicket, mCloseHour, mCloseMinute);
+    EAHelper::CloseTicketIfPastTime<StartOfDayTimeRangeBreakout>(this, mCurrentSetupTicket, mCloseHour, mCloseMinute);
 }
 
 bool StartOfDayTimeRangeBreakout::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    // return EAHelper::TicketStopLossIsMovedToBreakEven<StartOfDayTimeRangeBreakout>(this, ticket);
     return false;
 }
 
 void StartOfDayTimeRangeBreakout::ManagePreviousSetupTicket(int ticketIndex)
 {
-    // EAHelper::CheckPartialTicket<StartOfDayTimeRangeBreakout>(this, mPreviousSetupTickets[ticketIndex]);
 }
 
 void StartOfDayTimeRangeBreakout::CheckCurrentSetupTicket()

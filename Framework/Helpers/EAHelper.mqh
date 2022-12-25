@@ -255,7 +255,7 @@ public:
     static bool TicketStopLossIsMovedToBreakEven(TEA &ea, Ticket &ticket);
 
     template <typename TEA>
-    static bool CloseTicketIfAtTime(TEA &ea, Ticket &ticket, int hour, int minute);
+    static bool CloseTicketIfPastTime(TEA &ea, Ticket &ticket, int hour, int minute, bool fallbackCloseAtNewDay);
 
     // =========================================================================
     // Checking Tickets
@@ -2573,9 +2573,9 @@ static bool EAHelper::CloseIfPercentIntoStopLoss(TEA &ea, Ticket &ticket, double
 }
 
 template <typename TEA>
-static bool EAHelper::CloseTicketIfAtTime(TEA &ea, Ticket &ticket, int hour, int minute)
+static bool EAHelper::CloseTicketIfPastTime(TEA &ea, Ticket &ticket, int hour, int minute, bool fallbackCloseIfNewDay = true)
 {
-    if (Hour() >= hour && Minute() >= minute)
+    if ((Hour() >= hour && Minute() >= minute) || (fallbackCloseIfNewDay && Day() != ea.mLastDay))
     {
         ticket.Close();
         return true;
