@@ -213,12 +213,12 @@ void WickRange::PlaceOrders()
     if (mSetupType == OP_BUY)
     {
         entry = currentTick.ask;
-        stopLoss = mTRB.RangeLow();
+        stopLoss = iLow(mEntrySymbol, mEntryTimeFrame, 2);
     }
     else if (mSetupType == OP_SELL)
     {
         entry = currentTick.bid;
-        stopLoss = mTRB.RangeHigh();
+        stopLoss = iHigh(mEntrySymbol, mEntryTimeFrame, 2);
     }
 
     EAHelper::PlaceMarketOrder<WickRange>(this, entry, stopLoss);

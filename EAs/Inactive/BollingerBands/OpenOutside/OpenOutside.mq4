@@ -12,7 +12,7 @@
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
 #include <SummitCapital/EAs/Inactive/BollingerBands/OpenOutside/OpenOutside.mqh>
 
-string ForcedSymbol = "EURUSD";
+string ForcedSymbol = "GBPCAD";
 int ForcedTimeFrame = 60;
 
 // --- EA Inputs ---
@@ -31,7 +31,7 @@ bool PrintErrors = false;
 bool CalculateOnTick = false;
 
 string StrategyName = "BollingerBands/";
-string EAName = "EU/";
+string EAName = "GC/";
 string SetupTypeName = "OpenOutside/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
@@ -47,7 +47,7 @@ OpenOutside *OOSells;
 double MaxSpreadPips = 0.8;
 double EntryPaddingPips = 0;
 double MinStopLossPips = 0;
-double StopLossPaddingPips = 30;
+double StopLossPaddingPips = 80;
 double PipsToWaitBeforeBE = 40;
 double BEAdditionalPips = 0;
 double CloseRR = 20;

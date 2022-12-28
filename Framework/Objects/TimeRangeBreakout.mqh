@@ -171,9 +171,9 @@ void TimeRangeBreakout::Calculate(int barIndex)
             return;
         }
 
-        if (currentTick.ask > mRangeHigh || mRangeHigh == ConstantValues::EmptyDouble)
+        if (currentTick.bid > mRangeHigh || mRangeHigh == ConstantValues::EmptyDouble)
         {
-            mRangeHigh = currentTick.ask;
+            mRangeHigh = currentTick.bid;
             mUpdateRangeHigh = true;
         }
 
