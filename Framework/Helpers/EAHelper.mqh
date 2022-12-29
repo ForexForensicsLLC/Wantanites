@@ -239,6 +239,8 @@ public:
     template <typename TEA>
     static void MoveTicketToBreakEven(TEA &ea, Ticket &ticket, double additionalPips);
     template <typename TEA>
+    static void MoveToBreakEvenAfterPips(TEA &ea, Ticket &ticket, double pipsToWait, double additionalPips);
+    template <typename TEA>
     static void MoveToBreakEvenWithCandleFurtherThanEntry(TEA &ea, bool waitForCandleClose);
     template <typename TEA>
     static void MoveToBreakEvenAfterNextSameTypeMBValidation(TEA &ea, Ticket &ticket, MBTracker *&mbt, int entryMB);
@@ -2211,6 +2213,76 @@ static void EAHelper::MoveTicketToBreakEven(TEA &ea, Ticket &ticket, double addi
     if (TerminalErrors::IsTerminalError(breakEvenError))
     {
         ea.RecordError(breakEvenError);
+    }
+}
+
+template <typename TEA>
+static void EAHelper::MoveToBreakEvenAfterPips(TEA &ea, Ticket &ticket, double pipsToWait, double additionalPips = 0.0)
+{
+    ea.mLastState = EAStates::ATTEMPTING_TO_MANAGE_ORDER;
+
+    if (ticket.Number() == EMPTY)
+    {
+        return;
+    }
+
+    bool isActive = false;
+    int isActiveError = ticket.IsActive(isActive);
+    if (TerminalErrors::IsTerminalError(isActiveError))
+    {
+        ea.RecordError(isActiveError);
+        return;
+    }
+
+    if (!isActive)
+    {
+        return;
+    }
+
+    bool stopLossIsMovedBreakEven;
+    int stopLossIsMovedToBreakEvenError = ticket.StopLossIsMovedToBreakEven(stopLossIsMovedBreakEven);
+    if (TerminalErrors::IsTerminalError(stopLossIsMovedToBreakEvenError))
+    {
+        ea.RecordError(stopLossIsMovedToBreakEvenError);
+        return;
+    }
+
+    if (stopLossIsMovedBreakEven)
+    {
+        return;
+    }
+
+    MqlTick currentTick;
+    if (!SymbolInfoTick(Symbol(), currentTick))
+    {
+        ea.RecordError(GetLastError());
+        return;
+    }
+
+    int selectError = ticket.SelectIfOpen("Moving to BE");
+    if (TerminalErrors::IsTerminalError(selectError))
+    {
+        ea.RecordError(selectError);
+        return;
+    }
+
+    bool movedPips = false;
+    if (OrderType() == OP_BUY)
+    {
+        movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(pipsToWait);
+    }
+    else if (OrderType() == OP_SELL)
+    {
+        movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(pipsToWait);
+    }
+
+    if (movedPips)
+    {
+        int breakEvenError = OrderHelper::MoveTicketToBreakEven(ticket, additionalPips);
+        if (TerminalErrors::IsTerminalError(breakEvenError))
+        {
+            ea.RecordError(breakEvenError);
+        }
     }
 }
 
