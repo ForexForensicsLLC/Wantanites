@@ -10,9 +10,9 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/BollingerBands/OpenOutside/OpenOutside.mqh>
+#include <SummitCapital/EAs/Inactive/BollingerBands/WickBand/WickBand.mqh>
 
-string ForcedSymbol = "GBPCAD";
+string ForcedSymbol = "EURUSD";
 int ForcedTimeFrame = 60;
 
 // --- EA Inputs ---
@@ -31,8 +31,8 @@ bool PrintErrors = false;
 bool CalculateOnTick = false;
 
 string StrategyName = "BollingerBands/";
-string EAName = "GC/";
-string SetupTypeName = "OpenOutside/";
+string EAName = "EU/";
+string SetupTypeName = "WickBand/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -40,17 +40,14 @@ CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<Partial
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-OpenOutside *OOBuys;
-OpenOutside *OOSells;
+WickBand *OOBuys;
+WickBand *OOSells;
 
 // EU
+double MinWickLength = 4;
 double MaxSpreadPips = 0.8;
-double EntryPaddingPips = 0;
-double MinStopLossPips = 0;
-double StopLossPaddingPips = 80;
-double PipsToWaitBeforeBE = 40;
-double BEAdditionalPips = 0;
-double CloseRR = 20;
+double MinStopLossPips = 90;
+double StopLossPaddingPips = 0.0;
 
 int OnInit()
 {
@@ -59,29 +56,22 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    OOBuys = new OpenOutside(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                             ExitWriter, ErrorWriter);
+    OOBuys = new WickBand(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                          ExitWriter, ErrorWriter);
+
+    OOBuys.mMinWickLength = MinWickLength;
+    OOBuys.mMinStopLossPips = MinStopLossPips;
 
     OOBuys.SetPartialCSVRecordWriter(PartialWriter);
-    OOBuys.AddPartial(CloseRR, 100);
-
-    OOBuys.mEntryPaddingPips = EntryPaddingPips;
-    OOBuys.mMinStopLossPips = MinStopLossPips;
-    OOBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    OOBuys.mBEAdditionalPips = BEAdditionalPips;
-
     OOBuys.AddTradingSession(3, 0, 23, 0);
 
-    OOSells = new OpenOutside(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                              ExitWriter, ErrorWriter);
-    OOSells.SetPartialCSVRecordWriter(PartialWriter);
-    OOSells.AddPartial(CloseRR, 100);
+    OOSells = new WickBand(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                           ExitWriter, ErrorWriter);
 
-    OOSells.mEntryPaddingPips = EntryPaddingPips;
+    OOSells.mMinWickLength = MinWickLength;
     OOSells.mMinStopLossPips = MinStopLossPips;
-    OOSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    OOSells.mBEAdditionalPips = BEAdditionalPips;
 
+    OOSells.SetPartialCSVRecordWriter(PartialWriter);
     OOSells.AddTradingSession(3, 0, 23, 0);
 
     return (INIT_SUCCEEDED);

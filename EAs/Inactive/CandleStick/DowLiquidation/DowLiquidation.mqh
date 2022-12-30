@@ -118,7 +118,7 @@ void DowLiquidation::CheckSetSetup()
             iLow(mEntrySymbol, mEntryTimeFrame, 0) < iLow(mEntrySymbol, mEntryTimeFrame, 1))
         {
             longEnoughWick = currentTick.bid - iLow(mEntrySymbol, mEntryTimeFrame, 0) >= OrderHelper::PipsToRange(mMinWickLength);
-            // crossedOpenAfterLiquidaiton = currentTick.bid > iOpen(mEntrySymbol, mEntryTimeFrame, 0);
+            crossedOpenAfterLiquidaiton = currentTick.bid > iOpen(mEntrySymbol, mEntryTimeFrame, 0);
         }
     }
     else if (mSetupType == OP_SELL)
@@ -128,7 +128,7 @@ void DowLiquidation::CheckSetSetup()
             iHigh(mEntrySymbol, mEntryTimeFrame, 0) > iHigh(mEntrySymbol, mEntryTimeFrame, 1))
         {
             longEnoughWick = iHigh(mEntrySymbol, mEntryTimeFrame, 0) - currentTick.bid >= OrderHelper::PipsToRange(mMinWickLength);
-            // crossedOpenAfterLiquidaiton = currentTick.bid < iOpen(mEntrySymbol, mEntryTimeFrame, 0);
+            crossedOpenAfterLiquidaiton = currentTick.bid < iOpen(mEntrySymbol, mEntryTimeFrame, 0);
         }
     }
 
