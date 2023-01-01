@@ -2174,7 +2174,7 @@ static void EAHelper::CheckTrailStopLossWithMBs(TEA &ea, MBTracker *&mbt, int la
 }
 
 template <typename TEA>
-static void EAHelper::MoveTicketToBreakEven(TEA &ea, Ticket &ticket, double additionalPips)
+static void EAHelper::MoveTicketToBreakEven(TEA &ea, Ticket &ticket, double additionalPips = 0.0)
 {
     ea.mLastState = EAStates::ATTEMPTING_TO_MANAGE_ORDER;
 

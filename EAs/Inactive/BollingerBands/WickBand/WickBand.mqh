@@ -129,7 +129,7 @@ void WickBand::CheckSetSetup()
             entryBand = LowerBand(0);
 
             wickedEntryBand = iOpen(mEntrySymbol, mEntryTimeFrame, 0) > entryBand && iLow(mEntrySymbol, mEntryTimeFrame, 0) < entryBand;
-            hasMinWickLength = iOpen(mEntrySymbol, mEntryTimeFrame, 0) - iLow(mEntrySymbol, mEntryTimeFrame, 0) >= OrderHelper::PipsToRange(mMinWickLength);
+            hasMinWickLength = currentTick.bid - iLow(mEntrySymbol, mEntryTimeFrame, 0) >= OrderHelper::PipsToRange(mMinWickLength);
             tickCrossedBand = mLastBid <= entryBand && currentTick.bid >= entryBand;
         }
         else if (mSetupType == OP_SELL)
@@ -137,7 +137,7 @@ void WickBand::CheckSetSetup()
             entryBand = UpperBand(0);
 
             wickedEntryBand = iOpen(mEntrySymbol, mEntryTimeFrame, 0) < entryBand && iHigh(mEntrySymbol, mEntryTimeFrame, 0) > entryBand;
-            hasMinWickLength = iHigh(mEntrySymbol, mEntryTimeFrame, 0) - iOpen(mEntrySymbol, mEntryTimeFrame, 0) >= OrderHelper::PipsToRange(mMinWickLength);
+            hasMinWickLength = iHigh(mEntrySymbol, mEntryTimeFrame, 0) - currentTick.bid >= OrderHelper::PipsToRange(mMinWickLength);
             tickCrossedBand = mLastBid >= entryBand && currentTick.bid < entryBand;
         }
 

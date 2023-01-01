@@ -10,29 +10,19 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/BollingerBands/WickBand/WickBand.mqh>
+#include <SummitCapital/EAs/Inactive/CandleStick/LongWick/LongWick.mqh>
 
 string ForcedSymbol = "EURUSD";
 int ForcedTimeFrame = 60;
 
 // --- EA Inputs ---
-double RiskPercent = 1;
+double RiskPercent = 0.5;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-// -- MBTracker Inputs
-int MBsToTrack = 10;
-int MaxZonesInMB = 5;
-bool AllowMitigatedZones = false;
-bool AllowZonesAfterMBValidation = true;
-bool AllowWickBreaks = true;
-bool OnlyZonesInMB = true;
-bool PrintErrors = false;
-bool CalculateOnTick = false;
-
-string StrategyName = "BollingerBands/";
+string StrategyName = "LongWick/";
 string EAName = "EU/";
-string SetupTypeName = "WickBand/";
+string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -40,14 +30,13 @@ CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<Partial
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-WickBand *OOBuys;
-WickBand *OOSells;
+LongWick *LWBuys;
+LongWick *LWSells;
 
 // EU
-double MinWickLength = 8;
+double MinWickLength = 15;
 double MaxSpreadPips = 0.8;
-double MinStopLossPips = 30;
-double StopLossPaddingPips = 0.0;
+double StopLossPaddingPips = 0;
 
 int OnInit()
 {
@@ -56,31 +45,28 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    OOBuys = new WickBand(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+    LWBuys = new LongWick(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                           ExitWriter, ErrorWriter);
 
-    OOBuys.mMinWickLength = MinWickLength;
-    OOBuys.mMinStopLossPips = MinStopLossPips;
+    LWBuys.SetPartialCSVRecordWriter(PartialWriter);
+    LWBuys.AddTradingSession(0, 0, 23, 59);
 
-    OOBuys.SetPartialCSVRecordWriter(PartialWriter);
-    OOBuys.AddTradingSession(3, 0, 23, 0);
+    LWBuys.mMinWickLength = MinWickLength;
 
-    OOSells = new WickBand(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+    LWSells = new LongWick(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                            ExitWriter, ErrorWriter);
+    LWSells.SetPartialCSVRecordWriter(PartialWriter);
+    LWSells.AddTradingSession(0, 0, 23, 59);
 
-    OOSells.mMinWickLength = MinWickLength;
-    OOSells.mMinStopLossPips = MinStopLossPips;
-
-    OOSells.SetPartialCSVRecordWriter(PartialWriter);
-    OOSells.AddTradingSession(3, 0, 23, 0);
+    LWSells.mMinWickLength = MinWickLength;
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete OOBuys;
-    delete OOSells;
+    delete LWBuys;
+    delete LWSells;
 
     delete EntryWriter;
     delete PartialWriter;
@@ -90,6 +76,6 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    OOBuys.Run();
-    OOSells.Run();
+    LWBuys.Run();
+    LWSells.Run();
 }
