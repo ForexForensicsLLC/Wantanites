@@ -10,19 +10,19 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/Fractals/NasMorningBreak/NasMorningBreak.mqh>
+#include <SummitCapital/EAs/Inactive/MovingAverage/Crossover/EMACrossover/EMACrossover.mqh>
 
-string ForcedSymbol = "US100";
-int ForcedTimeFrame = 5;
+string ForcedSymbol = "GBPCAD";
+int ForcedTimeFrame = 60;
 
 // --- EA Inputs ---
 double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-string StrategyName = "NasMorningBreak/";
-string EAName = "Nas/";
-string SetupTypeName = "";
+string StrategyName = "MovingAverage/";
+string EAName = "Crossover/";
+string SetupTypeName = "GC25and50EMA/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -30,17 +30,15 @@ CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<Partial
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-NasMorningBreak *NMBBuys;
-NasMorningBreak *NMBSells;
+EMACrossover *NMBBuys;
+EMACrossover *NMBSells;
 
-// Nas
-int CloseHour = 20;
-int CloseMinute = 0;
-double MaxSpreadPips = 10;
+// GC
+double MaxSpreadPips = 1;
 double EntryPaddingPips = 0;
-double MinStopLossPips = 250;
+double MinStopLossPips = 100;
 double StopLossPaddingPips = 0;
-double PipsToWaitBeforeBE = 250;
+double PipsToWaitBeforeBE = SymbolConstants::NasMinStopLossPips;
 double BEAdditionalPips = 0;
 
 int OnInit()
@@ -50,32 +48,28 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    NMBBuys = new NasMorningBreak(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                  ExitWriter, ErrorWriter);
+    NMBBuys = new EMACrossover(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                               ExitWriter, ErrorWriter);
 
     NMBBuys.SetPartialCSVRecordWriter(PartialWriter);
 
-    NMBBuys.mCloseHour = CloseHour;
-    NMBBuys.mCloseMinute = CloseMinute;
     NMBBuys.mEntryPaddingPips = EntryPaddingPips;
     NMBBuys.mMinStopLossPips = MinStopLossPips;
     NMBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     NMBBuys.mBEAdditionalPips = BEAdditionalPips;
 
-    NMBBuys.AddTradingSession(16, 30, 16, 40);
+    NMBBuys.AddTradingSession(0, 0, 23, 59);
 
-    NMBSells = new NasMorningBreak(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                   ExitWriter, ErrorWriter);
+    NMBSells = new EMACrossover(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                ExitWriter, ErrorWriter);
     NMBSells.SetPartialCSVRecordWriter(PartialWriter);
 
-    NMBSells.mCloseHour = CloseHour;
-    NMBSells.mCloseMinute = CloseMinute;
     NMBSells.mEntryPaddingPips = EntryPaddingPips;
     NMBSells.mMinStopLossPips = MinStopLossPips;
     NMBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     NMBSells.mBEAdditionalPips = BEAdditionalPips;
 
-    NMBSells.AddTradingSession(16, 30, 16, 40);
+    NMBSells.AddTradingSession(0, 0, 23, 59);
 
     return (INIT_SUCCEEDED);
 }

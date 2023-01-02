@@ -20,7 +20,7 @@ double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-string StrategyName = "StartOfDayTimeRangeBreakout/";
+string StrategyName = "TimeRangeBreakout/";
 string EAName = "UJ/";
 string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
@@ -38,11 +38,7 @@ StartOfDayTimeRangeBreakout *TRBSells;
 int CloseHour = 23;
 int CloseMinute = 0;
 double MaxSpreadPips = 1.5;
-double EntryPaddingPips = 0;
-double MinStopLossPips = 0;
 double StopLossPaddingPips = 0;
-double PipsToWaitBeforeBE = 40;
-double BEAdditionalPips = 0;
 
 int OnInit()
 {
@@ -59,10 +55,6 @@ int OnInit()
 
     TRBBuys.mCloseHour = CloseHour;
     TRBBuys.mCloseMinute = CloseMinute;
-    TRBBuys.mEntryPaddingPips = EntryPaddingPips;
-    TRBBuys.mMinStopLossPips = MinStopLossPips;
-    TRBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    TRBBuys.mBEAdditionalPips = BEAdditionalPips;
 
     TRBBuys.AddTradingSession(2, 0, 23, 0);
 
@@ -72,10 +64,6 @@ int OnInit()
 
     TRBSells.mCloseHour = CloseHour;
     TRBSells.mCloseMinute = CloseMinute;
-    TRBSells.mEntryPaddingPips = EntryPaddingPips;
-    TRBSells.mMinStopLossPips = MinStopLossPips;
-    TRBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    TRBSells.mBEAdditionalPips = BEAdditionalPips;
 
     TRBSells.AddTradingSession(2, 0, 23, 0);
 

@@ -17,6 +17,7 @@ public:
     static bool IsDownFractal(string symbol, int timeFrame, int index);
     static bool IsUpFractal(string symbol, int timeFrame, int index);
 
+    static double CandleLength(string symbol, int timeFrame, int index);
     static double BodyLength(string symbol, int timeFrame, int index);
 
     static double PercentChange(string symbol, int timeFrame, int index);
@@ -48,6 +49,11 @@ static bool CandleStickHelper::IsUpFractal(string symbol, int timeFrame, int ind
 {
     double thisHigh = iHigh(symbol, timeFrame, index);
     return thisHigh > iHigh(symbol, timeFrame, index + 1) && thisHigh > iHigh(symbol, timeFrame, index - 1);
+}
+
+double CandleStickHelper::CandleLength(string symbol, int timeFrame, int index)
+{
+    return iHigh(symbol, timeFrame, index) - iLow(symbol, timeFrame, index);
 }
 
 double CandleStickHelper::BodyLength(string symbol, int timeFrame, int index)

@@ -10,19 +10,19 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/CandleStick/DowLiquidation/DowLiquidation.mqh>
+#include <SummitCapital/EAs/Inactive/BollingerBands/OpenOutside/OpenOutsideBB.mqh>
 
-string ForcedSymbol = "US30";
-int ForcedTimeFrame = 5;
+string ForcedSymbol = "GBPCAD";
+int ForcedTimeFrame = 60;
 
 // --- EA Inputs ---
 double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-string StrategyName = "CandleStick/";
-string EAName = "Dow/";
-string SetupTypeName = "DowLiquidation/";
+string StrategyName = "BollingerBands/";
+string EAName = "GC/";
+string SetupTypeName = "OpenOutside/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -30,17 +30,13 @@ CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<Partial
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-DowLiquidation *DLBuys;
-DowLiquidation *DLSells;
+OpenOutside *OOBuys;
+OpenOutside *OOSells;
 
-// Dow
-double MinWickLength = 200;
-double MaxSpreadPips = 18;
-double EntryPaddingPips = 0;
-double MinStopLossPips = 350;
-double StopLossPaddingPips = 5;
-double PipsToWaitBeforeBE = 350;
-double BEAdditionalPips = 0;
+// EU
+double MaxSpreadPips = 3;
+double MinStopLossPips = 100;
+double StopLossPaddingPips = 0.0;
 
 int OnInit()
 {
@@ -49,38 +45,29 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    DLBuys = new DowLiquidation(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                ExitWriter, ErrorWriter);
+    OOBuys = new OpenOutside(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                             ExitWriter, ErrorWriter);
 
-    DLBuys.SetPartialCSVRecordWriter(PartialWriter);
+    OOBuys.mMinStopLossPips = MinStopLossPips;
 
-    DLBuys.mMinWickLength = MinWickLength;
-    DLBuys.mEntryPaddingPips = EntryPaddingPips;
-    DLBuys.mMinStopLossPips = MinStopLossPips;
-    DLBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    DLBuys.mBEAdditionalPips = BEAdditionalPips;
+    OOBuys.SetPartialCSVRecordWriter(PartialWriter);
+    OOBuys.AddTradingSession(0, 0, 23, 59);
 
-    DLBuys.AddTradingSession(16, 30, 16, 35);
+    OOSells = new OpenOutside(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                              ExitWriter, ErrorWriter);
 
-    DLSells = new DowLiquidation(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                 ExitWriter, ErrorWriter);
-    DLSells.SetPartialCSVRecordWriter(PartialWriter);
+    OOSells.mMinStopLossPips = MinStopLossPips;
 
-    DLSells.mMinWickLength = MinWickLength;
-    DLSells.mEntryPaddingPips = EntryPaddingPips;
-    DLSells.mMinStopLossPips = MinStopLossPips;
-    DLSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    DLSells.mBEAdditionalPips = BEAdditionalPips;
-
-    DLSells.AddTradingSession(16, 30, 16, 35);
+    OOSells.SetPartialCSVRecordWriter(PartialWriter);
+    OOSells.AddTradingSession(0, 0, 23, 59);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete DLBuys;
-    delete DLSells;
+    delete OOBuys;
+    delete OOSells;
 
     delete EntryWriter;
     delete PartialWriter;
@@ -90,6 +77,6 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    DLBuys.Run();
-    DLSells.Run();
+    OOBuys.Run();
+    OOSells.Run();
 }

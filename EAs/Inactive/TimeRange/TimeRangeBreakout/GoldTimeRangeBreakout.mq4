@@ -10,9 +10,9 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/Fractals/NasMorningBreak/NasMorningBreak.mqh>
+#include <SummitCapital/EAs/Inactive/TimeRange/TimeRangeBreakout/StartOfDayTimeRangeBreakout.mqh>
 
-string ForcedSymbol = "US100";
+string ForcedSymbol = "XAU";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
@@ -20,8 +20,8 @@ double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-string StrategyName = "NasMorningBreak/";
-string EAName = "Nas/";
+string StrategyName = "TimeRangeBreakout/";
+string EAName = "Gold/";
 string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
@@ -30,17 +30,18 @@ CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<Partial
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-NasMorningBreak *NMBBuys;
-NasMorningBreak *NMBSells;
+TimeRangeBreakout *TRB;
+StartOfDayTimeRangeBreakout *TRBBuys;
+StartOfDayTimeRangeBreakout *TRBSells;
 
-// Nas
+// Gold
 int CloseHour = 20;
 int CloseMinute = 0;
-double MaxSpreadPips = 10;
+double MaxSpreadPips = 3;
 double EntryPaddingPips = 0;
-double MinStopLossPips = 250;
+double MinStopLossPips = 0;
 double StopLossPaddingPips = 0;
-double PipsToWaitBeforeBE = 250;
+double PipsToWaitBeforeBE = 40;
 double BEAdditionalPips = 0;
 
 int OnInit()
@@ -50,40 +51,43 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    NMBBuys = new NasMorningBreak(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                  ExitWriter, ErrorWriter);
+    TRB = new TimeRangeBreakout(8, 0, 10, 0);
+    TRBBuys = new StartOfDayTimeRangeBreakout(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                              ExitWriter, ErrorWriter, TRB);
 
-    NMBBuys.SetPartialCSVRecordWriter(PartialWriter);
+    TRBBuys.SetPartialCSVRecordWriter(PartialWriter);
 
-    NMBBuys.mCloseHour = CloseHour;
-    NMBBuys.mCloseMinute = CloseMinute;
-    NMBBuys.mEntryPaddingPips = EntryPaddingPips;
-    NMBBuys.mMinStopLossPips = MinStopLossPips;
-    NMBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    NMBBuys.mBEAdditionalPips = BEAdditionalPips;
+    TRBBuys.mCloseHour = CloseHour;
+    TRBBuys.mCloseMinute = CloseMinute;
+    TRBBuys.mEntryPaddingPips = EntryPaddingPips;
+    TRBBuys.mMinStopLossPips = MinStopLossPips;
+    TRBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    TRBBuys.mBEAdditionalPips = BEAdditionalPips;
 
-    NMBBuys.AddTradingSession(16, 30, 16, 40);
+    TRBBuys.AddTradingSession(10, 0, 23, 0);
 
-    NMBSells = new NasMorningBreak(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                   ExitWriter, ErrorWriter);
-    NMBSells.SetPartialCSVRecordWriter(PartialWriter);
+    TRBSells = new StartOfDayTimeRangeBreakout(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                               ExitWriter, ErrorWriter, TRB);
+    TRBSells.SetPartialCSVRecordWriter(PartialWriter);
 
-    NMBSells.mCloseHour = CloseHour;
-    NMBSells.mCloseMinute = CloseMinute;
-    NMBSells.mEntryPaddingPips = EntryPaddingPips;
-    NMBSells.mMinStopLossPips = MinStopLossPips;
-    NMBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    NMBSells.mBEAdditionalPips = BEAdditionalPips;
+    TRBSells.mCloseHour = CloseHour;
+    TRBSells.mCloseMinute = CloseMinute;
+    TRBSells.mEntryPaddingPips = EntryPaddingPips;
+    TRBSells.mMinStopLossPips = MinStopLossPips;
+    TRBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    TRBSells.mBEAdditionalPips = BEAdditionalPips;
 
-    NMBSells.AddTradingSession(16, 30, 16, 40);
+    TRBSells.AddTradingSession(10, 0, 23, 0);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete NMBBuys;
-    delete NMBSells;
+    delete TRB;
+
+    delete TRBBuys;
+    delete TRBSells;
 
     delete EntryWriter;
     delete PartialWriter;
@@ -93,6 +97,6 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    NMBBuys.Run();
-    NMBSells.Run();
+    TRBBuys.Run();
+    TRBSells.Run();
 }

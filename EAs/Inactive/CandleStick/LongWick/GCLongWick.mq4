@@ -12,8 +12,8 @@
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
 #include <SummitCapital/EAs/Inactive/CandleStick/LongWick/LongWick.mqh>
 
-string ForcedSymbol = "EURUSD";
-int ForcedTimeFrame = 5;
+string ForcedSymbol = "GBPCAD";
+int ForcedTimeFrame = 60;
 
 // --- EA Inputs ---
 double RiskPercent = 0.5;
@@ -21,7 +21,7 @@ int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
 string StrategyName = "LongWick/";
-string EAName = "EU/";
+string EAName = "GC/";
 string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
@@ -34,8 +34,8 @@ LongWick *LWBuys;
 LongWick *LWSells;
 
 // EU
-double MinWickLength = 15;
-double MaxSpreadPips = 0.8;
+double MinWickLength = 35;
+double MaxSpreadPips = 1;
 double StopLossPaddingPips = 0;
 
 int OnInit()
@@ -49,14 +49,14 @@ int OnInit()
                           ExitWriter, ErrorWriter);
 
     LWBuys.SetPartialCSVRecordWriter(PartialWriter);
-    LWBuys.AddTradingSession(15, 0, 17, 0);
+    LWBuys.AddTradingSession(0, 0, 23, 59);
 
     LWBuys.mMinWickLength = MinWickLength;
 
     LWSells = new LongWick(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                            ExitWriter, ErrorWriter);
     LWSells.SetPartialCSVRecordWriter(PartialWriter);
-    LWSells.AddTradingSession(15, 0, 17, 0);
+    LWSells.AddTradingSession(0, 0, 23, 59);
 
     LWSells.mMinWickLength = MinWickLength;
 
