@@ -48,6 +48,8 @@ public:
 
     int Number() { return mNumber; }
 
+    int Type();
+
     double OpenPrice();
     void OpenPrice(double openPrice) { mOpenPrice = openPrice; }
 
@@ -132,6 +134,21 @@ void Ticket::SetNewTicket(int ticket)
     mLots = 0.0;
 
     mPartials.Clear();
+}
+
+int Ticket::Type()
+{
+    int selectError = SelectIfOpen("Retrieving Type");
+    if (selectError != ERR_NO_ERROR)
+    {
+        SendMail("Unable To Retrieve Type",
+                 "Error: " + IntegerToString(selectError) + "\n" +
+                     "Ticket Number: " + IntegerToString(mNumber));
+
+        return -1;
+    }
+
+    return OrderType();
 }
 
 double Ticket::OpenPrice()

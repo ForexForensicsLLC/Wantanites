@@ -195,7 +195,7 @@ public:
     static void PostPlaceOrderChecks(TEA &ea, int ticketNumber, int error);
 
     template <typename TEA>
-    static void PlaceMarketOrder(TEA &ea, double entry, double stopLoss, double lots);
+    static void PlaceMarketOrder(TEA &ea, double entry, double stopLoss, double lot, int type);
     template <typename TEA>
     static void PlaceStopOrder(TEA &ea, double entry, double stopLoss, double lots, bool fallbackMarketOrder, double maxMarketOrderSlippage);
 
@@ -1838,9 +1838,15 @@ static void EAHelper::PostPlaceOrderChecks(TEA &ea, int ticketNumber, int error)
 }
 
 template <typename TEA>
-static void EAHelper::PlaceMarketOrder(TEA &ea, double entry, double stopLoss, double lotSize = 0.0)
+static void EAHelper::PlaceMarketOrder(TEA &ea, double entry, double stopLoss, double lotSize = 0.0, int type = -1)
 {
     ea.mLastState = EAStates::PLACING_ORDER;
+
+    int orderType = type;
+    if (orderType == -1)
+    {
+        orderType = ea.mSetupType;
+    }
 
     if (lotSize == 0.0)
     {
@@ -1848,7 +1854,7 @@ static void EAHelper::PlaceMarketOrder(TEA &ea, double entry, double stopLoss, d
     }
 
     int ticket = EMPTY;
-    int orderPlaceError = OrderHelper::PlaceMarketOrder(ea.mSetupType, lotSize, entry, stopLoss, 0, ea.MagicNumber(), ticket);
+    int orderPlaceError = OrderHelper::PlaceMarketOrder(orderType, lotSize, entry, stopLoss, 0, ea.MagicNumber(), ticket);
 
     PostPlaceOrderChecks<TEA>(ea, ticket, orderPlaceError);
 }

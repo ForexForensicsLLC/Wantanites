@@ -112,6 +112,46 @@ void StartOfDayTimeRangeBreakout::CheckSetSetup()
 {
     if (EAHelper::HasTimeRangeBreakout<StartOfDayTimeRangeBreakout>(this))
     {
+        int endBarIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mTRB.RangeEndTime());
+        if (endBarIndex < 0)
+        {
+            return;
+        }
+
+        int breakouts = 0;
+        if (mSetupType == OP_BUY)
+        {
+            for (int i = 0; i < endBarIndex; i++)
+            {
+                if (iHigh(mEntrySymbol, mEntryTimeFrame, i) > mTRB.RangeHigh() && iHigh(mEntrySymbol, mEntryTimeFrame, i + 1) < mTRB.RangeHigh())
+                {
+                    breakouts += 1;
+                }
+
+                if (breakouts > 1)
+                {
+                    mStopTrading = true;
+                    return;
+                }
+            }
+        }
+        else if (mSetupType == OP_SELL)
+        {
+            for (int i = 0; i < endBarIndex; i++)
+            {
+                if (iLow(mEntrySymbol, mEntryTimeFrame, i) < mTRB.RangeLow() && iLow(mEntrySymbol, mEntryTimeFrame, i + 1) > mTRB.RangeLow())
+                {
+                    breakouts += 1;
+                }
+
+                if (breakouts > 1)
+                {
+                    mStopTrading = true;
+                    return;
+                }
+            }
+        }
+
         mHasSetup = true;
     }
 }

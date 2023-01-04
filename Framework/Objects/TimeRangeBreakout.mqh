@@ -47,6 +47,9 @@ public:
     TimeRangeBreakout(int rangeHourStartTime, int rangeMinuteStartTime, int rangeHourEndTime, int rangeMinuteEndTime);
     ~TimeRangeBreakout();
 
+    datetime RangeStartTime() { return mRangeStartTime; }
+    datetime RangeEndTime() { return mRangeEndTime; }
+
     double RangeHigh();
     double RangeLow();
     double RangeWidth() { return RangeHigh() - RangeLow(); }
@@ -102,7 +105,7 @@ bool TimeRangeBreakout::BrokeRangeHigh()
             return false;
         }
 
-        mBrokeRangeHigh = currentTick.time > mRangeEndTime && mRangeHigh != ConstantValues::EmptyDouble && currentTick.ask > mRangeHigh;
+        mBrokeRangeHigh = currentTick.time >= mRangeEndTime && mRangeHigh != ConstantValues::EmptyDouble && currentTick.ask > mRangeHigh;
     }
 
     return mBrokeRangeHigh;
@@ -120,7 +123,7 @@ bool TimeRangeBreakout::BrokeRangeLow()
             return false;
         }
 
-        mBrokeRangeLow = currentTick.time > mRangeStartTime && mRangeLow != ConstantValues::EmptyDouble && currentTick.bid < mRangeLow;
+        mBrokeRangeLow = currentTick.time >= mRangeStartTime && mRangeLow != ConstantValues::EmptyDouble && currentTick.bid < mRangeLow;
     }
 
     return mBrokeRangeLow;
@@ -147,39 +150,18 @@ void TimeRangeBreakout::Calculate(int barIndex)
         mLastDay = Day();
     }
 
-    datetime validTime = 0;
-    if (barIndex == 0)
-    {
-        MqlTick currentTick;
-        if (!SymbolInfoTick(Symbol(), currentTick))
-        {
-            return;
-        }
-
-        validTime = currentTick.time;
-    }
-    else
-    {
-        validTime = iTime(Symbol(), Period(), barIndex);
-    }
-
+    datetime validTime = iTime(Symbol(), Period(), barIndex);
     if (validTime > mRangeStartTime && validTime < mRangeEndTime)
     {
-        MqlTick currentTick;
-        if (!SymbolInfoTick(Symbol(), currentTick))
+        if (iHigh(Symbol(), Period(), barIndex) > mRangeHigh || mRangeHigh == ConstantValues::EmptyDouble)
         {
-            return;
-        }
-
-        if (currentTick.bid > mRangeHigh || mRangeHigh == ConstantValues::EmptyDouble)
-        {
-            mRangeHigh = currentTick.bid;
+            mRangeHigh = iHigh(Symbol(), Period(), barIndex);
             mUpdateRangeHigh = true;
         }
 
-        if (currentTick.bid < mRangeLow || mRangeLow == ConstantValues::EmptyDouble)
+        if (iLow(Symbol(), Period(), barIndex) < mRangeLow || mRangeLow == ConstantValues::EmptyDouble)
         {
-            mRangeLow = currentTick.bid;
+            mRangeLow = iLow(Symbol(), Period(), barIndex);
             mUpdateRangeLow = true;
         }
     }

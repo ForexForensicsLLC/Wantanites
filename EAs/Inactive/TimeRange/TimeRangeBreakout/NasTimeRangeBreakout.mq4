@@ -12,7 +12,7 @@
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
 #include <SummitCapital/EAs/Inactive/TimeRange/TimeRangeBreakout/StartOfDayTimeRangeBreakout.mqh>
 
-string ForcedSymbol = "USDJPY";
+string ForcedSymbol = "NAS100";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
@@ -21,7 +21,7 @@ int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
 string StrategyName = "TimeRangeBreakout/";
-string EAName = "UJ/";
+string EAName = "Nas/";
 string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
@@ -34,11 +34,15 @@ TimeRangeBreakout *TRB;
 StartOfDayTimeRangeBreakout *TRBBuys;
 StartOfDayTimeRangeBreakout *TRBSells;
 
-// UJ
+// Gold
 int CloseHour = 23;
 int CloseMinute = 0;
-double MaxSpreadPips = 1.5;
+double MaxSpreadPips = 1;
+double EntryPaddingPips = 0;
+double MinStopLossPips = 0;
 double StopLossPaddingPips = 0;
+double PipsToWaitBeforeBE = 40;
+double BEAdditionalPips = 0;
 
 int OnInit()
 {
@@ -47,7 +51,7 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    TRB = new TimeRangeBreakout(0, 0, 2, 0);
+    TRB = new TimeRangeBreakout(0, 0, 4, 0);
     TRBBuys = new StartOfDayTimeRangeBreakout(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                                               ExitWriter, ErrorWriter, TRB);
 
@@ -55,8 +59,12 @@ int OnInit()
 
     TRBBuys.mCloseHour = CloseHour;
     TRBBuys.mCloseMinute = CloseMinute;
+    TRBBuys.mEntryPaddingPips = EntryPaddingPips;
+    TRBBuys.mMinStopLossPips = MinStopLossPips;
+    TRBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    TRBBuys.mBEAdditionalPips = BEAdditionalPips;
 
-    TRBBuys.AddTradingSession(2, 0, 22, 59);
+    TRBBuys.AddTradingSession(4, 0, 23, 0);
 
     TRBSells = new StartOfDayTimeRangeBreakout(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                                                ExitWriter, ErrorWriter, TRB);
@@ -64,8 +72,12 @@ int OnInit()
 
     TRBSells.mCloseHour = CloseHour;
     TRBSells.mCloseMinute = CloseMinute;
+    TRBSells.mEntryPaddingPips = EntryPaddingPips;
+    TRBSells.mMinStopLossPips = MinStopLossPips;
+    TRBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    TRBSells.mBEAdditionalPips = BEAdditionalPips;
 
-    TRBSells.AddTradingSession(2, 0, 22, 59);
+    TRBSells.AddTradingSession(4, 0, 23, 0);
 
     return (INIT_SUCCEEDED);
 }
