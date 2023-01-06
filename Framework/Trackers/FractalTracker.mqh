@@ -33,15 +33,16 @@ public:
     FractalTracker(int period);
     ~FractalTracker();
 
+    int UpFractalCount() { return mUpFractalCount; }
+    int DownFractalCount() { return mDownFractalCount; }
+
     void GetFractalByIndex(int index, Fractal &fractal);
 
     bool IsUpFractal(int index);
     bool IsDownFractal(int index);
 
-    bool HighestUpFractalOutOfPrevious(int nPrevious, Fractal &fractal);
-    bool LowestDownFractalOutOfPrevious(int nPrevious, Fractal &fractal);
-
-    void DrawFractals();
+    bool HighestUpFractalOutOfPrevious(int nPrevious, Fractal *&fractal);
+    bool LowestDownFractalOutOfPrevious(int nPrevious, Fractal *&fractal);
 };
 
 FractalTracker::FractalTracker(int period)
@@ -62,7 +63,7 @@ FractalTracker::~FractalTracker()
     delete mFractals;
 }
 
-bool FractalTracker::HighestUpFractalOutOfPrevious(int nPrevious, Fractal &fractal)
+bool FractalTracker::HighestUpFractalOutOfPrevious(int nPrevious, Fractal *&fractal)
 {
     Update();
 
@@ -102,7 +103,7 @@ bool FractalTracker::HighestUpFractalOutOfPrevious(int nPrevious, Fractal &fract
     return false;
 }
 
-bool FractalTracker::LowestDownFractalOutOfPrevious(int nPrevious, Fractal &fractal)
+bool FractalTracker::LowestDownFractalOutOfPrevious(int nPrevious, Fractal *&fractal)
 {
     Update();
 
@@ -123,9 +124,9 @@ bool FractalTracker::LowestDownFractalOutOfPrevious(int nPrevious, Fractal &frac
             else
             {
                 int currentFractalIndex = iBarShift(Symbol(), Period(), mFractals[i].CandleTime());
-                int highestFractalIndex = iBarShift(Symbol(), Period(), mFractals[furthestIndex].CandleTime());
+                int lowestFractalIndex = iBarShift(Symbol(), Period(), mFractals[furthestIndex].CandleTime());
 
-                if (iLow(Symbol(), Period(), currentFractalIndex) < iLow(Symbol(), Period(), highestFractalIndex))
+                if (iLow(Symbol(), Period(), currentFractalIndex) < iLow(Symbol(), Period(), lowestFractalIndex))
                 {
                     furthestIndex = i;
                 }
@@ -145,16 +146,11 @@ bool FractalTracker::LowestDownFractalOutOfPrevious(int nPrevious, Fractal &frac
 void FractalTracker::Update()
 {
     int currentBars = iBars(Symbol(), Period()) - mPeriod;
-    int barIndex = currentBars - mBarsCalculated;
+    int barsToCalculate = currentBars - mBarsCalculated;
 
-    if (barIndex <= 0)
+    for (int i = barsToCalculate; i > 0; i--)
     {
-        return;
-    }
-
-    for (int i = barIndex; i > mPeriod; i--)
-    {
-        Calculate(i);
+        Calculate(i + mPeriod);
     }
 
     mBarsCalculated = currentBars;
@@ -231,15 +227,7 @@ bool FractalTracker::HasDownFractal(int barIndex)
 void FractalTracker::CreateFractal(int barIndex, FractalType type)
 {
     Fractal *fractal = new Fractal(barIndex, type);
+    fractal.Draw();
+
     mFractals.Add(fractal);
-}
-
-void FractalTracker::DrawFractals()
-{
-    Update();
-
-    for (int i = mFractals.Size() - 1; i >= 0; i--)
-    {
-        mFractals[i].Draw();
-    }
 }

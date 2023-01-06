@@ -31,6 +31,7 @@ public:
 
     datetime CandleTime() { return mCandleTime; }
     FractalType Type() { return mType; }
+    bool Drawn() { return mDrawn; }
 
     void Draw();
 };
@@ -39,10 +40,12 @@ Fractal::Fractal(int index, FractalType type)
 {
     mCandleTime = iTime(Symbol(), Period(), index);
     mType = type;
+    mDrawn = false;
 
     mObjectPrefix = "Fractal " + TimeToString(mCandleTime);
 }
 
+// this is just here so we can use Fractal in an ObjectList<>
 Fractal::Fractal(Fractal &fractal)
 {
 }
@@ -76,4 +79,6 @@ void Fractal::Draw()
         ObjectSetInteger(ChartID(), mObjectPrefix, OBJPROP_ANCHOR, ANCHOR_TOP);
         ObjectSet(mObjectPrefix, OBJPROP_ARROWCODE, 242);
     }
+
+    mDrawn = true;
 }

@@ -209,16 +209,29 @@ void StartOfDayTimeRangeBreakout::ManageCurrentPendingSetupTicket()
 
 void StartOfDayTimeRangeBreakout::ManageCurrentActiveSetupTicket()
 {
-    EAHelper::CloseTicketIfPastTime<StartOfDayTimeRangeBreakout>(this, mCurrentSetupTicket, mCloseHour, mCloseMinute);
+    if (EAHelper::CloseTicketIfPastTime<StartOfDayTimeRangeBreakout>(this, mCurrentSetupTicket, mCloseHour, mCloseMinute))
+    {
+        return;
+    }
+
+    double slDistance = MathAbs(mCurrentSetupTicket.OpenPrice() - mCurrentSetupTicket.mOriginalStopLoss);
+    double pipsToWait = OrderHelper::RangeToPips(slDistance * 4);
+
+    EAHelper::MoveToBreakEvenAfterPips<StartOfDayTimeRangeBreakout>(this, mCurrentSetupTicket, pipsToWait, 0.0);
 }
 
 bool StartOfDayTimeRangeBreakout::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    return false;
+    // return false;
+    return EAHelper::TicketStopLossIsMovedToBreakEven<StartOfDayTimeRangeBreakout>(this, ticket);
 }
 
 void StartOfDayTimeRangeBreakout::ManagePreviousSetupTicket(int ticketIndex)
 {
+    if (EAHelper::CloseTicketIfPastTime<StartOfDayTimeRangeBreakout>(this, mPreviousSetupTickets[ticketIndex], mCloseHour, mCloseMinute))
+    {
+        return;
+    }
 }
 
 void StartOfDayTimeRangeBreakout::CheckCurrentSetupTicket()

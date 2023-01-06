@@ -37,6 +37,8 @@ public:
     double UpperBand(int index);
     double LowerBand(int index);
 
+    int Direction() { return mCurrentDirection; }
+
     void Draw();
 };
 
@@ -101,6 +103,7 @@ void SuperTrend::Calculate(int barIndex)
     double upperBand = medianPrice + (mFactor * atr);
     double lowerBand = medianPrice - (mFactor * atr);
 
+    // first point, just default everything
     if (mUpperBand.Size() == 0 && mLowerBand.Size() == 0 && mSuperTrendLine.Size() == 0)
     {
         mUpperBand.Push(upperBand);
@@ -110,7 +113,6 @@ void SuperTrend::Calculate(int barIndex)
         return;
     }
 
-    // Print("Time: ", iTime(Symbol(), Period(), barIndex), ", Upper Band: ", mUpperBand[0], ", Lower Band: ", mLowerBand[0], ", Close: ", iClose(Symbol(), Period(), barIndex));
     if (iClose(Symbol(), Period(), barIndex) < mSuperTrendLine[0])
     {
         mCurrentDirection = OP_SELL;
@@ -170,14 +172,16 @@ void SuperTrend::Draw()
 {
     Update();
 
-    int barsToDraw = mBarsCalculated - mBarsDrawn - 1;
-    if (barsToDraw <= 0)
-    {
-        return;
-    }
+    int barsToDraw = mBarsCalculated - mBarsDrawn;
 
-    for (int i = barsToDraw - 1; i > 0; i--)
+    for (int i = barsToDraw; i > 0; i--)
     {
+        // can't do -1 to bars to draw or else we won't ever draw our most recent line
+        if (i >= mSuperTrendLine.Size())
+        {
+            continue;
+        }
+
         datetime nextBarTime = iTime(Symbol(), Period(), i - 1);
         datetime barTime = iTime(Symbol(), Period(), i);
         string name = mObjectNamePrefix + TimeToString(barTime);
