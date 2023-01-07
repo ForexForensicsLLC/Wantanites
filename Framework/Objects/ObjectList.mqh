@@ -31,8 +31,13 @@ public:
 
     int Size() { return ArraySize(mItems); }
 
+    // adds an item to the end of the lsit
     void Add(T *&item);
+
+    // removes an item from the list
     void Remove(int index);
+
+    // removes all items from the list
     void Clear();
 
     template <typename U, typename V>

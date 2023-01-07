@@ -232,7 +232,8 @@ static double OrderHelper::GetLotSize(double stopLossPips, double riskPercent)
 {
     double pipValue = MarketInfo(Symbol(), MODE_TICKSIZE) * 10 * MarketInfo(Symbol(), MODE_LOTSIZE);
 
-    // the actual pip value for JPY fluctuates based on the current price so it needs to be adjusted
+    // since UJ starts with USD, it also involves the current price
+    // TODO: update this to catch any other pairs
     if (StringFind(Symbol(), "JPY") != -1)
     {
         MqlTick currentTick;

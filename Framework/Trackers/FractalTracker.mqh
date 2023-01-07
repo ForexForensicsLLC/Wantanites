@@ -33,10 +33,11 @@ public:
     FractalTracker(int period);
     ~FractalTracker();
 
+    // --BEWARE-- this will be off by one in respect to the current actual bar index i.e [0] will be for the 1st previous bar
+    Fractal *operator[](int index);
+
     int UpFractalCount() { return mUpFractalCount; }
     int DownFractalCount() { return mDownFractalCount; }
-
-    void GetFractalByIndex(int index, Fractal &fractal);
 
     bool IsUpFractal(int index);
     bool IsDownFractal(int index);
@@ -61,6 +62,12 @@ FractalTracker::FractalTracker(int period)
 FractalTracker::~FractalTracker()
 {
     delete mFractals;
+}
+
+Fractal *FractalTracker::operator[](int index)
+{
+    Update();
+    return mFractals[index];
 }
 
 bool FractalTracker::HighestUpFractalOutOfPrevious(int nPrevious, Fractal *&fractal)

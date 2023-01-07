@@ -18,6 +18,7 @@ public:
     bool mWasTaken;
 
 public:
+    Partial();
     Partial(double rr, double percent);
     Partial(Partial &partial);
     ~Partial();
@@ -25,6 +26,10 @@ public:
     double PercentAsDecimal() { return mPercent / 100; }
     static bool FindPartialByRR(Partial &partial, double rr);
 };
+
+Partial::Partial()
+{
+}
 
 Partial::Partial(double rr, double percent)
 {

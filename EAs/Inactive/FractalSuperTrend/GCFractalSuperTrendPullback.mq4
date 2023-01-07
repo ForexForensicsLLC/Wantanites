@@ -30,6 +30,7 @@ CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<Partial
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
+HeikinAshiTracker *HAT;
 PriceGridTracker *PGT;
 FractalTracker *FT;
 SuperTrend *ST;
@@ -37,8 +38,9 @@ SuperTrend *ST;
 FractalSuperTrendPullback *FSTPBuys;
 FractalSuperTrendPullback *FSTPSells;
 
-// EU
-double LotSize = 0.05;
+// GU
+double MinWickLength = 20;
+double LotSize = 0.1;
 double MaxSpreadPips = 2;
 double EntryPaddingPips = 0;
 double MinStopLossPips = 250;
@@ -53,15 +55,17 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    PGT = new PriceGridTracker(50, 40);
+    HAT = new HeikinAshiTracker();
+    PGT = new PriceGridTracker(50, 30);
     FT = new FractalTracker(10);
     ST = new SuperTrend(10, 5);
 
     FSTPBuys = new FractalSuperTrendPullback(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                             ExitWriter, ErrorWriter, PGT, FT, ST);
+                                             ExitWriter, ErrorWriter, HAT, PGT, FT, ST);
 
     FSTPBuys.SetPartialCSVRecordWriter(PartialWriter);
 
+    FSTPBuys.mMinWickLength = MinWickLength;
     FSTPBuys.mLotSize = LotSize;
     FSTPBuys.mEntryPaddingPips = EntryPaddingPips;
     FSTPBuys.mMinStopLossPips = MinStopLossPips;
@@ -71,9 +75,10 @@ int OnInit()
     FSTPBuys.AddTradingSession(0, 0, 23, 59);
 
     FSTPSells = new FractalSuperTrendPullback(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                              ExitWriter, ErrorWriter, PGT, FT, ST);
+                                              ExitWriter, ErrorWriter, HAT, PGT, FT, ST);
     FSTPSells.SetPartialCSVRecordWriter(PartialWriter);
 
+    FSTPSells.mMinWickLength = MinWickLength;
     FSTPSells.mLotSize = LotSize;
     FSTPSells.mEntryPaddingPips = EntryPaddingPips;
     FSTPSells.mMinStopLossPips = MinStopLossPips;
@@ -87,6 +92,7 @@ int OnInit()
 
 void OnDeinit(const int reason)
 {
+    delete HAT;
     delete PGT;
     delete FT;
     delete ST;

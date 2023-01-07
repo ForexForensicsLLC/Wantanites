@@ -25,6 +25,7 @@ private:
     bool mDrawn;
 
 public:
+    Fractal();
     Fractal(int index, FractalType type);
     Fractal(Fractal &fractal);
     ~Fractal();
@@ -35,6 +36,10 @@ public:
 
     void Draw();
 };
+
+Fractal::Fractal()
+{
+}
 
 Fractal::Fractal(int index, FractalType type)
 {

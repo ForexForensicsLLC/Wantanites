@@ -12,13 +12,15 @@
 #include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
+#include <SummitCapital\Framework\Trackers\HeikinAshiTracker.mqh>
 #include <SummitCapital\Framework\Objects\PriceGridTracker.mqh>
-#include <SummitCapital/Framework/Trackers/FractalTracker.mqh>
-#include <SummitCapital/Framework/Objects/SuperTrend.mqh>
+#include <SummitCapital\Framework\Trackers\FractalTracker.mqh>
+#include <SummitCapital\Framework\Objects\SuperTrend.mqh>
 
 class FractalSuperTrendPullback : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
+    HeikinAshiTracker *mHAT;
     PriceGridTracker *mPGT;
     FractalTracker *mFT;
     SuperTrend *mST;
@@ -29,10 +31,13 @@ public:
     int mBarCount;
     int mLastDay;
 
+    double mMinWickLength;
+
     double mStartingEquity;
     bool mPlacedFirstTicket;
 
     datetime mLastFractalTime;
+    bool mBrokeFractal;
     int mLastPriceLevel;
 
     double mLotSize;
@@ -48,7 +53,8 @@ public:
 public:
     FractalSuperTrendPullback(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                               CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                              CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, PriceGridTracker *&pgt, FractalTracker *&ft, SuperTrend *&st);
+                              CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter,
+                              HeikinAshiTracker *&hat, PriceGridTracker *&pgt, FractalTracker *&ft, SuperTrend *&st);
     ~FractalSuperTrendPullback();
 
     virtual double RiskPercent() { return mRiskPercent; }
@@ -75,9 +81,11 @@ public:
 
 FractalSuperTrendPullback::FractalSuperTrendPullback(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                                                      CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                                                     CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, PriceGridTracker *&pgt, FractalTracker *&ft, SuperTrend *&st)
+                                                     CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter,
+                                                     HeikinAshiTracker *&hat, PriceGridTracker *&pgt, FractalTracker *&ft, SuperTrend *&st)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
+    mHAT = hat;
     mPGT = pgt;
     mFT = ft;
     mST = st;
@@ -88,10 +96,13 @@ FractalSuperTrendPullback::FractalSuperTrendPullback(int magicNumber, int setupT
     mBarCount = 0;
     mLastDay = Day();
 
+    mMinWickLength = 0;
+
     mStartingEquity = 0;
     mPlacedFirstTicket = false;
 
     mLastFractalTime = 0;
+    mBrokeFractal = false;
     mLastPriceLevel = 1000;
 
     mEntryPaddingPips = 0.0;
@@ -137,60 +148,113 @@ void FractalSuperTrendPullback::CheckSetSetup()
         return;
     }
 
+    int lastFractalIndex = EMPTY;
+    int furthestBetweenFractal = EMPTY;
+
     if (mSetupType == OP_BUY)
     {
-        if (mST.Direction() != OP_SELL)
+        if (!mBrokeFractal)
         {
-            return;
+            if (mST.Direction() != OP_SELL)
+            {
+                return;
+            }
+
+            Fractal *tempFractal;
+            if (!mFT.LowestDownFractalOutOfPrevious(3, tempFractal))
+            {
+                return;
+            }
+
+            int fractalIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, tempFractal.CandleTime());
+            if (fractalIndex <= 0)
+            {
+                return;
+            }
+
+            if (tempFractal.CandleTime() > mLastFractalTime &&
+                iLow(mEntrySymbol, mEntryTimeFrame, 2) > iLow(mEntrySymbol, mEntryTimeFrame, fractalIndex) &&
+                iLow(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, fractalIndex))
+            {
+                // mHasSetup = true;
+                mLastFractalTime = tempFractal.CandleTime();
+                // mPGT.SetStartingPrice(iLow(mEntrySymbol, mEntryTimeFrame, fractalIndex));
+                mBrokeFractal = true;
+            }
         }
 
-        Fractal *tempFractal;
-        if (!mFT.LowestDownFractalOutOfPrevious(3, tempFractal))
+        if (mBrokeFractal)
         {
-            return;
-        }
+            lastFractalIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mLastFractalTime);
+            if (!MQLHelper::GetLowestIndexBetween(mEntrySymbol, mEntryTimeFrame, lastFractalIndex, 0, true, furthestBetweenFractal))
+            {
+                return;
+            }
 
-        int fractalIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, tempFractal.CandleTime());
-        if (fractalIndex <= 0)
-        {
-            return;
-        }
+            if (furthestBetweenFractal > 3)
+            {
+                // InvalidateSetup(false);
+                return;
+            }
 
-        if (tempFractal.CandleTime() > mLastFractalTime &&
-            iLow(mEntrySymbol, mEntryTimeFrame, 2) > iLow(mEntrySymbol, mEntryTimeFrame, fractalIndex) &&
-            iLow(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, fractalIndex))
-        {
-            mHasSetup = true;
-            mLastFractalTime = tempFractal.CandleTime();
-            mPGT.SetStartingPrice(iLow(mEntrySymbol, mEntryTimeFrame, fractalIndex));
+            if (CandleStickHelper::LowestBodyPart(mEntrySymbol, mEntryTimeFrame, 1) - iLow(mEntrySymbol, mEntryTimeFrame, 1) >= OrderHelper::PipsToRange(mMinWickLength))
+            {
+                mHasSetup = true;
+                mPGT.SetStartingPrice(iOpen(mEntrySymbol, mEntryTimeFrame, 0));
+            }
         }
     }
     else if (mSetupType == OP_SELL)
     {
-        if (mST.Direction() != OP_BUY)
+        if (!mBrokeFractal)
         {
-            return;
+            if (mST.Direction() != OP_BUY)
+            {
+                return;
+            }
+
+            Fractal *tempFractal;
+            if (!mFT.HighestUpFractalOutOfPrevious(3, tempFractal))
+            {
+                return;
+            }
+
+            int fractalIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, tempFractal.CandleTime());
+            if (fractalIndex <= 0)
+            {
+                return;
+            }
+
+            if (tempFractal.CandleTime() > mLastFractalTime &&
+                iHigh(mEntrySymbol, mEntryTimeFrame, 2) < iHigh(mEntrySymbol, mEntryTimeFrame, fractalIndex) &&
+                iHigh(mEntrySymbol, mEntryTimeFrame, 1) > iHigh(mEntrySymbol, mEntryTimeFrame, fractalIndex))
+            {
+                // mHasSetup = true;
+                mLastFractalTime = tempFractal.CandleTime();
+                // mPGT.SetStartingPrice(iHigh(mEntrySymbol, mEntryTimeFrame, fractalIndex));
+                mBrokeFractal = true;
+            }
         }
 
-        Fractal *tempFractal;
-        if (!mFT.HighestUpFractalOutOfPrevious(3, tempFractal))
+        if (mBrokeFractal)
         {
-            return;
-        }
+            lastFractalIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mLastFractalTime);
+            if (!MQLHelper::GetHighestIndexBetween(mEntrySymbol, mEntryTimeFrame, lastFractalIndex, 0, true, furthestBetweenFractal))
+            {
+                return;
+            }
 
-        int fractalIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, tempFractal.CandleTime());
-        if (fractalIndex <= 0)
-        {
-            return;
-        }
+            if (furthestBetweenFractal > 3)
+            {
+                // InvalidateSetup(false);
+                return;
+            }
 
-        if (tempFractal.CandleTime() > mLastFractalTime &&
-            iHigh(mEntrySymbol, mEntryTimeFrame, 2) < iHigh(mEntrySymbol, mEntryTimeFrame, fractalIndex) &&
-            iHigh(mEntrySymbol, mEntryTimeFrame, 1) > iHigh(mEntrySymbol, mEntryTimeFrame, fractalIndex))
-        {
-            mHasSetup = true;
-            mLastFractalTime = tempFractal.CandleTime();
-            mPGT.SetStartingPrice(iHigh(mEntrySymbol, mEntryTimeFrame, fractalIndex));
+            if (iHigh(mEntrySymbol, mEntryTimeFrame, 1) - CandleStickHelper::HighestBodyPart(mEntrySymbol, mEntryTimeFrame, 1) >= OrderHelper::PipsToRange(mMinWickLength))
+            {
+                mHasSetup = true;
+                mPGT.SetStartingPrice(iOpen(mEntrySymbol, mEntryTimeFrame, 0));
+            }
         }
     }
 }
@@ -199,43 +263,110 @@ void FractalSuperTrendPullback::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
-    // we placed at least one ticket and now all tickets are closed
-    if (mPlacedFirstTicket && mPreviousSetupTickets.Size() == 0)
+    if (mPreviousSetupTickets.Size() == 0)
     {
-        // reset these here since we call InvalidateSetup after placing an order
-        mStartingEquity = 0;
-        mPlacedFirstTicket = false;
-        mLastPriceLevel = 1000;
-        mPGT.Reset();
+        if (mBrokeFractal)
+        {
+            // invalidate if SuperTrend changes direction
+            if (mSetupType == OP_BUY && mST.Direction() == OP_BUY)
+            {
+                InvalidateSetup(false);
+                return;
+            }
+            else if (mSetupType == OP_SELL && mST.Direction() == OP_SELL)
+            {
+                InvalidateSetup(false);
+                return;
+            }
 
-        InvalidateSetup(false);
+            // Invalidate if we put in a new further fractal
+            if (mFT[0].CandleTime() != mLastFractalTime)
+            {
+                int currentFractalIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mFT[0].CandleTime());
+                int lastFractalIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mFT[0].CandleTime());
+
+                if (mSetupType == OP_BUY)
+                {
+                    if (iLow(mEntrySymbol, mEntryTimeFrame, currentFractalIndex) < iLow(mEntrySymbol, mEntryTimeFrame, lastFractalIndex))
+                    {
+                        InvalidateSetup(false);
+                        return;
+                    }
+                }
+                else if (mSetupType == OP_SELL)
+                {
+                    if (iHigh(mEntrySymbol, mEntryTimeFrame, currentFractalIndex) > iHigh(mEntrySymbol, mEntryTimeFrame, lastFractalIndex))
+                    {
+                        InvalidateSetup(false);
+                        return;
+                    }
+                }
+            }
+        }
+
+        if (mPlacedFirstTicket)
+        {
+            InvalidateSetup(false);
+            return;
+        }
     }
+
+    // we placed at least one ticket and now all tickets are closed
+    // if (mPlacedFirstTicket && mPreviousSetupTickets.Size() == 0)
+    // {
+    //     // reset these here since we call InvalidateSetup after placing an order
+    //     mBrokeFractal = false;
+    //     mStartingEquity = 0;
+    //     mPlacedFirstTicket = false;
+    //     mLastPriceLevel = 1000;
+    //     mPGT.Reset();
+
+    //     InvalidateSetup(false);
+    // }
 }
 
 void FractalSuperTrendPullback::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
     EAHelper::InvalidateSetup<FractalSuperTrendPullback>(this, deletePendingOrder, mStopTrading, error);
+
+    mBrokeFractal = false;
+    mStartingEquity = 0;
+    mPlacedFirstTicket = false;
+    mLastPriceLevel = 1000;
+    mPGT.Reset();
 }
 
 bool FractalSuperTrendPullback::Confirmation()
 {
+    // if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
+    // {
+    //     return false;
+    // }
+
     if (mSetupType == OP_BUY)
     {
         if (mPGT.CurrentLevel() <= 0 &&
-            mPGT.CurrentLevel() != mLastPriceLevel)
+            mPGT.CurrentLevel() < mLastPriceLevel)
         {
             mLastPriceLevel = mPGT.CurrentLevel();
             return true;
         }
+        // return mHAT[0].Type() == OP_BUY &&
+        //        mHAT[1].Type() == OP_SELL &&
+        //        mHAT[2].Type() == OP_SELL;
     }
     else if (mSetupType == OP_SELL)
     {
         if (mPGT.CurrentLevel() >= 0 &&
-            mPGT.CurrentLevel() != mLastPriceLevel)
+            (mPGT.CurrentLevel() > mLastPriceLevel || mLastPriceLevel == 1000))
         {
             mLastPriceLevel = mPGT.CurrentLevel();
             return true;
         }
+
+        // return mHAT[0].Type() == OP_SELL &&
+        //        mHAT[1].Type() == OP_BUY &&
+        //        mHAT[2].Type() == OP_BUY;
     }
 
     return false;
@@ -256,10 +387,22 @@ void FractalSuperTrendPullback::PlaceOrders()
     if (mSetupType == OP_BUY)
     {
         entry = currentTick.ask;
+
+        // only enter in orders that were a result of a deeper retracement. Don't want to be entering in a ton of orders if we are just bouncing around
+        // if (mPreviousSetupTickets.Size() > 0 && entry > mPreviousSetupTickets[mPreviousSetupTickets.Size() - 1].OpenPrice())
+        // {
+        //     return;
+        // }
     }
     else if (mSetupType == OP_SELL)
     {
         entry = currentTick.bid;
+
+        // // only enter in orders that were a result of a deeper retracement. Don't want to be entering in a ton of orders if we are just bouncing around
+        // if (mPreviousSetupTickets.Size() > 0 && entry < mPreviousSetupTickets[mPreviousSetupTickets.Size() - 1].OpenPrice())
+        // {
+        //     return;
+        // }
     }
 
     // first ticket is being placed, track the starting equity so we know when to close
@@ -269,7 +412,15 @@ void FractalSuperTrendPullback::PlaceOrders()
         mPlacedFirstTicket = true;
     }
 
-    EAHelper::PlaceMarketOrder<FractalSuperTrendPullback>(this, entry, stopLoss, mLotSize * MathMax(mPreviousSetupTickets.Size(), 1));
+    double lotSize = mLotSize;
+    int currentTickets = mPreviousSetupTickets.Size();
+    while (currentTickets >= 5)
+    {
+        lotSize += 0.1;
+        currentTickets -= 5;
+    }
+
+    EAHelper::PlaceMarketOrder<FractalSuperTrendPullback>(this, entry, stopLoss, lotSize);
     // InvalidateSetup(false);
 }
 
@@ -291,7 +442,8 @@ void FractalSuperTrendPullback::ManagePreviousSetupTicket(int ticketIndex)
     // close all tickets if we are down 10% or up 1%
     double equityPercentChange = (AccountEquity() - mStartingEquity) / AccountEquity() * 100;
     // double equityTarget = MathMax(0.2 / mPreviousSetupTickets.Size(), 0.05);
-    double equityTarget = 0.2 / mPreviousSetupTickets.Size();
+    // double equityTarget = 1 / mPreviousSetupTickets.Size();
+    double equityTarget = 0.33;
 
     if (equityPercentChange <= -10 || equityPercentChange > equityTarget)
     {
