@@ -214,24 +214,24 @@ void StartOfDayTimeRangeBreakout::ManageCurrentActiveSetupTicket()
         return;
     }
 
-    double slDistance = MathAbs(mCurrentSetupTicket.OpenPrice() - mCurrentSetupTicket.mOriginalStopLoss);
-    double pipsToWait = OrderHelper::RangeToPips(slDistance * 4);
+    // double slDistance = MathAbs(mCurrentSetupTicket.OpenPrice() - mCurrentSetupTicket.mOriginalStopLoss);
+    // double pipsToWait = OrderHelper::RangeToPips(slDistance * 4);
 
-    EAHelper::MoveToBreakEvenAfterPips<StartOfDayTimeRangeBreakout>(this, mCurrentSetupTicket, pipsToWait, 0.0);
+    // EAHelper::MoveToBreakEvenAfterPips<StartOfDayTimeRangeBreakout>(this, mCurrentSetupTicket, pipsToWait, 0.0);
 }
 
 bool StartOfDayTimeRangeBreakout::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    // return false;
-    return EAHelper::TicketStopLossIsMovedToBreakEven<StartOfDayTimeRangeBreakout>(this, ticket);
+    return false;
+    // return EAHelper::TicketStopLossIsMovedToBreakEven<StartOfDayTimeRangeBreakout>(this, ticket);
 }
 
 void StartOfDayTimeRangeBreakout::ManagePreviousSetupTicket(int ticketIndex)
 {
-    if (EAHelper::CloseTicketIfPastTime<StartOfDayTimeRangeBreakout>(this, mPreviousSetupTickets[ticketIndex], mCloseHour, mCloseMinute))
-    {
-        return;
-    }
+    // if (EAHelper::CloseTicketIfPastTime<StartOfDayTimeRangeBreakout>(this, mPreviousSetupTickets[ticketIndex], mCloseHour, mCloseMinute))
+    // {
+    //     return;
+    // }
 }
 
 void StartOfDayTimeRangeBreakout::CheckCurrentSetupTicket()
