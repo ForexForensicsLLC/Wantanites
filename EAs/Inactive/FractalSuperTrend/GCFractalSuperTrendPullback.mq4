@@ -40,7 +40,7 @@ FractalSuperTrendPullback *FSTPSells;
 
 // GU
 double MinWickLength = 20;
-double LotSize = 0.1;
+double LotSize = 0.05;
 double MaxSpreadPips = 2;
 double EntryPaddingPips = 0;
 double MinStopLossPips = 250;

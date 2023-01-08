@@ -416,7 +416,7 @@ void FractalSuperTrendPullback::PlaceOrders()
     int currentTickets = mPreviousSetupTickets.Size();
     while (currentTickets >= 5)
     {
-        lotSize += 0.1;
+        lotSize *= 1.5;
         currentTickets -= 5;
     }
 
@@ -443,7 +443,7 @@ void FractalSuperTrendPullback::ManagePreviousSetupTicket(int ticketIndex)
     double equityPercentChange = (AccountEquity() - mStartingEquity) / AccountEquity() * 100;
     // double equityTarget = MathMax(0.2 / mPreviousSetupTickets.Size(), 0.05);
     // double equityTarget = 1 / mPreviousSetupTickets.Size();
-    double equityTarget = 0.33;
+    double equityTarget = 0.1;
 
     if (equityPercentChange <= -10 || equityPercentChange > equityTarget)
     {
