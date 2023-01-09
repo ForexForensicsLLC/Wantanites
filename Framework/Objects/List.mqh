@@ -29,6 +29,12 @@ public:
 
     // returns the number of elements in the list
     int Size() { return ArraySize(mItems); }
+
+    // returns true if the item is in the list
+    bool Contains(T item);
+
+    // removes all items from the list and re sizes to 0
+    void Clear();
 };
 
 template <typename T>
@@ -39,6 +45,7 @@ List::List()
 template <typename T>
 List::~List()
 {
+    Clear();
 }
 
 template <typename T>
@@ -59,4 +66,24 @@ void List::Push(T item)
 
     ArrayResize(mItems, Size() + 1);
     ArrayCopy(mItems, tempItems);
+}
+
+template <typename T>
+bool List::Contains(T item)
+{
+    for (int i = 0; i < Size(); i++)
+    {
+        if (mItems[i] == item)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+template <typename T>
+void List::Clear()
+{
+    ArrayFree(mItems);
 }

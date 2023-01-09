@@ -52,7 +52,7 @@ public:
 
     double RangeHigh();
     double RangeLow();
-    double RangeWidth() { return RangeHigh() - RangeLow(); }
+    double RangeHeight() { return RangeHigh() - RangeLow(); }
 
     bool BrokeRangeHigh();
     bool BrokeRangeLow();

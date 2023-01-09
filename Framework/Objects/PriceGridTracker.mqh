@@ -28,7 +28,8 @@ public:
     PriceGridTracker(int maxLevels, double levelPips);
     ~PriceGridTracker();
 
-    void SetStartingPrice(double price) { mBasePrice = price; }
+    void SetStartingPrice(double price);
+    void SetStartingPriceAndLevelPips(double startingPrice, double levelPips);
 
     double LevelPrice(int level);
     int CurrentLevel();
@@ -52,16 +53,31 @@ PriceGridTracker::~PriceGridTracker()
     ObjectsDeleteAll(ChartID(), mObjectNamePrefix);
 }
 
+void PriceGridTracker::SetStartingPrice(double price)
+{
+    Reset();
+    mBasePrice = price;
+}
+
+void PriceGridTracker::SetStartingPriceAndLevelPips(double startingPrice, double levelPips)
+{
+    Reset();
+    mBasePrice = startingPrice;
+    mLevelDistance = OrderHelper::PipsToRange(levelPips);
+}
+
 int PriceGridTracker::CurrentLevel()
 {
     if (mBasePrice == 0.0)
     {
+        Print("No Base Price");
         return 0;
     }
 
     MqlTick currentTick;
     if (!SymbolInfoTick(Symbol(), currentTick))
     {
+        Print("Can't get tick");
         return 0;
     }
 

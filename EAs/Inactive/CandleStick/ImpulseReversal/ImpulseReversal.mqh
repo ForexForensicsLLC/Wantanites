@@ -343,7 +343,7 @@ void ImpulseReversal::ManagePreviousSetupTicket(int ticketIndex)
     // double equityTarget = 1 / mPreviousSetupTickets.Size();
     double equityTarget = .1;
 
-    if (equityPercentChange <= -10 || equityPercentChange > equityTarget)
+    if (equityPercentChange <= -100 || equityPercentChange > equityTarget)
     {
         mPreviousSetupTickets[ticketIndex].Close();
         return;

@@ -19,6 +19,7 @@ private:
 
     int mCurrentDirection;
 
+    List<int> *mDirections;
     List<double> *mSuperTrendLine;
     List<double> *mUpperBand;
     List<double> *mLowerBand;
@@ -36,8 +37,7 @@ public:
     // -- BEWARE -- these will be off by 1, i.e index 0 = bar 1 since I only calcuate on closed bars
     double UpperBand(int index);
     double LowerBand(int index);
-
-    int Direction() { return mCurrentDirection; }
+    int Direction(int index) { return mDirections[index]; }
 
     void Draw();
 };
@@ -53,6 +53,7 @@ SuperTrend::SuperTrend(int atrPeriod, double factor)
     mSuperTrendLine = new List<double>();
     mUpperBand = new List<double>();
     mLowerBand = new List<double>();
+    mDirections = new List<int>();
 
     mATRPeriod = atrPeriod;
     mFactor = factor;
@@ -64,6 +65,7 @@ SuperTrend::~SuperTrend()
 {
     delete mUpperBand;
     delete mLowerBand;
+    delete mDirections;
     delete mSuperTrendLine;
 
     ObjectsDeleteAll(ChartID(), mObjectNamePrefix);
@@ -115,14 +117,14 @@ void SuperTrend::Calculate(int barIndex)
 
     if (iClose(Symbol(), Period(), barIndex) < mSuperTrendLine[0])
     {
-        mCurrentDirection = OP_SELL;
+        mDirections.Push(OP_SELL);
     }
     else if (iClose(Symbol(), Period(), barIndex) > mSuperTrendLine[0])
     {
-        mCurrentDirection = OP_BUY;
+        mDirections.Push(OP_BUY);
     }
 
-    if (mCurrentDirection == OP_BUY)
+    if (mDirections[0] == OP_BUY)
     {
         if (upperBand > mUpperBand[0])
         {
@@ -144,7 +146,7 @@ void SuperTrend::Calculate(int barIndex)
 
         mSuperTrendLine.Push(mLowerBand[0]);
     }
-    else if (mCurrentDirection == OP_SELL)
+    else if (mDirections[0] == OP_SELL)
     {
         if (lowerBand < mLowerBand[0])
         {

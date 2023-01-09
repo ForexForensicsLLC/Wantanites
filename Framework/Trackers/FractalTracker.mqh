@@ -21,7 +21,7 @@ private:
     int mUpFractalCount;
     int mDownFractalCount;
 
-    ObjectList<Fractal> *mFractals;
+    Fractal *mFractals[];
 
     void Update();
     void Calculate(int barIndex);
@@ -44,6 +44,11 @@ public:
 
     bool HighestUpFractalOutOfPrevious(int nPrevious, Fractal *&fractal);
     bool LowestDownFractalOutOfPrevious(int nPrevious, Fractal *&fractal);
+
+    bool FractalIsHighestOutOfPrevious(int fractalIndex, int nPrevious, Fractal *&fractal);
+    bool FractalIsLowestOutOfPrevious(int fractalIndex, int nPrevious, Fractal *&fractal);
+
+    bool GetMostRecentFractal(FractalType type, Fractal *&fractal);
 };
 
 FractalTracker::FractalTracker(int period)
@@ -54,14 +59,17 @@ FractalTracker::FractalTracker(int period)
     mUpFractalCount = 0;
     mDownFractalCount = 0;
 
-    mFractals = new ObjectList<Fractal>();
+    ArrayResize(mFractals, 0);
 
     Update();
 }
 
 FractalTracker::~FractalTracker()
 {
-    delete mFractals;
+    for (int i = 0; i < ArraySize(mFractals); i++)
+    {
+        delete mFractals[i];
+    }
 }
 
 Fractal *FractalTracker::operator[](int index)
@@ -80,10 +88,13 @@ bool FractalTracker::HighestUpFractalOutOfPrevious(int nPrevious, Fractal *&frac
     }
 
     int furthestIndex = -1;
-    for (int i = mFractals.Size() - 1; i >= mFractals.Size() - 1 - nPrevious; i--)
+    int count = 0;
+    for (int i = 0; i < ArraySize(mFractals); i++)
     {
         if (mFractals[i].Type() == FractalType::Up)
         {
+            count += 1;
+
             if (furthestIndex == -1)
             {
                 furthestIndex = i;
@@ -97,6 +108,11 @@ bool FractalTracker::HighestUpFractalOutOfPrevious(int nPrevious, Fractal *&frac
                 {
                     furthestIndex = i;
                 }
+            }
+
+            if (count == nPrevious)
+            {
+                break;
             }
         }
     }
@@ -120,10 +136,13 @@ bool FractalTracker::LowestDownFractalOutOfPrevious(int nPrevious, Fractal *&fra
     }
 
     int furthestIndex = -1;
-    for (int i = mFractals.Size() - 1; i >= mFractals.Size() - 1 - nPrevious; i--)
+    int count = 0;
+    for (int i = 0; i < ArraySize(mFractals); i++)
     {
         if (mFractals[i].Type() == FractalType::Down)
         {
+            count += 1;
+
             if (furthestIndex == -1)
             {
                 furthestIndex = i;
@@ -138,6 +157,11 @@ bool FractalTracker::LowestDownFractalOutOfPrevious(int nPrevious, Fractal *&fra
                     furthestIndex = i;
                 }
             }
+
+            if (count == nPrevious)
+            {
+                break;
+            }
         }
     }
 
@@ -145,6 +169,39 @@ bool FractalTracker::LowestDownFractalOutOfPrevious(int nPrevious, Fractal *&fra
     {
         fractal = mFractals[furthestIndex];
         return true;
+    }
+
+    return false;
+}
+
+bool FractalTracker::FractalIsHighestOutOfPrevious(int fractalIndex, int nPrevious, Fractal *&fractal)
+{
+    if (!HighestUpFractalOutOfPrevious(nPrevious, fractal))
+    {
+        return false;
+    }
+
+    return fractal.CandleTime() == mFractals[fractalIndex].CandleTime();
+}
+bool FractalTracker::FractalIsLowestOutOfPrevious(int fractalIndex, int nPrevious, Fractal *&fractal)
+{
+    if (!LowestDownFractalOutOfPrevious(nPrevious, fractal))
+    {
+        return false;
+    }
+
+    return fractal.CandleTime() == mFractals[fractalIndex].CandleTime();
+}
+
+bool FractalTracker::GetMostRecentFractal(FractalType type, Fractal *&fractal)
+{
+    for (int i = 0; i < ArraySize(mFractals); i++)
+    {
+        if (mFractals[i].Type() == type)
+        {
+            fractal = mFractals[i];
+            return true;
+        }
     }
 
     return false;
@@ -236,5 +293,7 @@ void FractalTracker::CreateFractal(int barIndex, FractalType type)
     Fractal *fractal = new Fractal(barIndex, type);
     fractal.Draw();
 
-    mFractals.Add(fractal);
+    ArrayResize(mFractals, ArraySize(mFractals) + 1);
+    ArrayCopy(mFractals, mFractals, 1, 0);
+    mFractals[0] = fractal;
 }

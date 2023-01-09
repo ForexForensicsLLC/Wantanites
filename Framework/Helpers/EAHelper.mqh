@@ -2732,7 +2732,6 @@ void EAHelper::CheckCurrentSetupTicket(TEA &ea)
         }
 
         ea.RecordTicketCloseData(ea.mCurrentSetupTicket);
-        ea.InvalidateSetup(false);
         ea.mCurrentSetupTicket.SetNewTicket(EMPTY);
     }
 }
