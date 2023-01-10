@@ -39,6 +39,7 @@ StartOfDayTimeRangeBreakout *TRBBuys;
 StartOfDayTimeRangeBreakout *TRBSells;
 
 // UJ
+double LotSize = 1;
 int CloseHour = 23;
 int CloseMinute = 0;
 double MaxSpreadPips = 1.5;
@@ -60,6 +61,7 @@ int OnInit()
 
     TRBBuys.SetPartialCSVRecordWriter(PartialWriter);
 
+    TRBBuys.mLotSize = LotSize;
     TRBBuys.mCloseHour = CloseHour;
     TRBBuys.mCloseMinute = CloseMinute;
 
@@ -69,6 +71,7 @@ int OnInit()
                                                ExitWriter, ErrorWriter, TRB, PGTSells);
     TRBSells.SetPartialCSVRecordWriter(PartialWriter);
 
+    TRBSells.mLotSize = LotSize;
     TRBSells.mCloseHour = CloseHour;
     TRBSells.mCloseMinute = CloseMinute;
 

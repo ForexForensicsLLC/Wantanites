@@ -26,13 +26,6 @@ public:
     int mCloseHour;
     int mCloseMinute;
 
-    double mEntryPaddingPips;
-    double mMinStopLossPips;
-    double mPipsToWaitBeforeBE;
-    double mBEAdditionalPips;
-
-    datetime mEntryCandleTime;
-
 public:
     StartOfDayTimeRangeBreakout(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                                 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
@@ -76,15 +69,6 @@ StartOfDayTimeRangeBreakout::StartOfDayTimeRangeBreakout(int magicNumber, int se
 
     mCloseHour = 0;
     mCloseMinute = 0;
-
-    mEntryPaddingPips = 0.0;
-    mMinStopLossPips = 0.0;
-    mPipsToWaitBeforeBE = 0.0;
-    mBEAdditionalPips = 0.0;
-
-    mEntryCandleTime = 0;
-
-    mLargestAccountBalance = 200000;
 
     EAHelper::FindSetPreviousAndCurrentSetupTickets<StartOfDayTimeRangeBreakout>(this);
     EAHelper::UpdatePreviousSetupTicketsRRAcquried<StartOfDayTimeRangeBreakout, PartialTradeRecord>(this);
@@ -213,25 +197,15 @@ void StartOfDayTimeRangeBreakout::ManageCurrentActiveSetupTicket()
     {
         return;
     }
-
-    // double slDistance = MathAbs(mCurrentSetupTicket.OpenPrice() - mCurrentSetupTicket.mOriginalStopLoss);
-    // double pipsToWait = OrderHelper::RangeToPips(slDistance * 4);
-
-    // EAHelper::MoveToBreakEvenAfterPips<StartOfDayTimeRangeBreakout>(this, mCurrentSetupTicket, pipsToWait, 0.0);
 }
 
 bool StartOfDayTimeRangeBreakout::MoveToPreviousSetupTickets(Ticket &ticket)
 {
     return false;
-    // return EAHelper::TicketStopLossIsMovedToBreakEven<StartOfDayTimeRangeBreakout>(this, ticket);
 }
 
 void StartOfDayTimeRangeBreakout::ManagePreviousSetupTicket(int ticketIndex)
 {
-    // if (EAHelper::CloseTicketIfPastTime<StartOfDayTimeRangeBreakout>(this, mPreviousSetupTickets[ticketIndex], mCloseHour, mCloseMinute))
-    // {
-    //     return;
-    // }
 }
 
 void StartOfDayTimeRangeBreakout::CheckCurrentSetupTicket()

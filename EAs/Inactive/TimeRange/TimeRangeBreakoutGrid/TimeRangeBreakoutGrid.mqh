@@ -25,12 +25,16 @@ public:
 
     int mBarCount;
     int mLastDay;
+    int mLastHour;
 
     int mCloseHour;
     int mCloseMinute;
 
     double mLastPriceLevel;
+    double mFurthestPriceLevel;
+    bool mCloseAllTickets;
 
+    double mLotSize;
     double mEntryPaddingPips;
     double mMinStopLossPips;
     double mPipsToWaitBeforeBE;
@@ -79,12 +83,16 @@ StartOfDayTimeRangeBreakout::StartOfDayTimeRangeBreakout(int magicNumber, int se
 
     mBarCount = 0;
     mLastDay = Day();
+    mLastHour = Hour();
 
     mCloseHour = 0;
     mCloseMinute = 0;
 
     mLastPriceLevel = 1000;
+    mFurthestPriceLevel = 1000;
+    mCloseAllTickets = false;
 
+    mLotSize = 0.0;
     mEntryPaddingPips = 0.0;
     mMinStopLossPips = 0.0;
     mPipsToWaitBeforeBE = 0.0;
@@ -109,6 +117,7 @@ void StartOfDayTimeRangeBreakout::Run()
 
     mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
     mLastDay = Day();
+    mLastHour = Hour();
 }
 
 bool StartOfDayTimeRangeBreakout::AllowedToTrade()
@@ -122,12 +131,15 @@ void StartOfDayTimeRangeBreakout::CheckSetSetup()
     {
         if (mSetupType == OP_BUY)
         {
-            mPGT.SetStartingPriceAndLevelPips(mTRB.RangeHigh(), OrderHelper::RangeToPips(mTRB.RangeHeight()));
+            // mPGT.SetStartingPriceAndLevelPips(mTRB.RangeHigh(), OrderHelper::RangeToPips(mTRB.RangeHeight()));
+            mPGT.SetStartingPriceAndLevelPips(mTRB.RangeHigh(), 100);
+
             mHasSetup = true;
         }
         else if (mSetupType == OP_SELL)
         {
-            mPGT.SetStartingPriceAndLevelPips(mTRB.RangeLow(), OrderHelper::RangeToPips(mTRB.RangeHeight()));
+            // mPGT.SetStartingPriceAndLevelPips(mTRB.RangeLow(), OrderHelper::RangeToPips(mTRB.RangeHeight()));
+            mPGT.SetStartingPriceAndLevelPips(mTRB.RangeLow(), 100);
             mHasSetup = true;
         }
     }
@@ -139,38 +151,50 @@ void StartOfDayTimeRangeBreakout::CheckInvalidateSetup()
 
     if (mLastDay != Day())
     {
-        Print("new Day");
         InvalidateSetup(true);
+    }
+
+    if (mCloseAllTickets && mPreviousSetupTickets.Size() == 0)
+    {
+        mCloseAllTickets = false;
     }
 }
 
 void StartOfDayTimeRangeBreakout::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
-    Print("Invalidating Setup: ", MagicNumber(), ", Last State: ", mLastState);
     EAHelper::InvalidateSetup<StartOfDayTimeRangeBreakout>(this, deletePendingOrder, mStopTrading, error);
 
     mLastPriceLevel = 1000;
+    mFurthestPriceLevel = 1000;
 }
 
 bool StartOfDayTimeRangeBreakout::Confirmation()
 {
-    // Print("Current Level: ", mPGT.CurrentLevel(), ", Magic Number: ", MagicNumber());
     if (mSetupType == OP_BUY)
     {
-        if (mPGT.CurrentLevel() > 0 &&
+        if (mPGT.CurrentLevel() >= 0 &&
             (mPGT.CurrentLevel() > mLastPriceLevel || mLastPriceLevel == 1000))
         {
-            Print("conf");
             mLastPriceLevel = mPGT.CurrentLevel();
+            if (mPGT.CurrentLevel() > mFurthestPriceLevel || mFurthestPriceLevel == 1000)
+            {
+                mFurthestPriceLevel = mPGT.CurrentLevel();
+            }
+
             return true;
         }
     }
     else if (mSetupType == OP_SELL)
     {
-        if (mPGT.CurrentLevel() < 0 &&
+        if (mPGT.CurrentLevel() <= 0 &&
             mPGT.CurrentLevel() < mLastPriceLevel)
         {
             mLastPriceLevel = mPGT.CurrentLevel();
+            if (mPGT.CurrentLevel() < mFurthestPriceLevel)
+            {
+                mFurthestPriceLevel = mPGT.CurrentLevel();
+            }
+
             return true;
         }
     }
@@ -193,15 +217,41 @@ void StartOfDayTimeRangeBreakout::PlaceOrders()
     if (mSetupType == OP_BUY)
     {
         entry = currentTick.ask;
-        stopLoss = entry - mTRB.RangeHeight();
+        if (entry < mTRB.RangeHigh())
+        {
+            return;
+        }
+        stopLoss = entry - (mTRB.RangeHeight() * 2);
     }
     else if (mSetupType == OP_SELL)
     {
         entry = currentTick.bid;
-        stopLoss = entry + mTRB.RangeHeight();
+        if (entry > mTRB.RangeLow())
+        {
+            return;
+        }
+        stopLoss = entry + (mTRB.RangeHeight() * 2);
     }
 
-    EAHelper::PlaceMarketOrder<StartOfDayTimeRangeBreakout>(this, entry, stopLoss);
+    EAHelper::PlaceMarketOrder<StartOfDayTimeRangeBreakout>(this, entry, stopLoss, mLotSize);
+
+    // mCurrentSetupTicket.SelectIfOpen("Adding tp");
+
+    // int maxTakeProfitLevel = 8;
+    // double takeProfit = 0.0;
+
+    // if (mSetupType == OP_BUY)
+    // {
+    //     // takeProfit = OrderOpenPrice() + (MathMax(8 - mPGT.CurrentLevel(), 1) * mTRB.RangeHeight());
+    //     takeProfit = OrderOpenPrice() + mTRB.RangeHeight();
+    //     OrderModify(mCurrentSetupTicket.Number(), OrderOpenPrice(), OrderStopLoss(), takeProfit, OrderExpiration(), clrNONE);
+    // }
+    // else if (mSetupType == OP_SELL)
+    // {
+    //     // takeProfit = OrderOpenPrice() - (MathMax(8 - mPGT.CurrentLevel(), 1) * mTRB.RangeHeight());
+    //     takeProfit = OrderOpenPrice() - mTRB.RangeHeight();
+    //     OrderModify(mCurrentSetupTicket.Number(), OrderOpenPrice(), OrderStopLoss(), takeProfit, OrderExpiration(), clrNONE);
+    // }
 }
 
 void StartOfDayTimeRangeBreakout::ManageCurrentPendingSetupTicket()
@@ -210,25 +260,32 @@ void StartOfDayTimeRangeBreakout::ManageCurrentPendingSetupTicket()
 
 void StartOfDayTimeRangeBreakout::ManageCurrentActiveSetupTicket()
 {
-    if (EAHelper::CloseTicketIfPastTime<StartOfDayTimeRangeBreakout>(this, mCurrentSetupTicket, mCloseHour, mCloseMinute))
-    {
-        return;
-    }
+    // if (EAHelper::CloseTicketIfPastTime<StartOfDayTimeRangeBreakout>(this, mCurrentSetupTicket, mCloseHour, mCloseMinute))
+    // {
+    //     return;
+    // }
 
     // double slDistance = MathAbs(mCurrentSetupTicket.OpenPrice() - mCurrentSetupTicket.mOriginalStopLoss);
     // double pipsToWait = OrderHelper::RangeToPips(slDistance * 4);
 
-    EAHelper::MoveToBreakEvenAfterPips<StartOfDayTimeRangeBreakout>(this, mCurrentSetupTicket, OrderHelper::RangeToPips(mTRB.RangeHeight()), 0.0);
+    // EAHelper::MoveToBreakEvenAfterPips<StartOfDayTimeRangeBreakout>(this, mCurrentSetupTicket, OrderHelper::RangeToPips(mTRB.RangeHeight()), 0.0);
 }
 
 bool StartOfDayTimeRangeBreakout::MoveToPreviousSetupTickets(Ticket &ticket)
 {
     // return false;
-    return EAHelper::TicketStopLossIsMovedToBreakEven<StartOfDayTimeRangeBreakout>(this, ticket);
+    // return EAHelper::TicketStopLossIsMovedToBreakEven<StartOfDayTimeRangeBreakout>(this, ticket);
+    return true;
 }
 
 void StartOfDayTimeRangeBreakout::ManagePreviousSetupTicket(int ticketIndex)
 {
+    if (mCloseAllTickets)
+    {
+        mPreviousSetupTickets[ticketIndex].Close();
+        return;
+    }
+
     if (EAHelper::CloseTicketIfPastTime<StartOfDayTimeRangeBreakout>(this, mPreviousSetupTickets[ticketIndex], mCloseHour, mCloseMinute))
     {
         return;
@@ -241,17 +298,74 @@ void StartOfDayTimeRangeBreakout::ManagePreviousSetupTicket(int ticketIndex)
         return;
     }
 
+    // double profit = 0.0;
+    // for (int i = 0; i < mPreviousSetupTickets.Size(); i++)
+    // {
+    //     mPreviousSetupTickets[i].SelectIfOpen("Adding profit");
+    //     profit += OrderProfit();
+    // }
+
+    // double finalProfit = AccountBalance() + profit;
+    // double equityPercentChange = (finalProfit - AccountBalance()) / finalProfit * 100;
+    // if (equityPercentChange < -20)
+    // {
+    //     mCloseAllTickets = true;
+    // }
+
+    // if (mSetupType == OP_BUY)
+    // {
+    //     if (mPGT.CurrentLevel() > 0 && currentTick.bid < mTRB.RangeHigh())
+    //     {
+    //         mPreviousSetupTickets[ticketIndex].Close();
+    //     }
+    // }
+    // else if (mSetupType == OP_SELL)
+    // {
+    //     if (mPGT.CurrentLevel() < 0 && currentTick.ask > mTRB.RangeLow())
+    //     {
+    //         mPreviousSetupTickets[ticketIndex].Close();
+    //     }
+    // }
+
+    // double middleLevelPlusOne = (mFurthestPriceLevel / 2);
+    // if (mSetupType == OP_BUY)
+    // {
+    //     middleLevelPlusOne += 1;
+    //     if (mFurthestPriceLevel < 5)
+    //     {
+    //         return;
+    //     }
+
+    //     if (currentTick.bid < mPGT.LevelPrice(middleLevelPlusOne))
+    //     {
+    //         mCloseAllTickets = true;
+    //     }
+    // }
+    // else if (mSetupType == OP_SELL)
+    // {
+    //     middleLevelPlusOne -= 1;
+    //     if (mFurthestPriceLevel > 5)
+    //     {
+    //         return;
+    //     }
+
+    //     if (currentTick.ask > mPGT.LevelPrice(middleLevelPlusOne))
+    //     {
+    //         mCloseAllTickets = true;
+    //     }
+    // }
+
     mPreviousSetupTickets[ticketIndex].SelectIfOpen("Trailing SL");
     if (mSetupType == OP_BUY)
     {
-        if (currentTick.bid - OrderStopLoss() >= (mTRB.RangeHeight() * 2))
+        if (currentTick.bid - OrderStopLoss() >= (mTRB.RangeHeight() * 2) && Hour() != mLastHour)
         {
             OrderModify(mPreviousSetupTickets[ticketIndex].Number(), OrderOpenPrice(), OrderStopLoss() + mTRB.RangeHeight(), OrderTakeProfit(), OrderExpiration(), clrNONE);
         }
     }
     else if (mSetupType == OP_SELL)
     {
-        if (OrderStopLoss() - currentTick.ask >= (mTRB.RangeHeight() * 2))
+        if (OrderStopLoss() - currentTick.ask >= (mTRB.RangeHeight() * 2) && Hour() != mLastHour)
         {
             OrderModify(mPreviousSetupTickets[ticketIndex].Number(), OrderOpenPrice(), OrderStopLoss() - mTRB.RangeHeight(), OrderTakeProfit(), OrderExpiration(), clrNONE);
         }
