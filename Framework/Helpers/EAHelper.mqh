@@ -1867,6 +1867,7 @@ static void EAHelper::PlaceStopOrder(TEA &ea, double entry, double stopLoss, dou
     MqlTick currentTick;
     if (!SymbolInfoTick(Symbol(), currentTick))
     {
+        Print("no tick");
         ea.RecordError(GetLastError());
         return;
     }
@@ -1888,6 +1889,7 @@ static void EAHelper::PlaceStopOrder(TEA &ea, double entry, double stopLoss, dou
         }
         else if (entry > currentTick.ask)
         {
+            Print("Placing Buy Stop");
             orderPlaceError = OrderHelper::PlaceStopOrder(stopType, lots, entry, stopLoss, 0, ea.MagicNumber(), ticket);
         }
     }
@@ -1899,6 +1901,7 @@ static void EAHelper::PlaceStopOrder(TEA &ea, double entry, double stopLoss, dou
         }
         else if (entry < currentTick.bid)
         {
+            Print("Placeing Sell Stop");
             orderPlaceError = OrderHelper::PlaceStopOrder(stopType, lots, entry, stopLoss, 0, ea.MagicNumber(), ticket);
         }
     }

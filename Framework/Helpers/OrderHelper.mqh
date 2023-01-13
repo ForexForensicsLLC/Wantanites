@@ -693,17 +693,20 @@ int OrderHelper::PlaceStopOrder(int orderType, double lots, double entryPrice, d
 {
     if (orderType != OP_BUYSTOP && orderType != OP_SELLSTOP)
     {
+        Print("Wrong order type");
         return TerminalErrors::WRONG_ORDER_TYPE;
     }
 
     if ((orderType == OP_BUYSTOP && stopLoss >= entryPrice) || (orderType == OP_SELLSTOP && stopLoss <= entryPrice))
     {
+        Print("stop los past entry");
         return TerminalErrors::STOPLOSS_PAST_ENTRY;
     }
 
     MqlTick currentTick;
     if (!SymbolInfoTick(_Symbol, currentTick))
     {
+        Print("no tick");
         return GetLastError();
     }
 
@@ -716,6 +719,7 @@ int OrderHelper::PlaceStopOrder(int orderType, double lots, double entryPrice, d
     lots = CleanLotSize(lots);
 
     int error = ERR_NO_ERROR;
+    Print("Sending Order");
     int ticketNumber = OrderSend(NULL, orderType, lots, entryPrice, 0, stopLoss, takeProfit, NULL, magicNumber, 0, clrNONE);
 
     if (ticketNumber < 0)

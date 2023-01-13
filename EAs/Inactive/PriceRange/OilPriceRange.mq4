@@ -55,7 +55,7 @@ int OnInit()
     PRBuys.mCloseMinute = CloseMinute;
 
     PRBuys.SetPartialCSVRecordWriter(PartialWriter);
-    PRBuys.AddTradingSession(0, 0, 0, 5);
+    PRBuys.AddTradingSession(16, 30, 16, 35);
 
     PRSells = new PriceRange(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                              ExitWriter, ErrorWriter);
@@ -65,7 +65,7 @@ int OnInit()
     PRSells.mCloseMinute = CloseMinute;
 
     PRSells.SetPartialCSVRecordWriter(PartialWriter);
-    PRSells.AddTradingSession(0, 0, 0, 5);
+    PRSells.AddTradingSession(16, 30, 16, 35);
 
     return (INIT_SUCCEEDED);
 }

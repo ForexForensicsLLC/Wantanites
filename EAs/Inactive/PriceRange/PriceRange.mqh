@@ -25,8 +25,6 @@ public:
     int mBarCount;
     int mLastDay;
 
-    datetime mEntryCandleTime;
-
 public:
     PriceRange(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
@@ -100,6 +98,7 @@ void PriceRange::CheckSetSetup()
 
     if (Hour() == mTradingSessions[0].HourStart() && Minute() == mTradingSessions[0].MinuteStart())
     {
+        Print("Setup");
         mHasSetup = true;
     }
 }
@@ -124,6 +123,7 @@ void PriceRange::PlaceOrders()
     MqlTick currentTick;
     if (!SymbolInfoTick(Symbol(), currentTick))
     {
+        Print("no tick");
         RecordError(GetLastError());
         return;
     }
@@ -142,6 +142,7 @@ void PriceRange::PlaceOrders()
         stopLoss = currentTick.bid;
     }
 
+    Print("Placing Orders");
     EAHelper::PlaceStopOrder<PriceRange>(this, entry, stopLoss);
     InvalidateSetup(false);
 }
@@ -153,8 +154,7 @@ void PriceRange::ManageCurrentPendingSetupTicket()
         return;
     }
 
-    int orderPlaceIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mCurrentSetupTicket.OpenTime());
-    if (orderPlaceIndex >= 1)
+    if (Day() != mLastDay)
     {
         InvalidateSetup(true);
     }
