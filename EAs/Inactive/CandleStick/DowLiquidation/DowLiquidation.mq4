@@ -49,8 +49,8 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    DLBuys = new DowLiquidation(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                ExitWriter, ErrorWriter);
+    DLBuys = new DowLiquidation(MagicNumbers::DowMorningCandleLiquidationBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
     DLBuys.SetPartialCSVRecordWriter(PartialWriter);
 
@@ -62,8 +62,8 @@ int OnInit()
 
     DLBuys.AddTradingSession(16, 30, 16, 35);
 
-    DLSells = new DowLiquidation(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                 ExitWriter, ErrorWriter);
+    DLSells = new DowLiquidation(MagicNumbers::DowMorningCandleLiquidationSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                 RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
     DLSells.SetPartialCSVRecordWriter(PartialWriter);
 
     DLSells.mMinWickLength = MinWickLength;

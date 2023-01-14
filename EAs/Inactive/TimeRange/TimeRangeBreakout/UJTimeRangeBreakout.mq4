@@ -48,8 +48,8 @@ int OnInit()
     }
 
     TRB = new TimeRangeBreakout(0, 0, 2, 0);
-    TRBBuys = new StartOfDayTimeRangeBreakout(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                              ExitWriter, ErrorWriter, TRB);
+    TRBBuys = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                              RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
 
     TRBBuys.SetPartialCSVRecordWriter(PartialWriter);
 
@@ -58,8 +58,8 @@ int OnInit()
 
     TRBBuys.AddTradingSession(2, 0, 22, 59);
 
-    TRBSells = new StartOfDayTimeRangeBreakout(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                               ExitWriter, ErrorWriter, TRB);
+    TRBSells = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
+                                               MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
     TRBSells.SetPartialCSVRecordWriter(PartialWriter);
 
     TRBSells.mCloseHour = CloseHour;

@@ -50,8 +50,8 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    NMBBuys = new NasMorningBreak(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                  ExitWriter, ErrorWriter);
+    NMBBuys = new NasMorningBreak(MagicNumbers::NasMorningFractalBreakBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                  RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
     NMBBuys.SetPartialCSVRecordWriter(PartialWriter);
 
@@ -64,8 +64,8 @@ int OnInit()
 
     NMBBuys.AddTradingSession(16, 30, 16, 40);
 
-    NMBSells = new NasMorningBreak(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                   ExitWriter, ErrorWriter);
+    NMBSells = new NasMorningBreak(MagicNumbers::NasMorningFractalBreakSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                   RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
     NMBSells.SetPartialCSVRecordWriter(PartialWriter);
 
     NMBSells.mCloseHour = CloseHour;

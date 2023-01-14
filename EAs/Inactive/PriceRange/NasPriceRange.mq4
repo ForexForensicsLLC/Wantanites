@@ -47,8 +47,8 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    PRBuys = new PriceRange(-3, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                            ExitWriter, ErrorWriter);
+    PRBuys = new PriceRange(MagicNumbers::NasMorningPriceRangeBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
+                            EntryWriter, ExitWriter, ErrorWriter);
 
     PRBuys.mCloseHour = CloseHour;
     PRBuys.mCloseMinute = CloseMinute;
@@ -57,8 +57,8 @@ int OnInit()
     PRBuys.SetPartialCSVRecordWriter(PartialWriter);
     PRBuys.AddTradingSession(16, 30, 16, 35);
 
-    PRSells = new PriceRange(-4, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                             ExitWriter, ErrorWriter);
+    PRSells = new PriceRange(MagicNumbers::NasMorningPriceRangeSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
+                             EntryWriter, ExitWriter, ErrorWriter);
 
     PRSells.mCloseHour = CloseHour;
     PRSells.mCloseMinute = CloseMinute;
