@@ -195,7 +195,7 @@ public:
     static void PostPlaceOrderChecks(TEA &ea, int ticketNumber, int error);
 
     template <typename TEA>
-    static void PlaceMarketOrder(TEA &ea, double entry, double stopLoss, double lot, int type);
+    static void PlaceMarketOrder(TEA &ea, double entry, double stopLoss, double lot, int type, double takeProfit);
     template <typename TEA>
     static void PlaceStopOrder(TEA &ea, double entry, double stopLoss, double lots, bool fallbackMarketOrder, double maxMarketOrderSlippage);
 
@@ -1838,7 +1838,7 @@ static void EAHelper::PostPlaceOrderChecks(TEA &ea, int ticketNumber, int error)
 }
 
 template <typename TEA>
-static void EAHelper::PlaceMarketOrder(TEA &ea, double entry, double stopLoss, double lotSize = 0.0, int type = -1)
+static void EAHelper::PlaceMarketOrder(TEA &ea, double entry, double stopLoss, double lotSize = 0.0, int type = -1, double takeProfit = 0.0)
 {
     ea.mLastState = EAStates::PLACING_ORDER;
 
@@ -1854,7 +1854,7 @@ static void EAHelper::PlaceMarketOrder(TEA &ea, double entry, double stopLoss, d
     }
 
     int ticket = EMPTY;
-    int orderPlaceError = OrderHelper::PlaceMarketOrder(orderType, lotSize, entry, stopLoss, 0, ea.MagicNumber(), ticket);
+    int orderPlaceError = OrderHelper::PlaceMarketOrder(orderType, lotSize, entry, stopLoss, takeProfit, ea.MagicNumber(), ticket);
 
     PostPlaceOrderChecks<TEA>(ea, ticket, orderPlaceError);
 }
@@ -1867,7 +1867,6 @@ static void EAHelper::PlaceStopOrder(TEA &ea, double entry, double stopLoss, dou
     MqlTick currentTick;
     if (!SymbolInfoTick(Symbol(), currentTick))
     {
-        Print("no tick");
         ea.RecordError(GetLastError());
         return;
     }
@@ -1889,7 +1888,6 @@ static void EAHelper::PlaceStopOrder(TEA &ea, double entry, double stopLoss, dou
         }
         else if (entry > currentTick.ask)
         {
-            Print("Placing Buy Stop");
             orderPlaceError = OrderHelper::PlaceStopOrder(stopType, lots, entry, stopLoss, 0, ea.MagicNumber(), ticket);
         }
     }
@@ -1901,7 +1899,6 @@ static void EAHelper::PlaceStopOrder(TEA &ea, double entry, double stopLoss, dou
         }
         else if (entry < currentTick.bid)
         {
-            Print("Placeing Sell Stop");
             orderPlaceError = OrderHelper::PlaceStopOrder(stopType, lots, entry, stopLoss, 0, ea.MagicNumber(), ticket);
         }
     }

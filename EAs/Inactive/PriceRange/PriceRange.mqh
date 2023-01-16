@@ -66,6 +66,7 @@ PriceRange::PriceRange(int magicNumber, int setupType, int maxCurrentSetupTrades
     mEntryTimeFrame = Period();
 
     mBarCount = 0;
+    mLastDay = Day();
 
     EAHelper::FindSetPreviousAndCurrentSetupTickets<PriceRange>(this);
     EAHelper::UpdatePreviousSetupTicketsRRAcquried<PriceRange, PartialTradeRecord>(this);
@@ -98,7 +99,6 @@ void PriceRange::CheckSetSetup()
 
     if (Hour() == mTradingSessions[0].HourStart() && Minute() == mTradingSessions[0].MinuteStart())
     {
-        Print("Setup");
         mHasSetup = true;
     }
 }
@@ -123,7 +123,6 @@ void PriceRange::PlaceOrders()
     MqlTick currentTick;
     if (!SymbolInfoTick(Symbol(), currentTick))
     {
-        Print("no tick");
         RecordError(GetLastError());
         return;
     }
@@ -142,7 +141,6 @@ void PriceRange::PlaceOrders()
         stopLoss = currentTick.bid;
     }
 
-    Print("Placing Orders");
     EAHelper::PlaceStopOrder<PriceRange>(this, entry, stopLoss);
     InvalidateSetup(false);
 }

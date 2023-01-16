@@ -78,6 +78,7 @@ int TimeGridTracker::CurrentLevel()
 
     if (mBasePrice == 0.0)
     {
+        Print("Base Price is 0.0");
         return 0;
     }
 
@@ -115,6 +116,7 @@ double TimeGridTracker::LevelPrice(int level)
 
     if (mBasePrice == 0.0)
     {
+        Print("Base Price is 0.0");
         return 0.0;
     }
 
@@ -150,11 +152,6 @@ void TimeGridTracker::Calculate(int barIndex)
             mBasePrice = iOpen(Symbol(), Period(), 0);
         }
     }
-
-    // if (mBasePrice == 0.0 && iTime(Symbol(), Period(), 0) >= mStartTime)
-    // {
-    //     mBasePrice = iOpen(Symbol(), Period(), 0);
-    // }
 }
 
 void TimeGridTracker::Reset()

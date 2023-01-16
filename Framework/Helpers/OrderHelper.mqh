@@ -719,7 +719,6 @@ int OrderHelper::PlaceStopOrder(int orderType, double lots, double entryPrice, d
     lots = CleanLotSize(lots);
 
     int error = ERR_NO_ERROR;
-    Print("Sending Order");
     int ticketNumber = OrderSend(NULL, orderType, lots, entryPrice, 0, stopLoss, takeProfit, NULL, magicNumber, 0, clrNONE);
 
     if (ticketNumber < 0)
