@@ -19,7 +19,6 @@ public:
     ~List();
 
     T operator[](int index) { return mItems[index]; }
-    // void operator=(T &items[]);
 
     // adds an item to the end of the list
     void Add(T item);
@@ -32,6 +31,10 @@ public:
 
     // returns true if the item is in the list
     bool Contains(T item);
+
+    int IndexOf(T item);
+
+    void RemoveByIndex(int index);
 
     // removes all items from the list and re sizes to 0
     void Clear();
@@ -80,6 +83,33 @@ bool List::Contains(T item)
     }
 
     return false;
+}
+
+template <typename T>
+int List::IndexOf(T item)
+{
+    for (int i = 0; i < Size(); i++)
+    {
+        if (mItems[i] == item)
+        {
+            return i;
+        }
+    }
+
+    return EMPTY;
+}
+
+template <typename T>
+void List::RemoveByIndex(int index)
+{
+    T tempItems[];
+    ArrayResize(tempItems, Size() - 1);
+
+    ArrayCopy(tempItems, mItems, 0, 0, index); // don't add or subtrace since this is count not index
+    ArrayCopy(tempItems, mItems, index, index + 1, Size() - index);
+
+    ArrayResize(mItems, Size() - 1);
+    ArrayCopy(mItems, tempItems);
 }
 
 template <typename T>

@@ -38,6 +38,7 @@ TimeGridMultiplier *TGMSells;
 
 // EU
 double LotSize = 0.1;
+double MaxEquityDrawDown = 10;
 double MaxLevels = 10;
 double LevelPips = 5;
 double MaxSpreadPips = 0.8;
@@ -62,6 +63,7 @@ int OnInit()
                                      ExitWriter, ErrorWriter, TGTBuys);
 
     TGMBuys.mLotSize = LotSize;
+    TGMBuys.mMaxEquityDrawDown = MaxEquityDrawDown;
     TGMBuys.SetPartialCSVRecordWriter(PartialWriter);
     TGMBuys.AddTradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
 
@@ -69,6 +71,7 @@ int OnInit()
                                       ExitWriter, ErrorWriter, TGTSells);
 
     TGMSells.mLotSize = LotSize;
+    TGMSells.mMaxEquityDrawDown = MaxEquityDrawDown;
     TGMSells.SetPartialCSVRecordWriter(PartialWriter);
     TGMSells.AddTradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
 

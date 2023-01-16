@@ -261,6 +261,9 @@ public:
     template <typename TEA>
     static bool CloseTicketIfPastTime(TEA &ea, Ticket &ticket, int hour, int minute, bool fallbackCloseAtNewDay);
 
+    template <typename TEA>
+    static double GetTotalPreviousSetupTicketsEquityPercentChange(TEA &ea, double startingEquity);
+
     // =========================================================================
     // Checking Tickets
     // =========================================================================
@@ -2677,6 +2680,27 @@ static bool EAHelper::CloseTicketIfPastTime(TEA &ea, Ticket &ticket, int hour, i
     }
 
     return false;
+}
+
+template <typename TEA>
+static double EAHelper::GetTotalPreviousSetupTicketsEquityPercentChange(TEA &ea, double startingEquity)
+{
+    double equity = 0.0;
+    for (int i = 0; i < ea.mPreviousSetupTickets.Size(); i++)
+    {
+        int selectError = ea.mPreviousSetupTickets[i].SelectIfOpen("Getting Profit");
+        if (TerminalError::IsTerminalError(selectError))
+        {
+            ea.RecordError(selectError);
+            continue;
+        }
+        else
+        {
+            equity += OrderProfit();
+        }
+    }
+
+    return (equity - startingEquity) / equity * 100;
 }
 /*
 

@@ -12,20 +12,26 @@
 #include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 #include <SummitCapital\Framework\Objects\TimeGridTracker.mqh>
+#include <SummitCapital\Framework\Objects\Dictionary.mqh>
 
 class TimeGridMultiplier : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     TimeGridTracker *mTGT;
+    Dictionary<int, int> *mLevelsWithTickets;
 
     int mEntryTimeFrame;
     string mEntrySymbol;
 
     double mLotSize;
+    double mMaxEquityDrawDown;
 
     int mBarCount;
     int mLastDay;
-    int mFurthestAchievedLevel;
+
+    double mStartingEquity;
+    int mPreviousAchievedLevel;
+    bool mCloseAllTickets;
 
 public:
     TimeGridMultiplier(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
@@ -61,15 +67,20 @@ TimeGridMultiplier::TimeGridMultiplier(int magicNumber, int setupType, int maxCu
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mTGT = tgt;
+    mLevelsWithTickets = new Dictionary<int, int>();
 
     mEntrySymbol = Symbol();
     mEntryTimeFrame = Period();
 
     mLotSize = 0.0;
+    mMaxEquityDrawDown = 0.0;
 
     mBarCount = 0;
     mLastDay = Day();
-    mFurthestAchievedLevel = 0;
+
+    mStartingEquity = 0;
+    mPreviousAchievedLevel = 0;
+    mCloseAllTickets = false;
 
     EAHelper::FindSetPreviousAndCurrentSetupTickets<TimeGridMultiplier>(this);
     EAHelper::UpdatePreviousSetupTicketsRRAcquried<TimeGridMultiplier, PartialTradeRecord>(this);
@@ -96,42 +107,39 @@ bool TimeGridMultiplier::AllowedToTrade()
 
 void TimeGridMultiplier::CheckSetSetup()
 {
-    if (mSetupType == OP_BUY)
-    {
-    }
-    else if (mSetupType == OP_SELL)
-    {
-    }
-
-    // reached a new level that we haven't been at before
-    if (mTGT.CurrentLevel() <= 1 &&
-        mTGT.CurrentLevel() > -6 &&
-        mTGT.CurrentLevel() < mFurthestAchievedLevel)
-    {
-        mHasSetup = true;
-        mFurthestAchievedLevel = mTGT.CurrentLevel();
-    }
+    mHasSetup = true;
 }
 
 void TimeGridMultiplier::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
-    // if (mLastDay != Day() || mTGT.CurrentLevel() >= 1)
-    // {
-    //     InvalidateSetup(true);
-    //     mFurthestAchievedLevel = 0; // move this here so that we dont' reset it when we invalidate after placing an order
-    // }
+    if (mLastDay != Day())
+    {
+        InvalidateSetup(true);
+    }
 }
 
 void TimeGridMultiplier::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
     EAHelper::InvalidateSetup<TimeGridMultiplier>(this, deletePendingOrder, mStopTrading, error);
+
+    mPreviousAchievedLevel = 0;
+    mStartingEquity = 0;
+    mCloseAllTickets = false;
+    mLevelsWithTickets.Clear();
 }
 
 bool TimeGridMultiplier::Confirmation()
 {
-    return true;
+    // this is where we would want to add any rules on levels to add such as max opposite levels, don't start opposite level until x level, etc.
+    if (mTGT.CurrentLevel() != mPreviousAchievedLevel && !mLevelsWithTickets.HasKey(mTGT.CurrentLevel()))
+    {
+        mPreviousAchievedLevel = mTGT.CurrentLevel();
+        return true;
+    }
+
+    return false;
 }
 
 void TimeGridMultiplier::PlaceOrders()
@@ -145,19 +153,29 @@ void TimeGridMultiplier::PlaceOrders()
 
     double entry = 0.0;
     double stopLoss = 0.0;
+    double takeProfit = 0.0;
 
     if (mSetupType == OP_BUY)
     {
         entry = currentTick.ask;
+        takeProfit = mTGT.LevelPrice(mTGT.CurrentLevel() + 1);
     }
     else if (mSetupType == OP_SELL)
     {
         entry = currentTick.bid;
-        stopLoss = mTGT.LevelPrice(mTGT.CurrentLevel() + 1);
+        takeProfit = mTGT.LevelPrice(mTGT.CurrentLevel() - 1);
     }
 
-    EAHelper::PlaceMarketOrder<TimeGridMultiplier>(this, entry, stopLoss, mLotSize);
-    InvalidateSetup(false);
+    if (mPreviousSetupTickets.Size() == 0)
+    {
+        mStartingEquity = AccountBalance();
+    }
+
+    EAHelper::PlaceMarketOrder<TimeGridMultiplier>(this, entry, stopLoss, mLotSize, mSetupType, takeProfit);
+    if (mCurrentSetupTicket.Number() != EMPTY)
+    {
+        mLevelsWithTickets.Add(mTGT.CurrentLevel(), mCurrentSetupTicket.Number());
+    }
 }
 
 void TimeGridMultiplier::ManageCurrentPendingSetupTicket()
@@ -175,28 +193,16 @@ bool TimeGridMultiplier::MoveToPreviousSetupTickets(Ticket &ticket)
 
 void TimeGridMultiplier::ManagePreviousSetupTicket(int ticketIndex)
 {
-    // no matter what close if we've hit the 6th level
-    if (mTGT.CurrentLevel() == -6)
+    if (mCloseAllTickets)
     {
-        mPreviousSetupTickets[0].Close();
+        mPreviousSetupTickets[ticketIndex].Close();
         return;
     }
 
-    if (mSetupType == OP_BUY)
+    double equityPercentChange = EAHelper::GetTotalPreviousSetupTicketsEquityPercentChange<TimeGridMultiplier>(this, mStartingEquity);
+    if (equityPercentChange <= mMaxEquityDrawDown)
     {
-        // close all buys that we've accumulated once we retrace into the positive levels
-        if (mTGT.CurrentLevel() == 1)
-        {
-            mPreviousSetupTickets[ticketIndex].Close();
-        }
-    }
-    else if (mSetupType == OP_SELL)
-    {
-        // should close the previous ticket after we've entered a new one
-        if (mPreviousSetupTickets.Size() >= 2)
-        {
-            mPreviousSetupTickets[0].Close();
-        }
+        mCloseAllTickets = true;
     }
 }
 
@@ -208,6 +214,13 @@ void TimeGridMultiplier::CheckCurrentSetupTicket()
 
 void TimeGridMultiplier::CheckPreviousSetupTicket(int ticketIndex)
 {
+    bool isClosed = false;
+    mPreviousSetupTickets[ticketIndex].IsClosed(isClosed);
+    if (isClosed)
+    {
+        mLevelsWithTickets.RemoveByValue(mPreviousSetupTickets.Number());
+    }
+
     EAHelper::CheckUpdateHowFarPriceRanFromOpen<TimeGridMultiplier>(this, mPreviousSetupTickets[ticketIndex]);
     EAHelper::CheckPreviousSetupTicket<TimeGridMultiplier>(this, ticketIndex);
 }
@@ -234,4 +247,5 @@ void TimeGridMultiplier::RecordError(int error, string additionalInformation = "
 
 void TimeGridMultiplier::Reset()
 {
+    InvalidateSetup(false);
 }
