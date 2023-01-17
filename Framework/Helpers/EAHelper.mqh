@@ -1832,6 +1832,7 @@ static void EAHelper::PostPlaceOrderChecks(TEA &ea, int ticketNumber, int error)
 {
     if (ticketNumber == EMPTY)
     {
+        Print("Empty Ticket. Error: ", error);
         ea.InvalidateSetup(false, error);
         return;
     }
@@ -1871,6 +1872,7 @@ static void EAHelper::PlaceStopOrder(TEA &ea, double entry, double stopLoss, dou
     if (!SymbolInfoTick(Symbol(), currentTick))
     {
         ea.RecordError(GetLastError());
+        Print("No Tick");
         return;
     }
 
@@ -1887,10 +1889,12 @@ static void EAHelper::PlaceStopOrder(TEA &ea, double entry, double stopLoss, dou
     {
         if (fallbackMarketOrder && entry <= currentTick.ask && currentTick.ask - entry <= OrderHelper::PipsToRange(maxMarketOrderSlippage))
         {
+            Print("Placing buy market order");
             orderPlaceError = OrderHelper::PlaceMarketOrder(ea.mSetupType, lots, currentTick.ask, stopLoss, 0, ea.MagicNumber(), ticket);
         }
         else if (entry > currentTick.ask)
         {
+            Print("Placing buy stop order");
             orderPlaceError = OrderHelper::PlaceStopOrder(stopType, lots, entry, stopLoss, 0, ea.MagicNumber(), ticket);
         }
     }
@@ -1898,10 +1902,12 @@ static void EAHelper::PlaceStopOrder(TEA &ea, double entry, double stopLoss, dou
     {
         if (fallbackMarketOrder && entry >= currentTick.bid && entry - currentTick.bid <= OrderHelper::PipsToRange(maxMarketOrderSlippage))
         {
+            Print("Placing sell market order");
             orderPlaceError = OrderHelper::PlaceMarketOrder(ea.mSetupType, lots, currentTick.bid, stopLoss, 0, ea.MagicNumber(), ticket);
         }
         else if (entry < currentTick.bid)
         {
+            Print("Placing sell stop order");
             orderPlaceError = OrderHelper::PlaceStopOrder(stopType, lots, entry, stopLoss, 0, ea.MagicNumber(), ticket);
         }
     }
@@ -2685,22 +2691,23 @@ static bool EAHelper::CloseTicketIfPastTime(TEA &ea, Ticket &ticket, int hour, i
 template <typename TEA>
 static double EAHelper::GetTotalPreviousSetupTicketsEquityPercentChange(TEA &ea, double startingEquity)
 {
-    double equity = 0.0;
+    double profits = 0.0;
     for (int i = 0; i < ea.mPreviousSetupTickets.Size(); i++)
     {
         int selectError = ea.mPreviousSetupTickets[i].SelectIfOpen("Getting Profit");
-        if (TerminalError::IsTerminalError(selectError))
+        if (TerminalErrors::IsTerminalError(selectError))
         {
             ea.RecordError(selectError);
             continue;
         }
         else
         {
-            equity += OrderProfit();
+            profits += OrderProfit();
         }
     }
 
-    return (equity - startingEquity) / equity * 100;
+    double currentEquity = AccountBalance() + profits;
+    return (currentEquity - startingEquity) / currentEquity * 100;
 }
 /*
 

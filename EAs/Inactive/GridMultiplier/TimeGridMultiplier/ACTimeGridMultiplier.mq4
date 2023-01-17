@@ -12,7 +12,7 @@
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
 #include <SummitCapital/EAs/Inactive/GridMultiplier/TimeGridMultiplier/TimeGridMultiplier.mqh>
 
-string ForcedSymbol = "EURUSD";
+string ForcedSymbol = "AUDCAD";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
@@ -21,7 +21,7 @@ int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
 string StrategyName = "GridMultiplier/";
-string EAName = "EU/";
+string EAName = "AC/";
 string SetupTypeName = "TimeGridMultiplier/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
@@ -36,17 +36,17 @@ TimeGridTracker *TGTSells;
 TimeGridMultiplier *TGMBuys;
 TimeGridMultiplier *TGMSells;
 
-// EU
+// AC
 double LotSize = 0.1;
 double MaxEquityDrawDown = -10;
-double MaxLevels = 4;
-double LevelPips = 5;
-double MaxSpreadPips = 0.8;
+double MaxLevels = 15;
+double LevelPips = 3;
+double MaxSpreadPips = 1.5;
 double StopLossPaddingPips = 0;
 
-int HourStart = 11;
+int HourStart = 10;
 int MinuteStart = 0;
-int HourEnd = 20;
+int HourEnd = 14;
 int MinuteEnd = 0;
 
 int OnInit()

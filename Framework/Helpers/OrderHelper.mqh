@@ -549,17 +549,20 @@ static int OrderHelper::PlaceMarketOrder(int orderType, double lots, double entr
 {
     if (orderType >= 2)
     {
+        Print("Wrong order type");
         return TerminalErrors::WRONG_ORDER_TYPE;
     }
 
     lots = CleanLotSize(lots);
 
+    Print("sending ticket");
     int newTicket = OrderSend(Symbol(), orderType, lots, entry, 0, stopLoss, takeProfit, NULL, magicNumber, 0, clrNONE);
 
     int error = ERR_NO_ERROR;
     if (newTicket == EMPTY)
     {
         error = GetLastError();
+        Print("Empty Ticket. Error, ", error);
         SendFailedOrderEMail(1, orderType, entry, stopLoss, lots, magicNumber, error);
     }
 
@@ -724,6 +727,7 @@ int OrderHelper::PlaceStopOrder(int orderType, double lots, double entryPrice, d
     if (ticketNumber < 0)
     {
         error = GetLastError();
+        Print("Empty Ticket. Error: ", error);
         SendFailedOrderEMail(1, orderType, entryPrice, stopLoss, lots, magicNumber, error);
     }
 

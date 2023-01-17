@@ -28,7 +28,7 @@ private:
     datetime mStartTime;
     datetime mEndTime;
 
-    int mMaxLevels;
+    int mMaxLevel;
     double mLevelDistance;
 
     int mCurrentLevel;
@@ -37,18 +37,22 @@ private:
 
     void Update();
     void Calculate(int barIndex);
-    void Reset();
 
 public:
-    TimeGridTracker(int hourStart, int minuteStart, int hourEnd, int minuteEnd, int maxLevels, double levelPips);
+    TimeGridTracker(int hourStart, int minuteStart, int hourEnd, int minuteEnd, int maxLevel, double levelPips);
     ~TimeGridTracker();
 
     int CurrentLevel();
     double LevelPrice(int level);
+
+    int MaxLevel() { return mMaxLevel; }
+    bool AtMaxLevel() { return MathAbs(CurrentLevel()) >= mMaxLevel; }
+
+    void Reset();
     void Draw();
 };
 
-TimeGridTracker::TimeGridTracker(int hourStart, int minuteStart, int hourEnd, int minuteEnd, int maxLevels, double levelPips)
+TimeGridTracker::TimeGridTracker(int hourStart, int minuteStart, int hourEnd, int minuteEnd, int maxLevel, double levelPips)
 {
     mObjectNamePrefix = "TimeGrid";
 
@@ -60,7 +64,7 @@ TimeGridTracker::TimeGridTracker(int hourStart, int minuteStart, int hourEnd, in
     mHourEnd = hourEnd;
     mMinuteEnd = minuteEnd;
 
-    mMaxLevels = maxLevels;
+    mMaxLevel = maxLevel;
     mLevelDistance = OrderHelper::PipsToRange(levelPips);
 
     Reset();
@@ -98,13 +102,13 @@ int TimeGridTracker::CurrentLevel()
         mCurrentLevel -= 1;
     }
 
-    if (mCurrentLevel > mMaxLevels)
+    if (mCurrentLevel > mMaxLevel)
     {
-        return mMaxLevels;
+        return mMaxLevel;
     }
-    else if (mCurrentLevel < -mMaxLevels)
+    else if (mCurrentLevel < -mMaxLevel)
     {
-        return -mMaxLevels;
+        return -mMaxLevel;
     }
 
     return mCurrentLevel;
@@ -146,8 +150,10 @@ void TimeGridTracker::Calculate(int barIndex)
 
     if (mBasePrice == 0.0)
     {
-        int startIndex = iBarShift(Symbol(), Period(), mStartTime);
-        if (startIndex == 0)
+        datetime currentTime = iTime(Symbol(), Period(), 0);
+
+        // do this instead of checking if the indx of our mStarTime == 0 since that returns true for all values before the starting time
+        if (TimeHour(mStartTime) == TimeHour(currentTime) && TimeMinute(mStartTime) == TimeMinute(currentTime))
         {
             mBasePrice = iOpen(Symbol(), Period(), 0);
         }
@@ -168,6 +174,8 @@ void TimeGridTracker::Reset()
 
 void TimeGridTracker::Draw()
 {
+    Update();
+
     if (mDrawn || mBasePrice == 0)
     {
         return;
@@ -175,7 +183,7 @@ void TimeGridTracker::Draw()
 
     double linePriceUpper = 0.0;
     double linePriceLower = 0.0;
-    for (int i = 1; i <= mMaxLevels; i++)
+    for (int i = 1; i <= mMaxLevel; i++)
     {
         linePriceUpper = mBasePrice + (mLevelDistance * i);
         linePriceLower = mBasePrice - (mLevelDistance * i);
