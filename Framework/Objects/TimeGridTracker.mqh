@@ -8,17 +8,16 @@
 #property version "1.00"
 #property strict
 
+#include <SummitCapital\Framework\Objects\GridTracker.mqh>
+
 #include <SummitCapital\Framework\Helpers\DateTimeHelper.mqh>
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
 
-class TimeGridTracker
+class TimeGridTracker : public GridTracker
 {
 private:
-    string mObjectNamePrefix;
-
     int mBarsCalculated;
     int mLastDay;
-    bool mDrawn;
 
     int mHourStart;
     int mMinuteStart;
@@ -28,13 +27,6 @@ private:
     datetime mStartTime;
     datetime mEndTime;
 
-    int mMaxLevel;
-    double mLevelDistance;
-
-    int mCurrentLevel;
-
-    double mBasePrice;
-
     void Update();
     void Calculate(int barIndex);
 
@@ -42,17 +34,10 @@ public:
     TimeGridTracker(int hourStart, int minuteStart, int hourEnd, int minuteEnd, int maxLevel, double levelPips);
     ~TimeGridTracker();
 
-    int CurrentLevel();
-    double LevelPrice(int level);
-
-    int MaxLevel() { return mMaxLevel; }
-    bool AtMaxLevel() { return MathAbs(CurrentLevel()) >= mMaxLevel; }
-
-    void Reset();
-    void Draw();
+    virtual void Reset();
 };
 
-TimeGridTracker::TimeGridTracker(int hourStart, int minuteStart, int hourEnd, int minuteEnd, int maxLevel, double levelPips)
+TimeGridTracker::TimeGridTracker(int hourStart, int minuteStart, int hourEnd, int minuteEnd, int maxLevel, double levelPips) : GridTracker(maxLevel, levelPips)
 {
     mObjectNamePrefix = "TimeGrid";
 
@@ -64,67 +49,12 @@ TimeGridTracker::TimeGridTracker(int hourStart, int minuteStart, int hourEnd, in
     mHourEnd = hourEnd;
     mMinuteEnd = minuteEnd;
 
-    mMaxLevel = maxLevel;
-    mLevelDistance = OrderHelper::PipsToRange(levelPips);
-
     Reset();
     Update();
 }
 
 TimeGridTracker::~TimeGridTracker()
 {
-    ObjectsDeleteAll(ChartID(), "TimeGridTracker");
-}
-
-int TimeGridTracker::CurrentLevel()
-{
-    Update();
-
-    if (mBasePrice == 0.0)
-    {
-        Print("Base Price is 0.0");
-        return 0;
-    }
-
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
-    {
-        return 0;
-    }
-
-    double currentPlace = (currentTick.bid - mBasePrice) / mLevelDistance;
-    if (currentPlace >= mCurrentLevel + 1)
-    {
-        mCurrentLevel += 1;
-    }
-    else if (currentPlace <= mCurrentLevel - 1)
-    {
-        mCurrentLevel -= 1;
-    }
-
-    if (mCurrentLevel > mMaxLevel)
-    {
-        return mMaxLevel;
-    }
-    else if (mCurrentLevel < -mMaxLevel)
-    {
-        return -mMaxLevel;
-    }
-
-    return mCurrentLevel;
-}
-
-double TimeGridTracker::LevelPrice(int level)
-{
-    Update();
-
-    if (mBasePrice == 0.0)
-    {
-        Print("Base Price is 0.0");
-        return 0.0;
-    }
-
-    return mBasePrice + (mLevelDistance * level);
 }
 
 void TimeGridTracker::Update()
@@ -165,32 +95,5 @@ void TimeGridTracker::Reset()
     mStartTime = DateTimeHelper::HourMinuteToDateTime(mHourStart, mMinuteStart);
     mEndTime = DateTimeHelper::HourMinuteToDateTime(mHourEnd, mMinuteEnd);
 
-    mBasePrice = 0.0;
-    mCurrentLevel = 0;
-
-    ObjectsDeleteAll(ChartID(), mObjectNamePrefix);
-    mDrawn = false;
-}
-
-void TimeGridTracker::Draw()
-{
-    Update();
-
-    if (mDrawn || mBasePrice == 0)
-    {
-        return;
-    }
-
-    double linePriceUpper = 0.0;
-    double linePriceLower = 0.0;
-    for (int i = 1; i <= mMaxLevel; i++)
-    {
-        linePriceUpper = mBasePrice + (mLevelDistance * i);
-        linePriceLower = mBasePrice - (mLevelDistance * i);
-
-        ObjectCreate(NULL, mObjectNamePrefix + IntegerToString(i), OBJ_TREND, 0, mStartTime, linePriceUpper, mEndTime, linePriceUpper);
-        ObjectCreate(NULL, mObjectNamePrefix + IntegerToString(-i), OBJ_TREND, 0, mStartTime, linePriceLower, mEndTime, linePriceLower);
-    }
-
-    mDrawn = true;
+    GridTracker::Reset();
 }

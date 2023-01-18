@@ -37,7 +37,7 @@ PriceRange *PRSells;
 int CloseHour = 19;
 int CloseMinute = 0;
 double PipsFromOpen = 250;
-double MaxSpreadPips = 10;
+double MaxSpreadPips = 25;
 double StopLossPaddingPips = 0;
 
 int OnInit()
