@@ -1832,7 +1832,6 @@ static void EAHelper::PostPlaceOrderChecks(TEA &ea, int ticketNumber, int error)
 {
     if (ticketNumber == EMPTY)
     {
-        Print("Empty Ticket. Error: ", error);
         ea.InvalidateSetup(false, error);
         return;
     }
@@ -1872,7 +1871,6 @@ static void EAHelper::PlaceStopOrder(TEA &ea, double entry, double stopLoss, dou
     if (!SymbolInfoTick(Symbol(), currentTick))
     {
         ea.RecordError(GetLastError());
-        Print("No Tick");
         return;
     }
 
@@ -1889,12 +1887,10 @@ static void EAHelper::PlaceStopOrder(TEA &ea, double entry, double stopLoss, dou
     {
         if (fallbackMarketOrder && entry <= currentTick.ask && currentTick.ask - entry <= OrderHelper::PipsToRange(maxMarketOrderSlippage))
         {
-            Print("Placing buy market order");
             orderPlaceError = OrderHelper::PlaceMarketOrder(ea.mSetupType, lots, currentTick.ask, stopLoss, 0, ea.MagicNumber(), ticket);
         }
         else if (entry > currentTick.ask)
         {
-            Print("Placing buy stop order");
             orderPlaceError = OrderHelper::PlaceStopOrder(stopType, lots, entry, stopLoss, 0, ea.MagicNumber(), ticket);
         }
     }
@@ -1902,12 +1898,10 @@ static void EAHelper::PlaceStopOrder(TEA &ea, double entry, double stopLoss, dou
     {
         if (fallbackMarketOrder && entry >= currentTick.bid && entry - currentTick.bid <= OrderHelper::PipsToRange(maxMarketOrderSlippage))
         {
-            Print("Placing sell market order");
             orderPlaceError = OrderHelper::PlaceMarketOrder(ea.mSetupType, lots, currentTick.bid, stopLoss, 0, ea.MagicNumber(), ticket);
         }
         else if (entry < currentTick.bid)
         {
-            Print("Placing sell stop order");
             orderPlaceError = OrderHelper::PlaceStopOrder(stopType, lots, entry, stopLoss, 0, ea.MagicNumber(), ticket);
         }
     }

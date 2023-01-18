@@ -87,38 +87,18 @@ void PriceRange::Run()
 
 bool PriceRange::AllowedToTrade()
 {
-    // bool allowedToTrade = EAHelper::BelowSpread<PriceRange>(this) && EAHelper::WithinTradingSession<PriceRange>(this);
-
-    if (!EAHelper::BelowSpread<PriceRange>(this))
-    {
-        Print("Above Spred. ", (MarketInfo(Symbol(), MODE_SPREAD) / 10));
-        return false;
-    }
-
-    if (!EAHelper::WithinTradingSession<PriceRange>(this))
-    {
-        Print("Not Within Session. ", iTime(mEntrySymbol, mEntryTimeFrame, 0));
-    }
-
-    return true;
+    return EAHelper::BelowSpread<PriceRange>(this) && EAHelper::WithinTradingSession<PriceRange>(this);
 }
 
 void PriceRange::CheckSetSetup()
 {
-    if (Hour() == mTradingSessions[0].HourStart() && Minute() == mTradingSessions[0].MinuteStart())
-    {
-        Print("Bars: ", iBars(mEntrySymbol, mEntryTimeFrame), ", Bar Count: ", mBarCount);
-    }
-
     if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
     {
         return;
     }
 
-    Print("Hour: ", Hour(), ", Hour Start: ", mTradingSessions[0].HourStart(), ", Minute: ", Minute(), ", Minute Start: ", mTradingSessions[0].MinuteStart());
     if (Hour() == mTradingSessions[0].HourStart() && Minute() == mTradingSessions[0].MinuteStart())
     {
-        Print("Setup");
         mHasSetup = true;
     }
 }
@@ -135,7 +115,6 @@ void PriceRange::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERR
 
 bool PriceRange::Confirmation()
 {
-    Print("Conf");
     return true;
 }
 
@@ -145,7 +124,6 @@ void PriceRange::PlaceOrders()
     if (!SymbolInfoTick(Symbol(), currentTick))
     {
         RecordError(GetLastError());
-        Print("No Tick");
         return;
     }
 
@@ -163,14 +141,7 @@ void PriceRange::PlaceOrders()
         stopLoss = currentTick.bid;
     }
 
-    Print("Sending Order");
     EAHelper::PlaceStopOrder<PriceRange>(this, entry, stopLoss);
-
-    if (mCurrentSetupTicket.Number() == EMPTY)
-    {
-        Print("Didn't place Order");
-    }
-
     InvalidateSetup(false);
 }
 
