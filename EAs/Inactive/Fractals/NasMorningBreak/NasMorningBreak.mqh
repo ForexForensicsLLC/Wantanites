@@ -58,6 +58,7 @@ public:
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
+    virtual bool ShouldReset();
     virtual void Reset();
 };
 
@@ -243,11 +244,6 @@ void NasMorningBreak::ManageCurrentPendingSetupTicket()
 
 void NasMorningBreak::ManageCurrentActiveSetupTicket()
 {
-    // if (EAHelper::CloseTicketIfPastTime<NasMorningBreak>(this, mCurrentSetupTicket, mCloseHour, mCloseMinute))
-    // {
-    //     return;
-    // }
-
     int openIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mCurrentSetupTicket.OpenTime());
     if (openIndex >= 1)
     {
@@ -264,7 +260,6 @@ bool NasMorningBreak::MoveToPreviousSetupTickets(Ticket &ticket)
 
 void NasMorningBreak::ManagePreviousSetupTicket(int ticketIndex)
 {
-    // EAHelper::CloseTicketIfPastTime<NasMorningBreak>(this, mPreviousSetupTickets[ticketIndex], mCloseHour, mCloseMinute);
     int openIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mPreviousSetupTickets[ticketIndex].OpenTime());
     if (openIndex >= 1)
     {
@@ -302,6 +297,11 @@ void NasMorningBreak::RecordTicketCloseData(Ticket &ticket)
 void NasMorningBreak::RecordError(int error, string additionalInformation = "")
 {
     EAHelper::RecordSingleTimeFrameErrorRecord<NasMorningBreak>(this, error, additionalInformation);
+}
+
+bool NasMorningBreak::ShouldReset()
+{
+    return !EAHelper::WithinTradingSession<NasMorningBreak>(this);
 }
 
 void NasMorningBreak::Reset()

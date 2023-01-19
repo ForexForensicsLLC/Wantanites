@@ -36,7 +36,7 @@ NasMorningBreak *NMBSells;
 // Nas
 int CloseHour = 20;
 int CloseMinute = 0;
-double MaxSpreadPips = 10;
+double MaxSpreadPips = 25;
 double EntryPaddingPips = 0;
 double MinStopLossPips = 250;
 double StopLossPaddingPips = 0;
