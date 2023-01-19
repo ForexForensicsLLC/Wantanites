@@ -127,7 +127,7 @@ public:
     static bool RunningBigDipperSetup(TEA &ea, datetime startTime);
 
     template <typename TEA>
-    static bool HasTimeRangeBreakout(TEA &ea);
+    static bool MostRecentCandleBrokeTimeRange(TEA &ea);
     template <typename TEA>
     static bool HasTimeRangeBreakoutReversal(TEA &ea);
 
@@ -615,14 +615,14 @@ static void EAHelper::Run(TEA &ea)
     ManagePreviousSetupTickets(ea);
     ea.CheckInvalidateSetup();
 
+    if (!ea.mWasReset && ea.ShouldReset())
+    {
+        ea.Reset();
+        ea.mWasReset = true;
+    }
+
     if (!ea.AllowedToTrade())
     {
-        if (!ea.mWasReset)
-        {
-            ea.Reset();
-            ea.mWasReset = true;
-        }
-
         return;
     }
 
@@ -1559,15 +1559,15 @@ static bool EAHelper::RunningBigDipperSetup(TEA &ea, datetime startTime)
 }
 
 template <typename TEA>
-static bool EAHelper::HasTimeRangeBreakout(TEA &ea)
+static bool EAHelper::MostRecentCandleBrokeTimeRange(TEA &ea)
 {
     if (ea.mSetupType == OP_BUY)
     {
-        return ea.mTRB.BrokeRangeHigh();
+        return ea.mTRB.MostRecentCandleBrokeRangeHigh();
     }
     else if (ea.mSetupType == OP_SELL)
     {
-        return ea.mTRB.BrokeRangeLow();
+        return ea.mTRB.MostRecentCandleBrokeRangeLow();
     }
 
     return false;

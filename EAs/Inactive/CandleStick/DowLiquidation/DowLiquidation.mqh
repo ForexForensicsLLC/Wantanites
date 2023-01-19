@@ -55,6 +55,7 @@ public:
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
+    virtual bool ShouldReset();
     virtual void Reset();
 };
 
@@ -239,6 +240,11 @@ void DowLiquidation::RecordTicketCloseData(Ticket &ticket)
 void DowLiquidation::RecordError(int error, string additionalInformation = "")
 {
     EAHelper::RecordSingleTimeFrameErrorRecord<DowLiquidation>(this, error, additionalInformation);
+}
+
+bool DowLiquidation::ShouldReset()
+{
+    return !EAHelper::WithinTradingSession<DowLiquidation>(this);
 }
 
 void DowLiquidation::Reset()

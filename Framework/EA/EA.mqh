@@ -73,6 +73,7 @@ public:
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber) = NULL;
     virtual void RecordTicketCloseData(Ticket &ticket) = NULL;
     virtual void RecordError(int error, string additionalInformation) = NULL;
+    virtual bool ShouldReset() = NULL;
     virtual void Reset() = NULL;
 
     void AddPartial(double rr, double percent);

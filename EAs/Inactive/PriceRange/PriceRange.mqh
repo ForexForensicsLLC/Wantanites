@@ -50,6 +50,7 @@ public:
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
+    virtual bool ShouldReset();
     virtual void Reset();
 };
 
@@ -205,6 +206,11 @@ void PriceRange::RecordTicketCloseData(Ticket &ticket)
 void PriceRange::RecordError(int error, string additionalInformation = "")
 {
     EAHelper::RecordSingleTimeFrameErrorRecord<PriceRange>(this, error, additionalInformation);
+}
+
+bool PriceRange::ShouldReset()
+{
+    return !EAHelper::WithinTradingSession<PriceRange>(this);
 }
 
 void PriceRange::Reset()
