@@ -35,7 +35,7 @@ DowLiquidation *DLSells;
 
 // Dow
 double MinWickLength = 200;
-double MaxSpreadPips = 18;
+double MaxSpreadPips = 25;
 double EntryPaddingPips = 0;
 double MinStopLossPips = 350;
 double StopLossPaddingPips = 5;
