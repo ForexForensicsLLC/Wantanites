@@ -10,10 +10,10 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/GridMultiplier/EMARSIGridMultiplier/EMARSIGridMultiplier.mqh>
+#include <SummitCapital/EAs/Inactive/GridMultiplier/EMATimeGridMultiplier/EMATimeGridMultiplier.mqh>
 
 string ForcedSymbol = "GBPCAD";
-int ForcedTimeFrame = 60;
+int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
 double RiskPercent = 0.2;
@@ -22,7 +22,7 @@ int MaxTradesPerDay = 5;
 
 string StrategyName = "GridMultiplier/";
 string EAName = "GC/";
-string SetupTypeName = "EMARSI/";
+string SetupTypeName = "EMATimeGrid/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -37,17 +37,17 @@ TimeGridMultiplier *TGMBuys;
 TimeGridMultiplier *TGMSells;
 
 // GJ
-double LotSize = 2.5;
-double MaxEquityDrawDown = -2;
-double MaxLevels = 10;
-double LevelPips = 12;
+double LotSize = 0.5;
+double MaxEquityDrawDown = -10;
+double MaxLevels = 20;
+double LevelPips = 10;
 double MaxSpreadPips = 2;
 double StopLossPaddingPips = 0;
 
-int HourStart = 0;
+int HourStart = 11;
 int MinuteStart = 0;
 int HourEnd = 23;
-int MinuteEnd = 59;
+int MinuteEnd = 0;
 
 int OnInit()
 {

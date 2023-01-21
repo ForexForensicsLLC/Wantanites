@@ -62,14 +62,12 @@ int GridTracker::CurrentLevel()
 {
     if (mBasePrice == 0.0)
     {
-        Print("No Base Price");
         return 0;
     }
 
     MqlTick currentTick;
     if (!SymbolInfoTick(Symbol(), currentTick))
     {
-        Print("Can't get tick");
         return 0;
     }
 

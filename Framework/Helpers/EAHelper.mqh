@@ -197,7 +197,9 @@ public:
     template <typename TEA>
     static void PlaceMarketOrder(TEA &ea, double entry, double stopLoss, double lot, int type, double takeProfit);
     template <typename TEA>
-    static void PlaceStopOrder(TEA &ea, double entry, double stopLoss, double lots, bool fallbackMarketOrder, double maxMarketOrderSlippage);
+    static void PlaceLimitOrder(TEA &ea, double entry, double stopLoss, double lots, bool fallbackMarketOrder, double maxMarketOrderSlippage, int type);
+    template <typename TEA>
+    static void PlaceStopOrder(TEA &ea, double entry, double stopLoss, double lots, bool fallbackMarketOrder, double maxMarketOrderSlippage, int type);
 
     template <typename TEA>
     static void PlaceStopOrderForPendingMBValidation(TEA &ea, MBTracker *&mbt, int mbNumber);
@@ -1863,7 +1865,8 @@ static void EAHelper::PlaceMarketOrder(TEA &ea, double entry, double stopLoss, d
 }
 
 template <typename TEA>
-static void EAHelper::PlaceStopOrder(TEA &ea, double entry, double stopLoss, double lots = 0.0, bool fallbackMarketOrder = false, double maxMarketOrderSlippage = 0.0)
+static void EAHelper::PlaceLimitOrder(TEA &ea, double entry, double stopLoss, double lots = 0.0, bool fallbackMarketOrder = false, double maxMarketOrderSlippage = 0.0,
+                                      int type = EMPTY)
 {
     ea.mLastState = EAStates::PLACING_ORDER;
 
@@ -1881,24 +1884,84 @@ static void EAHelper::PlaceStopOrder(TEA &ea, double entry, double stopLoss, dou
 
     int ticket = EMPTY;
     int orderPlaceError = ERR_NO_ERROR;
-    int stopType = ea.mSetupType + 4;
 
-    if (ea.mSetupType == OP_BUY)
+    if (type == EMPTY)
+    {
+        type = ea.mSetupType;
+    }
+
+    int limitType = type + 2;
+
+    if (type == OP_BUY)
+    {
+        if (fallbackMarketOrder && entry >= currentTick.ask && currentTick.ask - entry <= OrderHelper::PipsToRange(maxMarketOrderSlippage))
+        {
+            orderPlaceError = OrderHelper::PlaceMarketOrder(OP_BUY, lots, currentTick.ask, stopLoss, 0, ea.MagicNumber(), ticket);
+        }
+        else if (entry < currentTick.ask)
+        {
+            orderPlaceError = OrderHelper::PlaceLimitOrder(limitType, lots, entry, stopLoss, 0, ea.MagicNumber(), ticket);
+        }
+    }
+    else if (type == OP_SELL)
+    {
+        if (fallbackMarketOrder && entry <= currentTick.bid && entry - currentTick.bid <= OrderHelper::PipsToRange(maxMarketOrderSlippage))
+        {
+            orderPlaceError = OrderHelper::PlaceMarketOrder(OP_SELL, lots, currentTick.bid, stopLoss, 0, ea.MagicNumber(), ticket);
+        }
+        else if (entry > currentTick.bid)
+        {
+            orderPlaceError = OrderHelper::PlaceLimitOrder(limitType, lots, entry, stopLoss, 0, ea.MagicNumber(), ticket);
+        }
+    }
+
+    PostPlaceOrderChecks<TEA>(ea, ticket, orderPlaceError);
+}
+
+template <typename TEA>
+static void EAHelper::PlaceStopOrder(TEA &ea, double entry, double stopLoss, double lots = 0.0, bool fallbackMarketOrder = false, double maxMarketOrderSlippage = 0.0,
+                                     int type = EMPTY)
+{
+    ea.mLastState = EAStates::PLACING_ORDER;
+
+    MqlTick currentTick;
+    if (!SymbolInfoTick(Symbol(), currentTick))
+    {
+        ea.RecordError(GetLastError());
+        return;
+    }
+
+    if (lots == 0.0)
+    {
+        lots = OrderHelper::GetLotSize(OrderHelper::RangeToPips(MathAbs(entry - stopLoss)), ea.RiskPercent());
+    }
+
+    int ticket = EMPTY;
+    int orderPlaceError = ERR_NO_ERROR;
+
+    if (type == EMPTY)
+    {
+        type = ea.mSetupType;
+    }
+
+    int stopType = type + 4;
+
+    if (type == OP_BUY)
     {
         if (fallbackMarketOrder && entry <= currentTick.ask && currentTick.ask - entry <= OrderHelper::PipsToRange(maxMarketOrderSlippage))
         {
-            orderPlaceError = OrderHelper::PlaceMarketOrder(ea.mSetupType, lots, currentTick.ask, stopLoss, 0, ea.MagicNumber(), ticket);
+            orderPlaceError = OrderHelper::PlaceMarketOrder(OP_BUY, lots, currentTick.ask, stopLoss, 0, ea.MagicNumber(), ticket);
         }
         else if (entry > currentTick.ask)
         {
             orderPlaceError = OrderHelper::PlaceStopOrder(stopType, lots, entry, stopLoss, 0, ea.MagicNumber(), ticket);
         }
     }
-    else if (ea.mSetupType == OP_SELL)
+    else if (type == OP_SELL)
     {
         if (fallbackMarketOrder && entry >= currentTick.bid && entry - currentTick.bid <= OrderHelper::PipsToRange(maxMarketOrderSlippage))
         {
-            orderPlaceError = OrderHelper::PlaceMarketOrder(ea.mSetupType, lots, currentTick.bid, stopLoss, 0, ea.MagicNumber(), ticket);
+            orderPlaceError = OrderHelper::PlaceMarketOrder(OP_SELL, lots, currentTick.bid, stopLoss, 0, ea.MagicNumber(), ticket);
         }
         else if (entry < currentTick.bid)
         {

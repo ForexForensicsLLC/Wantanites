@@ -44,7 +44,6 @@ public:
     ~TimeGridMultiplier();
 
     double EMA(int index) { return iMA(mEntrySymbol, mEntryTimeFrame, 200, 0, MODE_EMA, PRICE_CLOSE, index); }
-    double RSI(int index) { return iRSI(mEntrySymbol, mEntryTimeFrame, 5, PRICE_CLOSE, index); }
     virtual double RiskPercent() { return mRiskPercent; }
 
     virtual void Run();
@@ -122,47 +121,11 @@ void TimeGridMultiplier::CheckSetSetup()
         return;
     }
 
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
-    {
-        RecordError(GetLastError());
-        return;
-    }
-
-    if (!mLastXCandlesPastEMA)
-    {
-        int candles = 40;
-        if (mSetupType == OP_BUY)
-        {
-            for (int i = 1; i <= candles; i++)
-            {
-                if (iClose(mEntrySymbol, mEntryTimeFrame, i) < EMA(i))
-                {
-                    return;
-                }
-            }
-
-            mLastXCandlesPastEMA = true;
-        }
-        else if (mSetupType == OP_SELL)
-        {
-            for (int i = 1; i <= candles; i++)
-            {
-                if (iClose(mEntrySymbol, mEntryTimeFrame, i) > EMA(i))
-                {
-                    return;
-                }
-            }
-
-            mLastXCandlesPastEMA = true;
-        }
-    }
-
-    if (mLastXCandlesPastEMA)
+    if (Hour() == mTradingSessions[0].HourStart() && Minute() == mTradingSessions[0].MinuteStart())
     {
         if (mSetupType == OP_BUY)
         {
-            if (RSI(2) <= 30 && RSI(1) > 30)
+            if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > EMA(1))
             {
                 mHasSetup = true;
                 mPGT.SetStartingPrice(iOpen(mEntrySymbol, mEntryTimeFrame, 0));
@@ -170,7 +133,7 @@ void TimeGridMultiplier::CheckSetSetup()
         }
         else if (mSetupType == OP_SELL)
         {
-            if (RSI(2) >= 70 && RSI(1) < 70)
+            if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < EMA(1))
             {
                 mHasSetup = true;
                 mPGT.SetStartingPrice(iOpen(mEntrySymbol, mEntryTimeFrame, 0));
@@ -192,44 +155,6 @@ void TimeGridMultiplier::CheckInvalidateSetup()
     {
         InvalidateSetup(true);
     }
-
-    if (mLastXCandlesPastEMA)
-    {
-        if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
-        {
-            return;
-        }
-
-        int candles = 20;
-        if (mSetupType == OP_BUY)
-        {
-            // doing the opposite now, i.e set mLastXCandlesPastEMA to false if we have 20 candles below the ema
-            for (int i = 1; i <= candles; i++)
-            {
-                if (iClose(mEntrySymbol, mEntryTimeFrame, i) > EMA(i))
-                {
-                    return;
-                }
-            }
-
-            mCloseAllTickets = true;
-            mLastXCandlesPastEMA = false;
-        }
-        else if (mSetupType == OP_SELL)
-        {
-            // doing the opposite now, i.e set mLastXCandlesPastEMA to false if we have 20 candles below the ema
-            for (int i = 1; i <= candles; i++)
-            {
-                if (iClose(mEntrySymbol, mEntryTimeFrame, i) < EMA(i))
-                {
-                    return;
-                }
-            }
-
-            mCloseAllTickets = true;
-            mLastXCandlesPastEMA = false;
-        }
-    }
 }
 
 void TimeGridMultiplier::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
@@ -241,6 +166,7 @@ void TimeGridMultiplier::InvalidateSetup(bool deletePendingOrder, int error = ER
     mCloseAllTickets = false;
     mLevelsWithTickets.Clear();
     mPGT.Reset();
+    mStopTrading = true; // done trading after a single setup
 }
 
 bool TimeGridMultiplier::Confirmation()
@@ -400,4 +326,11 @@ bool TimeGridMultiplier::ShouldReset()
 
 void TimeGridMultiplier::Reset()
 {
+    for (int i = 0; i < mPreviousSetupTickets.Size(); i++)
+    {
+        mPreviousSetupTickets[i].Close();
+    }
+
+    InvalidateSetup(false);
+    mStopTrading = false;
 }
