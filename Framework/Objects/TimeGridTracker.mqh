@@ -34,6 +34,8 @@ public:
     TimeGridTracker(int hourStart, int minuteStart, int hourEnd, int minuteEnd, int maxLevel, double levelPips);
     ~TimeGridTracker();
 
+    virtual double LevelPrice(int level);
+    virtual int CurrentLevel();
     virtual void Reset();
 };
 
@@ -88,6 +90,18 @@ void TimeGridTracker::Calculate(int barIndex)
             mBasePrice = iOpen(Symbol(), Period(), 0);
         }
     }
+}
+
+double TimeGridTracker::LevelPrice(int level)
+{
+    Update();
+    return GridTracker::LevelPrice(level);
+}
+
+int TimeGridTracker::CurrentLevel()
+{
+    Update();
+    return GridTracker::CurrentLevel();
 }
 
 void TimeGridTracker::Reset()

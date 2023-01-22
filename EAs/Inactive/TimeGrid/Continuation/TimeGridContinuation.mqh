@@ -60,6 +60,7 @@ public:
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
+    virtual bool ShouldReset();
     virtual void Reset();
 };
 
@@ -120,8 +121,8 @@ void TimeGrid::CheckSetSetup()
 
     if (mSetupType == OP_BUY)
     {
-        if (mTGT.CurrentLevel() >= 0 &&
-            mTGT.CurrentLevel() != mLastAchievedLevel)
+        if (mTGT.CurrentLevel() > 0 &&
+            (mTGT.CurrentLevel() > mLastAchievedLevel || mLastAchievedLevel == 10000))
         {
             mHasSetup = true;
             mLastAchievedLevel = mTGT.CurrentLevel();
@@ -129,8 +130,8 @@ void TimeGrid::CheckSetSetup()
     }
     else if (mSetupType == OP_SELL)
     {
-        if (mTGT.CurrentLevel() <= 0 &&
-            mTGT.CurrentLevel() != mLastAchievedLevel)
+        if (mTGT.CurrentLevel() < 0 &&
+            mTGT.CurrentLevel() < mLastAchievedLevel)
         {
             mHasSetup = true;
             mLastAchievedLevel = mTGT.CurrentLevel();
@@ -173,17 +174,22 @@ void TimeGrid::PlaceOrders()
 
     double entry = 0.0;
     double stopLoss = 0.0;
+    double takeProfit = 0.0;
 
     if (mSetupType == OP_BUY)
     {
         entry = currentTick.ask;
+        stopLoss = mTGT.LevelPrice(mTGT.CurrentLevel() - 1);
+        takeProfit = mTGT.LevelPrice(mTGT.CurrentLevel() + 1);
     }
     else if (mSetupType == OP_SELL)
     {
         entry = currentTick.bid;
+        stopLoss = mTGT.LevelPrice(mTGT.CurrentLevel() + 1);
+        takeProfit = mTGT.LevelPrice(mTGT.CurrentLevel() - 1);
     }
 
-    EAHelper::PlaceMarketOrder<TimeGrid>(this, entry, stopLoss, mLotSize);
+    EAHelper::PlaceMarketOrder<TimeGrid>(this, entry, stopLoss, 0.0, mSetupType, takeProfit);
     InvalidateSetup(false);
 }
 
@@ -202,7 +208,6 @@ bool TimeGrid::MoveToPreviousSetupTickets(Ticket &ticket)
 
 void TimeGrid::ManagePreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::CloseTicketIfPastTime<TimeGrid>(this, mPreviousSetupTickets[ticketIndex], 20, 0);
 }
 
 void TimeGrid::CheckCurrentSetupTicket()
@@ -235,6 +240,11 @@ void TimeGrid::RecordTicketCloseData(Ticket &ticket)
 void TimeGrid::RecordError(int error, string additionalInformation = "")
 {
     EAHelper::RecordSingleTimeFrameErrorRecord<TimeGrid>(this, error, additionalInformation);
+}
+
+bool TimeGrid::ShouldReset()
+{
+    return !EAHelper::WithinTradingSession<TimeGrid>(this);
 }
 
 void TimeGrid::Reset()

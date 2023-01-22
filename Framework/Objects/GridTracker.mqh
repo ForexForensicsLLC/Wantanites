@@ -33,8 +33,8 @@ public:
     int MaxLevel() { return mMaxLevel; }
     bool AtMaxLevel() { return MathAbs(CurrentLevel()) >= mMaxLevel; }
 
-    double LevelPrice(int level);
-    int CurrentLevel();
+    virtual double LevelPrice(int level);
+    virtual int CurrentLevel();
 
     void Draw();
     virtual void Reset();

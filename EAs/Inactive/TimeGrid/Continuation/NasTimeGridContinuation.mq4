@@ -14,10 +14,10 @@
 #include <SummitCapital/Framework/Objects/TimeGridTracker.mqh>
 
 string ForcedSymbol = "NAS100";
-int ForcedTimeFrame = 60;
+int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
-double RiskPercent = 1;
+double RiskPercent = 2;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
@@ -38,8 +38,8 @@ TimeGrid *TGSells;
 
 // EU
 double LotSize = 0.1;
-double MaxLevels = 10;
-double LevelPips = 100;
+double MaxLevels = 5;
+double LevelPips = 5;
 double MaxSpreadPips = 1;
 double EntryPaddingPips = 0;
 double MinStopLossPips = 100;
@@ -54,7 +54,7 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    TGT = new TimeGridTracker(14, 0, 23, 59, MaxLevels, LevelPips);
+    TGT = new TimeGridTracker(16, 30, 16, 35, MaxLevels, LevelPips);
 
     TGBuys = new TimeGrid(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                           ExitWriter, ErrorWriter, TGT);
@@ -67,7 +67,7 @@ int OnInit()
     TGBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     TGBuys.mBEAdditionalPips = BEAdditionalPips;
 
-    TGBuys.AddTradingSession(14, 0, 23, 59);
+    TGBuys.AddTradingSession(16, 30, 16, 35);
 
     TGSells = new TimeGrid(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                            ExitWriter, ErrorWriter, TGT);
@@ -79,7 +79,7 @@ int OnInit()
     TGSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     TGSells.mBEAdditionalPips = BEAdditionalPips;
 
-    TGSells.AddTradingSession(14, 0, 23, 59);
+    TGSells.AddTradingSession(16, 30, 16, 35);
 
     return (INIT_SUCCEEDED);
 }
