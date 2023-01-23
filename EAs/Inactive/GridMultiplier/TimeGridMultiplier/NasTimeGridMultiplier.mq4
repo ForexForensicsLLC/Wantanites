@@ -12,7 +12,7 @@
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
 #include <SummitCapital/EAs/Inactive/GridMultiplier/TimeGridMultiplier/TimeGridMultiplier.mqh>
 
-string ForcedSymbol = "AUDCAD";
+string ForcedSymbol = "NAS100";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
@@ -21,7 +21,7 @@ int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
 string StrategyName = "GridMultiplier/";
-string EAName = "AC/";
+string EAName = "Nas/";
 string SetupTypeName = "TimeGridMultiplier/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
@@ -39,13 +39,13 @@ TimeGridMultiplier *TGMSells;
 // AC
 double LotSize = 0.1;
 double MaxEquityDrawDown = -10;
-double MaxLevels = 5;
-double LevelPips = 3;
-double MaxSpreadPips = 1.5;
+double MaxLevels = 50;
+double LevelPips = 20;
+double MaxSpreadPips = 1;
 double StopLossPaddingPips = 0;
 
-int HourStart = 11;
-int MinuteStart = 0;
+int HourStart = 16;
+int MinuteStart = 30;
 int HourEnd = 23;
 int MinuteEnd = 0;
 
@@ -56,8 +56,8 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    TGTBuys = new TimeGridTracker(HourStart, MinuteStart, HourEnd, MinuteEnd, MaxLevels, LevelPips);
-    TGTSells = new TimeGridTracker(HourStart, MinuteStart, HourEnd, MinuteEnd, MaxLevels, LevelPips);
+    TGTBuys = new TimeGridTracker(18, MinuteStart, HourEnd, MinuteEnd, MaxLevels, LevelPips);
+    TGTSells = new TimeGridTracker(18, MinuteStart, HourEnd, MinuteEnd, MaxLevels, LevelPips);
 
     TGMBuys = new TimeGridMultiplier(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                                      ExitWriter, ErrorWriter, TGTBuys);

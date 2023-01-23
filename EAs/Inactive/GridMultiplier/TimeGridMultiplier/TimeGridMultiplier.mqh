@@ -26,6 +26,8 @@ public:
     double mLotSize;
     double mMaxEquityDrawDown;
 
+    double mOpenPrice;
+
     int mBarCount;
     int mLastDay;
 
@@ -58,6 +60,7 @@ public:
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
+    virtual bool ShouldReset();
     virtual void Reset();
 };
 
@@ -74,6 +77,8 @@ TimeGridMultiplier::TimeGridMultiplier(int magicNumber, int setupType, int maxCu
 
     mLotSize = 0.0;
     mMaxEquityDrawDown = 0.0;
+
+    mOpenPrice = 0.0;
 
     mBarCount = 0;
     mLastDay = Day();
@@ -108,7 +113,29 @@ bool TimeGridMultiplier::AllowedToTrade()
 
 void TimeGridMultiplier::CheckSetSetup()
 {
-    mHasSetup = true;
+    if (mOpenPrice == 0.0 && Hour() == mTradingSessions[0].HourStart() && Minute() == mTradingSessions[0].MinuteStart())
+    {
+        mOpenPrice = iOpen(mEntrySymbol, mEntryTimeFrame, 0);
+    }
+
+    if (mTGT.BasePrice() > 0.0)
+    {
+        MqlTick currentTick;
+        if (!SymbolInfoTick(Symbol(), currentTick))
+        {
+            RecordError(GetLastError());
+            return;
+        }
+
+        if (mSetupType == OP_BUY && currentTick.bid > (mOpenPrice + OrderHelper::PipsToRange(100)))
+        {
+            mHasSetup = true;
+        }
+        else if (mSetupType == OP_SELL && currentTick.bid < (mOpenPrice - OrderHelper::PipsToRange(100)))
+        {
+            mHasSetup = true;
+        }
+    }
 }
 
 void TimeGridMultiplier::CheckInvalidateSetup()
@@ -117,7 +144,6 @@ void TimeGridMultiplier::CheckInvalidateSetup()
 
     if (mLastDay != Day())
     {
-        Print("New Day");
         InvalidateSetup(true);
         // we could have already called reset if we hit our max equity dd after the session
         //  so we'll put this here to make sure it gets called each day
@@ -134,7 +160,7 @@ void TimeGridMultiplier::InvalidateSetup(bool deletePendingOrder, int error = ER
 {
     EAHelper::InvalidateSetup<TimeGridMultiplier>(this, deletePendingOrder, mStopTrading, error);
 
-    Print("Invalidating. Last State: ", mLastState);
+    mOpenPrice = 0.0;
     mPreviousAchievedLevel = 1000;
     mStartingEquity = 0;
     mCloseAllTickets = false;
@@ -150,27 +176,27 @@ bool TimeGridMultiplier::Confirmation()
         return false;
     }
 
-    if ((mSetupType == OP_BUY && mTGT.CurrentLevel() <= 0) || (mSetupType == OP_SELL && mTGT.CurrentLevel() >= 0))
-    {
-        return false;
-    }
+    // if ((mSetupType == OP_BUY && mTGT.CurrentLevel() <= 0) || (mSetupType == OP_SELL && mTGT.CurrentLevel() >= 0))
+    // {
+    //     return false;
+    // }
 
-    if (mTGT.CurrentLevel() != mPreviousAchievedLevel && mTGT.CurrentLevel() != 0 && !mLevelsWithTickets.HasKey(mTGT.CurrentLevel()))
+    if (mTGT.CurrentLevel() != mPreviousAchievedLevel && !mLevelsWithTickets.HasKey(mTGT.CurrentLevel()))
     {
-        if (mSetupType == OP_BUY)
-        {
-            if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > mTGT.LevelPrice(mTGT.CurrentLevel()))
-            {
-                return false;
-            }
-        }
-        else if (mSetupType == OP_SELL)
-        {
-            if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < mTGT.LevelPrice(mTGT.CurrentLevel()))
-            {
-                return false;
-            }
-        }
+        // if (mSetupType == OP_BUY)
+        // {
+        //     if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > mTGT.LevelPrice(mTGT.CurrentLevel()))
+        //     {
+        //         return false;
+        //     }
+        // }
+        // else if (mSetupType == OP_SELL)
+        // {
+        //     if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < mTGT.LevelPrice(mTGT.CurrentLevel()))
+        //     {
+        //         return false;
+        //     }
+        // }
 
         mPreviousAchievedLevel = mTGT.CurrentLevel();
         return true;
@@ -196,14 +222,14 @@ void TimeGridMultiplier::PlaceOrders()
     {
         entry = currentTick.ask;
         // don't want to place a tp on the last level because they we won't call ManagePreviousSetupTickets on it to check that we are at the last level
-        // takeProfit = mTGT.CurrentLevel() == mTGT.MaxLevel() - 1 ? 0.0 : mTGT.LevelPrice(mTGT.CurrentLevel() + 1);
+        takeProfit = mTGT.CurrentLevel() == mTGT.MaxLevel() - 1 ? 0.0 : mTGT.LevelPrice(mTGT.CurrentLevel() + 1);
         stopLoss = mTGT.LevelPrice(mTGT.CurrentLevel() - 1);
     }
     else if (mSetupType == OP_SELL)
     {
         entry = currentTick.bid;
         // don't want to place a tp on the last level because they we won't call ManagePreviousSetupTickets on it to check that we are at the last level
-        // takeProfit = MathAbs(mTGT.CurrentLevel()) == mTGT.MaxLevel() - 1 ? 0.0 : mTGT.LevelPrice(mTGT.CurrentLevel() - 1);
+        takeProfit = MathAbs(mTGT.CurrentLevel()) == mTGT.MaxLevel() - 1 ? 0.0 : mTGT.LevelPrice(mTGT.CurrentLevel() - 1);
         stopLoss = mTGT.LevelPrice(mTGT.CurrentLevel() + 1);
     }
 
@@ -271,8 +297,8 @@ void TimeGridMultiplier::ManagePreviousSetupTicket(int ticketIndex)
 
     EAHelper::CloseTicketIfPastTime<TimeGridMultiplier>(this,
                                                         mPreviousSetupTickets[ticketIndex],
-                                                        mTradingSessions[0].InclusiveHourEnd(),
-                                                        mTradingSessions[0].InclusiveMinuteEnd());
+                                                        mTradingSessions[0].ExclusiveHourEnd(),
+                                                        mTradingSessions[0].ExclusiveMinuteEnd());
 }
 
 void TimeGridMultiplier::CheckCurrentSetupTicket()
@@ -314,8 +340,12 @@ void TimeGridMultiplier::RecordError(int error, string additionalInformation = "
     EAHelper::RecordSingleTimeFrameErrorRecord<TimeGridMultiplier>(this, error, additionalInformation);
 }
 
+bool TimeGridMultiplier::ShouldReset()
+{
+    return !EAHelper::WithinTradingSession<TimeGridMultiplier>(this);
+}
+
 void TimeGridMultiplier::Reset()
 {
-    Print("Reset");
     InvalidateSetup(false);
 }

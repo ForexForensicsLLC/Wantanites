@@ -10,10 +10,10 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/TimeGrid/Continuation/TimeGridContinuation.mqh>
+#include <SummitCapital/EAs/Inactive/GridHedge/Continuation/GridHedgeContinuation.mqh>
 #include <SummitCapital/Framework/Objects/TimeGridTracker.mqh>
 
-string ForcedSymbol = "US100";
+string ForcedSymbol = "NAS100";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
@@ -21,7 +21,7 @@ double RiskPercent = 2;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-string StrategyName = "TimeGrid/";
+string StrategyName = "GridHedge/";
 string EAName = "Nas/";
 string SetupTypeName = "Continuation/";
 string Directory = StrategyName + EAName + SetupTypeName;
@@ -33,14 +33,15 @@ CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<S
 
 TimeGridTracker *TGT;
 
-TimeGrid *TGBuys;
-TimeGrid *TGSells;
+GridHedgeContinuation *TGBuys;
+GridHedgeContinuation *TGSells;
 
 // EU
-double LotSize = 0.1;
-double MaxLevels = 5;
-double LevelPips = 50;
-double MaxSpreadPips = 25;
+double LotSize = 0.5;
+double MaxLevels = 1;
+double LevelPips = 20;
+double TargetPips = 20;
+double MaxSpreadPips = 1;
 double EntryPaddingPips = 0;
 double MinStopLossPips = 100;
 double StopLossPaddingPips = 0;
@@ -54,32 +55,34 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    TGT = new TimeGridTracker(16, 30, 16, 35, MaxLevels, LevelPips);
+    TGT = new TimeGridTracker(16, 30, 23, 0, MaxLevels, LevelPips);
 
-    TGBuys = new TimeGrid(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                          ExitWriter, ErrorWriter, TGT);
+    TGBuys = new GridHedgeContinuation(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                       ExitWriter, ErrorWriter, TGT);
 
     TGBuys.SetPartialCSVRecordWriter(PartialWriter);
 
     TGBuys.mLotSize = LotSize;
+    TGBuys.mTargetPips = TargetPips;
     TGBuys.mEntryPaddingPips = EntryPaddingPips;
     TGBuys.mMinStopLossPips = MinStopLossPips;
     TGBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     TGBuys.mBEAdditionalPips = BEAdditionalPips;
 
-    TGBuys.AddTradingSession(16, 30, 16, 35);
+    TGBuys.AddTradingSession(16, 30, 23, 0);
 
-    TGSells = new TimeGrid(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                           ExitWriter, ErrorWriter, TGT);
+    TGSells = new GridHedgeContinuation(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                        ExitWriter, ErrorWriter, TGT);
     TGSells.SetPartialCSVRecordWriter(PartialWriter);
 
     TGSells.mLotSize = LotSize;
+    TGSells.mTargetPips = TargetPips;
     TGSells.mEntryPaddingPips = EntryPaddingPips;
     TGSells.mMinStopLossPips = MinStopLossPips;
     TGSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     TGSells.mBEAdditionalPips = BEAdditionalPips;
 
-    TGSells.AddTradingSession(16, 30, 16, 35);
+    TGSells.AddTradingSession(16, 30, 23, 0);
 
     return (INIT_SUCCEEDED);
 }
@@ -100,5 +103,5 @@ void OnDeinit(const int reason)
 void OnTick()
 {
     TGBuys.Run();
-    TGSells.Run();
+    // TGSells.Run();
 }

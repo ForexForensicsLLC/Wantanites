@@ -30,6 +30,8 @@ public:
     GridTracker(int maxLevels, double levelPips);
     ~GridTracker();
 
+    virtual double BasePrice() { return mBasePrice; }
+
     int MaxLevel() { return mMaxLevel; }
     bool AtMaxLevel() { return MathAbs(CurrentLevel()) >= mMaxLevel; }
 
