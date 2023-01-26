@@ -10,9 +10,9 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/TimeRange/TimeRangeBreakout/StartOfDayTimeRangeBreakout.mqh>
+#include <SummitCapital/EAs/Inactive/PriceRange/PriceRange.mqh>
 
-string ForcedSymbol = "USDJPY";
+string ForcedSymbol = "US30";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
@@ -20,9 +20,9 @@ double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-string StrategyName = "TimeRangeBreakout/";
-string EAName = "UJ/";
-string SetupTypeName = "Continuation/";
+string StrategyName = "PriceRange/";
+string EAName = "Dow/";
+string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -30,14 +30,15 @@ CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<Partial
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-TimeRangeBreakout *TRB;
-StartOfDayTimeRangeBreakout *TRBBuys;
-StartOfDayTimeRangeBreakout *TRBSells;
+PriceRange *PRBuys;
+PriceRange *PRSells;
 
-// UJ
-int CloseHour = 23;
+// Nas
+int CloseHour = 19;
 int CloseMinute = 0;
-double MaxSpreadPips = 1.5;
+double PipsFromOpen = 25;
+// this needs to be higher than the spread before the session since the spread doesn't drop right as the candle opens and we only calaculte once per bar
+double MaxSpreadPips = 2.5;
 double StopLossPaddingPips = 0;
 
 int OnInit()
@@ -47,35 +48,33 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    TRB = new TimeRangeBreakout(0, 0, 2, 0);
-    TRBBuys = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
-                                              RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
+    PRBuys = new PriceRange(MagicNumbers::NasMorningPriceRangeBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
+                            EntryWriter, ExitWriter, ErrorWriter);
 
-    TRBBuys.SetPartialCSVRecordWriter(PartialWriter);
+    PRBuys.mCloseHour = CloseHour;
+    PRBuys.mCloseMinute = CloseMinute;
+    PRBuys.mPipsFromOpen = PipsFromOpen;
 
-    TRBBuys.mCloseHour = CloseHour;
-    TRBBuys.mCloseMinute = CloseMinute;
+    PRBuys.SetPartialCSVRecordWriter(PartialWriter);
+    PRBuys.AddTradingSession(16, 30, 16, 35);
 
-    TRBBuys.AddTradingSession(2, 0, 22, 59);
+    PRSells = new PriceRange(MagicNumbers::NasMorningPriceRangeSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
+                             EntryWriter, ExitWriter, ErrorWriter);
 
-    TRBSells = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
-                                               MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
-    TRBSells.SetPartialCSVRecordWriter(PartialWriter);
+    PRSells.mCloseHour = CloseHour;
+    PRSells.mCloseMinute = CloseMinute;
+    PRSells.mPipsFromOpen = PipsFromOpen;
 
-    TRBSells.mCloseHour = CloseHour;
-    TRBSells.mCloseMinute = CloseMinute;
-
-    TRBSells.AddTradingSession(2, 0, 22, 59);
+    PRSells.SetPartialCSVRecordWriter(PartialWriter);
+    PRSells.AddTradingSession(16, 30, 16, 35);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete TRB;
-
-    delete TRBBuys;
-    delete TRBSells;
+    delete PRBuys;
+    delete PRSells;
 
     delete EntryWriter;
     delete PartialWriter;
@@ -85,6 +84,6 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    TRBBuys.Run();
-    TRBSells.Run();
+    PRBuys.Run();
+    PRSells.Run();
 }

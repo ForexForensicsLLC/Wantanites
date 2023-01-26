@@ -19,6 +19,7 @@ class EA
 {
 private:
     int mMagicNumber;
+    int mSetupType;
 
 public:
     Ticket *mCurrentSetupTicket;
@@ -40,7 +41,6 @@ public:
     double mMaxSpreadPips;
     double mRiskPercent;
 
-    int mSetupType; // TODO: Move to private and create a public getter
     int mStrategyMagicNumbers[];
 
     List<double> *mPartialRRs;
@@ -54,7 +54,9 @@ public:
        CSVRecordWriter<TEntryRecord> *&entryCSVRecordWriter, CSVRecordWriter<TExitRecord> *&exitCSVRecordWriter, CSVRecordWriter<TErrorRecord> *&errorCSVRecordWriter);
     ~EA();
 
-    virtual int MagicNumber() { return mMagicNumber; }
+    int MagicNumber() { return mMagicNumber; }
+    int SetupType() { return mSetupType; }
+
     virtual double RiskPercent() = NULL;
     virtual void Run() = NULL;
     virtual bool AllowedToTrade() = NULL;

@@ -10,9 +10,9 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/TimeRange/TimeRangeBreakout/StartOfDayTimeRangeBreakout.mqh>
+#include <SummitCapital/EAs/Inactive/Hedge/StartOfDay/StartOfDayHedge.mqh>
 
-string ForcedSymbol = "USDJPY";
+string ForcedSymbol = "EURUSD";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
@@ -20,9 +20,9 @@ double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-string StrategyName = "TimeRangeBreakout/";
-string EAName = "UJ/";
-string SetupTypeName = "Continuation/";
+string StrategyName = "Hedge/";
+string EAName = "EU/";
+string SetupTypeName = "StartOfDay/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -30,15 +30,13 @@ CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<Partial
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-TimeRangeBreakout *TRB;
-StartOfDayTimeRangeBreakout *TRBBuys;
-StartOfDayTimeRangeBreakout *TRBSells;
+StartOfDayHedge *SODHBuys;
+StartOfDayHedge *SODHSells;
 
-// UJ
-int CloseHour = 23;
-int CloseMinute = 0;
-double MaxSpreadPips = 1.5;
-double StopLossPaddingPips = 0;
+double MaxSpreadPips = 1;
+double StopLossPaddingPips = 200;
+double TakeProfitPips = 100;
+double TrailStopLossPips = 40;
 
 int OnInit()
 {
@@ -47,35 +45,29 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    TRB = new TimeRangeBreakout(0, 0, 2, 0);
-    TRBBuys = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
-                                              RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
+    SODHBuys = new StartOfDayHedge(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                   RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
-    TRBBuys.SetPartialCSVRecordWriter(PartialWriter);
+    SODHBuys.mTakeProfitPips = TakeProfitPips;
+    SODHBuys.mTrailStopLossPips = TrailStopLossPips;
+    SODHBuys.SetPartialCSVRecordWriter(PartialWriter);
+    SODHBuys.AddTradingSession(16, 30, 16, 35);
 
-    TRBBuys.mCloseHour = CloseHour;
-    TRBBuys.mCloseMinute = CloseMinute;
+    SODHSells = new StartOfDayHedge(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                    RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
-    TRBBuys.AddTradingSession(2, 0, 22, 59);
-
-    TRBSells = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
-                                               MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
-    TRBSells.SetPartialCSVRecordWriter(PartialWriter);
-
-    TRBSells.mCloseHour = CloseHour;
-    TRBSells.mCloseMinute = CloseMinute;
-
-    TRBSells.AddTradingSession(2, 0, 22, 59);
+    SODHSells.mTakeProfitPips = TakeProfitPips;
+    SODHSells.mTrailStopLossPips = TrailStopLossPips;
+    SODHSells.SetPartialCSVRecordWriter(PartialWriter);
+    SODHSells.AddTradingSession(16, 30, 16, 35);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete TRB;
-
-    delete TRBBuys;
-    delete TRBSells;
+    delete SODHBuys;
+    delete SODHSells;
 
     delete EntryWriter;
     delete PartialWriter;
@@ -85,6 +77,6 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    TRBBuys.Run();
-    TRBSells.Run();
+    SODHBuys.Run();
+    SODHSells.Run();
 }
