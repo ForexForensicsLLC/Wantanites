@@ -39,8 +39,8 @@ TimeGridMultiplier *TGMSells;
 // GJ
 double LotSize = 0.1;
 double MaxEquityDrawDown = -2;
-double MaxLevels = 20;
-double LevelPips = 10;
+double MaxLevels = 5;
+double LevelPips = 28;
 double MaxSpreadPips = 2;
 double StopLossPaddingPips = 0;
 

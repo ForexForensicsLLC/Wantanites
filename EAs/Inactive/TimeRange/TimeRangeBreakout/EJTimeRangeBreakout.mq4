@@ -10,9 +10,9 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/PriceRange/PriceRange.mqh>
+#include <SummitCapital/EAs/Inactive/TimeRange/TimeRangeBreakout/StartOfDayTimeRangeBreakout.mqh>
 
-string ForcedSymbol = "US100";
+string ForcedSymbol = "EURJPY";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
@@ -20,24 +20,24 @@ double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-string StrategyName = "PriceRange/";
-string EAName = "Nas/";
-string SetupTypeName = "";
+string StrategyName = "TimeRangeBreakout/";
+string EAName = "EJ/";
+string SetupTypeName = "Continuation/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
+CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>(Directory + "Partials/", "Partials.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-PriceRange *PRBuys;
-PriceRange *PRSells;
+TimeRangeBreakout *TRB;
+StartOfDayTimeRangeBreakout *TRBBuys;
+StartOfDayTimeRangeBreakout *TRBSells;
 
-// Nas
-int CloseHour = 19;
+// UJ
+int CloseHour = 23;
 int CloseMinute = 0;
-double PipsFromOpen = 250;
-// this needs to be higher than the spread before the session since the spread doesn't drop right as the candle opens and we only calaculte once per bar
-double MaxSpreadPips = 25;
+double MaxSpreadPips = 1.5;
 double StopLossPaddingPips = 0;
 
 int OnInit()
@@ -47,37 +47,44 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    PRBuys = new PriceRange(MagicNumbers::NasMorningPriceRangeBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
-                            EntryWriter, ExitWriter, ErrorWriter);
+    TRB = new TimeRangeBreakout(0, 0, 2, 0);
+    TRBBuys = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                              RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
 
-    PRBuys.mCloseHour = CloseHour;
-    PRBuys.mCloseMinute = CloseMinute;
-    PRBuys.mPipsFromOpen = PipsFromOpen;
-    PRBuys.AddTradingSession(16, 30, 16, 35);
+    TRBBuys.SetPartialCSVRecordWriter(PartialWriter);
 
-    PRSells = new PriceRange(MagicNumbers::NasMorningPriceRangeSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
-                             EntryWriter, ExitWriter, ErrorWriter);
+    TRBBuys.mCloseHour = CloseHour;
+    TRBBuys.mCloseMinute = CloseMinute;
 
-    PRSells.mCloseHour = CloseHour;
-    PRSells.mCloseMinute = CloseMinute;
-    PRSells.mPipsFromOpen = PipsFromOpen;
-    PRSells.AddTradingSession(16, 30, 16, 35);
+    TRBBuys.AddTradingSession(2, 0, 22, 59);
+
+    TRBSells = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
+                                               MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
+    TRBSells.SetPartialCSVRecordWriter(PartialWriter);
+
+    TRBSells.mCloseHour = CloseHour;
+    TRBSells.mCloseMinute = CloseMinute;
+
+    TRBSells.AddTradingSession(2, 0, 22, 59);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete PRBuys;
-    delete PRSells;
+    delete TRB;
+
+    delete TRBBuys;
+    delete TRBSells;
 
     delete EntryWriter;
+    delete PartialWriter;
     delete ExitWriter;
     delete ErrorWriter;
 }
 
 void OnTick()
 {
-    PRBuys.Run();
-    PRSells.Run();
+    TRBBuys.Run();
+    TRBSells.Run();
 }

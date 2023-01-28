@@ -26,7 +26,6 @@ string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
-CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>(Directory + "Partials/", "Partials.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
@@ -37,11 +36,8 @@ NasMorningBreak *NMBSells;
 int CloseHour = 20;
 int CloseMinute = 0;
 double MaxSpreadPips = 25;
-double EntryPaddingPips = 0;
-double MinStopLossPips = 250;
-double StopLossPaddingPips = 0;
+double StopLossPaddingPips = 250;
 double PipsToWaitBeforeBE = 250;
-double BEAdditionalPips = 0;
 
 int OnInit()
 {
@@ -53,28 +49,17 @@ int OnInit()
     NMBBuys = new NasMorningBreak(MagicNumbers::NasMorningFractalBreakBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                   RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
-    NMBBuys.SetPartialCSVRecordWriter(PartialWriter);
-
     NMBBuys.mCloseHour = CloseHour;
     NMBBuys.mCloseMinute = CloseMinute;
-    NMBBuys.mEntryPaddingPips = EntryPaddingPips;
-    NMBBuys.mMinStopLossPips = MinStopLossPips;
     NMBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    NMBBuys.mBEAdditionalPips = BEAdditionalPips;
-
     NMBBuys.AddTradingSession(16, 30, 16, 40);
 
     NMBSells = new NasMorningBreak(MagicNumbers::NasMorningFractalBreakSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                    RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
-    NMBSells.SetPartialCSVRecordWriter(PartialWriter);
 
     NMBSells.mCloseHour = CloseHour;
     NMBSells.mCloseMinute = CloseMinute;
-    NMBSells.mEntryPaddingPips = EntryPaddingPips;
-    NMBSells.mMinStopLossPips = MinStopLossPips;
     NMBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    NMBSells.mBEAdditionalPips = BEAdditionalPips;
-
     NMBSells.AddTradingSession(16, 30, 16, 40);
 
     return (INIT_SUCCEEDED);
@@ -86,7 +71,6 @@ void OnDeinit(const int reason)
     delete NMBSells;
 
     delete EntryWriter;
-    delete PartialWriter;
     delete ExitWriter;
     delete ErrorWriter;
 }

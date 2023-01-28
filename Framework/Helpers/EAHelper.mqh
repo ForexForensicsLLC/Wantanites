@@ -62,16 +62,6 @@ private:
 public:
     template <typename TEA>
     static void Run(TEA &ea);
-    template <typename TEA>
-    static void RunDrawMBT(TEA &ea, MBTracker *&mbt);
-    template <typename TEA>
-    static void RunDrawMBTs(TEA &ea, MBTracker *&mbtOne, MBTracker *&mbtTwo);
-    template <typename TEA>
-    static void RunDrawMBTAndMRFTS(TEA &ea, MBTracker *&mbt);
-
-    template <typename TEA>
-    static void RunDrawTimeRange(TEA &ea, TimeRangeBreakout *&trb);
-
     // =========================================================================
     // Allowed To Trade
     // =========================================================================
@@ -236,6 +226,8 @@ public:
     // =========================================================================
     // Manage Active Ticket
     // =========================================================================
+    template <typename TEA>
+    static void CheckTrailStopLossEveryXPips(TEA &ea, Ticket &ticket, double xPips, double trailBehindPips);
     template <typename TEA>
     static void CheckTrailStopLossWithMBs(TEA &ea, MBTracker *&mbt, int lastMBNumberInSetup);
     template <typename TEA>
@@ -483,7 +475,6 @@ static void EAHelper::UpdatePreviousSetupTicketsRRAcquried(TEA &ea)
             // only works with up to 2 partials
             if (record.TicketNumber == ea.mPreviousSetupTickets[i].Number() || record.NewTicketNumber == ea.mPreviousSetupTickets[i].Number())
             {
-                // ea.mPreviousSetupTickets[i].mPartials.RemovePartialRR(record.ExpectedPartialRR);
                 ea.mPreviousSetupTickets[i].mPartials.RemoveWhere<TPartialRRLocator, double>(Partial::FindPartialByRR, record.ExpectedPartialRR);
                 break;
             }
@@ -603,6 +594,8 @@ static void EAHelper::ManageCurrentSetupTicket(TEA &ea)
 template <typename TEA>
 static void EAHelper::Run(TEA &ea)
 {
+    ea.PreRun();
+
     // This needs to be done first since the proceeding logic can depend on the ticket being activated or closed
     ManageCurrentSetupTicket(ea);
 
@@ -668,44 +661,6 @@ static void EAHelper::Run(TEA &ea)
             }
         }
     }
-}
-
-template <typename TEA>
-static void EAHelper::RunDrawMBT(TEA &ea, MBTracker *&mbt)
-{
-    mbt.DrawNMostRecentMBs(-1);
-    mbt.DrawZonesForNMostRecentMBs(-1);
-
-    Run(ea);
-}
-
-template <typename TEA>
-static void EAHelper::RunDrawMBTs(TEA &ea, MBTracker *&mbtOne, MBTracker *&mbtTwo)
-{
-    mbtOne.DrawNMostRecentMBs(-1);
-    mbtOne.DrawZonesForNMostRecentMBs(-1);
-
-    mbtTwo.DrawNMostRecentMBs(-1);
-    mbtTwo.DrawZonesForNMostRecentMBs(-1);
-
-    Run(ea);
-}
-
-template <typename TEA>
-static void EAHelper::RunDrawMBTAndMRFTS(TEA &ea, MBTracker *&mbt)
-{
-    mbt.DrawNMostRecentMBs(1);
-    mbt.DrawZonesForNMostRecentMBs(1);
-    ea.mMRFTS.Draw();
-
-    Run(ea);
-}
-
-template <typename TEA>
-static void EAHelper::RunDrawTimeRange(TEA &ea, TimeRangeBreakout *&trb)
-{
-    trb.Draw();
-    Run(ea);
 }
 /*
 
@@ -2211,6 +2166,91 @@ static void EAHelper::CheckEditStopLossForTheLittleDipper(TEA &ea)
 
 */
 template <typename TEA>
+static void EAHelper::CheckTrailStopLossEveryXPips(TEA &ea, Ticket &ticket, double everyXPips, double trailBehindPips)
+{
+    ea.mLastState = EAStates::ATTEMPTING_TO_MANAGE_ORDER;
+
+    if (trailBehindPips >= everyXPips)
+    {
+        Print("Trail behind pips cannot be greater than or equal to everyXPips. Our SL would be past or equal to price");
+        return;
+    }
+
+    int selectError = ticket.SelectIfOpen("Trailing SL");
+    if (TerminalErrors::IsTerminalError(selectError))
+    {
+        ea.RecordError(selectError);
+        return;
+    }
+
+    if (OrderType() > 1)
+    {
+        return;
+    }
+
+    MqlTick currentTick;
+    if (!SymbolInfoTick(Symbol(), currentTick))
+    {
+        ea.RecordError(GetLastError());
+        return;
+    }
+
+    double startPips = 0.0;
+    double newSL = 0.0;
+
+    if (OrderType() == OP_BUY)
+    {
+        // only want to trail if we run everyxPips past entry, not right away
+        startPips = MathMax(OrderOpenPrice(), OrderStopLoss());
+        if (currentTick.bid - startPips >= OrderHelper::PipsToRange(everyXPips))
+        {
+            if (OrderOpenPrice() > OrderStopLoss())
+            {
+                newSL = OrderOpenPrice();
+            }
+            else
+            {
+                newSL = NormalizeDouble(startPips + OrderHelper::PipsToRange(trailBehindPips), Digits);
+            }
+
+            if (!OrderModify(ticket.Number(), OrderOpenPrice(), newSL, OrderTakeProfit(), OrderExpiration(), clrNONE))
+            {
+                int error = GetLastError();
+                if (error > 1)
+                {
+                    ea.RecordError(GetLastError());
+                }
+            }
+        }
+    }
+    else if (OrderType() == OP_SELL)
+    {
+        // only want to trail if we run everyxPips past entry, not right away
+        startPips = MathMin(OrderOpenPrice(), OrderStopLoss());
+        if (startPips - currentTick.bid >= OrderHelper::PipsToRange(everyXPips))
+        {
+            if (OrderOpenPrice() < OrderStopLoss())
+            {
+                newSL = OrderOpenPrice();
+            }
+            else
+            {
+                newSL = NormalizeDouble(startPips - OrderHelper::PipsToRange(trailBehindPips), Digits);
+            }
+
+            Print("Trailing. Old SL: ", OrderStopLoss(), ", Open Price: ", OrderOpenPrice(), ", New SL: ", newSL);
+            if (!OrderModify(ticket.Number(), OrderOpenPrice(), newSL, OrderTakeProfit(), OrderExpiration(), clrNONE))
+            {
+                int error = GetLastError();
+                if (error > 1)
+                {
+                    ea.RecordError(GetLastError());
+                }
+            }
+        }
+    }
+}
+template <typename TEA>
 static void EAHelper::CheckTrailStopLossWithMBs(TEA &ea, MBTracker *&mbt, int lastMBNumberInSetup)
 {
     ea.mLastState = EAStates::ATTEMPTING_TO_MANAGE_ORDER;
@@ -2736,7 +2776,7 @@ static bool EAHelper::CloseIfPercentIntoStopLoss(TEA &ea, Ticket &ticket, double
 template <typename TEA>
 static bool EAHelper::CloseTicketIfPastTime(TEA &ea, Ticket &ticket, int hour, int minute, bool fallbackCloseIfNewDay = true)
 {
-    if ((Hour() >= hour && Minute() >= minute) || (fallbackCloseIfNewDay && Day() != ea.mLastDay))
+    if ((Hour() >= hour && Minute() >= minute) || (fallbackCloseIfNewDay && Day() != ea.LastDay()))
     {
         ticket.Close();
         return true;

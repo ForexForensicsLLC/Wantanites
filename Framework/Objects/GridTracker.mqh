@@ -18,22 +18,28 @@ protected:
 
     bool mDrawn;
 
-    int mMaxLevel;
+    int mMaxUpperLevel;
+    int mMaxLowerLevel;
+
     double mLevelDistance;
 
     int mCurrentLevel;
     double mBasePrice;
 
-    void Init(int maxLevels, double levelPips);
+    void Init(int maxUpperLevels, int maxLowerLevels, double levelPips);
 
 public:
     GridTracker(int maxLevels, double levelPips);
+    GridTracker(int maxUpperLevels, int maxLowerLevels, double levelPips);
     ~GridTracker();
 
-    virtual double BasePrice() { return mBasePrice; }
+    double LevelDistance() { return mLevelDistance; }
 
-    int MaxLevel() { return mMaxLevel; }
-    bool AtMaxLevel() { return MathAbs(CurrentLevel()) >= mMaxLevel; }
+    int MaxUpperLevels() { return mMaxUpperLevel; }
+    int MaxLowerLevels() { return mMaxLowerLevel; }
+    virtual bool AtMaxLevel();
+
+    virtual double BasePrice() { return mBasePrice; }
 
     virtual double LevelPrice(int level);
     virtual int CurrentLevel();
@@ -44,7 +50,12 @@ public:
 
 GridTracker::GridTracker(int maxLevels, double levelPips)
 {
-    Init(maxLevels, levelPips);
+    Init(maxLevels, maxLevels, levelPips);
+}
+
+GridTracker::GridTracker(int maxUpperLevels, int maxLowerLevels, double levelPips)
+{
+    Init(maxUpperLevels, maxLowerLevels, levelPips);
 }
 
 GridTracker::~GridTracker()
@@ -52,12 +63,20 @@ GridTracker::~GridTracker()
     ObjectsDeleteAll(ChartID(), mObjectNamePrefix);
 }
 
-void GridTracker::Init(int maxLevels, double levelPips)
+void GridTracker::Init(int maxUpperLevel, int maxLowerLevel, double levelPips)
 {
     mDrawn = false;
 
-    mMaxLevel = maxLevels;
+    mMaxUpperLevel = maxUpperLevel;
+    mMaxLowerLevel = maxLowerLevel;
+
     mLevelDistance = OrderHelper::PipsToRange(levelPips);
+}
+
+bool GridTracker::AtMaxLevel()
+{
+    int currentLevel = CurrentLevel();
+    return currentLevel >= mMaxUpperLevel || currentLevel <= mMaxLowerLevel;
 }
 
 int GridTracker::CurrentLevel()
@@ -83,13 +102,13 @@ int GridTracker::CurrentLevel()
         mCurrentLevel -= 1;
     }
 
-    if (mCurrentLevel > mMaxLevel)
+    if (mCurrentLevel > mMaxUpperLevel)
     {
-        return mMaxLevel;
+        return mMaxUpperLevel;
     }
-    else if (mCurrentLevel < -mMaxLevel)
+    else if (mCurrentLevel < mMaxLowerLevel)
     {
-        return -mMaxLevel;
+        return mMaxLowerLevel;
     }
 
     return mCurrentLevel;

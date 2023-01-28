@@ -37,6 +37,7 @@ public:
     virtual double BasePrice();
     virtual double LevelPrice(int level);
     virtual int CurrentLevel();
+    virtual bool AtMaxLevel();
     virtual void Reset();
 };
 
@@ -109,6 +110,12 @@ int TimeGridTracker::CurrentLevel()
 {
     Update();
     return GridTracker::CurrentLevel();
+}
+
+bool TimeGridTracker::AtMaxLevel()
+{
+    Update();
+    return GridTracker::AtMaxLevel();
 }
 
 void TimeGridTracker::Reset()

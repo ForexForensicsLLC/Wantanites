@@ -26,21 +26,16 @@ string SetupTypeName = "DowLiquidation/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
-CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>(Directory + "Partials/", "Partials.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
 DowLiquidation *DLBuys;
 DowLiquidation *DLSells;
 
-// Dow
 double MinWickLength = 200;
 double MaxSpreadPips = 25;
-double EntryPaddingPips = 0;
-double MinStopLossPips = 350;
-double StopLossPaddingPips = 5;
+double StopLossPaddingPips = 350;
 double PipsToWaitBeforeBE = 350;
-double BEAdditionalPips = 0;
 
 int OnInit()
 {
@@ -52,26 +47,15 @@ int OnInit()
     DLBuys = new DowLiquidation(MagicNumbers::DowMorningCandleLiquidationBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                 RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
-    DLBuys.SetPartialCSVRecordWriter(PartialWriter);
-
     DLBuys.mMinWickLength = MinWickLength;
-    DLBuys.mEntryPaddingPips = EntryPaddingPips;
-    DLBuys.mMinStopLossPips = MinStopLossPips;
     DLBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    DLBuys.mBEAdditionalPips = BEAdditionalPips;
-
     DLBuys.AddTradingSession(16, 30, 16, 35);
 
     DLSells = new DowLiquidation(MagicNumbers::DowMorningCandleLiquidationSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                  RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
-    DLSells.SetPartialCSVRecordWriter(PartialWriter);
 
     DLSells.mMinWickLength = MinWickLength;
-    DLSells.mEntryPaddingPips = EntryPaddingPips;
-    DLSells.mMinStopLossPips = MinStopLossPips;
     DLSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    DLSells.mBEAdditionalPips = BEAdditionalPips;
-
     DLSells.AddTradingSession(16, 30, 16, 35);
 
     return (INIT_SUCCEEDED);
@@ -83,7 +67,6 @@ void OnDeinit(const int reason)
     delete DLSells;
 
     delete EntryWriter;
-    delete PartialWriter;
     delete ExitWriter;
     delete ErrorWriter;
 }

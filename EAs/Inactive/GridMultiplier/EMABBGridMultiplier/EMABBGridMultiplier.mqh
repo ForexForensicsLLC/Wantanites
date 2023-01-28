@@ -31,6 +31,7 @@ public:
     int mBarCount;
     int mLastDay;
 
+    bool mFirstTrade;
     bool mLastXCandlesPastEMA;
 
     double mStartingEquity;
@@ -88,6 +89,7 @@ TimeGridMultiplier::TimeGridMultiplier(int magicNumber, int setupType, int maxCu
     mBarCount = 0;
     mLastDay = Day();
 
+    mFirstTrade = true;
     mLastXCandlesPastEMA = false;
 
     mStartingEquity = 0;
@@ -132,7 +134,7 @@ void TimeGridMultiplier::CheckSetSetup()
         return;
     }
 
-    if (mSetupType == OP_BUY)
+    if (SetupType() == OP_BUY)
     {
         if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > EMA(1))
         {
@@ -143,7 +145,7 @@ void TimeGridMultiplier::CheckSetSetup()
             }
         }
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
         if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < EMA(1))
         {
@@ -170,29 +172,30 @@ void TimeGridMultiplier::CheckInvalidateSetup()
         InvalidateSetup(true);
     }
 
-    if (mHasSetup)
-    {
-        if (mSetupType == OP_BUY)
-        {
-            if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < EMA(1))
-            {
-                mCloseAllTickets = true;
-            }
-        }
-        else if (mSetupType == OP_SELL)
-        {
-            if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > EMA(1))
-            {
-                mCloseAllTickets = true;
-            }
-        }
-    }
+    // if (mHasSetup)
+    // {
+    //     if (SetupType() == OP_BUY)
+    //     {
+    //         if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < EMA(1))
+    //         {
+    //             mCloseAllTickets = true;
+    //         }
+    //     }
+    //     else if (SetupType() == OP_SELL)
+    //     {
+    //         if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > EMA(1))
+    //         {
+    //             mCloseAllTickets = true;
+    //         }
+    //     }
+    // }
 }
 
 void TimeGridMultiplier::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
     EAHelper::InvalidateSetup<TimeGridMultiplier>(this, deletePendingOrder, mStopTrading, error);
 
+    mFirstTrade = true;
     mPreviousAchievedLevel = 1000;
     mStartingEquity = 0;
     mCloseAllTickets = false;
@@ -210,29 +213,6 @@ bool TimeGridMultiplier::Confirmation()
 
     if (mPGT.CurrentLevel() != mPreviousAchievedLevel && !mLevelsWithTickets.HasKey(mPGT.CurrentLevel()))
     {
-        if (mSetupType == OP_BUY)
-        {
-            if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > mPGT.LevelPrice(mPGT.CurrentLevel()))
-            {
-                return false;
-            }
-
-            // if (mPGT.CurrentLevel() < 0 && mPGT.CurrentLevel() % 4 != 0)
-            // {
-            //     return false;
-            // }
-        }
-        else if (mSetupType == OP_SELL)
-        {
-            if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < mPGT.LevelPrice(mPGT.CurrentLevel()))
-            {
-                return false;
-            }
-            // if (mPGT.CurrentLevel() > 0 && mPGT.CurrentLevel() % 4 != 0)
-            // {
-            //     return false;
-            // }
-        }
         mPreviousAchievedLevel = mPGT.CurrentLevel();
         return true;
     }
@@ -253,27 +233,28 @@ void TimeGridMultiplier::PlaceOrders()
     double stopLoss = 0.0;
     double takeProfit = 0.0;
 
-    if (mSetupType == OP_BUY)
+    if (SetupType() == OP_BUY)
     {
         entry = currentTick.ask;
         // don't want to place a tp on the last level because they we won't call ManagePreviousSetupTickets on it to check that we are at the last level
         takeProfit = mPGT.CurrentLevel() == mPGT.MaxLevel() - 1 ? 0.0 : mPGT.LevelPrice(mPGT.CurrentLevel() + 1);
-        // stopLoss = mPGT.LevelPrice(mPGT.CurrentLevel() - 1);
+        stopLoss = mPGT.LevelPrice(mPGT.CurrentLevel() - 1);
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
         entry = currentTick.bid;
         // don't want to place a tp on the last level because they we won't call ManagePreviousSetupTickets on it to check that we are at the last level
         takeProfit = MathAbs(mPGT.CurrentLevel()) == mPGT.MaxLevel() - 1 ? 0.0 : mPGT.LevelPrice(mPGT.CurrentLevel() - 1);
-        // stopLoss = mPGT.LevelPrice(mPGT.CurrentLevel() + 1);
+        stopLoss = mPGT.LevelPrice(mPGT.CurrentLevel() + 1);
     }
 
-    if (mPreviousSetupTickets.Size() == 0)
+    if (mFirstTrade)
     {
         mStartingEquity = AccountBalance();
+        mFirstTrade = false;
     }
 
-    EAHelper::PlaceMarketOrder<TimeGridMultiplier>(this, entry, stopLoss, mLotSize, mSetupType, takeProfit);
+    EAHelper::PlaceMarketOrder<TimeGridMultiplier>(this, entry, stopLoss, 0.0, SetupType(), takeProfit);
     if (mCurrentSetupTicket.Number() != EMPTY)
     {
         mLevelsWithTickets.Add(mPGT.CurrentLevel(), mCurrentSetupTicket.Number());
@@ -302,13 +283,18 @@ void TimeGridMultiplier::ManagePreviousSetupTicket(int ticketIndex)
     }
 
     double equityPercentChange = EAHelper::GetTotalPreviousSetupTicketsEquityPercentChange<TimeGridMultiplier>(this, mStartingEquity);
-    if (equityPercentChange <= mMaxEquityDrawDown || equityPercentChange >= 5)
+    if (equityPercentChange <= -0.3)
     {
+        Print("Equity Limit Reached: ", equityPercentChange);
         mCloseAllTickets = true;
         mPreviousSetupTickets[ticketIndex].Close();
 
         return;
     }
+
+    double trailDistance = OrderHelper::RangeToPips(mPGT.LevelDistance()) / 4;
+    // double trailDistance = 10;
+    EAHelper::CheckTrailStopLossEveryXPips<TimeGridMultiplier>(this, mPreviousSetupTickets[ticketIndex], trailDistance * 2, trailDistance);
 }
 
 void TimeGridMultiplier::CheckCurrentSetupTicket()

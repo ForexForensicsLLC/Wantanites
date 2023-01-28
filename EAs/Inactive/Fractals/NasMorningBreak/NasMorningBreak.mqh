@@ -12,26 +12,13 @@
 #include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
-class NasMorningBreak : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class NasMorningBreak : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     datetime mLastFractalTime;
 
-    int mEntryTimeFrame;
-    string mEntrySymbol;
-
-    int mBarCount;
-    int mLastDay;
-
     int mCloseHour;
     int mCloseMinute;
-
-    double mEntryPaddingPips;
-    double mMinStopLossPips;
-    double mPipsToWaitBeforeBE;
-    double mBEAdditionalPips;
-
-    datetime mEntryCandleTime;
 
 public:
     NasMorningBreak(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
@@ -41,7 +28,7 @@ public:
 
     virtual double RiskPercent() { return mRiskPercent; }
 
-    virtual void Run();
+    virtual void PreRun();
     virtual bool AllowedToTrade();
     virtual void CheckSetSetup();
     virtual void CheckInvalidateSetup();
@@ -69,26 +56,10 @@ NasMorningBreak::NasMorningBreak(int magicNumber, int setupType, int maxCurrentS
 {
     mLastFractalTime = 0;
 
-    mEntrySymbol = Symbol();
-    mEntryTimeFrame = Period();
-
-    mBarCount = 0;
-    mLastDay = Day();
-
     mCloseHour = 0;
     mCloseMinute = 0;
 
-    mEntryPaddingPips = 0.0;
-    mMinStopLossPips = 0.0;
-    mPipsToWaitBeforeBE = 0.0;
-    mBEAdditionalPips = 0.0;
-
-    mEntryCandleTime = 0;
-
-    mLargestAccountBalance = 200000;
-
     EAHelper::FindSetPreviousAndCurrentSetupTickets<NasMorningBreak>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<NasMorningBreak, PartialTradeRecord>(this);
     EAHelper::SetPreviousSetupTicketsOpenData<NasMorningBreak, SingleTimeFrameEntryTradeRecord>(this);
 }
 
@@ -96,12 +67,8 @@ NasMorningBreak::~NasMorningBreak()
 {
 }
 
-void NasMorningBreak::Run()
+void NasMorningBreak::PreRun()
 {
-    EAHelper::Run<NasMorningBreak>(this);
-
-    mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
-    mLastDay = Day();
 }
 
 bool NasMorningBreak::AllowedToTrade()
@@ -114,7 +81,7 @@ void NasMorningBreak::CheckSetSetup()
     double currentFractal = 0.0;
     double furthestBetweenFractal = 0.0;
 
-    if (mSetupType == OP_BUY)
+    if (SetupType() == OP_BUY)
     {
         // go back to 3 so that we only consider fractals that are already created and not potential fractals based on our current candle
         for (int i = 3; i <= 15; i++)
@@ -141,7 +108,7 @@ void NasMorningBreak::CheckSetSetup()
             }
         }
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
         // go back to 3 so that we only consider fractals that are already created and not potential fractals based on our current candle
         for (int i = 3; i <= 15; i++)
@@ -174,7 +141,7 @@ void NasMorningBreak::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
-    if (mLastDay != Day())
+    if (LastDay() != Day())
     {
         InvalidateSetup(true);
     }
@@ -193,13 +160,6 @@ bool NasMorningBreak::Confirmation()
 
 void NasMorningBreak::PlaceOrders()
 {
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
-    {
-        RecordError(GetLastError());
-        return;
-    }
-
     if (mLastFractalTime <= 0)
     {
         return;
@@ -210,7 +170,7 @@ void NasMorningBreak::PlaceOrders()
     double entry = 0.0;
     double stopLoss = 0.0;
 
-    if (mSetupType == OP_BUY)
+    if (SetupType() == OP_BUY)
     {
         entry = iHigh(mEntrySymbol, mEntryTimeFrame, lastFractalIndex) + OrderHelper::PipsToRange(mMaxSpreadPips);
 
@@ -219,9 +179,9 @@ void NasMorningBreak::PlaceOrders()
             return;
         }
 
-        stopLoss = MathMin(stopLoss, entry - OrderHelper::PipsToRange(mMinStopLossPips));
+        stopLoss = MathMin(stopLoss, entry - OrderHelper::PipsToRange(mStopLossPaddingPips));
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
         entry = iLow(mEntrySymbol, mEntryTimeFrame, lastFractalIndex);
 
@@ -231,7 +191,7 @@ void NasMorningBreak::PlaceOrders()
         }
 
         stopLoss += OrderHelper::PipsToRange(mMaxSpreadPips);
-        stopLoss = MathMax(stopLoss, entry + OrderHelper::PipsToRange(mMinStopLossPips));
+        stopLoss = MathMax(stopLoss, entry + OrderHelper::PipsToRange(mStopLossPaddingPips));
     }
 
     EAHelper::PlaceStopOrder<NasMorningBreak>(this, entry, stopLoss, 0.0, true, mBEAdditionalPips);
@@ -286,7 +246,6 @@ void NasMorningBreak::RecordTicketOpenData()
 
 void NasMorningBreak::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
-    EAHelper::RecordPartialTradeRecord<NasMorningBreak>(this, partialedTicket, newTicketNumber);
 }
 
 void NasMorningBreak::RecordTicketCloseData(Ticket &ticket)

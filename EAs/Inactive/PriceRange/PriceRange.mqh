@@ -12,18 +12,12 @@
 #include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
-class PriceRange : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class PriceRange : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     int mCloseHour;
     int mCloseMinute;
     double mPipsFromOpen;
-
-    int mEntryTimeFrame;
-    string mEntrySymbol;
-
-    int mBarCount;
-    int mLastDay;
 
 public:
     PriceRange(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
@@ -33,7 +27,7 @@ public:
 
     virtual double RiskPercent() { return mRiskPercent; }
 
-    virtual void Run();
+    virtual void PreRun();
     virtual bool AllowedToTrade();
     virtual void CheckSetSetup();
     virtual void CheckInvalidateSetup();
@@ -63,14 +57,7 @@ PriceRange::PriceRange(int magicNumber, int setupType, int maxCurrentSetupTrades
     mCloseMinute = 0;
     mPipsFromOpen = 0.0;
 
-    mEntrySymbol = Symbol();
-    mEntryTimeFrame = Period();
-
-    mBarCount = 0;
-    mLastDay = Day();
-
     EAHelper::FindSetPreviousAndCurrentSetupTickets<PriceRange>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<PriceRange, PartialTradeRecord>(this);
     EAHelper::SetPreviousSetupTicketsOpenData<PriceRange, SingleTimeFrameEntryTradeRecord>(this);
 }
 
@@ -78,12 +65,8 @@ PriceRange::~PriceRange()
 {
 }
 
-void PriceRange::Run()
+void PriceRange::PreRun()
 {
-    EAHelper::Run<PriceRange>(this);
-
-    mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
-    mLastDay = Day();
 }
 
 bool PriceRange::AllowedToTrade()
@@ -93,7 +76,7 @@ bool PriceRange::AllowedToTrade()
 
 void PriceRange::CheckSetSetup()
 {
-    if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
+    if (iBars(mEntrySymbol, mEntryTimeFrame) <= BarCount())
     {
         return;
     }
@@ -121,25 +104,18 @@ bool PriceRange::Confirmation()
 
 void PriceRange::PlaceOrders()
 {
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
-    {
-        RecordError(GetLastError());
-        return;
-    }
-
     double entry = 0.0;
     double stopLoss = 0.0;
 
-    if (mSetupType == OP_BUY)
+    if (SetupType() == OP_BUY)
     {
-        entry = currentTick.ask + OrderHelper::PipsToRange(mPipsFromOpen);
-        stopLoss = currentTick.ask;
+        entry = CurrentTick().Ask() + OrderHelper::PipsToRange(mPipsFromOpen);
+        stopLoss = CurrentTick().Ask();
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
-        entry = currentTick.bid - OrderHelper::PipsToRange(mPipsFromOpen);
-        stopLoss = currentTick.bid;
+        entry = CurrentTick().Bid() - OrderHelper::PipsToRange(mPipsFromOpen);
+        stopLoss = CurrentTick().Bid();
     }
 
     EAHelper::PlaceStopOrder<PriceRange>(this, entry, stopLoss);
@@ -148,19 +124,25 @@ void PriceRange::PlaceOrders()
 
 void PriceRange::ManageCurrentPendingSetupTicket()
 {
-    if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
+    if (iBars(mEntrySymbol, mEntryTimeFrame) <= BarCount())
     {
         return;
     }
 
-    if (Day() != mLastDay)
+    if (EAHelper::CloseTicketIfPastTime<PriceRange>(this, mCurrentSetupTicket, mCloseHour, mCloseMinute))
     {
-        InvalidateSetup(true);
+        mCurrentSetupTicket.SetNewTicket(EMPTY);
+        return;
     }
 }
 
 void PriceRange::ManageCurrentActiveSetupTicket()
 {
+    if (iBars(mEntrySymbol, mEntryTimeFrame) <= BarCount())
+    {
+        return;
+    }
+
     if (EAHelper::CloseTicketIfPastTime<PriceRange>(this, mCurrentSetupTicket, mCloseHour, mCloseMinute))
     {
         return;
@@ -195,7 +177,6 @@ void PriceRange::RecordTicketOpenData()
 
 void PriceRange::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
-    EAHelper::RecordPartialTradeRecord<PriceRange>(this, partialedTicket, newTicketNumber);
 }
 
 void PriceRange::RecordTicketCloseData(Ticket &ticket)

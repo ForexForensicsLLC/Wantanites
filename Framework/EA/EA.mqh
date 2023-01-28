@@ -8,6 +8,7 @@
 #property version "1.00"
 #property strict
 
+#include <SummitCapital\Framework\Objects\Tick.mqh>
 #include <SummitCapital\Framework\Objects\List.mqh>
 #include <SummitCapital\Framework\Constants\Index.mqh>
 #include <SummitCapital\Framework\Constants\EAStates.mqh>
@@ -20,6 +21,10 @@ class EA
 private:
     int mMagicNumber;
     int mSetupType;
+
+    Tick *mCurrentTick;
+    int mBarCount;
+    int mLastDay;
 
 public:
     Ticket *mCurrentSetupTicket;
@@ -35,11 +40,16 @@ public:
     bool mHasSetup;
     bool mWasReset;
 
+    string mEntrySymbol;
+    int mEntryTimeFrame;
+
     int mMaxCurrentSetupTradesAtOnce;
     int mMaxTradesPerDay;
-    double mStopLossPaddingPips;
-    double mMaxSpreadPips;
     double mRiskPercent;
+    double mMaxSpreadPips;
+    double mStopLossPaddingPips;
+    double mPipsToWaitBeforeBE;
+    double mBEAdditionalPips;
 
     int mStrategyMagicNumbers[];
 
@@ -57,8 +67,13 @@ public:
     int MagicNumber() { return mMagicNumber; }
     int SetupType() { return mSetupType; }
 
+    Tick *CurrentTick() { return mCurrentTick; }
+    int BarCount() { return mBarCount; }
+    int LastDay() { return mLastDay; }
+
     virtual double RiskPercent() = NULL;
-    virtual void Run() = NULL;
+    virtual void PreRun() = NULL;
+    void Run();
     virtual bool AllowedToTrade() = NULL;
     virtual void CheckSetSetup() = NULL;
     virtual void CheckInvalidateSetup() = NULL;
@@ -94,11 +109,20 @@ EA::EA(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxT
     mHasSetup = false;
     mWasReset = false;
 
+    mEntrySymbol = Symbol();
+    mEntryTimeFrame = Period();
+
     mMaxCurrentSetupTradesAtOnce = maxCurrentSetupTradesAtOnce;
     mMaxTradesPerDay = maxTradesPerDay;
-    mStopLossPaddingPips = stopLossPaddingPips;
-    mMaxSpreadPips = maxSpreadPips;
     mRiskPercent = riskPercent;
+    mMaxSpreadPips = maxSpreadPips;
+    mStopLossPaddingPips = stopLossPaddingPips;
+    mPipsToWaitBeforeBE = 0.0;
+    mBEAdditionalPips = 0.0;
+
+    mCurrentTick = new Tick();
+    mBarCount = EMPTY;
+    mLastDay = EMPTY;
 
     mEntryCSVRecordWriter = entryCSVRecordWriter;
     mExitCSVRecordWriter = exitCSVRecordWriter;
@@ -118,10 +142,32 @@ EA::~EA()
     delete mCurrentSetupTicket;
     delete mPreviousSetupTickets;
 
+    delete mCurrentTick;
+
     delete mTradingSessions;
 
     delete mPartialRRs;
     delete mPartialPercents;
+}
+
+template <typename TEntryRecord, typename TPartialRecord, typename TExitRecord, typename TErrorRecord>
+void EA::Run()
+{
+    MqlTick currentTick;
+    if (!SymbolInfoTick(Symbol(), currentTick))
+    {
+        mCurrentTick.SetStatus(TickStatus::Invalid);
+    }
+    else
+    {
+        mCurrentTick = currentTick;
+        mCurrentTick.SetStatus(TickStatus::Valid);
+    }
+
+    EAHelper::Run(this);
+
+    mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
+    mLastDay = Day();
 }
 
 template <typename TEntryRecord, typename TPartialRecord, typename TExitRecord, typename TErrorRecord>

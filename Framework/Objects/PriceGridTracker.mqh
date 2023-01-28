@@ -43,6 +43,6 @@ void PriceGridTracker::SetStartingPrice(double price)
 void PriceGridTracker::SetStartingPriceMaxLevelsAndLevelPips(double startingPrice, double maxLevels, double levelPips)
 {
     Reset();
-    Init(maxLevels, levelPips);
+    Init(maxLevels, maxLevels, levelPips);
     mBasePrice = startingPrice;
 }

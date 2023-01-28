@@ -12,23 +12,10 @@
 #include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
-class DowLiquidation : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class DowLiquidation : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     double mMinWickLength;
-
-    int mEntryTimeFrame;
-    string mEntrySymbol;
-
-    int mBarCount;
-    int mLastDay;
-
-    double mEntryPaddingPips;
-    double mMinStopLossPips;
-    double mPipsToWaitBeforeBE;
-    double mBEAdditionalPips;
-
-    datetime mEntryCandleTime;
 
 public:
     DowLiquidation(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
@@ -38,7 +25,7 @@ public:
 
     virtual double RiskPercent() { return mRiskPercent; }
 
-    virtual void Run();
+    virtual void PreRun();
     virtual bool AllowedToTrade();
     virtual void CheckSetSetup();
     virtual void CheckInvalidateSetup();
@@ -59,29 +46,16 @@ public:
     virtual void Reset();
 };
 
-DowLiquidation::DowLiquidation(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+DowLiquidation::DowLiquidation(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips,
+                               double riskPercent,
                                CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
                                CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter)
-    : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
+    : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter,
+         errorCSVRecordWriter)
 {
     mMinWickLength = 0.0;
 
-    mEntrySymbol = Symbol();
-    mEntryTimeFrame = Period();
-
-    mBarCount = 0;
-
-    mEntryPaddingPips = 0.0;
-    mMinStopLossPips = 0.0;
-    mPipsToWaitBeforeBE = 0.0;
-    mBEAdditionalPips = 0.0;
-
-    mEntryCandleTime = 0;
-
-    mLargestAccountBalance = 200000;
-
     EAHelper::FindSetPreviousAndCurrentSetupTickets<DowLiquidation>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<DowLiquidation, PartialTradeRecord>(this);
     EAHelper::SetPreviousSetupTicketsOpenData<DowLiquidation, SingleTimeFrameEntryTradeRecord>(this);
 }
 
@@ -89,10 +63,8 @@ DowLiquidation::~DowLiquidation()
 {
 }
 
-void DowLiquidation::Run()
+void DowLiquidation::PreRun()
 {
-    EAHelper::Run<DowLiquidation>(this);
-    mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
 }
 
 bool DowLiquidation::AllowedToTrade()
@@ -102,34 +74,27 @@ bool DowLiquidation::AllowedToTrade()
 
 void DowLiquidation::CheckSetSetup()
 {
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
-    {
-        RecordError(GetLastError());
-        return;
-    }
-
     bool longEnoughWick = false;
     bool crossedOpenAfterLiquidaiton = false;
 
-    if (mSetupType == OP_BUY)
+    if (SetupType() == OP_BUY)
     {
         // make sure we have a potential doji
         if (iOpen(mEntrySymbol, mEntryTimeFrame, 0) > iLow(mEntrySymbol, mEntryTimeFrame, 1) &&
             iLow(mEntrySymbol, mEntryTimeFrame, 0) < iLow(mEntrySymbol, mEntryTimeFrame, 1))
         {
-            longEnoughWick = currentTick.bid - iLow(mEntrySymbol, mEntryTimeFrame, 0) >= OrderHelper::PipsToRange(mMinWickLength);
-            crossedOpenAfterLiquidaiton = currentTick.bid > iOpen(mEntrySymbol, mEntryTimeFrame, 0);
+            longEnoughWick = CurrentTick().Bid() - iLow(mEntrySymbol, mEntryTimeFrame, 0) >= OrderHelper::PipsToRange(mMinWickLength);
+            crossedOpenAfterLiquidaiton = CurrentTick().Bid() > iOpen(mEntrySymbol, mEntryTimeFrame, 0);
         }
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
         // make sure we have a potential doji
         if (iOpen(mEntrySymbol, mEntryTimeFrame, 0) < iHigh(mEntrySymbol, mEntryTimeFrame, 1) &&
             iHigh(mEntrySymbol, mEntryTimeFrame, 0) > iHigh(mEntrySymbol, mEntryTimeFrame, 1))
         {
-            longEnoughWick = iHigh(mEntrySymbol, mEntryTimeFrame, 0) - currentTick.bid >= OrderHelper::PipsToRange(mMinWickLength);
-            crossedOpenAfterLiquidaiton = currentTick.bid < iOpen(mEntrySymbol, mEntryTimeFrame, 0);
+            longEnoughWick = iHigh(mEntrySymbol, mEntryTimeFrame, 0) - CurrentTick().Bid() >= OrderHelper::PipsToRange(mMinWickLength);
+            crossedOpenAfterLiquidaiton = CurrentTick().Bid() < iOpen(mEntrySymbol, mEntryTimeFrame, 0);
         }
     }
 
@@ -156,25 +121,18 @@ bool DowLiquidation::Confirmation()
 
 void DowLiquidation::PlaceOrders()
 {
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
-    {
-        RecordError(GetLastError());
-        return;
-    }
-
     double entry = 0.0;
     double stopLoss = 0.0;
 
-    if (mSetupType == OP_BUY)
+    if (SetupType() == OP_BUY)
     {
-        entry = currentTick.ask;
-        stopLoss = entry - OrderHelper::PipsToRange(mMinStopLossPips);
+        entry = CurrentTick().Ask();
+        stopLoss = entry - OrderHelper::PipsToRange(mStopLossPaddingPips);
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
-        entry = currentTick.bid;
-        stopLoss = entry + OrderHelper::PipsToRange(mMinStopLossPips);
+        entry = CurrentTick().Bid();
+        stopLoss = entry + OrderHelper::PipsToRange(mStopLossPaddingPips);
     }
 
     EAHelper::PlaceMarketOrder<DowLiquidation>(this, entry, stopLoss);
@@ -229,7 +187,6 @@ void DowLiquidation::RecordTicketOpenData()
 
 void DowLiquidation::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
-    EAHelper::RecordPartialTradeRecord<DowLiquidation>(this, partialedTicket, newTicketNumber);
 }
 
 void DowLiquidation::RecordTicketCloseData(Ticket &ticket)
