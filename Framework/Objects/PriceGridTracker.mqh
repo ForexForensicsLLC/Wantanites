@@ -17,12 +17,16 @@ class PriceGridTracker : public GridTracker
 {
 private:
 public:
+    PriceGridTracker();
     PriceGridTracker(int maxLevels, double levelPips);
     ~PriceGridTracker();
 
     void SetStartingPrice(double price);
     void SetStartingPriceMaxLevelsAndLevelPips(double startingPrice, double maxLevels, double levelPips);
+    void SetStartingPriceUpperLevelsLowerLevelAndLevelPips(double startingPrice, int maxUpperLevels, int maxLowerlevels, double levelPips);
 };
+
+PriceGridTracker::PriceGridTracker() {}
 
 PriceGridTracker::PriceGridTracker(int maxLevels, double levelPips) : GridTracker(maxLevels, levelPips)
 {
@@ -44,5 +48,12 @@ void PriceGridTracker::SetStartingPriceMaxLevelsAndLevelPips(double startingPric
 {
     Reset();
     Init(maxLevels, maxLevels, levelPips);
+    mBasePrice = startingPrice;
+}
+
+void PriceGridTracker::SetStartingPriceUpperLevelsLowerLevelAndLevelPips(double startingPrice, int maxUpperLevels, int maxLowerlevels, double levelPips)
+{
+    Reset();
+    Init(maxUpperLevels, maxLowerlevels, levelPips);
     mBasePrice = startingPrice;
 }

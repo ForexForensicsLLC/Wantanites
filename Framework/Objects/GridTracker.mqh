@@ -8,36 +8,39 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Helpers\DateTimeHelper.mqh>
 #include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
 
 class GridTracker
 {
 protected:
+    bool mDrawn;
     string mObjectNamePrefix;
 
-    bool mDrawn;
+    double mBasePrice;
+    int mCurrentLevel;
 
     int mMaxUpperLevel;
     int mMaxLowerLevel;
 
-    double mLevelDistance;
+    double mUpperLevelDistance;
+    double mLowerLevelDistance;
 
-    int mCurrentLevel;
-    double mBasePrice;
-
-    void Init(int maxUpperLevels, int maxLowerLevels, double levelPips);
+    void InternalInit(double basePrice, int maxUpperLevels, int maxLowerLevels, double upperLevelDistance, double lowerLevelDistance);
 
 public:
+    GridTracker();
     GridTracker(int maxLevels, double levelPips);
     GridTracker(int maxUpperLevels, int maxLowerLevels, double levelPips);
     ~GridTracker();
 
-    double LevelDistance() { return mLevelDistance; }
+    void ReInit(double basePrice, int maxUpperLevels, int maxLowerLevel, double upperLevelDistance, double lowerLevelDistance);
 
     int MaxUpperLevels() { return mMaxUpperLevel; }
     int MaxLowerLevels() { return mMaxLowerLevel; }
     virtual bool AtMaxLevel();
+
+    double UpperLevelDistance() { return mUpperLevelDistance; }
+    double LowerLevelDistance() { return mLowerLevelDistance; }
 
     virtual double BasePrice() { return mBasePrice; }
 
@@ -48,14 +51,19 @@ public:
     virtual void Reset();
 };
 
+GridTracker::GridTracker()
+{
+    Reset();
+}
+
 GridTracker::GridTracker(int maxLevels, double levelPips)
 {
-    Init(maxLevels, maxLevels, levelPips);
+    InternalInit(0.0, maxLevels, maxLevels, levelPips, levelPips);
 }
 
 GridTracker::GridTracker(int maxUpperLevels, int maxLowerLevels, double levelPips)
 {
-    Init(maxUpperLevels, maxLowerLevels, levelPips);
+    InternalInit(0.0, maxUpperLevels, maxLowerLevels, levelPips, levelPips);
 }
 
 GridTracker::~GridTracker()
@@ -63,14 +71,22 @@ GridTracker::~GridTracker()
     ObjectsDeleteAll(ChartID(), mObjectNamePrefix);
 }
 
-void GridTracker::Init(int maxUpperLevel, int maxLowerLevel, double levelPips)
+void GridTracker::InternalInit(double basePrice, int maxUpperLevels, int maxLowerLevels, double upperLevelDistance, double lowerLevelDistance)
 {
-    mDrawn = false;
+    Reset();
 
-    mMaxUpperLevel = maxUpperLevel;
-    mMaxLowerLevel = maxLowerLevel;
+    mBasePrice = basePrice;
 
-    mLevelDistance = OrderHelper::PipsToRange(levelPips);
+    mMaxUpperLevel = maxUpperLevels;
+    mMaxLowerLevel = -maxLowerLevels;
+
+    mUpperLevelDistance = upperLevelDistance;
+    mLowerLevelDistance = lowerLevelDistance;
+}
+
+void GridTracker::ReInit(double basePrice, int maxUpperLevels, int maxLowerLevel, double upperLevelDistance, double lowerLevelDistance)
+{
+    InternalInit(basePrice, maxUpperLevels, maxLowerLevel, upperLevelDistance, lowerLevelDistance);
 }
 
 bool GridTracker::AtMaxLevel()
@@ -92,23 +108,26 @@ int GridTracker::CurrentLevel()
         return 0;
     }
 
-    double currentPlace = (currentTick.bid - mBasePrice) / mLevelDistance;
-    if (currentPlace >= mCurrentLevel + 1)
+    double currentPlace = 0;
+    if (currentTick.bid == mBasePrice)
     {
-        mCurrentLevel += 1;
+        mCurrentLevel = 0;
     }
-    else if (currentPlace <= mCurrentLevel - 1)
+    else if (currentTick.bid > mBasePrice)
     {
-        mCurrentLevel -= 1;
+        currentPlace = (currentTick.bid - mBasePrice) / mUpperLevelDistance;
+        if (currentPlace >= mCurrentLevel + 1 && currentPlace <= mMaxUpperLevel)
+        {
+            mCurrentLevel += 1;
+        }
     }
-
-    if (mCurrentLevel > mMaxUpperLevel)
+    else if (currentTick.bid < mBasePrice)
     {
-        return mMaxUpperLevel;
-    }
-    else if (mCurrentLevel < mMaxLowerLevel)
-    {
-        return mMaxLowerLevel;
+        currentPlace = (currentTick.bid - mBasePrice) / mLowerLevelDistance;
+        if (currentPlace <= mCurrentLevel - 1 && currentPlace >= mMaxLowerLevel)
+        {
+            mCurrentLevel -= 1;
+        }
     }
 
     return mCurrentLevel;
@@ -121,7 +140,21 @@ double GridTracker::LevelPrice(int level)
         return 0.0;
     }
 
-    return mBasePrice + (mLevelDistance * level);
+    double price = 0.0;
+    if (level == 0)
+    {
+        price = mBasePrice;
+    }
+    else if (level > 0)
+    {
+        price = mBasePrice + (mUpperLevelDistance * level);
+    }
+    else if (level < 0)
+    {
+        price = mBasePrice + (mLowerLevelDistance * level);
+    }
+
+    return price;
 }
 
 void GridTracker::Draw()
@@ -137,12 +170,18 @@ void GridTracker::Draw()
     datetime startTime = iTime(Symbol(), Period(), 0);
     datetime endTime = iTime(Symbol(), Period(), -30);
 
-    for (int i = 1; i <= mMaxLevel; i++)
-    {
-        linePriceUpper = mBasePrice + (mLevelDistance * i);
-        linePriceLower = mBasePrice - (mLevelDistance * i);
+    ObjectCreate(NULL, mObjectNamePrefix + IntegerToString(0), OBJ_TREND, 0, startTime, mBasePrice, endTime, mBasePrice);
+    ObjectSet(mObjectNamePrefix + IntegerToString(0), OBJPROP_COLOR, clrAqua);
 
+    for (int i = 1; i <= mMaxUpperLevel; i++)
+    {
+        linePriceUpper = mBasePrice + (mUpperLevelDistance * i);
         ObjectCreate(NULL, mObjectNamePrefix + IntegerToString(i), OBJ_TREND, 0, startTime, linePriceUpper, endTime, linePriceUpper);
+    }
+
+    for (int i = 1; i <= -mMaxLowerLevel; i++)
+    {
+        linePriceLower = mBasePrice - (mLowerLevelDistance * i);
         ObjectCreate(NULL, mObjectNamePrefix + IntegerToString(-i), OBJ_TREND, 0, startTime, linePriceLower, endTime, linePriceLower);
     }
 
@@ -153,6 +192,12 @@ void GridTracker::Reset()
 {
     mBasePrice = 0.0;
     mCurrentLevel = 0;
+
+    mMaxUpperLevel = 0;
+    mMaxLowerLevel = 0;
+
+    mUpperLevelDistance = 0.0;
+    mLowerLevelDistance = 0.0;
 
     ObjectsDeleteAll(ChartID(), mObjectNamePrefix);
     mDrawn = false;
