@@ -12,7 +12,7 @@
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
 #include <SummitCapital/EAs/Inactive/TimeRange/TimeRangeBreakout/StartOfDayTimeRangeBreakout.mqh>
 
-string ForcedSymbol = "USDJPY";
+string ForcedSymbol = "NAS100";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
@@ -20,8 +20,8 @@ double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-string StrategyName = "StartOfDayTimeRangeBreakout/";
-string EAName = "UJ/";
+string StrategyName = "TimeRangeBreakout/";
+string EAName = "Nas/";
 string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
@@ -34,10 +34,10 @@ TimeRangeBreakout *TRB;
 StartOfDayTimeRangeBreakout *TRBBuys;
 StartOfDayTimeRangeBreakout *TRBSells;
 
-// UJ
+// Gold
 int CloseHour = 23;
 int CloseMinute = 0;
-double MaxSpreadPips = 1.5;
+double MaxSpreadPips = 1;
 double EntryPaddingPips = 0;
 double MinStopLossPips = 0;
 double StopLossPaddingPips = 0;
@@ -51,7 +51,7 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    TRB = new TimeRangeBreakout(0, 0, 2, 0);
+    TRB = new TimeRangeBreakout(0, 0, 4, 0);
     TRBBuys = new StartOfDayTimeRangeBreakout(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                                               ExitWriter, ErrorWriter, TRB);
 
@@ -64,7 +64,7 @@ int OnInit()
     TRBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     TRBBuys.mBEAdditionalPips = BEAdditionalPips;
 
-    TRBBuys.AddTradingSession(2, 0, 23, 0);
+    TRBBuys.AddTradingSession(4, 0, 23, 0);
 
     TRBSells = new StartOfDayTimeRangeBreakout(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                                                ExitWriter, ErrorWriter, TRB);
@@ -77,7 +77,7 @@ int OnInit()
     TRBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     TRBSells.mBEAdditionalPips = BEAdditionalPips;
 
-    TRBSells.AddTradingSession(2, 0, 23, 0);
+    TRBSells.AddTradingSession(4, 0, 23, 0);
 
     return (INIT_SUCCEEDED);
 }

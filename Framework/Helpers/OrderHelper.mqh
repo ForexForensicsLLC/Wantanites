@@ -82,6 +82,9 @@ public:
     // ==========================================================================
     // Placing Limit Orders
     // ==========================================================================
+
+    static int PlaceLimitOrder(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber, out int &ticket);
+
     // !Tested
     // static bool PlaceLimitOrderWithSinglePartial(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, double partialOnePercent, int magicNumber);
 
@@ -232,7 +235,8 @@ static double OrderHelper::GetLotSize(double stopLossPips, double riskPercent)
 {
     double pipValue = MarketInfo(Symbol(), MODE_TICKSIZE) * 10 * MarketInfo(Symbol(), MODE_LOTSIZE);
 
-    // the actual pip value for JPY fluctuates based on the current price so it needs to be adjusted
+    // since UJ starts with USD, it also involves the current price
+    // TODO: update this to catch any other pairs
     if (StringFind(Symbol(), "JPY") != -1)
     {
         MqlTick currentTick;
@@ -440,7 +444,7 @@ static int OrderHelper::CountOtherEAOrders(bool todayOnly, int &magicNumbers[], 
             return error;
         }
 
-        for (int j = 0; j < ArraySize(magicNumbers) - 1; j++)
+        for (int j = 0; j < ArraySize(magicNumbers); j++)
         {
             if (OrderMagicNumber() == magicNumbers[j])
             {
@@ -650,6 +654,49 @@ static int OrderHelper::PlaceMarketOrderForMostRecentMB(double paddingPips, doub
                               |___/
 
 */
+int OrderHelper::PlaceLimitOrder(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber, out int &ticket)
+{
+    if (orderType != OP_BUYLIMIT && orderType != OP_SELLLIMIT)
+    {
+        return TerminalErrors::WRONG_ORDER_TYPE;
+    }
+
+    if (stopLoss > 0.0)
+    {
+        if ((orderType == OP_BUYLIMIT && stopLoss >= entryPrice) || (orderType == OP_SELLLIMIT && stopLoss <= entryPrice))
+        {
+            return TerminalErrors::STOPLOSS_PAST_ENTRY;
+        }
+    }
+
+    MqlTick currentTick;
+    if (!SymbolInfoTick(_Symbol, currentTick))
+    {
+        return GetLastError();
+    }
+
+    if ((orderType == OP_BUYLIMIT && entryPrice >= currentTick.ask) || (orderType == OP_SELLLIMIT && entryPrice <= currentTick.bid))
+    {
+        Print("Type: ", orderType, ", Entry: ", entryPrice, ", SL:", stopLoss, ", Ask: ", currentTick.ask, ", Bid: ", currentTick.bid);
+        return ExecutionErrors::ORDER_ENTRY_FURTHER_THEN_PRICE;
+    }
+
+    lots = CleanLotSize(lots);
+
+    int error = ERR_NO_ERROR;
+    int ticketNumber = OrderSend(NULL, orderType, lots, entryPrice, 0, stopLoss, takeProfit, NULL, magicNumber, 0, clrNONE);
+
+    if (ticketNumber < 0)
+    {
+        error = GetLastError();
+        Print("Failed to place limit Order. Error: ", error, ", Type: ", orderType, ", Lots: ", lots, ", Entry: ", entryPrice, ", SL: ", stopLoss, ", TP: ", takeProfit);
+        SendFailedOrderEMail(1, orderType, entryPrice, stopLoss, lots, magicNumber, error);
+    }
+
+    ticket = ticketNumber;
+    return error;
+}
+
 /*
 static bool OrderHelper::PlaceLimitOrderWithSinglePartial(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, double partialOnePercent, int magicNumber = 0)
 {
@@ -695,9 +742,12 @@ int OrderHelper::PlaceStopOrder(int orderType, double lots, double entryPrice, d
         return TerminalErrors::WRONG_ORDER_TYPE;
     }
 
-    if ((orderType == OP_BUYSTOP && stopLoss >= entryPrice) || (orderType == OP_SELLSTOP && stopLoss <= entryPrice))
+    if (stopLoss > 0.0)
     {
-        return TerminalErrors::STOPLOSS_PAST_ENTRY;
+        if ((orderType == OP_BUYSTOP && stopLoss >= entryPrice) || (orderType == OP_SELLSTOP && stopLoss <= entryPrice))
+        {
+            return TerminalErrors::STOPLOSS_PAST_ENTRY;
+        }
     }
 
     MqlTick currentTick;
@@ -720,6 +770,7 @@ int OrderHelper::PlaceStopOrder(int orderType, double lots, double entryPrice, d
     if (ticketNumber < 0)
     {
         error = GetLastError();
+        Print("Failed to place stop Order. Error: ", error, ", Type: ", orderType, ", Lots: ", lots, ", Entry: ", entryPrice, ", SL: ", stopLoss, ", TP: ", takeProfit);
         SendFailedOrderEMail(1, orderType, entryPrice, stopLoss, lots, magicNumber, error);
     }
 

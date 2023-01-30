@@ -158,6 +158,7 @@ bool ReEnterReversal::Confirmation()
     }
 
     double furthestBody = 0.0;
+    double halfOfRange = mTRB.RangeHigh() - (mTRB.RangeWidth() * 0.5);
     if (mSetupType == OP_BUY)
     {
         if (!MQLHelper::GetLowestBodyBetween(mEntrySymbol, mEntryTimeFrame, brokeRangeCandleIndex, 1, true, furthestBody))
@@ -170,7 +171,7 @@ bool ReEnterReversal::Confirmation()
             return false;
         }
 
-        return currentTick.ask >= mTRB.RangeLow();
+        return currentTick.ask >= halfOfRange;
     }
     else if (mSetupType == OP_SELL)
     {
@@ -184,7 +185,7 @@ bool ReEnterReversal::Confirmation()
             return false;
         }
 
-        return currentTick.bid <= mTRB.RangeHigh();
+        return currentTick.bid <= halfOfRange;
     }
 
     return false;
@@ -205,12 +206,12 @@ void ReEnterReversal::PlaceOrders()
     if (mSetupType == OP_BUY)
     {
         entry = currentTick.ask;
-        stopLoss = entry - mTRB.RangeWidth();
+        stopLoss = mTRB.RangeLow();
     }
     else if (mSetupType == OP_SELL)
     {
         entry = currentTick.bid;
-        stopLoss = entry + mTRB.RangeWidth();
+        stopLoss = mTRB.RangeHigh();
     }
 
     EAHelper::PlaceMarketOrder<ReEnterReversal>(this, entry, stopLoss);

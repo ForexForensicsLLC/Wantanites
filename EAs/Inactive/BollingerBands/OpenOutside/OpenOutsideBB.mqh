@@ -38,7 +38,7 @@ public:
     double MiddleBand(int shift) { return iBands(mEntrySymbol, mEntryTimeFrame, 20, 2, 0, PRICE_CLOSE, MODE_MAIN, shift); }
     double LowerBand(int shift) { return iBands(mEntrySymbol, mEntryTimeFrame, 20, 2, 0, PRICE_CLOSE, MODE_LOWER, shift); }
 
-    virtual double RiskPercent();
+    virtual double RiskPercent() { return mRiskPercent; }
 
     virtual void Run();
     virtual bool AllowedToTrade();
@@ -85,12 +85,6 @@ OpenOutside::OpenOutside(int magicNumber, int setupType, int maxCurrentSetupTrad
     EAHelper::SetPreviousSetupTicketsOpenData<OpenOutside, SingleTimeFrameEntryTradeRecord>(this);
 }
 
-double OpenOutside::RiskPercent()
-{
-    // reduce risk by half if we lose 5%
-    return EAHelper::GetReducedRiskPerPercentLost<OpenOutside>(this, 5, 0.5);
-}
-
 OpenOutside::~OpenOutside()
 {
 }
@@ -115,14 +109,16 @@ void OpenOutside::CheckSetSetup()
 
     if (mSetupType == OP_BUY)
     {
-        if (iOpen(mEntrySymbol, mEntryTimeFrame, 0) < LowerBand(0))
+        if (iClose(mEntrySymbol, mEntryTimeFrame, 2) < LowerBand(2) &&
+            iClose(mEntrySymbol, mEntryTimeFrame, 1) > LowerBand(1))
         {
             mHasSetup = true;
         }
     }
     else if (mSetupType == OP_SELL)
     {
-        if (iOpen(mEntrySymbol, mEntryTimeFrame, 0) > UpperBand(0))
+        if (iClose(mEntrySymbol, mEntryTimeFrame, 2) > UpperBand(2) &&
+            iClose(mEntrySymbol, mEntryTimeFrame, 1) < UpperBand(1))
         {
             mHasSetup = true;
         }
@@ -146,12 +142,6 @@ bool OpenOutside::Confirmation()
 
 void OpenOutside::PlaceOrders()
 {
-    int currentBars = iBars(mEntrySymbol, mEntryTimeFrame);
-    if (currentBars <= mBarCount)
-    {
-        return;
-    }
-
     if (mCurrentSetupTicket.Number() != EMPTY)
     {
         return;
@@ -170,73 +160,24 @@ void OpenOutside::PlaceOrders()
     if (mSetupType == OP_BUY)
     {
         entry = currentTick.ask;
-        stopLoss = entry - OrderHelper::PipsToRange(mStopLossPaddingPips);
+        stopLoss = entry - OrderHelper::PipsToRange(mMinStopLossPips);
     }
     else if (mSetupType == OP_SELL)
     {
         entry = currentTick.bid;
-        stopLoss = entry + OrderHelper::PipsToRange(mStopLossPaddingPips);
+        stopLoss = entry + OrderHelper::PipsToRange(mMinStopLossPips + mMaxSpreadPips);
     }
 
     EAHelper::PlaceMarketOrder<OpenOutside>(this, entry, stopLoss);
-
-    if (mCurrentSetupTicket.Number() != EMPTY)
-    {
-        mEntryCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 0);
-    }
+    InvalidateSetup(false);
 }
 
 void OpenOutside::ManageCurrentPendingSetupTicket()
 {
-    int entryCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
-
-    if (mCurrentSetupTicket.Number() == EMPTY)
-    {
-        return;
-    }
-
-    int selectError = mCurrentSetupTicket.SelectIfOpen("Stuff");
-    if (TerminalErrors::IsTerminalError(selectError))
-    {
-        RecordError(selectError);
-        return;
-    }
-
-    if (entryCandleIndex > 1)
-    {
-        InvalidateSetup(true);
-    }
-
-    if (mSetupType == OP_BUY)
-    {
-        if (iLow(mEntrySymbol, mEntryTimeFrame, 0) < OrderStopLoss())
-        {
-            InvalidateSetup(true);
-        }
-    }
-    else if (mSetupType == OP_SELL)
-    {
-        if (iHigh(mEntrySymbol, mEntryTimeFrame, 0) > OrderStopLoss())
-        {
-            InvalidateSetup(true);
-        }
-    }
 }
 
 void OpenOutside::ManageCurrentActiveSetupTicket()
 {
-    if (mCurrentSetupTicket.Number() == EMPTY)
-    {
-        return;
-    }
-
-    int selectError = mCurrentSetupTicket.SelectIfOpen("Stuff");
-    if (TerminalErrors::IsTerminalError(selectError))
-    {
-        RecordError(selectError);
-        return;
-    }
-
     MqlTick currentTick;
     if (!SymbolInfoTick(Symbol(), currentTick))
     {
@@ -244,128 +185,29 @@ void OpenOutside::ManageCurrentActiveSetupTicket()
         return;
     }
 
-    int entryIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, OrderOpenTime());
-    bool movedPips = false;
-
     if (mSetupType == OP_BUY)
     {
-        // if (entryIndex > 5)
-        // {
-        //     // close if we are still opening within our entry and get the chance to close at BE
-        //     if (iOpen(mEntrySymbol, mEntryTimeFrame, 1) < OrderOpenPrice() && currentTick.bid >= OrderOpenPrice())
-        //     {
-        //         mCurrentSetupTicket.Close();
-        //     }
-        // }
-
-        // This is here as a safety net so we aren't running a very expenseive nested for loop. If this returns false something went wrong or I need to change things.
-        // close if we break a low within our stop loss
-        // if (entryIndex <= 200)
-        // {
-        //     // do minus 2 so that we don't include the candle that we actually entered on in case it wicked below before entering
-        //     for (int i = entryIndex - 2; i >= 0; i--)
-        //     {
-        //         if (iLow(mEntrySymbol, mEntryTimeFrame, i) > OrderOpenPrice())
-        //         {
-        //             break;
-        //         }
-
-        //         for (int j = entryIndex; j > i; j--)
-        //         {
-        //             if (iLow(mEntrySymbol, mEntryTimeFrame, i) < iLow(mEntrySymbol, mEntryTimeFrame, j))
-        //             {
-        //                 // managed to break back out, close at BE
-        //                 if (currentTick.bid >= OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
-        //                 {
-        //                     mCurrentSetupTicket.Close();
-        //                     return;
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-        // else
-        // {
-        //     // TOD: Create error code
-        //     string additionalInformation = "Entry Index: " + entryIndex;
-        //     RecordError(-1, additionalInformation);
-        // }
-
-        // movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
-
-        if (currentTick.bid >= MiddleBand(0))
+        if (currentTick.bid > MiddleBand(0))
         {
             mCurrentSetupTicket.Close();
         }
     }
     else if (mSetupType == OP_SELL)
     {
-        // early close
-        // if (entryIndex > 5)
-        // {
-        //     // close if we are still opening above our entry and we get the chance to close at BE
-        //     if (iOpen(mEntrySymbol, mEntryTimeFrame, 1) > OrderOpenPrice() && currentTick.ask <= OrderOpenPrice())
-        //     {
-        //         mCurrentSetupTicket.Close();
-        //     }
-        // }
-
-        // middle close
-        // This is here as a safety net so we aren't running a very expenseive nested for loop. If this returns false something went wrong or I need to change things.
-        // close if we break a high within our stop loss
-        // if (entryIndex <= 200)
-        // {
-        //     // do minus 2 so that we don't include the candle that we actually entered on in case it wicked below before entering
-        //     for (int i = entryIndex - 2; i >= 0; i--)
-        //     {
-        //         if (iHigh(mEntrySymbol, mEntryTimeFrame, i) < OrderOpenPrice())
-        //         {
-        //             break;
-        //         }
-
-        //         for (int j = entryIndex; j > i; j--)
-        //         {
-        //             if (iHigh(mEntrySymbol, mEntryTimeFrame, i) > iHigh(mEntrySymbol, mEntryTimeFrame, j))
-        //             {
-        //                 // managed to break back out, close at BE
-        //                 if (currentTick.ask <= OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
-        //                 {
-        //                     mCurrentSetupTicket.Close();
-        //                     return;
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-        // else
-        // {
-        //     // TOD: Create error code
-        //     string additionalInformation = "Entry Index: " + entryIndex;
-        //     RecordError(-1, additionalInformation);
-        // }
-
-        // movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
-
-        if (currentTick.ask <= MiddleBand(0))
+        if (currentTick.ask < MiddleBand(0))
         {
             mCurrentSetupTicket.Close();
         }
     }
-
-    // if (movedPips)
-    // {
-    //     EAHelper::MoveToBreakEvenAsSoonAsPossible<OpenOutside>(this, mBEAdditionalPips);
-    // }
 }
 
 bool OpenOutside::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    return EAHelper::TicketStopLossIsMovedToBreakEven<OpenOutside>(this, ticket);
+    return false;
 }
 
 void OpenOutside::ManagePreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::CheckPartialTicket<OpenOutside>(this, mPreviousSetupTickets[ticketIndex]);
 }
 
 void OpenOutside::CheckCurrentSetupTicket()

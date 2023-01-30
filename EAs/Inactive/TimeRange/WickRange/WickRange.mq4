@@ -10,29 +10,19 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/BollingerBands/OpenOutside/OpenOutside.mqh>
+#include <SummitCapital/EAs/Inactive/TimeRange/WickRange/WickRange.mqh>
 
-string ForcedSymbol = "EURUSD";
-int ForcedTimeFrame = 60;
+string ForcedSymbol = "USDJPY";
+int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
 double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-// -- MBTracker Inputs
-int MBsToTrack = 10;
-int MaxZonesInMB = 5;
-bool AllowMitigatedZones = false;
-bool AllowZonesAfterMBValidation = true;
-bool AllowWickBreaks = true;
-bool OnlyZonesInMB = true;
-bool PrintErrors = false;
-bool CalculateOnTick = false;
-
-string StrategyName = "BollingerBands/";
-string EAName = "EU/";
-string SetupTypeName = "OpenOutside/";
+string StrategyName = "WickRange/";
+string EAName = "UJ/";
+string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -40,17 +30,19 @@ CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<Partial
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-OpenOutside *OOBuys;
-OpenOutside *OOSells;
+TimeRangeBreakout *TRB;
+WickRange *WRBuys;
+WickRange *WRSells;
 
-// EU
-double MaxSpreadPips = 0.8;
+// UJ
+int CloseHour = 23;
+int CloseMinute = 0;
+double MaxSpreadPips = 1.5;
 double EntryPaddingPips = 0;
 double MinStopLossPips = 0;
-double StopLossPaddingPips = 30;
+double StopLossPaddingPips = 0;
 double PipsToWaitBeforeBE = 40;
 double BEAdditionalPips = 0;
-double CloseRR = 20;
 
 int OnInit()
 {
@@ -59,38 +51,43 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    OOBuys = new OpenOutside(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                             ExitWriter, ErrorWriter);
+    TRB = new TimeRangeBreakout(0, 0, 2, 0);
+    WRBuys = new WickRange(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                           ExitWriter, ErrorWriter, TRB);
 
-    OOBuys.SetPartialCSVRecordWriter(PartialWriter);
-    OOBuys.AddPartial(CloseRR, 100);
+    WRBuys.SetPartialCSVRecordWriter(PartialWriter);
 
-    OOBuys.mEntryPaddingPips = EntryPaddingPips;
-    OOBuys.mMinStopLossPips = MinStopLossPips;
-    OOBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    OOBuys.mBEAdditionalPips = BEAdditionalPips;
+    WRBuys.mCloseHour = CloseHour;
+    WRBuys.mCloseMinute = CloseMinute;
+    WRBuys.mEntryPaddingPips = EntryPaddingPips;
+    WRBuys.mMinStopLossPips = MinStopLossPips;
+    WRBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    WRBuys.mBEAdditionalPips = BEAdditionalPips;
 
-    OOBuys.AddTradingSession(3, 0, 23, 0);
+    WRBuys.AddTradingSession(2, 0, 23, 0);
 
-    OOSells = new OpenOutside(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                              ExitWriter, ErrorWriter);
-    OOSells.SetPartialCSVRecordWriter(PartialWriter);
-    OOSells.AddPartial(CloseRR, 100);
+    WRSells = new WickRange(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                            ExitWriter, ErrorWriter, TRB);
+    WRSells.SetPartialCSVRecordWriter(PartialWriter);
 
-    OOSells.mEntryPaddingPips = EntryPaddingPips;
-    OOSells.mMinStopLossPips = MinStopLossPips;
-    OOSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    OOSells.mBEAdditionalPips = BEAdditionalPips;
+    WRSells.mCloseHour = CloseHour;
+    WRSells.mCloseMinute = CloseMinute;
+    WRSells.mEntryPaddingPips = EntryPaddingPips;
+    WRSells.mMinStopLossPips = MinStopLossPips;
+    WRSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    WRSells.mBEAdditionalPips = BEAdditionalPips;
 
-    OOSells.AddTradingSession(3, 0, 23, 0);
+    WRSells.AddTradingSession(2, 0, 23, 0);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete OOBuys;
-    delete OOSells;
+    delete TRB;
+
+    delete WRBuys;
+    delete WRSells;
 
     delete EntryWriter;
     delete PartialWriter;
@@ -100,6 +97,6 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    OOBuys.Run();
-    OOSells.Run();
+    WRBuys.Run();
+    WRSells.Run();
 }

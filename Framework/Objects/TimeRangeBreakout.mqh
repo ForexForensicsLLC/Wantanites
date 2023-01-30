@@ -36,8 +36,8 @@ private:
     bool mUpdateRangeHigh;
     bool mUpdateRangeLow;
 
-    bool mBrokeRangeHigh;
-    bool mBrokeRangeLow;
+    datetime mBrokeRangeHighTime;
+    datetime mBrokeRangeLowTime;
 
     void Update();
     void Calculate(int barIndex);
@@ -47,12 +47,15 @@ public:
     TimeRangeBreakout(int rangeHourStartTime, int rangeMinuteStartTime, int rangeHourEndTime, int rangeMinuteEndTime);
     ~TimeRangeBreakout();
 
-    double RangeHigh() { return mRangeHigh; }
-    double RangeLow() { return mRangeLow; }
-    double RangeWidth() { return mRangeHigh - mRangeLow; }
+    datetime RangeStartTime() { return mRangeStartTime; }
+    datetime RangeEndTime() { return mRangeEndTime; }
 
-    bool BrokeRangeHigh();
-    bool BrokeRangeLow();
+    double RangeHigh();
+    double RangeLow();
+    double RangeHeight() { return RangeHigh() - RangeLow(); }
+
+    bool MostRecentCandleBrokeRangeHigh();
+    bool MostRecentCandleBrokeRangeLow();
 
     void Draw();
 };
@@ -78,40 +81,40 @@ TimeRangeBreakout::~TimeRangeBreakout()
     ObjectsDeleteAll(ChartID(), mObjectNamePrefix);
 }
 
-bool TimeRangeBreakout::BrokeRangeHigh()
+double TimeRangeBreakout::RangeHigh()
 {
     Update();
-
-    if (!mBrokeRangeHigh)
-    {
-        MqlTick currentTick;
-        if (!SymbolInfoTick(Symbol(), currentTick))
-        {
-            return false;
-        }
-
-        mBrokeRangeHigh = currentTick.time > mRangeEndTime && mRangeHigh != ConstantValues::EmptyDouble && currentTick.ask > mRangeHigh;
-    }
-
-    return mBrokeRangeHigh;
+    return mRangeHigh;
 }
 
-bool TimeRangeBreakout::BrokeRangeLow()
+double TimeRangeBreakout::RangeLow()
+{
+    Update();
+    return mRangeLow;
+}
+
+bool TimeRangeBreakout::MostRecentCandleBrokeRangeHigh()
 {
     Update();
 
-    if (!mBrokeRangeLow)
+    if (mBrokeRangeHighTime <= 0)
     {
-        MqlTick currentTick;
-        if (!SymbolInfoTick(Symbol(), currentTick))
-        {
-            return false;
-        }
-
-        mBrokeRangeLow = currentTick.time > mRangeStartTime && mRangeLow != ConstantValues::EmptyDouble && currentTick.bid < mRangeLow;
+        return false;
     }
 
-    return mBrokeRangeLow;
+    return iBarShift(Symbol(), Period(), mBrokeRangeHighTime) == 0;
+}
+
+bool TimeRangeBreakout::MostRecentCandleBrokeRangeLow()
+{
+    Update();
+
+    if (mBrokeRangeLowTime <= 0)
+    {
+        return false;
+    }
+
+    return iBarShift(Symbol(), Period(), mBrokeRangeLowTime) == 0;
 }
 
 void TimeRangeBreakout::Update()
@@ -135,40 +138,47 @@ void TimeRangeBreakout::Calculate(int barIndex)
         mLastDay = Day();
     }
 
-    datetime validTime = 0;
-    if (barIndex == 0)
-    {
-        MqlTick currentTick;
-        if (!SymbolInfoTick(Symbol(), currentTick))
-        {
-            return;
-        }
-
-        validTime = currentTick.time;
-    }
-    else
-    {
-        validTime = iTime(Symbol(), Period(), barIndex);
-    }
-
+    datetime validTime = iTime(Symbol(), Period(), barIndex);
     if (validTime > mRangeStartTime && validTime < mRangeEndTime)
     {
-        MqlTick currentTick;
-        if (!SymbolInfoTick(Symbol(), currentTick))
+        if (iHigh(Symbol(), Period(), barIndex) > mRangeHigh || mRangeHigh == ConstantValues::EmptyDouble)
         {
-            return;
-        }
-
-        if (currentTick.ask > mRangeHigh || mRangeHigh == ConstantValues::EmptyDouble)
-        {
-            mRangeHigh = currentTick.ask;
+            mRangeHigh = iHigh(Symbol(), Period(), barIndex);
             mUpdateRangeHigh = true;
         }
 
-        if (currentTick.bid < mRangeLow || mRangeLow == ConstantValues::EmptyDouble)
+        if (iLow(Symbol(), Period(), barIndex) < mRangeLow || mRangeLow == ConstantValues::EmptyDouble)
         {
-            mRangeLow = currentTick.bid;
+            mRangeLow = iLow(Symbol(), Period(), barIndex);
             mUpdateRangeLow = true;
+        }
+    }
+    else
+    {
+        if (mRangeHigh != ConstantValues::EmptyDouble && mRangeLow != ConstantValues::EmptyDouble)
+        {
+            MqlTick currentTick;
+            if (!SymbolInfoTick(Symbol(), currentTick))
+            {
+                return;
+            }
+
+            double thisValue = barIndex == 0 ? currentTick.bid : iClose(Symbol(), Period(), barIndex);
+            if (mBrokeRangeHighTime <= 0)
+            {
+                if (iClose(Symbol(), Period(), barIndex + 1) < mRangeHigh && thisValue >= mRangeHigh)
+                {
+                    mBrokeRangeHighTime = iTime(Symbol(), Period(), barIndex);
+                }
+            }
+
+            if (mBrokeRangeLowTime <= 0)
+            {
+                if (iClose(Symbol(), Period(), barIndex + 1) > mRangeLow && thisValue <= mRangeLow)
+                {
+                    mBrokeRangeLowTime = iTime(Symbol(), Period(), barIndex);
+                }
+            }
         }
     }
 }
@@ -187,8 +197,8 @@ void TimeRangeBreakout::Reset()
     mUpdateRangeHigh = false;
     mUpdateRangeLow = false;
 
-    mBrokeRangeHigh = false;
-    mBrokeRangeLow = false;
+    mBrokeRangeHighTime = 0;
+    mBrokeRangeLowTime = 0;
 }
 
 void TimeRangeBreakout::Draw()
