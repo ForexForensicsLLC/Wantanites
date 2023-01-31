@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                    DowLiquidation.mqh |
+//|                                                    CandleLiquidation.mqh |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -12,16 +12,16 @@
 #include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
-class DowLiquidation : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class CandleLiquidation : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     double mMinWickLength;
 
 public:
-    DowLiquidation(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                   CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                   CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter);
-    ~DowLiquidation();
+    CandleLiquidation(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+                      CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                      CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter);
+    ~CandleLiquidation();
 
     virtual double RiskPercent() { return mRiskPercent; }
 
@@ -46,33 +46,33 @@ public:
     virtual void Reset();
 };
 
-DowLiquidation::DowLiquidation(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips,
-                               double riskPercent,
-                               CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                               CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter)
+CandleLiquidation::CandleLiquidation(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips,
+                                     double riskPercent,
+                                     CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                                     CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter,
          errorCSVRecordWriter)
 {
     mMinWickLength = 0.0;
 
-    EAHelper::FindSetPreviousAndCurrentSetupTickets<DowLiquidation>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<DowLiquidation, SingleTimeFrameEntryTradeRecord>(this);
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<CandleLiquidation>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<CandleLiquidation, SingleTimeFrameEntryTradeRecord>(this);
 }
 
-DowLiquidation::~DowLiquidation()
+CandleLiquidation::~CandleLiquidation()
 {
 }
 
-void DowLiquidation::PreRun()
+void CandleLiquidation::PreRun()
 {
 }
 
-bool DowLiquidation::AllowedToTrade()
+bool CandleLiquidation::AllowedToTrade()
 {
-    return EAHelper::BelowSpread<DowLiquidation>(this) && EAHelper::WithinTradingSession<DowLiquidation>(this);
+    return EAHelper::BelowSpread<CandleLiquidation>(this) && EAHelper::WithinTradingSession<CandleLiquidation>(this);
 }
 
-void DowLiquidation::CheckSetSetup()
+void CandleLiquidation::CheckSetSetup()
 {
     bool longEnoughWick = false;
     bool crossedOpenAfterLiquidaiton = false;
@@ -104,22 +104,22 @@ void DowLiquidation::CheckSetSetup()
     }
 }
 
-void DowLiquidation::CheckInvalidateSetup()
+void CandleLiquidation::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void DowLiquidation::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void CandleLiquidation::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
-    EAHelper::InvalidateSetup<DowLiquidation>(this, deletePendingOrder, mStopTrading, error);
+    EAHelper::InvalidateSetup<CandleLiquidation>(this, deletePendingOrder, mStopTrading, error);
 }
 
-bool DowLiquidation::Confirmation()
+bool CandleLiquidation::Confirmation()
 {
     return true;
 }
 
-void DowLiquidation::PlaceOrders()
+void CandleLiquidation::PlaceOrders()
 {
     double entry = 0.0;
     double stopLoss = 0.0;
@@ -135,15 +135,15 @@ void DowLiquidation::PlaceOrders()
         stopLoss = entry + OrderHelper::PipsToRange(mStopLossPaddingPips);
     }
 
-    EAHelper::PlaceMarketOrder<DowLiquidation>(this, entry, stopLoss);
+    EAHelper::PlaceMarketOrder<CandleLiquidation>(this, entry, stopLoss);
     mStopTrading = true;
 }
 
-void DowLiquidation::ManageCurrentPendingSetupTicket()
+void CandleLiquidation::ManageCurrentPendingSetupTicket()
 {
 }
 
-void DowLiquidation::ManageCurrentActiveSetupTicket()
+void CandleLiquidation::ManageCurrentActiveSetupTicket()
 {
     int openIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mCurrentSetupTicket.OpenTime());
     if (openIndex >= 1)
@@ -151,15 +151,15 @@ void DowLiquidation::ManageCurrentActiveSetupTicket()
         mCurrentSetupTicket.Close();
     }
 
-    EAHelper::MoveToBreakEvenAfterPips<DowLiquidation>(this, mCurrentSetupTicket, mPipsToWaitBeforeBE, mBEAdditionalPips);
+    EAHelper::MoveToBreakEvenAfterPips<CandleLiquidation>(this, mCurrentSetupTicket, mPipsToWaitBeforeBE, mBEAdditionalPips);
 }
 
-bool DowLiquidation::MoveToPreviousSetupTickets(Ticket &ticket)
+bool CandleLiquidation::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    return EAHelper::TicketStopLossIsMovedToBreakEven<DowLiquidation>(this, ticket);
+    return EAHelper::TicketStopLossIsMovedToBreakEven<CandleLiquidation>(this, ticket);
 }
 
-void DowLiquidation::ManagePreviousSetupTicket(int ticketIndex)
+void CandleLiquidation::ManagePreviousSetupTicket(int ticketIndex)
 {
     int openIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mPreviousSetupTickets[ticketIndex].OpenTime());
     if (openIndex >= 1)
@@ -168,43 +168,43 @@ void DowLiquidation::ManagePreviousSetupTicket(int ticketIndex)
     }
 }
 
-void DowLiquidation::CheckCurrentSetupTicket()
+void CandleLiquidation::CheckCurrentSetupTicket()
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<DowLiquidation>(this, mCurrentSetupTicket);
-    EAHelper::CheckCurrentSetupTicket<DowLiquidation>(this);
+    EAHelper::CheckUpdateHowFarPriceRanFromOpen<CandleLiquidation>(this, mCurrentSetupTicket);
+    EAHelper::CheckCurrentSetupTicket<CandleLiquidation>(this);
 }
 
-void DowLiquidation::CheckPreviousSetupTicket(int ticketIndex)
+void CandleLiquidation::CheckPreviousSetupTicket(int ticketIndex)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<DowLiquidation>(this, mPreviousSetupTickets[ticketIndex]);
-    EAHelper::CheckPreviousSetupTicket<DowLiquidation>(this, ticketIndex);
+    EAHelper::CheckUpdateHowFarPriceRanFromOpen<CandleLiquidation>(this, mPreviousSetupTickets[ticketIndex]);
+    EAHelper::CheckPreviousSetupTicket<CandleLiquidation>(this, ticketIndex);
 }
 
-void DowLiquidation::RecordTicketOpenData()
+void CandleLiquidation::RecordTicketOpenData()
 {
-    EAHelper::RecordSingleTimeFrameEntryTradeRecord<DowLiquidation>(this);
+    EAHelper::RecordSingleTimeFrameEntryTradeRecord<CandleLiquidation>(this);
 }
 
-void DowLiquidation::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
+void CandleLiquidation::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
 }
 
-void DowLiquidation::RecordTicketCloseData(Ticket &ticket)
+void CandleLiquidation::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameExitTradeRecord<DowLiquidation>(this, ticket, Period());
+    EAHelper::RecordSingleTimeFrameExitTradeRecord<CandleLiquidation>(this, ticket, Period());
 }
 
-void DowLiquidation::RecordError(int error, string additionalInformation = "")
+void CandleLiquidation::RecordError(int error, string additionalInformation = "")
 {
-    EAHelper::RecordSingleTimeFrameErrorRecord<DowLiquidation>(this, error, additionalInformation);
+    EAHelper::RecordSingleTimeFrameErrorRecord<CandleLiquidation>(this, error, additionalInformation);
 }
 
-bool DowLiquidation::ShouldReset()
+bool CandleLiquidation::ShouldReset()
 {
-    return !EAHelper::WithinTradingSession<DowLiquidation>(this);
+    return !EAHelper::WithinTradingSession<CandleLiquidation>(this);
 }
 
-void DowLiquidation::Reset()
+void CandleLiquidation::Reset()
 {
     mStopTrading = false;
     mHasSetup = false;

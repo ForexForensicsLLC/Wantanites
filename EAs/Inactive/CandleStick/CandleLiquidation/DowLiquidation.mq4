@@ -10,7 +10,7 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/CandleStick/DowLiquidation/DowLiquidation.mqh>
+#include <SummitCapital/EAs/Inactive/CandleStick/CandleLiquidation/CandleLiquidation.mqh>
 
 string ForcedSymbol = "US30";
 int ForcedTimeFrame = 5;
@@ -22,15 +22,15 @@ int MaxTradesPerDay = 5;
 
 string StrategyName = "CandleStick/";
 string EAName = "Dow/";
-string SetupTypeName = "DowLiquidation/";
+string SetupTypeName = "CandleLiquidation/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-DowLiquidation *DLBuys;
-DowLiquidation *DLSells;
+CandleLiquidation *DLBuys;
+CandleLiquidation *DLSells;
 
 double MinWickLength = 200;
 double MaxSpreadPips = 25;
@@ -44,15 +44,15 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    DLBuys = new DowLiquidation(MagicNumbers::DowMorningCandleLiquidationBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
-                                RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
+    DLBuys = new CandleLiquidation(MagicNumbers::DowMorningCandleLiquidationBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                   RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
     DLBuys.mMinWickLength = MinWickLength;
     DLBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     DLBuys.AddTradingSession(16, 30, 16, 35);
 
-    DLSells = new DowLiquidation(MagicNumbers::DowMorningCandleLiquidationSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
-                                 RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
+    DLSells = new CandleLiquidation(MagicNumbers::DowMorningCandleLiquidationSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                    RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
     DLSells.mMinWickLength = MinWickLength;
     DLSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;

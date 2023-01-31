@@ -337,14 +337,14 @@ void MBGridMultiplier::PlaceOrders()
         entry = CurrentTick().Ask();
         // don't want to place a tp on the last level because they we won't call ManagePreviousSetupTickets on it to check that we are at the last level
         takeProfit = mGT.AtMaxLevel() ? 0.0 : mGT.LevelPrice(mGT.CurrentLevel() + 1);
-        // stopLoss = mGT.LevelPrice(mGT.CurrentLevel() - 1);
+        stopLoss = mGT.LevelPrice(mGT.CurrentLevel() - 1);
     }
     else if (SetupType() == OP_SELL)
     {
         entry = CurrentTick().Bid();
         // don't want to place a tp on the last level because they we won't call ManagePreviousSetupTickets on it to check that we are at the last level
         takeProfit = mGT.AtMaxLevel() ? 0.0 : mGT.LevelPrice(mGT.CurrentLevel() - 1);
-        // stopLoss = mGT.LevelPrice(mGT.CurrentLevel() + 1);
+        stopLoss = mGT.LevelPrice(mGT.CurrentLevel() + 1);
     }
 
     if (mFirstTrade)

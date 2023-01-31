@@ -10,31 +10,30 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/CandleStick/LongWick/LongWick.mqh>
+#include <SummitCapital/EAs/Inactive/CandleStick/CandleLiquidation/CandleLiquidation.mqh>
 
 string ForcedSymbol = "EURUSD";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
-double RiskPercent = 0.5;
+double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-string StrategyName = "LongWick/";
+string StrategyName = "CandleStick/";
 string EAName = "EU/";
-string SetupTypeName = "";
+string SetupTypeName = "CandleLiquidation/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-LongWick *LWBuys;
-LongWick *LWSells;
+CandleLiquidation *DLBuys;
+CandleLiquidation *DLSells;
 
-// EU
 double MinWickLength = 5;
-double MaxSpreadPips = 0.8;
+double MaxSpreadPips = 1;
 double StopLossPaddingPips = 10;
 double PipsToWaitBeforeBE = 10;
 
@@ -45,27 +44,27 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    LWBuys = new LongWick(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                          ExitWriter, ErrorWriter);
+    DLBuys = new CandleLiquidation(MagicNumbers::DowMorningCandleLiquidationBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                   RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
-    LWBuys.mMinWickLength = MinWickLength;
-    LWBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    LWBuys.AddTradingSession(15, 0, 16, 30);
+    DLBuys.mMinWickLength = MinWickLength;
+    DLBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    DLBuys.AddTradingSession(15, 0, 16, 30);
 
-    LWSells = new LongWick(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                           ExitWriter, ErrorWriter);
+    DLSells = new CandleLiquidation(MagicNumbers::DowMorningCandleLiquidationSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                    RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
-    LWSells.mMinWickLength = MinWickLength;
-    LWSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    LWSells.AddTradingSession(15, 0, 16, 30);
+    DLSells.mMinWickLength = MinWickLength;
+    DLSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    DLSells.AddTradingSession(15, 0, 16, 30);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete LWBuys;
-    delete LWSells;
+    delete DLBuys;
+    delete DLSells;
 
     delete EntryWriter;
     delete ExitWriter;
@@ -74,6 +73,6 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    LWBuys.Run();
-    LWSells.Run();
+    DLBuys.Run();
+    DLSells.Run();
 }

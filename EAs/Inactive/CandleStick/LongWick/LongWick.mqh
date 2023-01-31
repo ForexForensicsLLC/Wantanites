@@ -12,7 +12,7 @@
 #include <SummitCapital\Framework\Helpers\EAHelper.mqh>
 #include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
 
-class LongWick : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class LongWick : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     double mMinWickLength;
@@ -36,11 +36,9 @@ public:
              CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter);
     ~LongWick();
 
-    double EMA() { return iMA(mEntrySymbol, mEntryTimeFrame, 200, 0, MODE_EMA, PRICE_CLOSE, 0); }
-
     virtual double RiskPercent() { return mRiskPercent; }
 
-    virtual void Run();
+    virtual void PreRun();
     virtual bool AllowedToTrade();
     virtual void CheckSetSetup();
     virtual void CheckInvalidateSetup();
@@ -57,6 +55,7 @@ public:
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
+    virtual bool ShouldReset();
     virtual void Reset();
 };
 
@@ -67,18 +66,10 @@ LongWick::LongWick(int magicNumber, int setupType, int maxCurrentSetupTradesAtOn
 {
     mMinWickLength = 0.0;
 
-    mEntrySymbol = Symbol();
-    mEntryTimeFrame = Period();
-
-    mBarCount = 0;
-    mLastEntryCandleTime = 0;
-
     mEntryPaddingPips = 0.0;
     mMinStopLossPips = 0.0;
     mPipsToWaitBeforeBE = 0.0;
     mBEAdditionalPips = 0.0;
-
-    mEntryCandleTime = 0;
 
     mLargestAccountBalance = 200000;
 
@@ -91,11 +82,8 @@ LongWick::~LongWick()
 {
 }
 
-void LongWick::Run()
+void LongWick::PreRun()
 {
-    EAHelper::Run<LongWick>(this);
-
-    mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
 }
 
 bool LongWick::AllowedToTrade()
@@ -105,71 +93,24 @@ bool LongWick::AllowedToTrade()
 
 void LongWick::CheckSetSetup()
 {
-    if (mCurrentSetupTicket.Number() != EMPTY)
-    {
-        return;
-    }
-
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
-    {
-        RecordError(GetLastError());
-        return;
-    }
-
-    double lookback = 15;
     double wickLength = 0.0;
-    int furthestIndex = EMPTY;
-
-    if (mSetupType == OP_BUY)
+    if (SetupType() == OP_BUY)
     {
-        if (currentTick.bid < EMA())
+        if (CurrentTick().Bid() > iOpen(mEntrySymbol, mEntryTimeFrame, 0))
         {
             return;
         }
 
-        // if (!MQLHelper::GetLowestIndexBetween(mEntrySymbol, mEntryTimeFrame, lookback, 0, true, furthestIndex))
-        // {
-        //     return;
-        // }
-
-        // if (furthestIndex > 5)
-        // {
-        //     return;
-        // }
-
-        // need this check or else the wick length check will pass for most bullish candles since it will take into account their body
-        if (currentTick.bid > iOpen(mEntrySymbol, mEntryTimeFrame, 0))
-        {
-            return;
-        }
-
-        wickLength = currentTick.bid - iLow(mEntrySymbol, mEntryTimeFrame, 0);
+        wickLength = CurrentTick().Bid() - iLow(mEntrySymbol, mEntryTimeFrame, 0);
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
-        if (currentTick.bid > EMA())
+        if (CurrentTick().Bid() < iOpen(mEntrySymbol, mEntryTimeFrame, 0))
         {
             return;
         }
 
-        // if (!MQLHelper::GetHighestIndexBetween(mEntrySymbol, mEntryTimeFrame, lookback, 0, true, furthestIndex))
-        // {
-        //     return;
-        // }
-
-        // if (furthestIndex > 5)
-        // {
-        //     return;
-        // }
-
-        // need this check or else the wick length check will pass for most bearish candles since it will take into account their body
-        if (currentTick.bid < iOpen(mEntrySymbol, mEntryTimeFrame, 0))
-        {
-            return;
-        }
-
-        wickLength = iHigh(mEntrySymbol, mEntryTimeFrame, 0) - currentTick.bid;
+        wickLength = iHigh(mEntrySymbol, mEntryTimeFrame, 0) - CurrentTick().Bid();
     }
 
     if (wickLength >= OrderHelper::PipsToRange(mMinWickLength))
@@ -195,31 +136,22 @@ bool LongWick::Confirmation()
 
 void LongWick::PlaceOrders()
 {
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
-    {
-        RecordError(GetLastError());
-        return;
-    }
-
     double entry = 0.0;
     double stopLoss = 0.0;
 
-    if (mSetupType == OP_BUY)
+    if (SetupType() == OP_BUY)
     {
-        entry = currentTick.ask;
-        stopLoss = iLow(mEntrySymbol, mEntryTimeFrame, 0);
+        entry = CurrentTick().Ask();
+        stopLoss = entry - OrderHelper::PipsToRange(mStopLossPaddingPips);
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
-        entry = currentTick.bid;
-        stopLoss = iHigh(mEntrySymbol, mEntryTimeFrame, 0) + OrderHelper::PipsToRange(mMaxSpreadPips);
+        entry = CurrentTick().Bid();
+        stopLoss = entry + OrderHelper::PipsToRange(mStopLossPaddingPips);
     }
 
     EAHelper::PlaceMarketOrder<LongWick>(this, entry, stopLoss);
-    mLastEntryCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 0);
-
-    InvalidateSetup(false);
+    mStopTrading = true;
 }
 
 void LongWick::ManageCurrentPendingSetupTicket()
@@ -228,94 +160,51 @@ void LongWick::ManageCurrentPendingSetupTicket()
 
 void LongWick::ManageCurrentActiveSetupTicket()
 {
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
+    int entryIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mCurrentSetupTicket.OpenTime());
+    if (entryIndex > 0)
     {
-        RecordError(GetLastError());
-        return;
-    }
-
-    int openIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mCurrentSetupTicket.OpenTime());
-    // if (openIndex <= 0)
-    // {
-    //     return;
-    // }
-    //  if (openIndex >= 2)
-    //  {
-    //      bool withinStopLoss = false;
-    //      if (mSetupType == OP_BUY)
-    //      {
-    //          withinStopLoss = currentTick.bid <= mCurrentSetupTicket.OpenPrice();
-    //      }
-    //      else if (mSetupType == OP_SELL)
-    //      {
-    //          withinStopLoss = currentTick.ask >= mCurrentSetupTicket.OpenPrice();
-    //      }
-
-    //     if (withinStopLoss)
-    //     {
-    //         mCurrentSetupTicket.Close();
-    //         return;
-    //     }
-    //     else
-    //     {
-    //         EAHelper::MoveTicketToBreakEven<LongWick>(this, mCurrentSetupTicket);
-    //     }
-    // }
-
-    // double rr = 0.0;
-    // if (mSetupType == OP_BUY)
-    // {
-    //     rr = (currentTick.bid - mCurrentSetupTicket.OpenPrice()) / (mCurrentSetupTicket.OpenPrice() - mCurrentSetupTicket.mOriginalStopLoss);
-    // }
-    // else if (mSetupType == OP_SELL)
-    // {
-    //     rr = (currentTick.ask - mCurrentSetupTicket.OpenPrice()) / (mCurrentSetupTicket.mOriginalStopLoss - mCurrentSetupTicket.OpenPrice());
-    // }
-
-    // if (rr >= 1)
-    // {
-    //     EAHelper::MoveTicketToBreakEven<LongWick>(this, mCurrentSetupTicket);
-    //     return;
-    // }
-
-    if (openIndex <= 0)
-    {
-        return;
-    }
-
-    if (mSetupType == OP_BUY)
-    {
-        if (iLow(mEntrySymbol, mEntryTimeFrame, 0) < iLow(mEntrySymbol, mEntryTimeFrame, 1))
+        if (SetupType() == OP_BUY)
         {
-            mCurrentSetupTicket.Close();
+            if (CurrentTick().Bid() > mCurrentSetupTicket.OpenPrice() &&
+                iLow(mEntrySymbol, mEntryTimeFrame, 0) < iLow(mEntrySymbol, mEntryTimeFrame, 1))
+            {
+                mCurrentSetupTicket.Close();
+            }
+        }
+        else if (SetupType() == OP_SELL)
+        {
+            if (CurrentTick().Bid() < mCurrentSetupTicket.OpenPrice() &&
+                iHigh(mEntrySymbol, mEntryTimeFrame, 0) > iHigh(mEntrySymbol, mEntryTimeFrame, 1))
+            {
+                mCurrentSetupTicket.Close();
+            }
         }
     }
-    else if (mSetupType == OP_SELL)
-    {
-        if (iHigh(mEntrySymbol, mEntryTimeFrame, 0) > iHigh(mEntrySymbol, mEntryTimeFrame, 1))
-        {
-            mCurrentSetupTicket.Close();
-        }
-    }
+
+    EAHelper::MoveToBreakEvenAfterPips<LongWick>(this, mCurrentSetupTicket, mPipsToWaitBeforeBE, mBEAdditionalPips);
 }
 
 bool LongWick::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    // return EAHelper::TicketStopLossIsMovedToBreakEven<LongWick>(this, ticket);
-    return false;
+    return EAHelper::TicketStopLossIsMovedToBreakEven<LongWick>(this, ticket);
 }
 
 void LongWick::ManagePreviousSetupTicket(int ticketIndex)
 {
-    if (mSetupType == OP_BUY)
+    int entryIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mPreviousSetupTickets[ticketIndex].OpenTime());
+    if (entryIndex == 0)
+    {
+        return;
+    }
+
+    if (SetupType() == OP_BUY)
     {
         if (iLow(mEntrySymbol, mEntryTimeFrame, 0) < iLow(mEntrySymbol, mEntryTimeFrame, 1))
         {
             mPreviousSetupTickets[ticketIndex].Close();
         }
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
         if (iHigh(mEntrySymbol, mEntryTimeFrame, 0) > iHigh(mEntrySymbol, mEntryTimeFrame, 1))
         {
@@ -343,7 +232,6 @@ void LongWick::RecordTicketOpenData()
 
 void LongWick::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
-    EAHelper::RecordPartialTradeRecord<LongWick>(this, partialedTicket, newTicketNumber);
 }
 
 void LongWick::RecordTicketCloseData(Ticket &ticket)
@@ -356,6 +244,13 @@ void LongWick::RecordError(int error, string additionalInformation = "")
     EAHelper::RecordSingleTimeFrameErrorRecord<LongWick>(this, error, additionalInformation);
 }
 
+bool LongWick::ShouldReset()
+{
+    return !EAHelper::WithinTradingSession<LongWick>(this);
+}
+
 void LongWick::Reset()
 {
+    InvalidateSetup(false);
+    mStopTrading = false;
 }
