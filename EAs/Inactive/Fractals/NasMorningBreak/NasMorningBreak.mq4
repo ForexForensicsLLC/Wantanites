@@ -12,7 +12,8 @@
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
 #include <SummitCapital/EAs/Inactive/Fractals/NasMorningBreak/NasMorningBreak.mqh>
 
-string ForcedSymbol = "US100";
+input string SymbolHeader = "US100 Symbol Name. Might Need to adjust for your broker";
+input string ForcedSymbol = "US100";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
@@ -33,11 +34,16 @@ NasMorningBreak *NMBBuys;
 NasMorningBreak *NMBSells;
 
 // Nas
-int CloseHour = 20;
-int CloseMinute = 0;
-double MaxSpreadPips = 25;
-double StopLossPaddingPips = 250;
-double PipsToWaitBeforeBE = 250;
+input string PipHeader = "Pip Values. Based on 2 Decimal Places in Symbol. Might need to adjust for your broker";
+input double MaxSpreadPips = 25;
+input double StopLossPaddingPips = 250;
+input double PipsToWaitBeforeBE = 250;
+
+input string TimeHeader = "Trading Time. Should be equal to 8:30 Central Time for default. Might need to adjust for your broker";
+input int HourStart = 16;
+input int MinuteStart = 30;
+input int HourEnd = 16;
+input int MinuteEnd = 40;
 
 int OnInit()
 {
@@ -52,7 +58,7 @@ int OnInit()
     NMBBuys.mCloseHour = CloseHour;
     NMBBuys.mCloseMinute = CloseMinute;
     NMBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    NMBBuys.AddTradingSession(16, 30, 16, 40);
+    NMBBuys.AddTradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
 
     NMBSells = new NasMorningBreak(MagicNumbers::NasMorningFractalBreakSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                    RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
@@ -60,7 +66,7 @@ int OnInit()
     NMBSells.mCloseHour = CloseHour;
     NMBSells.mCloseMinute = CloseMinute;
     NMBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    NMBSells.AddTradingSession(16, 30, 16, 40);
+    NMBSells.AddTradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
 
     return (INIT_SUCCEEDED);
 }

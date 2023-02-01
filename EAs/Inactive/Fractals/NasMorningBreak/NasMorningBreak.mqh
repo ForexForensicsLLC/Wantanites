@@ -17,9 +17,6 @@ class NasMorningBreak : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialT
 public:
     datetime mLastFractalTime;
 
-    int mCloseHour;
-    int mCloseMinute;
-
 public:
     NasMorningBreak(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                     CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
@@ -55,9 +52,6 @@ NasMorningBreak::NasMorningBreak(int magicNumber, int setupType, int maxCurrentS
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mLastFractalTime = 0;
-
-    mCloseHour = 0;
-    mCloseMinute = 0;
 
     EAHelper::FindSetPreviousAndCurrentSetupTickets<NasMorningBreak>(this);
     EAHelper::SetPreviousSetupTicketsOpenData<NasMorningBreak, SingleTimeFrameEntryTradeRecord>(this);
