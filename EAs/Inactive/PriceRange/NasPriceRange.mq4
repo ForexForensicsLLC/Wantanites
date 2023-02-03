@@ -33,7 +33,7 @@ PriceRange *PRBuys;
 PriceRange *PRSells;
 
 // Nas
-int CloseHour = 19;
+int CloseHour = 19; // TODO: Switch to 23 when using on my own account for a lot more profits. Using 19 only for Prop Firms
 int CloseMinute = 0;
 double PipsFromOpen = 250;
 // this needs to be higher than the spread before the session since the spread doesn't drop right as the candle opens and we only calaculte once per bar
