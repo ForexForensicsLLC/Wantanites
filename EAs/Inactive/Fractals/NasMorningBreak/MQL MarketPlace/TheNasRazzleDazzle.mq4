@@ -21,8 +21,8 @@ input double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-string StrategyName = "NasMorningBreak/";
-string EAName = "Nas/";
+string StrategyName = "TheNasRazzleDazzle/";
+string EAName = "";
 string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
@@ -39,7 +39,7 @@ input double MaxSpreadPips = 25;
 input double StopLossPaddingPips = 250;
 input double PipsToWaitBeforeBE = 250;
 
-input string TimeHeader = "Trading Time. Should be equal to 8:30 Central Time for default. Might need to adjust for your broker";
+input string TradingTime = "Trading Time. Should be equal to 16:30 GMT+3 for default. Might need to adjust for your broker";
 input int HourStart = 16;
 input int MinuteStart = 30;
 input int HourEnd = 16;
@@ -55,16 +55,12 @@ int OnInit()
     NMBBuys = new NasMorningBreak(MagicNumbers::NasMorningFractalBreakBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                   RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
-    NMBBuys.mCloseHour = CloseHour;
-    NMBBuys.mCloseMinute = CloseMinute;
     NMBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     NMBBuys.AddTradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
 
     NMBSells = new NasMorningBreak(MagicNumbers::NasMorningFractalBreakSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                    RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
-    NMBSells.mCloseHour = CloseHour;
-    NMBSells.mCloseMinute = CloseMinute;
     NMBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     NMBSells.AddTradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
 

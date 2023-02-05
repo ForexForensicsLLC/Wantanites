@@ -10,10 +10,10 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/Fractals/NasMorningBreak/NasMorningBreak.mqh>
+#include <SummitCapital/EAs/Inactive/CandleStick/CandleLiquidation/CandleLiquidation.mqh>
 
-input string SymbolHeader = "US100 Symbol Name. Might Need to adjust for your broker";
-input string ForcedSymbol = "US100";
+input string SymbolHeader = "US30 Symbol Name. Might Need to adjust for your broker";
+input string ForcedSymbol = "US30";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
@@ -21,29 +21,29 @@ input double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-string StrategyName = "NasMorningBreak/";
-string EAName = "Nas/";
-string SetupTypeName = "";
+string StrategyName = "CandleStick/";
+string EAName = "Dow/";
+string SetupTypeName = "CandleLiquidation/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-NasMorningBreak *NMBBuys;
-NasMorningBreak *NMBSells;
+CandleLiquidation *DLBuys;
+CandleLiquidation *DLSells;
 
-// Nas
 input string PipHeader = "Pip Values. Based on 2 Decimal Places in Symbol. Might need to adjust for your broker";
+input double MinWickLengthPips = 200;
 input double MaxSpreadPips = 25;
-input double StopLossPaddingPips = 250;
-input double PipsToWaitBeforeBE = 250;
+input double StopLossPaddingPips = 350;
+input double PipsToWaitBeforeBE = 350;
 
 input string TimeHeader = "Trading Time. Should be equal to 8:30 Central Time for default. Might need to adjust for your broker";
 input int HourStart = 16;
 input int MinuteStart = 30;
 input int HourEnd = 16;
-input int MinuteEnd = 40;
+input int MinuteEnd = 35;
 
 int OnInit()
 {
@@ -52,29 +52,27 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    NMBBuys = new NasMorningBreak(MagicNumbers::NasMorningFractalBreakBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
-                                  RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
-
-    NMBBuys.mCloseHour = CloseHour;
-    NMBBuys.mCloseMinute = CloseMinute;
-    NMBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    NMBBuys.AddTradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
-
-    NMBSells = new NasMorningBreak(MagicNumbers::NasMorningFractalBreakSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+    DLBuys = new CandleLiquidation(MagicNumbers::DowMorningCandleLiquidationBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                    RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
-    NMBSells.mCloseHour = CloseHour;
-    NMBSells.mCloseMinute = CloseMinute;
-    NMBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    NMBSells.AddTradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
+    DLBuys.mMinWickLength = MinWickLengthPips;
+    DLBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    DLBuys.AddTradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
+
+    DLSells = new CandleLiquidation(MagicNumbers::DowMorningCandleLiquidationSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                    RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
+
+    DLSells.mMinWickLength = MinWickLengthPips;
+    DLSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    DLSells.AddTradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete NMBBuys;
-    delete NMBSells;
+    delete DLBuys;
+    delete DLSells;
 
     delete EntryWriter;
     delete ExitWriter;
@@ -83,6 +81,6 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    NMBBuys.Run();
-    NMBSells.Run();
+    DLBuys.Run();
+    DLSells.Run();
 }

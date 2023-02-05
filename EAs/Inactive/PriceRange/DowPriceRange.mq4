@@ -26,7 +26,6 @@ string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
-CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>(Directory + "Partials/", "Partials.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
@@ -36,9 +35,9 @@ PriceRange *PRSells;
 // Nas
 int CloseHour = 19;
 int CloseMinute = 0;
-double PipsFromOpen = 25;
+double PipsFromOpen = 250;
 // this needs to be higher than the spread before the session since the spread doesn't drop right as the candle opens and we only calaculte once per bar
-double MaxSpreadPips = 2.5;
+double MaxSpreadPips = 25;
 double StopLossPaddingPips = 0;
 
 int OnInit()
@@ -54,8 +53,6 @@ int OnInit()
     PRBuys.mCloseHour = CloseHour;
     PRBuys.mCloseMinute = CloseMinute;
     PRBuys.mPipsFromOpen = PipsFromOpen;
-
-    PRBuys.SetPartialCSVRecordWriter(PartialWriter);
     PRBuys.AddTradingSession(16, 30, 16, 35);
 
     PRSells = new PriceRange(MagicNumbers::NasMorningPriceRangeSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
@@ -64,8 +61,6 @@ int OnInit()
     PRSells.mCloseHour = CloseHour;
     PRSells.mCloseMinute = CloseMinute;
     PRSells.mPipsFromOpen = PipsFromOpen;
-
-    PRSells.SetPartialCSVRecordWriter(PartialWriter);
     PRSells.AddTradingSession(16, 30, 16, 35);
 
     return (INIT_SUCCEEDED);
@@ -77,7 +72,6 @@ void OnDeinit(const int reason)
     delete PRSells;
 
     delete EntryWriter;
-    delete PartialWriter;
     delete ExitWriter;
     delete ErrorWriter;
 }

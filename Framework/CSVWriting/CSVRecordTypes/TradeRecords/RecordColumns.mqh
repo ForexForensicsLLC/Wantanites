@@ -50,7 +50,7 @@ public:
 
     double TotalMovePips();
     double PotentialRR();
-    double RRLost();
+    double RRSecured();
     string Psychology();
 };
 
@@ -159,7 +159,7 @@ double RecordColumns::PotentialRR()
     return mPotentialRR;
 }
 
-double RecordColumns::RRLost()
+double RecordColumns::RRSecured()
 {
     if (EntryPrice - OriginalStopLoss == 0)
     {

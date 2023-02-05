@@ -10,9 +10,9 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/Fractals/NasMorningBreak/NasMorningBreak.mqh>
+#include <SummitCapital/EAs/Inactive/MovingAverage/Crossover/NasMorning/NasMorningMACrossover.mqh>
 
-string ForcedSymbol = "NAS100";
+string ForcedSymbol = "US100";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
@@ -26,20 +26,17 @@ string SetupTypeName = "NasMorning/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
-CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>(Directory + "Partials/", "Partials.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-NasMo *NMBBuys;
-NasMorningBreak *NMBSells;
+NasMorningCrossover *NMCBuys;
+NasMorningCrossover *NMCSells;
 
 // Nas
-double MaxSpreadPips = 1;
-double EntryPaddingPips = 0;
-double MinStopLossPips = SymbolConstants::NasMinStopLossPips;
-double StopLossPaddingPips = 0;
-double PipsToWaitBeforeBE = SymbolConstants::NasMinStopLossPips;
-double BEAdditionalPips = 0;
+double MaxSpreadPips = 25;
+double StopLossPaddingPips = 250;
+double PipsToWaitBeforeBE = 0.0;
+double BEAdditionalPips = 0.0;
 
 int OnInit()
 {
@@ -48,49 +45,35 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    NMBBuys = new NasMorningBreak(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                  ExitWriter, ErrorWriter);
+    NMCBuys = new NasMorningCrossover(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                      ExitWriter, ErrorWriter);
 
-    NMBBuys.SetPartialCSVRecordWriter(PartialWriter);
+    NMCBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    NMCBuys.mBEAdditionalPips = BEAdditionalPips;
+    NMCBuys.AddTradingSession(16, 30, 17, 0);
 
-    NMBBuys.mCloseHour = CloseHour;
-    NMBBuys.mCloseMinute = CloseMinute;
-    NMBBuys.mEntryPaddingPips = EntryPaddingPips;
-    NMBBuys.mMinStopLossPips = MinStopLossPips;
-    NMBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    NMBBuys.mBEAdditionalPips = BEAdditionalPips;
+    NMCSells = new NasMorningCrossover(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                       ExitWriter, ErrorWriter);
 
-    NMBBuys.AddTradingSession(16, 30, 16, 40);
-
-    NMBSells = new NasMorningBreak(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                   ExitWriter, ErrorWriter);
-    NMBSells.SetPartialCSVRecordWriter(PartialWriter);
-
-    NMBSells.mCloseHour = CloseHour;
-    NMBSells.mCloseMinute = CloseMinute;
-    NMBSells.mEntryPaddingPips = EntryPaddingPips;
-    NMBSells.mMinStopLossPips = MinStopLossPips;
-    NMBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    NMBSells.mBEAdditionalPips = BEAdditionalPips;
-
-    NMBSells.AddTradingSession(16, 30, 16, 40);
+    NMCSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    NMCSells.mBEAdditionalPips = BEAdditionalPips;
+    NMCSells.AddTradingSession(16, 30, 17, 0);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete NMBBuys;
-    delete NMBSells;
+    delete NMCBuys;
+    delete NMCSells;
 
     delete EntryWriter;
-    delete PartialWriter;
     delete ExitWriter;
     delete ErrorWriter;
 }
 
 void OnTick()
 {
-    NMBBuys.Run();
-    NMBSells.Run();
+    NMCBuys.Run();
+    NMCSells.Run();
 }

@@ -10,9 +10,9 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/PriceRange/PriceRange.mqh>
+#include <SummitCapital/EAs/Inactive/CandleStick/CandleLiquidation/CandleLiquidation.mqh>
 
-string ForcedSymbol = "US100";
+string ForcedSymbol = "EURUSD";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
@@ -20,25 +20,22 @@ double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-string StrategyName = "PriceRange/";
-string EAName = "Nas/";
-string SetupTypeName = "";
+string StrategyName = "CandleStick/";
+string EAName = "EU/";
+string SetupTypeName = "CandleLiquidation/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-PriceRange *PRBuys;
-PriceRange *PRSells;
+CandleLiquidation *DLBuys;
+CandleLiquidation *DLSells;
 
-// Nas
-int CloseHour = 19; // TODO: Switch to 23 when using on my own account for a lot more profits. Using 19 only for Prop Firms
-int CloseMinute = 0;
-double PipsFromOpen = 250;
-// this needs to be higher than the spread before the session since the spread doesn't drop right as the candle opens and we only calaculte once per bar
-double MaxSpreadPips = 25;
-double StopLossPaddingPips = 0;
+double MinWickLength = 5;
+double MaxSpreadPips = 1;
+double StopLossPaddingPips = 10;
+double PipsToWaitBeforeBE = 10;
 
 int OnInit()
 {
@@ -47,29 +44,27 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    PRBuys = new PriceRange(MagicNumbers::NasMorningPriceRangeBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
-                            EntryWriter, ExitWriter, ErrorWriter);
+    DLBuys = new CandleLiquidation(MagicNumbers::DowMorningCandleLiquidationBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                   RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
-    PRBuys.mCloseHour = CloseHour;
-    PRBuys.mCloseMinute = CloseMinute;
-    PRBuys.mPipsFromOpen = PipsFromOpen;
-    PRBuys.AddTradingSession(16, 30, 16, 35);
+    DLBuys.mMinWickLength = MinWickLength;
+    DLBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    DLBuys.AddTradingSession(15, 0, 16, 30);
 
-    PRSells = new PriceRange(MagicNumbers::NasMorningPriceRangeSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
-                             EntryWriter, ExitWriter, ErrorWriter);
+    DLSells = new CandleLiquidation(MagicNumbers::DowMorningCandleLiquidationSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                    RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
-    PRSells.mCloseHour = CloseHour;
-    PRSells.mCloseMinute = CloseMinute;
-    PRSells.mPipsFromOpen = PipsFromOpen;
-    PRSells.AddTradingSession(16, 30, 16, 35);
+    DLSells.mMinWickLength = MinWickLength;
+    DLSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    DLSells.AddTradingSession(15, 0, 16, 30);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete PRBuys;
-    delete PRSells;
+    delete DLBuys;
+    delete DLSells;
 
     delete EntryWriter;
     delete ExitWriter;
@@ -78,6 +73,6 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    PRBuys.Run();
-    PRSells.Run();
+    DLBuys.Run();
+    DLSells.Run();
 }

@@ -10,32 +10,40 @@
 
 #include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/CandleStick/DowLiquidation/DowLiquidation.mqh>
+#include <SummitCapital/EAs/Inactive/CandleStick/CandleLiquidation/CandleLiquidation.mqh>
 
-string ForcedSymbol = "US30";
+input string SymbolHeader = "US30 Symbol Name. Might Need to adjust for your broker";
+input string ForcedSymbol = "US30";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
-double RiskPercent = 1;
+input double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-string StrategyName = "CandleStick/";
-string EAName = "Dow/";
-string SetupTypeName = "DowLiquidation/";
+string StrategyName = "DependableDow/";
+string EAName = "";
+string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-DowLiquidation *DLBuys;
-DowLiquidation *DLSells;
+CandleLiquidation *DLBuys;
+CandleLiquidation *DLSells;
 
-double MinWickLength = 200;
-double MaxSpreadPips = 25;
-double StopLossPaddingPips = 350;
-double PipsToWaitBeforeBE = 350;
+input string PipHeader = "Pip Values. Based on 2 Decimal Places in Symbol. Might need to adjust for your broker";
+input double MinWickLengthPips = 200;
+input double MaxSpreadPips = 25;
+input double StopLossPaddingPips = 350;
+input double PipsToWaitBeforeBE = 350;
+
+input string TradingTime = "Trading Time. Should be equal to 16:30 GMT+3 for default. Might need to adjust for your broker";
+input int HourStart = 16;
+input int MinuteStart = 30;
+input int HourEnd = 16;
+input int MinuteEnd = 35;
 
 int OnInit()
 {
@@ -44,19 +52,19 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    DLBuys = new DowLiquidation(MagicNumbers::DowMorningCandleLiquidationBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
-                                RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
+    DLBuys = new CandleLiquidation(MagicNumbers::DowMorningCandleLiquidationBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                   RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
-    DLBuys.mMinWickLength = MinWickLength;
+    DLBuys.mMinWickLength = MinWickLengthPips;
     DLBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    DLBuys.AddTradingSession(16, 30, 16, 35);
+    DLBuys.AddTradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
 
-    DLSells = new DowLiquidation(MagicNumbers::DowMorningCandleLiquidationSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
-                                 RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
+    DLSells = new CandleLiquidation(MagicNumbers::DowMorningCandleLiquidationSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                    RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
-    DLSells.mMinWickLength = MinWickLength;
+    DLSells.mMinWickLength = MinWickLengthPips;
     DLSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    DLSells.AddTradingSession(16, 30, 16, 35);
+    DLSells.AddTradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
 
     return (INIT_SUCCEEDED);
 }

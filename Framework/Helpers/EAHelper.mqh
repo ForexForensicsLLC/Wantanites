@@ -27,18 +27,6 @@ class EAHelper
 public:
     // Initialize
     static bool CheckSymbolAndTimeFrame(string expectedSymbol, int expectedTimeFrame);
-    // =========================================================================
-    // Filling Strategy Magic Numbers
-    // =========================================================================
-    template <typename TEA>
-    static void FillSunriseShatterBearishMagicNumbers(TEA &ea);
-    template <typename TEA>
-    static void FillSunriseShatterBullishMagicNumbers(TEA &ea);
-
-    template <typename TEA>
-    static void FillBullishKataraMagicNumbers(TEA &ea);
-    template <typename TEA>
-    static void FillBearishKataraMagicNumbers(TEA &ea);
 
     // =========================================================================
     // Set Active Ticket
@@ -348,60 +336,6 @@ static bool EAHelper::CheckSymbolAndTimeFrame(string expectedSymbol, int expecte
     }
 
     return true;
-}
-
-/*
-
-   _____ _ _ _ _               ____  _             _                     __  __             _        _   _                 _
-  |  ___(_) | (_)_ __   __ _  / ___|| |_ _ __ __ _| |_ ___  __ _ _   _  |  \/  | __ _  __ _(_) ___  | \ | |_   _ _ __ ___ | |__   ___ _ __ ___
-  | |_  | | | | | '_ \ / _` | \___ \| __| '__/ _` | __/ _ \/ _` | | | | | |\/| |/ _` |/ _` | |/ __| |  \| | | | | '_ ` _ \| '_ \ / _ \ '__/ __|
-  |  _| | | | | | | | | (_| |  ___) | |_| | | (_| | ||  __/ (_| | |_| | | |  | | (_| | (_| | | (__  | |\  | |_| | | | | | | |_) |  __/ |  \__ \
-  |_|   |_|_|_|_|_| |_|\__, | |____/ \__|_|  \__,_|\__\___|\__, |\__, | |_|  |_|\__,_|\__, |_|\___| |_| \_|\__,_|_| |_| |_|_.__/ \___|_|  |___/
-                       |___/                               |___/ |___/                |___/
-
-*/
-template <typename TEA>
-static void EAHelper::FillSunriseShatterBearishMagicNumbers(TEA &ea)
-{
-    ArrayFree(ea.mStrategyMagicNumbers);
-    ArrayResize(ea.mStrategyMagicNumbers, 3);
-
-    ea.mStrategyMagicNumbers[0] = MagicNumbers::TheSunriseShatterBearishSingleMB;
-    ea.mStrategyMagicNumbers[1] = MagicNumbers::TheSunriseShatterBearishDoubleMB;
-    ea.mStrategyMagicNumbers[2] = MagicNumbers::TheSunriseShatterBearishLiquidationMB;
-}
-
-template <typename TEA>
-static void EAHelper::FillSunriseShatterBullishMagicNumbers(TEA &ea)
-{
-    ArrayFree(ea.mStrategyMagicNumbers);
-    ArrayResize(ea.mStrategyMagicNumbers, 3);
-
-    ea.mStrategyMagicNumbers[0] = MagicNumbers::TheSunriseShatterBullishSingleMB;
-    ea.mStrategyMagicNumbers[1] = MagicNumbers::TheSunriseShatterBullishDoubleMB;
-    ea.mStrategyMagicNumbers[2] = MagicNumbers::TheSunriseShatterBullishLiquidationMB;
-}
-
-template <typename TEA>
-static void EAHelper::FillBullishKataraMagicNumbers(TEA &ea)
-{
-    ArrayFree(ea.mStrategyMagicNumbers);
-    ArrayResize(ea.mStrategyMagicNumbers, 3);
-
-    ea.mStrategyMagicNumbers[0] = MagicNumbers::BullishKataraSingleMB;
-    ea.mStrategyMagicNumbers[1] = MagicNumbers::BullishKataraDoubleMB;
-    ea.mStrategyMagicNumbers[2] = MagicNumbers::BullishKataraLiquidationMB;
-}
-
-template <typename TEA>
-static void EAHelper::FillBearishKataraMagicNumbers(TEA &ea)
-{
-    ArrayFree(ea.mStrategyMagicNumbers);
-    ArrayResize(ea.mStrategyMagicNumbers, 3);
-
-    ea.mStrategyMagicNumbers[0] = MagicNumbers::BearishKataraSingleMB;
-    ea.mStrategyMagicNumbers[1] = MagicNumbers::BearishKataraDoubleMB;
-    ea.mStrategyMagicNumbers[2] = MagicNumbers::BearishKataraLiquidationMB;
 }
 /*
 

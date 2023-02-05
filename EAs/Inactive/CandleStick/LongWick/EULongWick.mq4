@@ -26,7 +26,6 @@ string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
-CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>(Directory + "Partials/", "Partials.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
@@ -34,9 +33,10 @@ LongWick *LWBuys;
 LongWick *LWSells;
 
 // EU
-double MinWickLength = 15;
+double MinWickLength = 5;
 double MaxSpreadPips = 0.8;
-double StopLossPaddingPips = 0;
+double StopLossPaddingPips = 10;
+double PipsToWaitBeforeBE = 10;
 
 int OnInit()
 {
@@ -48,17 +48,16 @@ int OnInit()
     LWBuys = new LongWick(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                           ExitWriter, ErrorWriter);
 
-    LWBuys.SetPartialCSVRecordWriter(PartialWriter);
-    LWBuys.AddTradingSession(15, 0, 17, 0);
-
     LWBuys.mMinWickLength = MinWickLength;
+    LWBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    LWBuys.AddTradingSession(15, 0, 16, 30);
 
     LWSells = new LongWick(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                            ExitWriter, ErrorWriter);
-    LWSells.SetPartialCSVRecordWriter(PartialWriter);
-    LWSells.AddTradingSession(15, 0, 17, 0);
 
     LWSells.mMinWickLength = MinWickLength;
+    LWSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    LWSells.AddTradingSession(15, 0, 16, 30);
 
     return (INIT_SUCCEEDED);
 }
@@ -69,7 +68,6 @@ void OnDeinit(const int reason)
     delete LWSells;
 
     delete EntryWriter;
-    delete PartialWriter;
     delete ExitWriter;
     delete ErrorWriter;
 }

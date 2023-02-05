@@ -58,8 +58,7 @@ void DefaultExitTradeRecord::WriteAdditionalHeaders(int fileHandle, bool writeDe
 {
     FileHelper::WriteString(fileHandle, "Total Move Pips");
     FileHelper::WriteString(fileHandle, "Potential RR");
-    FileHelper::WriteString(fileHandle, "RR Lost");
-    FileHelper::WriteString(fileHandle, "Psychology", writeDelimiter);
+    FileHelper::WriteString(fileHandle, "RR Secured");
 }
 
 void DefaultExitTradeRecord::WriteCloseRecord(int fileHandle)
@@ -79,6 +78,5 @@ void DefaultExitTradeRecord::WriteAdditionalRecord(int fileHandle, bool writeDel
 {
     FileHelper::WriteDouble(fileHandle, TotalMovePips(), Digits);
     FileHelper::WriteDouble(fileHandle, PotentialRR(), 2);
-    FileHelper::WriteDouble(fileHandle, RRLost(), 2);
-    FileHelper::WriteString(fileHandle, Psychology(), writeDelimiter);
+    FileHelper::WriteDouble(fileHandle, RRSecured(), 2);
 }
