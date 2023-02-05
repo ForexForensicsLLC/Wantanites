@@ -18,6 +18,7 @@
 class Ticket
 {
 private:
+    typedef bool (*TTicketNumberLocator)(Ticket &, int);
     int mNumber;
 
     bool mLastCloseCheck;
@@ -76,6 +77,8 @@ public:
 
     int Close();
     void SetPartials(List<double> &partialRRs, List<double> &partialPercents);
+
+    static bool HasTicketNumber(Ticket &ticket, int ticketNumber);
 };
 
 Ticket::Ticket()
@@ -481,4 +484,9 @@ void Ticket::SetPartials(List<double> &partialRRs, List<double> &partialPercents
         Partial *partial = new Partial(partialRRs[i], partialPercents[i]);
         mPartials.Add(partial);
     }
+}
+
+static bool Ticket::HasTicketNumber(Ticket &ticket, int number)
+{
+    return ticket.Number() == number;
 }

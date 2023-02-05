@@ -250,7 +250,7 @@ static double OrderHelper::GetLotSize(double stopLossPips, double riskPercent)
     }
 
     double lotSize = NormalizeDouble((AccountBalance() * riskPercent / 100) / (stopLossPips * pipValue), 2);
-    return CleanLotSize(lotSize);
+    return MathMax(MarketInfo(Symbol(), MODE_MINLOT), lotSize);
 }
 
 /**

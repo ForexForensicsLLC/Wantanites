@@ -27,7 +27,7 @@ private:
     int mLastDay;
 
 public:
-    Ticket *mCurrentSetupTicket;
+    ObjectList<Ticket> *mCurrentSetupTickets;
     ObjectList<Ticket> *mPreviousSetupTickets;
     ObjectList<TradingSession> *mTradingSessions;
 
@@ -80,13 +80,14 @@ public:
     virtual void InvalidateSetup(bool deletePendingOrder, int error) = NULL;
     virtual bool Confirmation() = NULL;
     virtual void PlaceOrders() = NULL;
-    virtual void ManageCurrentPendingSetupTicket() = NULL;
-    virtual void ManageCurrentActiveSetupTicket() = NULL;
+    virtual void PreManageTickets() = NULL;
+    virtual void ManageCurrentPendingSetupTicket(Ticket &ticket) = NULL;
+    virtual void ManageCurrentActiveSetupTicket(Ticket &ticket) = NULL;
     virtual bool MoveToPreviousSetupTickets(Ticket &ticket) = NULL;
-    virtual void ManagePreviousSetupTicket(int ticketIndex) = NULL;
-    virtual void CheckCurrentSetupTicket() = NULL;
-    virtual void CheckPreviousSetupTicket(int ticketIndex) = NULL;
-    virtual void RecordTicketOpenData() = NULL;
+    virtual void ManagePreviousSetupTicket(Ticket &ticket) = NULL;
+    virtual void CheckCurrentSetupTicket(Ticket &ticket) = NULL;
+    virtual void CheckPreviousSetupTicket(Ticket &ticket) = NULL;
+    virtual void RecordTicketOpenData(Ticket &ticket) = NULL;
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber) = NULL;
     virtual void RecordTicketCloseData(Ticket &ticket) = NULL;
     virtual void RecordError(int error, string additionalInformation) = NULL;
@@ -128,7 +129,7 @@ EA::EA(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxT
     mExitCSVRecordWriter = exitCSVRecordWriter;
     mErrorCSVRecordWriter = errorCSVRecordWriter;
 
-    mCurrentSetupTicket = new Ticket();
+    mCurrentSetupTickets = new ObjectList<Ticket>();
     mPreviousSetupTickets = new ObjectList<Ticket>();
     mTradingSessions = new ObjectList<TradingSession>();
 
@@ -139,7 +140,7 @@ EA::EA(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxT
 template <typename TEntryRecord, typename TPartialRecord, typename TExitRecord, typename TErrorRecord>
 EA::~EA()
 {
-    delete mCurrentSetupTicket;
+    delete mCurrentSetupTickets;
     delete mPreviousSetupTickets;
 
     delete mCurrentTick;

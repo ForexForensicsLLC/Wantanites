@@ -32,13 +32,14 @@ public:
     virtual void InvalidateSetup(bool deletePendingOrder, int error);
     virtual bool Confirmation();
     virtual void PlaceOrders();
-    virtual void ManageCurrentPendingSetupTicket();
-    virtual void ManageCurrentActiveSetupTicket();
+    virtual void PreManageTickets();
+    virtual void ManageCurrentPendingSetupTicket(Ticket &ticket);
+    virtual void ManageCurrentActiveSetupTicket(Ticket &ticket);
     virtual bool MoveToPreviousSetupTickets(Ticket &ticket);
-    virtual void ManagePreviousSetupTicket(int ticketIndex);
-    virtual void CheckCurrentSetupTicket();
-    virtual void CheckPreviousSetupTicket(int ticketIndex);
-    virtual void RecordTicketOpenData();
+    virtual void ManagePreviousSetupTicket(Ticket &ticket);
+    virtual void CheckCurrentSetupTicket(Ticket &ticket);
+    virtual void CheckPreviousSetupTicket(Ticket &ticket);
+    virtual void RecordTicketOpenData(Ticket &ticket);
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
@@ -192,19 +193,23 @@ void NasMorningBreak::PlaceOrders()
     mStopTrading = true;
 }
 
-void NasMorningBreak::ManageCurrentPendingSetupTicket()
+void NasMorningBreak::PreManageTickets()
 {
 }
 
-void NasMorningBreak::ManageCurrentActiveSetupTicket()
+void NasMorningBreak::ManageCurrentPendingSetupTicket(Ticket &ticket)
 {
-    int openIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mCurrentSetupTicket.OpenTime());
+}
+
+void NasMorningBreak::ManageCurrentActiveSetupTicket(Ticket &ticket)
+{
+    int openIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, ticket.OpenTime());
     if (openIndex >= 1)
     {
-        mCurrentSetupTicket.Close();
+        ticket.Close();
     }
 
-    EAHelper::MoveToBreakEvenAfterPips<NasMorningBreak>(this, mCurrentSetupTicket, mPipsToWaitBeforeBE, mBEAdditionalPips);
+    EAHelper::MoveToBreakEvenAfterPips<NasMorningBreak>(this, ticket, mPipsToWaitBeforeBE, mBEAdditionalPips);
 }
 
 bool NasMorningBreak::MoveToPreviousSetupTickets(Ticket &ticket)
@@ -212,30 +217,26 @@ bool NasMorningBreak::MoveToPreviousSetupTickets(Ticket &ticket)
     return EAHelper::TicketStopLossIsMovedToBreakEven<NasMorningBreak>(this, ticket);
 }
 
-void NasMorningBreak::ManagePreviousSetupTicket(int ticketIndex)
+void NasMorningBreak::ManagePreviousSetupTicket(Ticket &ticket)
 {
-    int openIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mPreviousSetupTickets[ticketIndex].OpenTime());
+    int openIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, ticket.OpenTime());
     if (openIndex >= 1)
     {
-        mPreviousSetupTickets[ticketIndex].Close();
+        ticket.Close();
     }
 }
 
-void NasMorningBreak::CheckCurrentSetupTicket()
+void NasMorningBreak::CheckCurrentSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<NasMorningBreak>(this, mCurrentSetupTicket);
-    EAHelper::CheckCurrentSetupTicket<NasMorningBreak>(this);
 }
 
-void NasMorningBreak::CheckPreviousSetupTicket(int ticketIndex)
+void NasMorningBreak::CheckPreviousSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<NasMorningBreak>(this, mPreviousSetupTickets[ticketIndex]);
-    EAHelper::CheckPreviousSetupTicket<NasMorningBreak>(this, ticketIndex);
 }
 
-void NasMorningBreak::RecordTicketOpenData()
+void NasMorningBreak::RecordTicketOpenData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameEntryTradeRecord<NasMorningBreak>(this);
+    EAHelper::RecordSingleTimeFrameEntryTradeRecord<NasMorningBreak>(this, ticket);
 }
 
 void NasMorningBreak::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
