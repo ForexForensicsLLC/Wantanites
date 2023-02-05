@@ -167,7 +167,7 @@ public:
     // =========================================================================
     template <typename TEA>
     static double GetReducedRiskPerPercentLost(TEA &ea, double perPercentLost, double reduceBy);
-    static void CheckBreakLotSizeUp(double originalLotSize, int &numberOfOrders, double lotSizeToUse);
+    static void CheckBreakLotSizeUp(double originalLotSize, int &numberOfOrders, double &lotSizeToUse);
     template <typename TEA>
     static bool PrePlaceOrderChecks(TEA &ea);
     template <typename TEA>
@@ -1724,7 +1724,7 @@ static double EAHelper::GetReducedRiskPerPercentLost(TEA &ea, double perPercentL
     return calculatedRiskPercent;
 }
 
-static void EAHelper::CheckBreakLotSizeUp(double originalLotSize, int &numberOfOrders, double lotSizeToUse)
+static void EAHelper::CheckBreakLotSizeUp(double originalLotSize, int &numberOfOrders, double &lotSizeToUse)
 {
     numberOfOrders = 1;
     lotSizeToUse = originalLotSize;
@@ -1781,7 +1781,7 @@ static void EAHelper::PostPlaceOrderChecks(TEA &ea, int ticketNumber, int error)
 }
 
 template <typename TEA>
-static void EAHelper::InternalPlaceMarketOrder(TEA &ea, int type, double entry, double stopLoss, double lotSize, double takeProfit)
+static void EAHelper::InternalPlaceMarketOrder(TEA &ea, int orderType, double entry, double stopLoss, double lotSize, double takeProfit)
 {
     int ticket = EMPTY;
     int orderPlaceError = OrderHelper::PlaceMarketOrder(orderType, lotSize, entry, stopLoss, takeProfit, ea.MagicNumber(), ticket);

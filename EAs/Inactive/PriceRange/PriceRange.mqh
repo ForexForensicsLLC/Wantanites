@@ -34,13 +34,14 @@ public:
     virtual void InvalidateSetup(bool deletePendingOrder, int error);
     virtual bool Confirmation();
     virtual void PlaceOrders();
-    virtual void ManageCurrentPendingSetupTicket();
-    virtual void ManageCurrentActiveSetupTicket();
+    virtual void PreManageTickets();
+    virtual void ManageCurrentPendingSetupTicket(Ticket &ticket);
+    virtual void ManageCurrentActiveSetupTicket(Ticket &ticket);
     virtual bool MoveToPreviousSetupTickets(Ticket &ticket);
-    virtual void ManagePreviousSetupTicket(int ticketIndex);
-    virtual void CheckCurrentSetupTicket();
-    virtual void CheckPreviousSetupTicket(int ticketIndex);
-    virtual void RecordTicketOpenData();
+    virtual void ManagePreviousSetupTicket(Ticket &ticket);
+    virtual void CheckCurrentSetupTicket(Ticket &ticket);
+    virtual void CheckPreviousSetupTicket(Ticket &ticket);
+    virtual void RecordTicketOpenData(Ticket &ticket);
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
@@ -122,28 +123,32 @@ void PriceRange::PlaceOrders()
     InvalidateSetup(false);
 }
 
-void PriceRange::ManageCurrentPendingSetupTicket()
+void PriceRange::PreManageTickets()
+{
+}
+
+void PriceRange::ManageCurrentPendingSetupTicket(Ticket &ticket)
 {
     if (iBars(mEntrySymbol, mEntryTimeFrame) <= BarCount())
     {
         return;
     }
 
-    if (EAHelper::CloseTicketIfPastTime<PriceRange>(this, mCurrentSetupTicket, mCloseHour, mCloseMinute))
+    if (EAHelper::CloseTicketIfPastTime<PriceRange>(this, ticket, mCloseHour, mCloseMinute))
     {
-        mCurrentSetupTicket.SetNewTicket(EMPTY);
-        return;
+        // ticket.SetNewTicket(EMPTY);
+        // return;
     }
 }
 
-void PriceRange::ManageCurrentActiveSetupTicket()
+void PriceRange::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
     if (iBars(mEntrySymbol, mEntryTimeFrame) <= BarCount())
     {
         return;
     }
 
-    if (EAHelper::CloseTicketIfPastTime<PriceRange>(this, mCurrentSetupTicket, mCloseHour, mCloseMinute))
+    if (EAHelper::CloseTicketIfPastTime<PriceRange>(this, ticket, mCloseHour, mCloseMinute))
     {
         return;
     }
@@ -154,25 +159,21 @@ bool PriceRange::MoveToPreviousSetupTickets(Ticket &ticket)
     return false;
 }
 
-void PriceRange::ManagePreviousSetupTicket(int ticketIndex)
+void PriceRange::ManagePreviousSetupTicket(Ticket &ticket)
 {
 }
 
-void PriceRange::CheckCurrentSetupTicket()
+void PriceRange::CheckCurrentSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<PriceRange>(this, mCurrentSetupTicket);
-    EAHelper::CheckCurrentSetupTicket<PriceRange>(this);
 }
 
-void PriceRange::CheckPreviousSetupTicket(int ticketIndex)
+void PriceRange::CheckPreviousSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<PriceRange>(this, mPreviousSetupTickets[ticketIndex]);
-    EAHelper::CheckPreviousSetupTicket<PriceRange>(this, ticketIndex);
 }
 
-void PriceRange::RecordTicketOpenData()
+void PriceRange::RecordTicketOpenData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameEntryTradeRecord<PriceRange>(this);
+    EAHelper::RecordSingleTimeFrameEntryTradeRecord<PriceRange>(this, ticket);
 }
 
 void PriceRange::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
