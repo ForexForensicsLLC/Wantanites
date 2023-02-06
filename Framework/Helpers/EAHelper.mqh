@@ -2246,7 +2246,6 @@ static void EAHelper::CheckTrailStopLossEveryXPips(TEA &ea, Ticket &ticket, doub
                 newSL = NormalizeDouble(startPips - OrderHelper::PipsToRange(trailBehindPips), Digits);
             }
 
-            Print("Trailing. Old SL: ", OrderStopLoss(), ", Open Price: ", OrderOpenPrice(), ", New SL: ", newSL);
             if (!OrderModify(ticket.Number(), OrderOpenPrice(), newSL, OrderTakeProfit(), OrderExpiration(), clrNONE))
             {
                 int error = GetLastError();
@@ -2836,15 +2835,15 @@ bool EAHelper::CheckCurrentSetupTicket(TEA &ea, Ticket &ticket)
 
     ea.mLastState = EAStates::CHECKING_IF_TICKET_IS_ACTIVE;
 
-    bool activated;
-    int activatedError = ticket.WasActivatedSinceLastCheck(activated);
+    bool wasActivatedSinceLastCheck = false;
+    int activatedError = ticket.WasActivatedSinceLastCheck(wasActivatedSinceLastCheck);
     if (TerminalErrors::IsTerminalError(activatedError))
     {
         ea.InvalidateSetup(false, activatedError);
         return false;
     }
 
-    if (activated)
+    if (wasActivatedSinceLastCheck)
     {
         SetOpenDataOnTicket(ea, ticket);
         ea.RecordTicketOpenData(ticket);
@@ -2852,7 +2851,7 @@ bool EAHelper::CheckCurrentSetupTicket(TEA &ea, Ticket &ticket)
 
     ea.mLastState = EAStates::CHECKING_IF_TICKET_IS_CLOSED;
 
-    bool closed;
+    bool closed = false;
     int closeError = ticket.WasClosedSinceLastCheck(closed);
     if (TerminalErrors::IsTerminalError(closeError))
     {
@@ -2860,7 +2859,16 @@ bool EAHelper::CheckCurrentSetupTicket(TEA &ea, Ticket &ticket)
         return false;
     }
 
-    if (closed)
+    bool wasActivated = false;
+    int wasAtivatedError = ticket.WasActivated(wasActivated);
+    if (TerminalErrors::IsTerminalError(wasAtivatedError))
+    {
+        ea.InvalidateSetup(false, wasAtivatedError);
+        return false;
+    }
+
+    // only record tickets that were actually opened and not pennding orders that were deleted
+    if (closed && wasActivated)
     {
         if (AccountBalance() > ea.mLargestAccountBalance)
         {

@@ -134,11 +134,7 @@ void PriceRange::ManageCurrentPendingSetupTicket(Ticket &ticket)
         return;
     }
 
-    if (EAHelper::CloseTicketIfPastTime<PriceRange>(this, ticket, mCloseHour, mCloseMinute))
-    {
-        // ticket.SetNewTicket(EMPTY);
-        // return;
-    }
+    EAHelper::CloseTicketIfPastTime<PriceRange>(this, ticket, mCloseHour, mCloseMinute);
 }
 
 void PriceRange::ManageCurrentActiveSetupTicket(Ticket &ticket)
