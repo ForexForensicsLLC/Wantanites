@@ -383,13 +383,6 @@ int Ticket::IsClosed(bool &closed)
         return selectTicketError;
     }
 
-    // ticket was never activated so it can't be considered closed
-    // if (OrderType() >= 2)
-    // {
-    //     closed = false;
-    //     return ERR_NO_ERROR;
-    // }
-
     mIsClosed = true;
     closed = mIsClosed;
 
