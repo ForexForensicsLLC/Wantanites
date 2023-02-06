@@ -12,12 +12,11 @@
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
 #include <SummitCapital/EAs/Inactive/CandleStick/CandleLiquidation/CandleLiquidation.mqh>
 
-input string SymbolHeader = "US30 Symbol Name. Might Need to adjust for your broker";
-input string ForcedSymbol = "US30";
+string ForcedSymbol = "US30";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
-input double RiskPercent = 1;
+double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
@@ -33,17 +32,15 @@ CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<S
 CandleLiquidation *DLBuys;
 CandleLiquidation *DLSells;
 
-input string PipHeader = "Pip Values. Based on 2 Decimal Places in Symbol. Might need to adjust for your broker";
-input double MinWickLengthPips = 200;
-input double MaxSpreadPips = 25;
-input double StopLossPaddingPips = 350;
-input double PipsToWaitBeforeBE = 350;
+double MinWickLengthPips = 200;
+double MaxSpreadPips = 25;
+double StopLossPaddingPips = 350;
+double PipsToWaitBeforeBE = 350;
 
-input string TimeHeader = "Trading Time. Should be equal to 8:30 Central Time for default. Might need to adjust for your broker";
-input int HourStart = 16;
-input int MinuteStart = 30;
-input int HourEnd = 16;
-input int MinuteEnd = 35;
+int HourStart = 16;
+int MinuteStart = 30;
+int HourEnd = 16;
+int MinuteEnd = 35;
 
 int OnInit()
 {

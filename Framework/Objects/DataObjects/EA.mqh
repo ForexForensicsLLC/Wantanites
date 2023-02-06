@@ -8,12 +8,12 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Objects\Tick.mqh>
-#include <SummitCapital\Framework\Objects\List.mqh>
+#include <SummitCapital\Framework\Objects\DataObjects\Tick.mqh>
+#include <SummitCapital\Framework\Objects\DataStructures\List.mqh>
 #include <SummitCapital\Framework\Constants\Index.mqh>
 #include <SummitCapital\Framework\Constants\EAStates.mqh>
 #include <SummitCapital\Framework\CSVWriting\CSVRecordWriter.mqh>
-#include <SummitCapital\Framework\Objects\TradingSession.mqh>
+#include <SummitCapital\Framework\Objects\DataObjects\TradingSession.mqh>
 
 template <typename TEntryRecord, typename TPartialRecord, typename TExitRecord, typename TErrorRecord>
 class EA

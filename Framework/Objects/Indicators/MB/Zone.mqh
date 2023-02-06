@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Objects\ZoneState.mqh>
+#include <SummitCapital\Framework\Objects\Indicators\MB\ZoneState.mqh>
 
 class Zone : public ZoneState
 {

@@ -9,7 +9,7 @@
 #property strict
 
 #include <SummitCapital\Framework\Constants\Index.mqh>
-#include <SummitCapital\Framework\Objects\MB.mqh>
+#include <SummitCapital\Framework\Objects\Indicators\MB\MB.mqh>
 #include <SummitCapital\Framework\Helpers\CandleStickHelper.mqh>
 
 class MBTracker

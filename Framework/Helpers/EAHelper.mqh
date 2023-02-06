@@ -18,9 +18,9 @@
 #include <SummitCapital\Framework\Helpers\ScreenShotHelper.mqh>
 #include <SummitCapital\Framework\Helpers\CandleStickHelper.mqh>
 
-#include <SummitCapital\Framework\Objects\TimeRangeBreakout.mqh>
+#include <SummitCapital\Framework\Objects\Indicators\Time\TimeRangeBreakout.mqh>
 
-#include <SummitCapital\Framework\Trackers\LiquidationSetupTracker.mqh>
+#include <SummitCapital\Framework\Objects\Indicators\MB\LiquidationSetupTracker.mqh>
 
 class EAHelper
 {
