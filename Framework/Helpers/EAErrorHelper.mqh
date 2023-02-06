@@ -8,10 +8,10 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Constants\ExecutionErrors.mqh>
-#include <SummitCapital\Framework\Constants\TerminalErrors.mqh>
+#include <WantaCapital\Framework\Constants\ExecutionErrors.mqh>
+#include <WantaCapital\Framework\Constants\TerminalErrors.mqh>
 
-#include <SummitCapital\Framework\Objects\Indicators\MB\MBTracker.mqh>
+#include <WantaCapital\Framework\Objects\Indicators\MB\MBTracker.mqh>
 
 class EAErrorHelper
 {

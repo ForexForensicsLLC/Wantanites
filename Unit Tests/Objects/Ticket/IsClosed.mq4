@@ -8,16 +8,16 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Constants\Index.mqh>
+#include <WantaCapital\Framework\Constants\Index.mqh>
 
-#include <SummitCapital\Framework\Objects\Ticket.mqh>
-#include <SummitCapital\Framework\Trackers\MBTracker.mqh>
+#include <WantaCapital\Framework\Objects\Ticket.mqh>
+#include <WantaCapital\Framework\Trackers\MBTracker.mqh>
 
-#include <SummitCapital\Framework\Helpers\SetupHelper.mqh>
-#include <SummitCapital\Framework\UnitTests\IntUnitTest.mqh>
-#include <SummitCapital\Framework\UnitTests\BoolUnitTest.mqh>
+#include <WantaCapital\Framework\Helpers\SetupHelper.mqh>
+#include <WantaCapital\Framework\UnitTests\IntUnitTest.mqh>
+#include <WantaCapital\Framework\UnitTests\BoolUnitTest.mqh>
 
-#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
+#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/Objects/Ticket/IsClosed/";
 const int NumberOfAsserts = 25;

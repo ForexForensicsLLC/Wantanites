@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/EAs/TheSlinky.mqh>
+#include <WantaCapital/EAs/TheSlinky.mqh>
 
 // --- EA Inputs ---
 double StopLossPaddingPips = 0;

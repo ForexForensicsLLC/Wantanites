@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/Framework/Trackers/CandleStickPatternTracker.mqh>
-#include <SummitCapital/EAs/SMAccDistInZone.mqh>
+#include <WantaCapital/Framework/Trackers/CandleStickPatternTracker.mqh>
+#include <WantaCapital/EAs/SMAccDistInZone.mqh>
 
 // --- EA Inputs ---
 input double StopLossPaddingPips = 10;

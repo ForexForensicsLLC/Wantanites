@@ -8,19 +8,19 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Helpers\EAErrorHelper.mqh>
+#include <WantaCapital\Framework\Helpers\EAErrorHelper.mqh>
 
-#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\Index.mqh>
-#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\ErrorRecords\Index.mqh>
+#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\Index.mqh>
+#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\ErrorRecords\Index.mqh>
 
-#include <SummitCapital\Framework\Helpers\SetupHelper.mqh>
-#include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
-#include <SummitCapital\Framework\Helpers\ScreenShotHelper.mqh>
-#include <SummitCapital\Framework\Helpers\CandleStickHelper.mqh>
+#include <WantaCapital\Framework\Helpers\SetupHelper.mqh>
+#include <WantaCapital\Framework\Helpers\OrderHelper.mqh>
+#include <WantaCapital\Framework\Helpers\ScreenShotHelper.mqh>
+#include <WantaCapital\Framework\Helpers\CandleStickHelper.mqh>
 
-#include <SummitCapital\Framework\Objects\Indicators\Time\TimeRangeBreakout.mqh>
+#include <WantaCapital\Framework\Objects\Indicators\Time\TimeRangeBreakout.mqh>
 
-#include <SummitCapital\Framework\Objects\Indicators\MB\LiquidationSetupTracker.mqh>
+#include <WantaCapital\Framework\Objects\Indicators\MB\LiquidationSetupTracker.mqh>
 
 class EAHelper
 {

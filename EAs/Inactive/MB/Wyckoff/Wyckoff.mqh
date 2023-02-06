@@ -8,10 +8,10 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\EA\EA.mqh>
-#include <SummitCapital\Framework\Helpers\EAHelper.mqh>
-#include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
-#include <SummitCapital\Framework\Trackers\MBWyckoffTracker.mqh>
+#include <WantaCapital\Framework\EA\EA.mqh>
+#include <WantaCapital\Framework\Helpers\EAHelper.mqh>
+#include <WantaCapital\Framework\Constants\MagicNumbers.mqh>
+#include <WantaCapital\Framework\Trackers\MBWyckoffTracker.mqh>
 
 class Wyckoff : public EA<MBEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {

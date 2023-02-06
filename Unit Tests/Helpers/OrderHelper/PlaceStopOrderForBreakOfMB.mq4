@@ -8,14 +8,14 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Constants\Index.mqh>
+#include <WantaCapital\Framework\Constants\Index.mqh>
 
-#include <SummitCapital\Framework\Trackers\MBTracker.mqh>
-#include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
-#include <SummitCapital\Framework\UnitTests\IntUnitTest.mqh>
-#include <SummitCapital\Framework\UnitTests\BoolUnitTest.mqh>
+#include <WantaCapital\Framework\Trackers\MBTracker.mqh>
+#include <WantaCapital\Framework\Helpers\OrderHelper.mqh>
+#include <WantaCapital\Framework\UnitTests\IntUnitTest.mqh>
+#include <WantaCapital\Framework\UnitTests\BoolUnitTest.mqh>
 
-#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\BeforeAndAfterImagesUnitTestRecord.mqh>
+#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\BeforeAndAfterImagesUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/Helpers/OrderHelper/PlaceStopOrderForBreakOfMB/";
 const int NumberOfAsserts = 50;

@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/InnerBreaks/MB/TheGrannySmith.mqh>
+#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
+#include <WantaCapital/EAs/InnerBreaks/MB/TheGrannySmith.mqh>
 
 // --- EA Inputs ---
 double RiskPercent = 1;

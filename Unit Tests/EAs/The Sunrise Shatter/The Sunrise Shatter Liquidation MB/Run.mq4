@@ -8,23 +8,23 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\EAs\The Sunrise Shatter\TheSunriseShatterLiquidationMB - Copy.mqh>
+#include <WantaCapital\EAs\The Sunrise Shatter\TheSunriseShatterLiquidationMB - Copy.mqh>
 
-#include <SummitCapital\Framework\Constants\Index.mqh>
+#include <WantaCapital\Framework\Constants\Index.mqh>
 
-#include <SummitCapital\Framework\Trackers\MBTracker.mqh>
-#include <SummitCapital\Framework\Objects\MinROCFromTimeStamp.mqh>
+#include <WantaCapital\Framework\Trackers\MBTracker.mqh>
+#include <WantaCapital\Framework\Objects\MinROCFromTimeStamp.mqh>
 
-#include <SummitCapital\EAs\The Sunrise Shatter\TheSunriseShatterSingleMB.mqh>
+#include <WantaCapital\EAs\The Sunrise Shatter\TheSunriseShatterSingleMB.mqh>
 
-#include <SummitCapital\Framework\Constants\Index.mqh>
+#include <WantaCapital\Framework\Constants\Index.mqh>
 
-#include <SummitCapital\Framework\Trackers\MBTracker.mqh>
-#include <SummitCapital\Framework\Objects\MinROCFromTimeStamp.mqh>
+#include <WantaCapital\Framework\Trackers\MBTracker.mqh>
+#include <WantaCapital\Framework\Objects\MinROCFromTimeStamp.mqh>
 
-#include <SummitCapital\Framework\UnitTests\BoolUnitTest.mqh>
+#include <WantaCapital\Framework\UnitTests\BoolUnitTest.mqh>
 
-#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
+#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/EAs/The Sunrise Shatter/The Sunrise Shatter Liquidation MB/Run/";
 

@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
+#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 class BeforeAndAfterImagesUnitTestRecord : public DefaultUnitTestRecord
 {

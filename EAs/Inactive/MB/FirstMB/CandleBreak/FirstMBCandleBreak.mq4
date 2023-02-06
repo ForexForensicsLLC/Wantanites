@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/FirstMB/CandleBreak/FirstMBCandleBreak.mqh>
+#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
+#include <WantaCapital/EAs/Inactive/FirstMB/CandleBreak/FirstMBCandleBreak.mqh>
 
 // --- EA Inputs ---
 double RiskPercent = 1;

@@ -8,14 +8,14 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Trackers\MBTracker.mqh>
-#include <SummitCapital\Framework\Trackers\LiquidationSetupTracker.mqh>
-#include <SummitCapital\Framework\CSVWriting\CSVRecordWriter.mqh>
-#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\ErrorRecords\Index.mqh>
+#include <WantaCapital\Framework\Trackers\MBTracker.mqh>
+#include <WantaCapital\Framework\Trackers\LiquidationSetupTracker.mqh>
+#include <WantaCapital\Framework\CSVWriting\CSVRecordWriter.mqh>
+#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\ErrorRecords\Index.mqh>
 
-#include <SummitCapital\Framework\Helpers\ScreenShotHelper.mqh>
-#include <SummitCapital\Framework\Helpers\SetupHelper.mqh>
-#include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
+#include <WantaCapital\Framework\Helpers\ScreenShotHelper.mqh>
+#include <WantaCapital\Framework\Helpers\SetupHelper.mqh>
+#include <WantaCapital\Framework\Helpers\OrderHelper.mqh>
 
 // --- EA Inputs ---
 input double StopLossPaddingPips = 10;

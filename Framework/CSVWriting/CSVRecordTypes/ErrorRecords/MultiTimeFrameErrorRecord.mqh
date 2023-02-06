@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\ErrorRecords\DefaultErrorRecord.mqh>
+#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\ErrorRecords\DefaultErrorRecord.mqh>
 
 class MultiTimeFrameErrorRecord : public DefaultErrorRecord
 {

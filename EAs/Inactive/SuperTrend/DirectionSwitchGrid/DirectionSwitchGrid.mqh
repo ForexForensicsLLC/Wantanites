@@ -8,14 +8,14 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\EA\EA.mqh>
-#include <SummitCapital\Framework\Helpers\EAHelper.mqh>
-#include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
+#include <WantaCapital\Framework\EA\EA.mqh>
+#include <WantaCapital\Framework\Helpers\EAHelper.mqh>
+#include <WantaCapital\Framework\Constants\MagicNumbers.mqh>
 
-#include <SummitCapital\Framework\Trackers\HeikinAshiTracker.mqh>
-#include <SummitCapital\Framework\Objects\PriceGridTracker.mqh>
-#include <SummitCapital\Framework\Trackers\FractalTracker.mqh>
-#include <SummitCapital\Framework\Objects\SuperTrend.mqh>
+#include <WantaCapital\Framework\Trackers\HeikinAshiTracker.mqh>
+#include <WantaCapital\Framework\Objects\PriceGridTracker.mqh>
+#include <WantaCapital\Framework\Trackers\FractalTracker.mqh>
+#include <WantaCapital\Framework\Objects\SuperTrend.mqh>
 
 class DirectionSwitchGrid : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {

@@ -8,10 +8,10 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Constants\Index.mqh>
+#include <WantaCapital\Framework\Constants\Index.mqh>
 
-#include <SummitCapital\Framework\Helpers\ScreenShotHelper.mqh>
-#include <SummitCapital\Framework\CSVWriting\CSVRecordWriter.mqh>
+#include <WantaCapital\Framework\Helpers\ScreenShotHelper.mqh>
+#include <WantaCapital\Framework\CSVWriting\CSVRecordWriter.mqh>
 
 template <typename TUnitTest, typename TRecord>
 class UnitTest

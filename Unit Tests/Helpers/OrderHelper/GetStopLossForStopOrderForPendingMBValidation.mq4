@@ -8,10 +8,10 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
-#include <SummitCapital\Framework\UnitTests\IntUnitTest.mqh>
+#include <WantaCapital\Framework\Helpers\OrderHelper.mqh>
+#include <WantaCapital\Framework\UnitTests\IntUnitTest.mqh>
 
-#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\BeforeAndAfterImagesUnitTestRecord.mqh>
+#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\BeforeAndAfterImagesUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/Helpers/OrderHelper/GetStopLossForStopOrderForPendingMBValidation/";
 const int NumberOfAsserts = 50;

@@ -8,9 +8,9 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Constants\Index.mqh>
-#include <SummitCapital\Framework\Objects\Indicators\MB\MB.mqh>
-#include <SummitCapital\Framework\Helpers\CandleStickHelper.mqh>
+#include <WantaCapital\Framework\Constants\Index.mqh>
+#include <WantaCapital\Framework\Objects\Indicators\MB\MB.mqh>
+#include <WantaCapital\Framework\Helpers\CandleStickHelper.mqh>
 
 class MBTracker
 {

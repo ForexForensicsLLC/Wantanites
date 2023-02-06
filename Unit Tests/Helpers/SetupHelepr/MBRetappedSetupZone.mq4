@@ -8,16 +8,16 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Constants\Index.mqh>
+#include <WantaCapital\Framework\Constants\Index.mqh>
 
-#include <SummitCapital\Framework\Trackers\MBTracker.mqh>
-#include <SummitCapital\Framework\Objects\MinROCFromTimeStamp.mqh>
+#include <WantaCapital\Framework\Trackers\MBTracker.mqh>
+#include <WantaCapital\Framework\Objects\MinROCFromTimeStamp.mqh>
 
-#include <SummitCapital\Framework\Helpers\SetupHelper.mqh>
-#include <SummitCapital\Framework\UnitTests\IntUnitTest.mqh>
-#include <SummitCapital\Framework\UnitTests\BoolUnitTest.mqh>
+#include <WantaCapital\Framework\Helpers\SetupHelper.mqh>
+#include <WantaCapital\Framework\UnitTests\IntUnitTest.mqh>
+#include <WantaCapital\Framework\UnitTests\BoolUnitTest.mqh>
 
-#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\UnitTestRecords\DefaultUnitTestRecord.mqh>
+#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\UnitTestRecords\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/Helpers/SetupHelper/MBRetappedSetupZone/";
 const int NumberOfAsserts = 10000;

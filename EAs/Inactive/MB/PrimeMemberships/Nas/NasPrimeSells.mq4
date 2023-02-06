@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/EAs/PrimeMemberships/PrimeMembership.mqh>
+#include <WantaCapital/EAs/PrimeMemberships/PrimeMembership.mqh>
 
 // --- EA Inputs ---
 string ForcedSymbol = "US100";

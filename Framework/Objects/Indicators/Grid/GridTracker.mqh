@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
+#include <WantaCapital\Framework\Helpers\OrderHelper.mqh>
 
 class GridTracker
 {

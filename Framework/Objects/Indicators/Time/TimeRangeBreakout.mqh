@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Constants\ConstantValues.mqh>
-#include <SummitCapital\Framework\Helpers\DateTimeHelper.mqh>
+#include <WantaCapital\Framework\Constants\ConstantValues.mqh>
+#include <WantaCapital\Framework\Helpers\DateTimeHelper.mqh>
 
 class TimeRangeBreakout
 {

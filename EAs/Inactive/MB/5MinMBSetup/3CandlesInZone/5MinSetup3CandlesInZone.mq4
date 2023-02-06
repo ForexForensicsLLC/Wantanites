@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/5minMBSetup/3CandlesInZone/5minSetup3CandlesInZone.mqh>
+#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
+#include <WantaCapital/EAs/Inactive/5minMBSetup/3CandlesInZone/5minSetup3CandlesInZone.mqh>
 
 // --- EA Inputs ---
 double RiskPercent = 0.01;

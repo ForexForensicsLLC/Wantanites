@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Objects\List.mqh>
+#include <WantaCapital\Framework\Objects\List.mqh>
 
 class SuperTrend
 {

@@ -8,9 +8,9 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
-#include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/Hedge/TimeHedge/TimeHedgeIncreasing.mqh>
+#include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
+#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
+#include <WantaCapital/EAs/Inactive/Hedge/TimeHedge/TimeHedgeIncreasing.mqh>
 
 string ForcedSymbol = "EURUSD";
 int ForcedTimeFrame = 5;

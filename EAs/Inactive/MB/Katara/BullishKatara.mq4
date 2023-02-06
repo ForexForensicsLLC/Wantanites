@@ -8,10 +8,10 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/EAs/Katara/KataraSingleMBDoji.mqh>
-#include <SummitCapital/EAs/Katara/KataraSingleMB.mqh>
-#include <SummitCapital/EAs/Katara/KataraDoubleMB.mqh>
-#include <SummitCapital/EAs/Katara/KataraLiquidationMB.mqh>
+#include <WantaCapital/EAs/Katara/KataraSingleMBDoji.mqh>
+#include <WantaCapital/EAs/Katara/KataraSingleMB.mqh>
+#include <WantaCapital/EAs/Katara/KataraDoubleMB.mqh>
+#include <WantaCapital/EAs/Katara/KataraLiquidationMB.mqh>
 
 // --- EA Inputs ---
 input double StopLossPaddingPips = 0.1;

@@ -8,9 +8,9 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
-#include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/Fractals/NasMorningBreak/NasMorningBreak.mqh>
+#include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
+#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
+#include <WantaCapital/EAs/Inactive/Fractals/NasMorningBreak/NasMorningBreak.mqh>
 
 input string SymbolHeader = "US100 Symbol Name. Might Need to adjust for your broker";
 input string ForcedSymbol = "US100";

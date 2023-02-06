@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Helpers\SetupHelper.mqh>
+#include <WantaCapital\Framework\Helpers\SetupHelper.mqh>
 
 class CandleStickPatternTracker
 {

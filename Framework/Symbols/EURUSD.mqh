@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Symbols\EURUSD.mqh>
+#include <WantaCapital\Framework\Symbols\EURUSD.mqh>
 
 class EURUSD
 {

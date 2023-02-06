@@ -8,12 +8,12 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\EA\EA.mqh>
-#include <SummitCapital\Framework\Helpers\EAHelper.mqh>
-#include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
-#include <SummitCapital\Framework\Objects\TimeGridTracker.mqh>
+#include <WantaCapital\Framework\EA\EA.mqh>
+#include <WantaCapital\Framework\Helpers\EAHelper.mqh>
+#include <WantaCapital\Framework\Constants\MagicNumbers.mqh>
+#include <WantaCapital\Framework\Objects\TimeGridTracker.mqh>
 
-#include <SummitCapital\Framework\Symbols\NASDAQ.mqh>
+#include <WantaCapital\Framework\Symbols\NASDAQ.mqh>
 
 class GridHedgeContinuation : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {

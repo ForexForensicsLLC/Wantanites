@@ -7,13 +7,13 @@
 #property link "https://www.mql5.com"
 #property version "1.00"
 #property strict
-#include <SummitCapital\Framework\CSVWriting\CSVRecordWriter.mqh>
+#include <WantaCapital\Framework\CSVWriting\CSVRecordWriter.mqh>
 
-#include <SummitCapital\Framework\Constants\Index.mqh>
-#include <SummitCapital\Framework\UnitTests\BoolUnitTest.mqh>
+#include <WantaCapital\Framework\Constants\Index.mqh>
+#include <WantaCapital\Framework\UnitTests\BoolUnitTest.mqh>
 
-#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\CloseTradeRecords\DefaultExitTradeRecord.mqh>
-#include <SummitCapital\Framework\CSVWriting\CSVRecordTypes\UnitTestRecords\DefaultUnitTestRecord.mqh>
+#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\CloseTradeRecords\DefaultExitTradeRecord.mqh>
+#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\UnitTestRecords\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/Objects/Records/CloseTradeRecords/DefaultExitTradeRecord/";
 const int NumberOfAsserts = 10;

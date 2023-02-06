@@ -8,9 +8,9 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
-#include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Active/MBRun/MBRun.mqh>
+#include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
+#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
+#include <WantaCapital/EAs/Active/MBRun/MBRun.mqh>
 
 string ForcedSymbol = "US30";
 int ForcedTimeFrame = 1;

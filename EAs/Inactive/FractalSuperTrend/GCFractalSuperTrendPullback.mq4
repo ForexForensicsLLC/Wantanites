@@ -8,9 +8,9 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
-#include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/FractalSuperTrend/FractalSuperTrendPullback.mqh>
+#include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
+#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
+#include <WantaCapital/EAs/Inactive/FractalSuperTrend/FractalSuperTrendPullback.mqh>
 
 string ForcedSymbol = "GBPCAD";
 int ForcedTimeFrame = 60;

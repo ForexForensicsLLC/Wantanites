@@ -7,7 +7,7 @@
 #property link "https://www.mql5.com"
 #property version "1.00"
 #property strict
-#include <SummitCapital/EAs/MoneyHeist/CrewMember.mqh>
+#include <WantaCapital/EAs/MoneyHeist/CrewMember.mqh>
 
 // --- EA Inputs ---
 string ForcedSymbol = "USDJPY";

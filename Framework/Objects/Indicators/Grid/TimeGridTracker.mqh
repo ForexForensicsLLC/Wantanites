@@ -8,10 +8,10 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Objects\GridTracker.mqh>
+#include <WantaCapital\Framework\Objects\GridTracker.mqh>
 
-#include <SummitCapital\Framework\Helpers\DateTimeHelper.mqh>
-#include <SummitCapital\Framework\Helpers\OrderHelper.mqh>
+#include <WantaCapital\Framework\Helpers\DateTimeHelper.mqh>
+#include <WantaCapital\Framework\Helpers\OrderHelper.mqh>
 
 class TimeGridTracker : public GridTracker
 {

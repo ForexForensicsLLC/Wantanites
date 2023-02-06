@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Helpers\MQLHelper.mqh>
+#include <WantaCapital\Framework\Helpers\MQLHelper.mqh>
 class ZoneState
 {
 protected:

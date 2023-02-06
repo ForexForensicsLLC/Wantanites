@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Inactive/TinyMBValidation/TinyMBValidation.mqh>
+#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
+#include <WantaCapital/EAs/Inactive/TinyMBValidation/TinyMBValidation.mqh>
 
 // --- EA Inputs ---
 double RiskPercent = 0.01;

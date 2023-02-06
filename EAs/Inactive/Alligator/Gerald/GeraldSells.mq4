@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/EAs/Alligator/Alligator.mqh>
+#include <WantaCapital/EAs/Alligator/Alligator.mqh>
 
 // --- EA Inputs ---
 string ForcedSymbol = "GBPUSD";

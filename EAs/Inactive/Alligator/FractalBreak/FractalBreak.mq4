@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/EAs/Inactive/Alligator/FractalBreak/FractalBreak.mqh>
+#include <WantaCapital/EAs/Inactive/Alligator/FractalBreak/FractalBreak.mqh>
 
 // --- EA Inputs ---
 string ForcedSymbol = "US30";

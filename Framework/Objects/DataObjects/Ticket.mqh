@@ -8,12 +8,12 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Constants\ExecutionErrors.mqh>
-#include <SummitCapital\Framework\Constants\TerminalErrors.mqh>
+#include <WantaCapital\Framework\Constants\ExecutionErrors.mqh>
+#include <WantaCapital\Framework\Constants\TerminalErrors.mqh>
 
-#include <SummitCapital\Framework\Objects\DataObjects\Partial.mqh>
-#include <SummitCapital\Framework\Objects\DataStructures\ObjectList.mqh>
-#include <SummitCapital\Framework\Objects\DataStructures\List.mqh>
+#include <WantaCapital\Framework\Objects\DataObjects\Partial.mqh>
+#include <WantaCapital\Framework\Objects\DataStructures\ObjectList.mqh>
+#include <WantaCapital\Framework\Objects\DataStructures\List.mqh>
 
 class Ticket
 {

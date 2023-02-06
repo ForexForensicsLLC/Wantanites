@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/EAs/Wyckoff.mqh>
+#include <WantaCapital/EAs/Wyckoff.mqh>
 
 // --- EA Inputs ---
 input double StopLossPaddingPips = 0;

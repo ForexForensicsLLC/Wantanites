@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/EAs/Simp.mqh>
+#include <WantaCapital/EAs/Simp.mqh>
 
 // --- EA Inputs ---
 input double StopLossPaddingPips = 0;

@@ -11,9 +11,9 @@
 string ForcedSymbol = "NAS100";
 int ForcedTimeFrame = 1;
 
-#include <SummitCapital/Framework/Constants/MagicNumbers.mqh>
-#include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Active/ReversalInnerBreak/ReversalInnerBreak.mqh>
+#include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
+#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
+#include <WantaCapital/EAs/Active/ReversalInnerBreak/ReversalInnerBreak.mqh>
 
 // --- EA Inputs ---
 double RiskPercent = 1;

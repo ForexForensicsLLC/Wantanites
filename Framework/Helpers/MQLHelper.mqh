@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/Framework/Constants/Index.mqh>
+#include <WantaCapital/Framework/Constants/Index.mqh>
 
 class MQLHelper
 {

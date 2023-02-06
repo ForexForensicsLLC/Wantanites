@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/EAs/TheDojiExchange/TheDojiExchange.mqh>
+#include <WantaCapital/EAs/TheDojiExchange/TheDojiExchange.mqh>
 
 // --- EA Inputs ---
 string ForcedSymbol = "GBPUSD";

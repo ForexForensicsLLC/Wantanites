@@ -8,9 +8,9 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Objects\Fractal.mqh>
-#include <SummitCapital\Framework\Objects\ObjectList.mqh>
-#include <SummitCapital\Framework\Helpers\MQLHelper.mqh>
+#include <WantaCapital\Framework\Objects\Fractal.mqh>
+#include <WantaCapital\Framework\Objects\ObjectList.mqh>
+#include <WantaCapital\Framework\Helpers\MQLHelper.mqh>
 
 class FractalTracker
 {

@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
-#include <SummitCapital/EAs/Active/ImpulseContinuation/NeighborDoji/ImpulseContinuation.mqh>
+#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
+#include <WantaCapital/EAs/Active/ImpulseContinuation/NeighborDoji/ImpulseContinuation.mqh>
 
 string EntrySymbol = "US30";
 string EntryTimeFrame = 1;

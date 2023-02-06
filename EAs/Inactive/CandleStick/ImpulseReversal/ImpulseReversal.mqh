@@ -8,12 +8,12 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\EA\EA.mqh>
-#include <SummitCapital\Framework\Helpers\EAHelper.mqh>
-#include <SummitCapital\Framework\Constants\MagicNumbers.mqh>
+#include <WantaCapital\Framework\EA\EA.mqh>
+#include <WantaCapital\Framework\Helpers\EAHelper.mqh>
+#include <WantaCapital\Framework\Constants\MagicNumbers.mqh>
 
-#include <SummitCapital\Framework\Objects\PriceGridTracker.mqh>
-#include <SummitCapital\Framework\Symbols\EURUSD.mqh>
+#include <WantaCapital\Framework\Objects\PriceGridTracker.mqh>
+#include <WantaCapital\Framework\Symbols\EURUSD.mqh>
 
 class ImpulseReversal : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
