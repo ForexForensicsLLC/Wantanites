@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Trackers\MBTracker.mqh>
-#include <SummitCapital\Framework\Objects\MinROCFromTimeStamp.mqh>
+#include <SummitCapital\Framework\Objects\Indicators\MB\MBTracker.mqh>
+#include <SummitCapital\Framework\Objects\Indicators\Time\MinROCFromTimeStamp.mqh>
 #include <SummitCapital\Framework\Constants\Index.mqh>
 
 class SetupHelper

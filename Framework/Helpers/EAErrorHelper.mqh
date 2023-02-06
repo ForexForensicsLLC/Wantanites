@@ -11,7 +11,7 @@
 #include <SummitCapital\Framework\Constants\ExecutionErrors.mqh>
 #include <SummitCapital\Framework\Constants\TerminalErrors.mqh>
 
-#include <SummitCapital\Framework\Trackers\MBTracker.mqh>
+#include <SummitCapital\Framework\Objects\Indicators\MB\MBTracker.mqh>
 
 class EAErrorHelper
 {

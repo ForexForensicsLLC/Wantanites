@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <SummitCapital\Framework\Objects\Zone.mqh>
+#include <SummitCapital\Framework\Objects\Indicators\MB\Zone.mqh>
 #include <SummitCapital\Framework\Helpers\MQLHelper.mqh>
 
 enum Status
