@@ -12,12 +12,11 @@
 #include <SummitCapital/Framework/Constants/SymbolConstants.mqh>
 #include <SummitCapital/EAs/Inactive/Fractals/NasMorningBreak/NasMorningBreak.mqh>
 
-input string SymbolHeader = "US100 Symbol Name. Might Need to adjust for your broker";
-input string ForcedSymbol = "US100";
+string ForcedSymbol = "US100";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
-input double RiskPercent = 1;
+double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
@@ -34,16 +33,14 @@ NasMorningBreak *NMBBuys;
 NasMorningBreak *NMBSells;
 
 // Nas
-input string PipHeader = "Pip Values. Based on 2 Decimal Places in Symbol. Might need to adjust for your broker";
-input double MaxSpreadPips = 25;
-input double StopLossPaddingPips = 250;
-input double PipsToWaitBeforeBE = 250;
+double MaxSpreadPips = 25;
+double StopLossPaddingPips = 250;
+double PipsToWaitBeforeBE = 250;
 
-input string TimeHeader = "Trading Time. Should be equal to 8:30 Central Time for default. Might need to adjust for your broker";
-input int HourStart = 16;
-input int MinuteStart = 30;
-input int HourEnd = 16;
-input int MinuteEnd = 40;
+int HourStart = 16;
+int MinuteStart = 30;
+int HourEnd = 16;
+int MinuteEnd = 40;
 
 int OnInit()
 {
@@ -55,16 +52,12 @@ int OnInit()
     NMBBuys = new NasMorningBreak(MagicNumbers::NasMorningFractalBreakBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                   RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
-    NMBBuys.mCloseHour = CloseHour;
-    NMBBuys.mCloseMinute = CloseMinute;
     NMBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     NMBBuys.AddTradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
 
     NMBSells = new NasMorningBreak(MagicNumbers::NasMorningFractalBreakSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                    RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
-    NMBSells.mCloseHour = CloseHour;
-    NMBSells.mCloseMinute = CloseMinute;
     NMBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     NMBSells.AddTradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
 

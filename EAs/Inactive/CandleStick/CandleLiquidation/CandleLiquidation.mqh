@@ -32,13 +32,14 @@ public:
     virtual void InvalidateSetup(bool deletePendingOrder, int error);
     virtual bool Confirmation();
     virtual void PlaceOrders();
-    virtual void ManageCurrentPendingSetupTicket();
-    virtual void ManageCurrentActiveSetupTicket();
+    virtual void PreManageTickets();
+    virtual void ManageCurrentPendingSetupTicket(Ticket &ticket);
+    virtual void ManageCurrentActiveSetupTicket(Ticket &ticket);
     virtual bool MoveToPreviousSetupTickets(Ticket &ticket);
-    virtual void ManagePreviousSetupTicket(int ticketIndex);
-    virtual void CheckCurrentSetupTicket();
-    virtual void CheckPreviousSetupTicket(int ticketIndex);
-    virtual void RecordTicketOpenData();
+    virtual void ManagePreviousSetupTicket(Ticket &ticket);
+    virtual void CheckCurrentSetupTicket(Ticket &ticket);
+    virtual void CheckPreviousSetupTicket(Ticket &ticket);
+    virtual void RecordTicketOpenData(Ticket &ticket);
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
@@ -139,19 +140,23 @@ void CandleLiquidation::PlaceOrders()
     mStopTrading = true;
 }
 
-void CandleLiquidation::ManageCurrentPendingSetupTicket()
+void CandleLiquidation::PreManageTickets()
 {
 }
 
-void CandleLiquidation::ManageCurrentActiveSetupTicket()
+void CandleLiquidation::ManageCurrentPendingSetupTicket(Ticket &ticket)
 {
-    int openIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mCurrentSetupTicket.OpenTime());
+}
+
+void CandleLiquidation::ManageCurrentActiveSetupTicket(Ticket &ticket)
+{
+    int openIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, ticket.OpenTime());
     if (openIndex >= 1)
     {
-        mCurrentSetupTicket.Close();
+        ticket.Close();
     }
 
-    EAHelper::MoveToBreakEvenAfterPips<CandleLiquidation>(this, mCurrentSetupTicket, mPipsToWaitBeforeBE, mBEAdditionalPips);
+    EAHelper::MoveToBreakEvenAfterPips<CandleLiquidation>(this, ticket, mPipsToWaitBeforeBE, mBEAdditionalPips);
 }
 
 bool CandleLiquidation::MoveToPreviousSetupTickets(Ticket &ticket)
@@ -159,30 +164,26 @@ bool CandleLiquidation::MoveToPreviousSetupTickets(Ticket &ticket)
     return EAHelper::TicketStopLossIsMovedToBreakEven<CandleLiquidation>(this, ticket);
 }
 
-void CandleLiquidation::ManagePreviousSetupTicket(int ticketIndex)
+void CandleLiquidation::ManagePreviousSetupTicket(Ticket &ticket)
 {
-    int openIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mPreviousSetupTickets[ticketIndex].OpenTime());
+    int openIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, ticket.OpenTime());
     if (openIndex >= 1)
     {
-        mPreviousSetupTickets[ticketIndex].Close();
+        ticket.Close();
     }
 }
 
-void CandleLiquidation::CheckCurrentSetupTicket()
+void CandleLiquidation::CheckCurrentSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<CandleLiquidation>(this, mCurrentSetupTicket);
-    EAHelper::CheckCurrentSetupTicket<CandleLiquidation>(this);
 }
 
-void CandleLiquidation::CheckPreviousSetupTicket(int ticketIndex)
+void CandleLiquidation::CheckPreviousSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<CandleLiquidation>(this, mPreviousSetupTickets[ticketIndex]);
-    EAHelper::CheckPreviousSetupTicket<CandleLiquidation>(this, ticketIndex);
 }
 
-void CandleLiquidation::RecordTicketOpenData()
+void CandleLiquidation::RecordTicketOpenData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameEntryTradeRecord<CandleLiquidation>(this);
+    EAHelper::RecordSingleTimeFrameEntryTradeRecord<CandleLiquidation>(this, ticket);
 }
 
 void CandleLiquidation::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)

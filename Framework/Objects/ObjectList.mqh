@@ -31,6 +31,8 @@ public:
 
     int Size() { return ArraySize(mItems); }
 
+    bool IsEmpty() { return Size() == 0; }
+
     // adds an item to the end of the lsit
     void Add(T *&item);
 

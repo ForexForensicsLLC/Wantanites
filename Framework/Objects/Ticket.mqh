@@ -18,6 +18,7 @@
 class Ticket
 {
 private:
+    typedef bool (*TTicketNumberLocator)(Ticket &, int);
     int mNumber;
 
     bool mLastCloseCheck;
@@ -76,6 +77,8 @@ public:
 
     int Close();
     void SetPartials(List<double> &partialRRs, List<double> &partialPercents);
+
+    static bool HasTicketNumber(Ticket &ticket, int ticketNumber);
 };
 
 Ticket::Ticket()
@@ -380,13 +383,6 @@ int Ticket::IsClosed(bool &closed)
         return selectTicketError;
     }
 
-    // ticket was never activated so it can't be considered closed
-    if (OrderType() >= 2)
-    {
-        closed = false;
-        return ERR_NO_ERROR;
-    }
-
     mIsClosed = true;
     closed = mIsClosed;
 
@@ -481,4 +477,9 @@ void Ticket::SetPartials(List<double> &partialRRs, List<double> &partialPercents
         Partial *partial = new Partial(partialRRs[i], partialPercents[i]);
         mPartials.Add(partial);
     }
+}
+
+static bool Ticket::HasTicketNumber(Ticket &ticket, int number)
+{
+    return ticket.Number() == number;
 }
