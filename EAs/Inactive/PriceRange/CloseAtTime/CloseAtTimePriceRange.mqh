@@ -72,7 +72,7 @@ void PriceRange::PreRun()
 
 bool PriceRange::AllowedToTrade()
 {
-    return EAHelper::BelowSpread<PriceRange>(this) && EAHelper::WithinTradingSession<PriceRange>(this);
+    return EAHelper::BelowSpread<PriceRange>(this) && EAHelper::WithinTradingSession<PriceRange>(this) && DayOfWeek() != 3;
 }
 
 void PriceRange::CheckSetSetup()
@@ -144,10 +144,7 @@ void PriceRange::ManageCurrentActiveSetupTicket(Ticket &ticket)
         return;
     }
 
-    if (EAHelper::CloseTicketIfPastTime<PriceRange>(this, ticket, mCloseHour, mCloseMinute))
-    {
-        return;
-    }
+    EAHelper::CloseTicketIfPastTime<PriceRange>(this, ticket, mCloseHour, mCloseMinute);
 }
 
 bool PriceRange::MoveToPreviousSetupTickets(Ticket &ticket)

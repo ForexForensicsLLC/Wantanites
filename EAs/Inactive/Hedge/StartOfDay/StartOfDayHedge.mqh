@@ -12,16 +12,10 @@
 #include <WantaCapital\Framework\Helpers\EAHelper.mqh>
 #include <WantaCapital\Framework\Constants\MagicNumbers.mqh>
 
-class StartOfDayHedge : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class StartOfDayHedge : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
-    int mEntryTimeFrame;
-    string mEntrySymbol;
-
-    int mBarCount;
-    int mLastDay;
-
-    double mTakeProfitPips;
+    double mPipsFromOpen;
     double mTrailStopLossPips;
 
 public:
@@ -32,7 +26,7 @@ public:
 
     virtual double RiskPercent() { return mRiskPercent; }
 
-    virtual void Run();
+    virtual void PreRun();
     virtual bool AllowedToTrade();
     virtual void CheckSetSetup();
     virtual void CheckInvalidateSetup();
@@ -58,16 +52,10 @@ StartOfDayHedge::StartOfDayHedge(int magicNumber, int setupType, int maxCurrentS
                                  CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
-    mEntrySymbol = Symbol();
-    mEntryTimeFrame = Period();
-
-    mBarCount = 0;
-
-    mTakeProfitPips = 0.0;
+    mPipsFromOpen = 0.0;
     mTrailStopLossPips = 0.0;
 
     EAHelper::FindSetPreviousAndCurrentSetupTickets<StartOfDayHedge>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<StartOfDayHedge, PartialTradeRecord>(this);
     EAHelper::SetPreviousSetupTicketsOpenData<StartOfDayHedge, SingleTimeFrameEntryTradeRecord>(this);
 }
 
@@ -75,10 +63,8 @@ StartOfDayHedge::~StartOfDayHedge()
 {
 }
 
-void StartOfDayHedge::Run()
+void StartOfDayHedge::PreRun()
 {
-    EAHelper::Run<StartOfDayHedge>(this);
-    mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
 }
 
 bool StartOfDayHedge::AllowedToTrade()
@@ -88,7 +74,10 @@ bool StartOfDayHedge::AllowedToTrade()
 
 void StartOfDayHedge::CheckSetSetup()
 {
-    mHasSetup = true;
+    if (Hour() == mTradingSessions[0].HourStart() && Minute() == mTradingSessions[0].MinuteStart())
+    {
+        mHasSetup = true;
+    }
 }
 
 void StartOfDayHedge::CheckInvalidateSetup()
@@ -103,7 +92,7 @@ void StartOfDayHedge::InvalidateSetup(bool deletePendingOrder, int error = ERR_N
 
 bool StartOfDayHedge::Confirmation()
 {
-    return Hour() == mTradingSessions[0].HourStart() && Minute() == mTradingSessions[0].MinuteStart();
+    return true;
 }
 
 void StartOfDayHedge::PlaceOrders()
@@ -115,112 +104,51 @@ void StartOfDayHedge::PlaceOrders()
         return;
     }
 
-    double entry = 0.0;
-    double stopLoss = 0.0;
-    // double takeProfit = 0.0;
+    double entry = currentTick.bid + OrderHelper::PipsToRange(mPipsFromOpen);
+    double stopLoss = currentTick.bid;
 
-    if (SetupType() == OP_BUY)
-    {
-        entry = currentTick.ask;
-        stopLoss = entry - OrderHelper::PipsToRange(mStopLossPaddingPips);
-        // takeProfit = entry + OrderHelper::PipsToRange(mTakeProfitPips);
-    }
-    else if (SetupType() == OP_SELL)
-    {
-        entry = currentTick.bid;
-        stopLoss = entry + OrderHelper::PipsToRange(mStopLossPaddingPips);
-        // takeProfit = entry - OrderHelper::PipsToRange(mTakeProfitPips);
-    }
-
-    EAHelper::PlaceMarketOrder<StartOfDayHedge>(this, entry, stopLoss);
+    EAHelper::PlaceStopOrder<StartOfDayHedge>(this, entry, stopLoss);
     mStopTrading = true;
 }
 
-void StartOfDayHedge::ManageCurrentPendingSetupTicket()
+void StartOfDayHedge::PreManageTickets()
 {
 }
 
-void StartOfDayHedge::ManageCurrentActiveSetupTicket()
+void StartOfDayHedge::ManageCurrentPendingSetupTicket(Ticket &ticket)
 {
+}
+
+void StartOfDayHedge::ManageCurrentActiveSetupTicket(Ticket &ticket)
+{
+    EAHelper::MoveToBreakEvenAfterPips<StartOfDayHedge>(this, ticket, MathAbs(mPipsFromOpen) / 2);
 }
 
 bool StartOfDayHedge::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    return true;
+    return EAHelper::TicketStopLossIsMovedToBreakEven<StartOfDayHedge>(this, ticket);
 }
 
-void StartOfDayHedge::ManagePreviousSetupTicket(int ticketIndex)
+void StartOfDayHedge::ManagePreviousSetupTicket(Ticket &ticket)
 {
-    mPreviousSetupTickets[ticketIndex].SelectIfOpen("Managing");
-
-    double newSL = 0.0;
-    if (OrderStopLoss() == mPreviousSetupTickets[ticketIndex].mOriginalStopLoss)
-    {
-        // instanly cut SL in half to limit losses to 0.5 RR
-        if (SetupType() == OP_BUY)
-        {
-            newSL = OrderStopLoss() + (OrderHelper::PipsToRange(mStopLossPaddingPips) / 2);
-            OrderModify(mPreviousSetupTickets[ticketIndex].Number(), OrderOpenPrice(), newSL, OrderTakeProfit(), OrderExpiration(), clrNONE);
-        }
-        else if (SetupType() == OP_SELL)
-        {
-            newSL = OrderStopLoss() - (OrderHelper::PipsToRange(mStopLossPaddingPips) / 2);
-            OrderModify(mPreviousSetupTickets[ticketIndex].Number(), OrderOpenPrice(), newSL, OrderTakeProfit(), OrderExpiration(), clrNONE);
-        }
-    }
-    else
-    {
-        MqlTick currentTick;
-        if (!SymbolInfoTick(Symbol(), currentTick))
-        {
-            RecordError(GetLastError());
-            return;
-        }
-
-        double startingPrice = 0.0;
-
-        // trail SL
-        if (SetupType() == OP_BUY)
-        {
-            startingPrice = MathMax(OrderStopLoss(), OrderOpenPrice());
-            if (currentTick.bid - startingPrice > OrderHelper::PipsToRange(mTrailStopLossPips))
-            {
-                double newSl = NormalizeDouble(currentTick.bid - (OrderHelper::PipsToRange(mTrailStopLossPips) / 2), Digits());
-                OrderModify(mPreviousSetupTickets[ticketIndex].Number(), OrderOpenPrice(), newSl, OrderTakeProfit(), OrderExpiration(), clrNONE);
-            }
-        }
-        else if (SetupType() == OP_SELL)
-        {
-            startingPrice = MathMin(OrderStopLoss(), OrderOpenPrice());
-            if (startingPrice - currentTick.bid > OrderHelper::PipsToRange(mTrailStopLossPips))
-            {
-                double newSl = NormalizeDouble(currentTick.bid + (OrderHelper::PipsToRange(mTrailStopLossPips) / 2), Digits());
-                OrderModify(mPreviousSetupTickets[ticketIndex].Number(), OrderOpenPrice(), newSl, OrderTakeProfit(), OrderExpiration(), clrNONE);
-            }
-        }
-    }
+    EAHelper::CheckTrailStopLossEveryXPips<StartOfDayHedge>(this, ticket, mTrailStopLossPips * 2, mTrailStopLossPips);
 }
 
-void StartOfDayHedge::CheckCurrentSetupTicket()
+void StartOfDayHedge::CheckCurrentSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<StartOfDayHedge>(this, mCurrentSetupTicket);
-    EAHelper::CheckCurrentSetupTicket<StartOfDayHedge>(this);
 }
 
-void StartOfDayHedge::CheckPreviousSetupTicket(int ticketIndex)
+void StartOfDayHedge::CheckPreviousSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<StartOfDayHedge>(this, mPreviousSetupTickets[ticketIndex]);
-    EAHelper::CheckPreviousSetupTicket<StartOfDayHedge>(this, ticketIndex);
 }
 
-void StartOfDayHedge::RecordTicketOpenData()
+void StartOfDayHedge::RecordTicketOpenData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameEntryTradeRecord<StartOfDayHedge>(this);
+    EAHelper::RecordSingleTimeFrameEntryTradeRecord<StartOfDayHedge>(this, ticket);
 }
 
 void StartOfDayHedge::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
-    EAHelper::RecordPartialTradeRecord<StartOfDayHedge>(this, partialedTicket, newTicketNumber);
 }
 
 void StartOfDayHedge::RecordTicketCloseData(Ticket &ticket)
@@ -242,4 +170,6 @@ void StartOfDayHedge::Reset()
 {
     mStopTrading = false;
     mHasSetup = false;
+
+    EAHelper::CloseAllCurrentAndPendingTickets<StartOfDayHedge>(this);
 }

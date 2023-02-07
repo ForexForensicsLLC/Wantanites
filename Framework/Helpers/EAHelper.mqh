@@ -208,6 +208,12 @@ public:
     static void PlaceStopOrderForTheLittleDipper(TEA &ea);
 
     // =========================================================================
+    // Manage All Tickets
+    // =========================================================================
+    template <typename TEA>
+    static void CloseAllCurrentAndPendingTickets(TEA &ea);
+
+    // =========================================================================
     // Manage Pending Ticket
     // =========================================================================
     template <typename TEA>
@@ -2029,6 +2035,30 @@ static void EAHelper::PlaceStopOrderForTheLittleDipper(TEA &ea)
 }
 /*
 
+   __  __                                   _    _ _   _____ _      _        _
+  |  \/  | __ _ _ __   __ _  __ _  ___     / \  | | | |_   _(_) ___| | _____| |_ ___
+  | |\/| |/ _` | '_ \ / _` |/ _` |/ _ \   / _ \ | | |   | | | |/ __| |/ / _ \ __/ __|
+  | |  | | (_| | | | | (_| | (_| |  __/  / ___ \| | |   | | | | (__|   <  __/ |_\__ \
+  |_|  |_|\__,_|_| |_|\__,_|\__, |\___| /_/   \_\_|_|   |_| |_|\___|_|\_\___|\__|___/
+                            |___/
+
+*/
+
+template <typename TEA>
+static void EAHelper::CloseAllCurrentAndPendingTickets(TEA &ea)
+{
+    for (int i = ea.mCurrentSetupTickets.Size() - 1; i >= 0; i--)
+    {
+        ea.mCurrentSetupTickets[i].Close();
+    }
+
+    for (int i = ea.mPreviousSetupTickets.Size() - 1; i >= 0; i--)
+    {
+        ea.mPreviousSetupTickets[i].Close();
+    }
+}
+/*
+
    __  __                                ____                _ _               _____ _      _        _
   |  \/  | __ _ _ __   __ _  __ _  ___  |  _ \ ___ _ __   __| (_)_ __   __ _  |_   _(_) ___| | _____| |_
   | |\/| |/ _` | '_ \ / _` |/ _` |/ _ \ | |_) / _ \ '_ \ / _` | | '_ \ / _` |   | | | |/ __| |/ / _ \ __|
@@ -2859,25 +2889,28 @@ bool EAHelper::CheckCurrentSetupTicket(TEA &ea, Ticket &ticket)
         return false;
     }
 
-    bool wasActivated = false;
-    int wasAtivatedError = ticket.WasActivated(wasActivated);
-    if (TerminalErrors::IsTerminalError(wasAtivatedError))
+    if (closed)
     {
-        ea.InvalidateSetup(false, wasAtivatedError);
-        return false;
-    }
-
-    // only record tickets that were actually opened and not pennding orders that were deleted
-    if (closed && wasActivated)
-    {
-        if (AccountBalance() > ea.mLargestAccountBalance)
+        bool wasActivated = false;
+        int wasAtivatedError = ticket.WasActivated(wasActivated);
+        if (TerminalErrors::IsTerminalError(wasAtivatedError))
         {
-            ea.mLargestAccountBalance = AccountBalance();
+            ea.InvalidateSetup(false, wasAtivatedError);
+            // don't return here so we can still remove the ticket. WasActivated should be false
         }
 
-        ea.RecordTicketCloseData(ticket);
-        ea.mCurrentSetupTickets.RemoveWhere<TTicketNumberLocator, int>(Ticket::HasTicketNumber, ticket.Number());
+        // only record tickets that were actually opened and not pennding orders that were deleted
+        if (wasActivated)
+        {
+            if (AccountBalance() > ea.mLargestAccountBalance)
+            {
+                ea.mLargestAccountBalance = AccountBalance();
+            }
 
+            ea.RecordTicketCloseData(ticket);
+        }
+
+        ea.mCurrentSetupTickets.RemoveWhere<TTicketNumberLocator, int>(Ticket::HasTicketNumber, ticket.Number());
         return true;
     }
 

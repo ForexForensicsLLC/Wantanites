@@ -10,7 +10,7 @@
 
 #include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
 #include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Inactive/PriceRange/PriceRange.mqh>
+#include <WantaCapital/EAs/Inactive/PriceRange/CloseOnCandleClose/CloseOnCandleClosePriceRange.mqh>
 
 string ForcedSymbol = "US100";
 int ForcedTimeFrame = 5;
@@ -22,7 +22,7 @@ int MaxTradesPerDay = 5;
 
 string StrategyName = "PriceRange/";
 string EAName = "Nas/";
-string SetupTypeName = "";
+string SetupTypeName = "CloseOnCandleClose/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -33,8 +33,6 @@ PriceRange *PRBuys;
 PriceRange *PRSells;
 
 // Nas
-int CloseHour = 19; // TODO: Switch to 23 when using on my own account for a lot more profits. Using 19 only for Prop Firms
-int CloseMinute = 0;
 double PipsFromOpen = 250;
 // this needs to be higher than the spread before the session since the spread doesn't drop right as the candle opens and we only calaculte once per bar
 double MaxSpreadPips = 25;
@@ -50,18 +48,14 @@ int OnInit()
     PRBuys = new PriceRange(MagicNumbers::NasMorningPriceRangeBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
                             EntryWriter, ExitWriter, ErrorWriter);
 
-    PRBuys.mCloseHour = CloseHour;
-    PRBuys.mCloseMinute = CloseMinute;
     PRBuys.mPipsFromOpen = PipsFromOpen;
-    PRBuys.AddTradingSession(16, 30, 16, 35);
+    PRBuys.AddTradingSession(16, 30, 19, 0);
 
     PRSells = new PriceRange(MagicNumbers::NasMorningPriceRangeSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
                              EntryWriter, ExitWriter, ErrorWriter);
 
-    PRSells.mCloseHour = CloseHour;
-    PRSells.mCloseMinute = CloseMinute;
     PRSells.mPipsFromOpen = PipsFromOpen;
-    PRSells.AddTradingSession(16, 30, 16, 35);
+    PRSells.AddTradingSession(16, 30, 19, 0);
 
     return (INIT_SUCCEEDED);
 }
