@@ -8,6 +8,8 @@
 #property version "1.00"
 #property strict
 
+#include <WantaCapital\Framework\Constants\ConstantValues.mqh>
+
 #include <WantaCapital\Framework\Constants\ExecutionErrors.mqh>
 #include <WantaCapital\Framework\Constants\TerminalErrors.mqh>
 
@@ -27,12 +29,15 @@ private:
     bool mWasActivated;
     bool mIsClosed;
 
-    bool mStopLossIsMovedToBreakEven;
-
+    double mOriginalOpenPrice;
     double mOpenPrice;
+    double mOriginalStopLoss;
     datetime mOpenTime;
     double mLots;
+    double mRRAcquired;
+    double mDistanceRanFromOpen;
 
+    bool mStopLossIsMovedToBreakEven;
     int SelectTicket(string action, bool fallbackSearchOpen);
 
 public:
@@ -43,13 +48,12 @@ public:
 
     ObjectList<Partial> *mPartials;
 
-    double mRRAcquired;
-    double mOriginalStopLoss;
-    double mDistanceRanFromOpen;
-
     int Number() { return mNumber; }
 
     int Type();
+
+    double OriginalOpenPrice();
+    void OriginalOpenPrice(double originalOpenPrice) { mOriginalOpenPrice = originalOpenPrice; }
 
     double OpenPrice();
     void OpenPrice(double openPrice) { mOpenPrice = openPrice; }
@@ -57,8 +61,20 @@ public:
     datetime OpenTime();
     void OpenTime(datetime openTime) { mOpenTime = openTime; }
 
+    double OriginalStopLoss();
+    void OriginalStopLoss(double originalStopLoss) { mOriginalStopLoss = originalStopLoss; }
+
     double Lots();
     void Lots(double lots) { mLots = lots; }
+
+    double RRAcquired() { return mRRAcquired; }
+    void RRAcquired(double rrAcquired) { mRRAcquired = rrAcquired; }
+
+    double DistanceRanFromOpen() { return mDistanceRanFromOpen; }
+    void DistanceRanFromOpen(double distanceRanFromOpen) { mDistanceRanFromOpen = distanceRanFromOpen; }
+
+    int StopLossIsMovedToBreakEven(bool &stopLossIsMovedBreakEven);
+    void SetStopLossIsMovedToBreakEven(bool stopLossIsMovedToBreakEven) { mStopLossIsMovedToBreakEven = stopLossIsMovedToBreakEven; }
 
     void SetNewTicket(int ticket);
     void UpdateTicketNumber(int newTicketNumber);
@@ -72,8 +88,6 @@ public:
 
     int IsClosed(bool &closed);
     int WasClosedSinceLastCheck(bool &closed);
-
-    int StopLossIsMovedToBreakEven(bool &stopLossIsMovedBreakEven);
 
     int Close();
     void SetPartials(List<double> &partialRRs, List<double> &partialPercents);
@@ -127,14 +141,14 @@ void Ticket::SetNewTicket(int ticket)
     mWasActivated = false;
     mIsClosed = false;
 
-    mRRAcquired = 0;
+    mRRAcquired = ConstantValues::EmptyDouble;
     mStopLossIsMovedToBreakEven = false;
-    mDistanceRanFromOpen = -1.0;
+    mDistanceRanFromOpen = ConstantValues::EmptyDouble;
 
-    mOpenPrice = 0.0;
-    mOpenTime = 0;
-    mOriginalStopLoss = 0.0;
-    mLots = 0.0;
+    mOpenPrice = ConstantValues::EmptyDouble;
+    mOpenTime = EMPTY;
+    mOriginalStopLoss = ConstantValues::EmptyDouble;
+    mLots = ConstantValues::EmptyDouble;
 
     mPartials.Clear();
 }
@@ -154,9 +168,36 @@ int Ticket::Type()
     return OrderType();
 }
 
+// Note: This won't be accurate if I ever alter the open price on a ticket before it gets opened
+double Ticket::OriginalOpenPrice()
+{
+    if (mOriginalOpenPrice != ConstantValues::EmptyDouble)
+    {
+        return mOriginalOpenPrice;
+    }
+
+    int selectError = SelectIfOpen("Retrieving Open Price");
+    if (selectError != ERR_NO_ERROR)
+    {
+        SendMail("Unable To Retrieve Open Price",
+                 "Error: " + IntegerToString(selectError) + "\n" +
+                     "Ticket Number: " + IntegerToString(mNumber));
+
+        return ConstantValues::EmptyDouble;
+    }
+
+    if (OrderType() <= 2)
+    {
+        return mOriginalOpenPrice;
+    }
+
+    mOriginalOpenPrice = OrderOpenPrice();
+    return mOriginalOpenPrice;
+}
+
 double Ticket::OpenPrice()
 {
-    if (mOpenPrice != 0.0)
+    if (mOpenPrice != ConstantValues::EmptyDouble)
     {
         return mOpenPrice;
     }
@@ -168,7 +209,7 @@ double Ticket::OpenPrice()
                  "Error: " + IntegerToString(selectError) + "\n" +
                      "Ticket Number: " + IntegerToString(mNumber));
 
-        return 0.0;
+        return ConstantValues::EmptyDouble;
     }
 
     mOpenPrice = OrderOpenPrice();
@@ -177,7 +218,7 @@ double Ticket::OpenPrice()
 
 datetime Ticket::OpenTime()
 {
-    if (mOpenTime != 0)
+    if (mOpenTime != EMPTY)
     {
         return mOpenTime;
     }
@@ -189,16 +230,43 @@ datetime Ticket::OpenTime()
                  "Error: " + IntegerToString(selectError) + "\n" +
                      "Ticket Number: " + IntegerToString(mNumber));
 
-        return 0;
+        return EMPTY;
     }
 
     mOpenTime = OrderOpenTime();
     return mOpenTime;
 }
 
+// Note: This won't be accurate if I ever alter the open price on a ticket before it gets opened
+double Ticket::OriginalStopLoss()
+{
+    if (mOriginalStopLoss != ConstantValues::EmptyDouble)
+    {
+        return mOriginalStopLoss;
+    }
+
+    int selectError = SelectIfOpen("Retrieving Open Price");
+    if (selectError != ERR_NO_ERROR)
+    {
+        SendMail("Unable To Retrieve Open Price",
+                 "Error: " + IntegerToString(selectError) + "\n" +
+                     "Ticket Number: " + IntegerToString(mNumber));
+
+        return ConstantValues::EmptyDouble;
+    }
+
+    if (OrderType() <= 2)
+    {
+        return mOriginalStopLoss;
+    }
+
+    mOriginalStopLoss = OrderStopLoss();
+    return mOriginalStopLoss;
+}
+
 double Ticket::Lots()
 {
-    if (mLots != 0.0)
+    if (mLots != ConstantValues::EmptyDouble)
     {
         return mLots;
     }
@@ -210,7 +278,7 @@ double Ticket::Lots()
                  "Error: " + IntegerToString(selectError) + "\n" +
                      "Ticket Number: " + IntegerToString(mNumber));
 
-        return 0;
+        return ConstantValues::EmptyDouble;
     }
 
     mLots = OrderLots();

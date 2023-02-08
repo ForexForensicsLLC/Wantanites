@@ -50,6 +50,7 @@ void DefaultExitTradeRecord::WriteCloseHeaders(int fileHandle)
     FileHelper::WriteString(fileHandle, "Order Type");
     FileHelper::WriteString(fileHandle, "Account Balance After");
     FileHelper::WriteString(fileHandle, "Entry Price");
+    FileHelper::WriteString(fileHandle, "Slippage");
     FileHelper::WriteString(fileHandle, "Original Stop Loss");
     FileHelper::WriteString(fileHandle, "Exit Price");
 }
@@ -70,6 +71,7 @@ void DefaultExitTradeRecord::WriteCloseRecord(int fileHandle)
     FileHelper::WriteString(fileHandle, OrderType);
     FileHelper::WriteDouble(fileHandle, AccountBalanceAfter, 2);
     FileHelper::WriteDouble(fileHandle, EntryPrice, Digits);
+    FileHelper::WriteDouble(fileHandle, Slippage, Digits);
     FileHelper::WriteDouble(fileHandle, OriginalStopLoss, Digits);
     FileHelper::WriteDouble(fileHandle, ExitPrice, Digits);
 }

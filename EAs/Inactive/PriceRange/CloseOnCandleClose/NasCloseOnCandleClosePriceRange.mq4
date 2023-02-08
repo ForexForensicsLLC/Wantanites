@@ -32,6 +32,8 @@ CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<S
 PriceRange *PRBuys;
 PriceRange *PRSells;
 
+TradingSession *TS;
+
 // Nas
 double PipsFromOpen = 250;
 // this needs to be higher than the spread before the session since the spread doesn't drop right as the candle opens and we only calaculte once per bar
@@ -45,17 +47,20 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
+    TS = new TradingSession(16, 30, 19, 0);
+    TS.ExcludeDay(DayOfWeekEnum::Wednesday);
+
     PRBuys = new PriceRange(MagicNumbers::NasMorningPriceRangeBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
                             EntryWriter, ExitWriter, ErrorWriter);
 
     PRBuys.mPipsFromOpen = PipsFromOpen;
-    PRBuys.AddTradingSession(16, 30, 19, 0);
+    PRBuys.AddTradingSession(TS);
 
     PRSells = new PriceRange(MagicNumbers::NasMorningPriceRangeSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
                              EntryWriter, ExitWriter, ErrorWriter);
 
     PRSells.mPipsFromOpen = PipsFromOpen;
-    PRSells.AddTradingSession(16, 30, 19, 0);
+    PRSells.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
 }

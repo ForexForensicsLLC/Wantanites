@@ -72,7 +72,7 @@ void PriceRange::PreRun()
 
 bool PriceRange::AllowedToTrade()
 {
-    return EAHelper::BelowSpread<PriceRange>(this) && EAHelper::WithinTradingSession<PriceRange>(this) && DayOfWeek() != 3;
+    return EAHelper::BelowSpread<PriceRange>(this) && EAHelper::WithinTradingSession<PriceRange>(this);
 }
 
 void PriceRange::CheckSetSetup()

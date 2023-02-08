@@ -171,7 +171,7 @@ public:
     template <typename TEA>
     static bool PrePlaceOrderChecks(TEA &ea);
     template <typename TEA>
-    static void PostPlaceOrderChecks(TEA &ea, int ticketNumber, int error);
+    static void PostPlaceOrderChecks(TEA &ea, int ticketNumber, int error, double originalEntryPrice);
 
 private:
     template <typename TEA>
@@ -462,7 +462,7 @@ static void EAHelper::SetPreviousSetupTicketsOpenData(TEA &ea)
                 ea.mCurrentSetupTickets[i].OpenPrice(record.EntryPrice);
                 ea.mCurrentSetupTickets[i].OpenTime(record.EntryTime);
                 ea.mCurrentSetupTickets[i].Lots(record.Lots);
-                ea.mCurrentSetupTickets[i].mOriginalStopLoss = record.OriginalStopLoss;
+                ea.mCurrentSetupTickets[i].OriginalStopLoss(record.OriginalStopLoss);
 
                 foundTicket = true;
                 break;
@@ -481,7 +481,7 @@ static void EAHelper::SetPreviousSetupTicketsOpenData(TEA &ea)
                 ea.mPreviousSetupTickets[i].OpenPrice(record.EntryPrice);
                 ea.mPreviousSetupTickets[i].OpenTime(record.EntryTime);
                 ea.mPreviousSetupTickets[i].Lots(record.Lots);
-                ea.mPreviousSetupTickets[i].mOriginalStopLoss = record.OriginalStopLoss;
+                ea.mPreviousSetupTickets[i].OriginalStopLoss(record.OriginalStopLoss);
 
                 break;
             }
@@ -1772,7 +1772,7 @@ static bool EAHelper::PrePlaceOrderChecks(TEA &ea)
 }
 
 template <typename TEA>
-static void EAHelper::PostPlaceOrderChecks(TEA &ea, int ticketNumber, int error)
+static void EAHelper::PostPlaceOrderChecks(TEA &ea, int ticketNumber, int error, double originalEntry)
 {
     if (ticketNumber == EMPTY)
     {
@@ -1782,6 +1782,7 @@ static void EAHelper::PostPlaceOrderChecks(TEA &ea, int ticketNumber, int error)
 
     Ticket *ticket = new Ticket(ticketNumber);
     ticket.SetPartials(ea.mPartialRRs, ea.mPartialPercents);
+    ticket.OriginalOpenPrice(originalEntry);
 
     ea.mCurrentSetupTickets.Add(ticket);
 }
@@ -1792,7 +1793,7 @@ static void EAHelper::InternalPlaceMarketOrder(TEA &ea, int orderType, double en
     int ticket = EMPTY;
     int orderPlaceError = OrderHelper::PlaceMarketOrder(orderType, lotSize, entry, stopLoss, takeProfit, ea.MagicNumber(), ticket);
 
-    PostPlaceOrderChecks<TEA>(ea, ticket, orderPlaceError);
+    PostPlaceOrderChecks<TEA>(ea, ticket, orderPlaceError, entry);
 }
 
 template <typename TEA>
@@ -1850,7 +1851,7 @@ static void EAHelper::InternalPlaceLimitOrder(TEA &ea, int orderType, double ent
         }
     }
 
-    PostPlaceOrderChecks<TEA>(ea, ticket, orderPlaceError);
+    PostPlaceOrderChecks<TEA>(ea, ticket, orderPlaceError, entry);
 }
 
 template <typename TEA>
@@ -1910,7 +1911,7 @@ static void EAHelper::InternalPlaceStopOrder(TEA &ea, int type, double entry, do
         }
     }
 
-    PostPlaceOrderChecks<TEA>(ea, ticket, orderPlaceError);
+    PostPlaceOrderChecks<TEA>(ea, ticket, orderPlaceError, entry);
 }
 
 template <typename TEA>
@@ -2568,7 +2569,7 @@ static void EAHelper::CheckPartialTicket(TEA &ea, Ticket &ticket)
 
     // if we are in a buy, we look to sell which occurs at the bid. If we are in a sell, we look to buy which occurs at the ask
     double currentPrice = ea.SetupType() == OP_BUY ? currentTick.bid : currentTick.ask;
-    double rr = MathAbs(currentPrice - ticket.OpenPrice()) / MathAbs(ticket.OpenPrice() - ticket.mOriginalStopLoss);
+    double rr = MathAbs(currentPrice - ticket.OpenPrice()) / MathAbs(ticket.OpenPrice() - ticket.OriginalStopLoss());
 
     if (rr < ticket.mPartials[0].mRR)
     {
@@ -2597,7 +2598,7 @@ static void EAHelper::CheckPartialTicket(TEA &ea, Ticket &ticket)
         return;
     }
 
-    ticket.mRRAcquired = rr * ticket.mPartials[0].PercentAsDecimal();
+    ticket.RRAcquired(rr * ticket.mPartials[0].PercentAsDecimal());
     int newTicket = 0;
 
     // this is probably the safest way of checking if the order was closed
@@ -2979,7 +2980,7 @@ static void EAHelper::SetOpenDataOnTicket(TEA &ea, Ticket &ticket)
     ticket.OpenPrice(OrderOpenPrice());
     ticket.OpenTime(OrderOpenTime());
     ticket.Lots(OrderLots());
-    ticket.mOriginalStopLoss = OrderStopLoss();
+    ticket.OriginalStopLoss(OrderStopLoss());
 }
 /*
 
@@ -3004,7 +3005,7 @@ static void EAHelper::SetDefaultEntryTradeData(TEA &ea, TRecord &record, Ticket 
     record.Lots = ticket.Lots();
     record.EntryTime = ticket.OpenTime();
     record.EntryPrice = ticket.OpenPrice();
-    record.OriginalStopLoss = ticket.mOriginalStopLoss;
+    record.OriginalStopLoss = ticket.OriginalStopLoss();
 }
 
 template <typename TEA, typename TRecord>
@@ -3020,16 +3021,17 @@ static void EAHelper::SetDefaultCloseTradeData(TEA &ea, TRecord &record, Ticket 
     record.EntryTimeFrame = entryTimeFrame;
     record.OrderType = OrderType() == 0 ? "Buy" : "Sell";
     record.EntryPrice = ticket.OpenPrice();
+    record.Slippage = MathAbs(ticket.OpenPrice() - ticket.OriginalOpenPrice());
     record.EntryTime = ticket.OpenTime();
-    record.OriginalStopLoss = ticket.mOriginalStopLoss;
+    record.OriginalStopLoss = ticket.OriginalStopLoss();
 
     record.AccountBalanceAfter = AccountBalance();
     record.ExitTime = OrderCloseTime();
     record.ExitPrice = OrderClosePrice();
 
-    if (ticket.mDistanceRanFromOpen > -1.0)
+    if (ticket.DistanceRanFromOpen() > -1.0)
     {
-        record.mTotalMovePips = OrderHelper::RangeToPips(ticket.mDistanceRanFromOpen);
+        record.mTotalMovePips = OrderHelper::RangeToPips(ticket.DistanceRanFromOpen());
     }
 }
 
@@ -3189,7 +3191,7 @@ static void EAHelper::RecordPartialTradeRecord(TEA &ea, Ticket &partialedTicket,
     record.TicketNumber = partialedTicket.Number();
     record.NewTicketNumber = newTicketNumber;
     record.ExpectedPartialRR = partialedTicket.mPartials[0].mRR;
-    record.ActualPartialRR = partialedTicket.mRRAcquired;
+    record.ActualPartialRR = partialedTicket.RRAcquired();
 
     ea.mPartialCSVRecordWriter.WriteRecord(record);
     delete record;
@@ -3281,9 +3283,9 @@ static void EAHelper::CheckUpdateHowFarPriceRanFromOpen(TEA &ea, Ticket &ticket)
         distanceRan = OrderOpenPrice() - ea.CurrentTick().Ask();
     }
 
-    if (distanceRan > ticket.mDistanceRanFromOpen)
+    if (distanceRan > ticket.DistanceRanFromOpen())
     {
-        ticket.mDistanceRanFromOpen = distanceRan;
+        ticket.DistanceRanFromOpen(distanceRan);
     }
 }
 /*

@@ -8,6 +8,19 @@
 #property version "1.00"
 #property strict
 
+#include <WantaCapital\Framework\Objects\DataStructures\List.mqh>
+
+enum DayOfWeekEnum
+{
+    Sunday = 0,
+    Monday,
+    Tuesday,
+    Wednesday,
+    Thursday,
+    Friday,
+    Saturday
+};
+
 class TradingSession
 {
 private:
@@ -15,6 +28,8 @@ private:
     int mMinuteStart;
     int mExclusiveHourEnd;
     int mExclusiveMinuteEnd;
+
+    List<int> *mExcludedDays;
 
 public:
     TradingSession(int hourStart, int minuteStart, int exclusiveHourEnd, int exclusiveMinuteEnd);
@@ -25,6 +40,8 @@ public:
     int MinuteStart() { return mMinuteStart; }
     int ExclusiveHourEnd() { return mExclusiveHourEnd; }
     int ExclusiveMinuteEnd() { return mExclusiveMinuteEnd; }
+
+    void ExcludeDay(DayOfWeekEnum day);
 
     int StartIndex(string symbol, int timeFrame);
 
@@ -37,6 +54,10 @@ TradingSession::TradingSession(int hourStart, int minuteStart, int exclusiveHour
     mMinuteStart = minuteStart;
     mExclusiveHourEnd = exclusiveHourEnd;
     mExclusiveMinuteEnd = exclusiveMinuteEnd;
+
+    mExcludedDays = new List<int>();
+    mExcludedDays.Add(DayOfWeekEnum::Sunday);
+    mExcludedDays.Add(DayOfWeekEnum::Saturday);
 }
 
 TradingSession::TradingSession(TradingSession &ts)
@@ -45,10 +66,24 @@ TradingSession::TradingSession(TradingSession &ts)
     mMinuteStart = ts.MinuteStart();
     mExclusiveHourEnd = ts.ExclusiveHourEnd();
     mExclusiveMinuteEnd = ts.ExclusiveMinuteEnd();
+
+    mExcludedDays = new List<int>();
+    for (int i = 0; i < ts.mExcludedDays.Size(); i++)
+    {
+        mExcludedDays.Add(ts.mExcludedDays[i]);
+    }
 }
 
 TradingSession::~TradingSession()
 {
+}
+
+void TradingSession::ExcludeDay(DayOfWeekEnum dayOfWeek)
+{
+    if (!mExcludedDays.Contains(dayOfWeek))
+    {
+        mExcludedDays.Add(dayOfWeek);
+    }
 }
 
 int TradingSession::StartIndex(string symbol, int timeFrame)
@@ -59,6 +94,11 @@ int TradingSession::StartIndex(string symbol, int timeFrame)
 
 bool TradingSession::CurrentlyWithinSession()
 {
+    if (mExcludedDays.Contains(DayOfWeek()))
+    {
+        return false;
+    }
+
     int currentTime = (Hour() * 59) + Minute();
     int startTime = (mHourStart * 59) + mMinuteStart;
     int endTime = (mExclusiveHourEnd * 59) + mExclusiveMinuteEnd;

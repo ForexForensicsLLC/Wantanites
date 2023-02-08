@@ -10,9 +10,9 @@
 
 #include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
 #include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Inactive/PriceRange/CloseAtTime/CloseAtTimePriceRange.mqh>
+#include <WantaCapital/EAs/Inactive/PriceRange/CloseOnCandleClose/CloseOnCandleClosePriceRange.mqh>
 
-string ForcedSymbol = "US100";
+string ForcedSymbol = "USOIL";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
@@ -21,8 +21,8 @@ int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
 string StrategyName = "PriceRange/";
-string EAName = "Nas/";
-string SetupTypeName = "CloseAtTime/";
+string EAName = "Oil/";
+string SetupTypeName = "CloseOnCandleClose/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -32,14 +32,9 @@ CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<S
 PriceRange *PRBuys;
 PriceRange *PRSells;
 
-TradingSession *TS;
-
-// Nas
-int CloseHour = 19; // TODO: Switch to 23 when using on my own account for a lot more profits. Using 19 only for Prop Firms
-int CloseMinute = 0;
-double PipsFromOpen = 250;
+double PipsFromOpen = 20;
 // this needs to be higher than the spread before the session since the spread doesn't drop right as the candle opens and we only calaculte once per bar
-double MaxSpreadPips = 25;
+double MaxSpreadPips = 3;
 double StopLossPaddingPips = 0;
 
 int OnInit()
@@ -49,24 +44,17 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    TS = new TradingSession(16, 30, 16, 35);
-    TS.ExcludeDay(DayOfWeekEnum::Wednesday);
-
     PRBuys = new PriceRange(MagicNumbers::NasMorningPriceRangeBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
                             EntryWriter, ExitWriter, ErrorWriter);
 
-    PRBuys.mCloseHour = CloseHour;
-    PRBuys.mCloseMinute = CloseMinute;
     PRBuys.mPipsFromOpen = PipsFromOpen;
-    PRBuys.AddTradingSession(TS);
+    PRBuys.AddTradingSession(16, 30, 19, 0);
 
     PRSells = new PriceRange(MagicNumbers::NasMorningPriceRangeSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
                              EntryWriter, ExitWriter, ErrorWriter);
 
-    PRSells.mCloseHour = CloseHour;
-    PRSells.mCloseMinute = CloseMinute;
     PRSells.mPipsFromOpen = PipsFromOpen;
-    PRSells.AddTradingSession(TS);
+    PRSells.AddTradingSession(16, 30, 19, 0);
 
     return (INIT_SUCCEEDED);
 }

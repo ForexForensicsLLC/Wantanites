@@ -32,6 +32,7 @@ public:
     double Lots;
     datetime EntryTime;
     double EntryPrice;
+    double Slippage;
     double OriginalStopLoss;
     string EntryImage;
     string HigherTimeFrameEntryImage;
@@ -70,6 +71,7 @@ RecordColumns::RecordColumns()
     Lots = -1.0;
     EntryTime = 0;
     EntryPrice = -1.0;
+    Slippage = -1.0;
     OriginalStopLoss = -1.0;
     EntryImage = "EMPTY";
     HigherTimeFrameEntryImage = "EMPTY";

@@ -97,7 +97,7 @@ public:
     void AddPartial(double rr, double percent);
     void SetPartialCSVRecordWriter(CSVRecordWriter<TPartialRecord> *&writer) { mPartialCSVRecordWriter = writer; }
 
-    void AddTradingSession(int hourStart, int minuteStart, int inclusiveHourEnd, int inclusiveMinuteEnd);
+    void AddTradingSession(TradingSession *&ts) { mTradingSessions.Add(ts); }
 };
 
 template <typename TEntryRecord, typename TPartialRecord, typename TExitRecord, typename TErrorRecord>
@@ -187,11 +187,4 @@ void EA::AddPartial(double rr, double percent)
 
     mPartialRRs.Add(rr);
     mPartialPercents.Add(percent);
-}
-
-template <typename TEntryRecord, typename TPartialRecord, typename TExitRecord, typename TErrorRecord>
-void EA::AddTradingSession(int hourStart, int minuteStart, int inclusiveHourEnd, int inclusiveMinuteEnd)
-{
-    TradingSession *ts = new TradingSession(hourStart, minuteStart, inclusiveHourEnd, inclusiveMinuteEnd);
-    mTradingSessions.Add(ts);
 }
