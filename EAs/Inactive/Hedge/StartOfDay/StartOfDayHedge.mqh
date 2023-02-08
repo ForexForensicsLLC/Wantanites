@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\EA\EA.mqh>
+#include <WantaCapital\Framework\Objects\DataObjects\EA.mqh>
 #include <WantaCapital\Framework\Helpers\EAHelper.mqh>
 #include <WantaCapital\Framework\Constants\MagicNumbers.mqh>
 
@@ -33,13 +33,14 @@ public:
     virtual void InvalidateSetup(bool deletePendingOrder, int error);
     virtual bool Confirmation();
     virtual void PlaceOrders();
-    virtual void ManageCurrentPendingSetupTicket();
-    virtual void ManageCurrentActiveSetupTicket();
+    virtual void PreManageTickets();
+    virtual void ManageCurrentPendingSetupTicket(Ticket &ticket);
+    virtual void ManageCurrentActiveSetupTicket(Ticket &ticket);
     virtual bool MoveToPreviousSetupTickets(Ticket &ticket);
-    virtual void ManagePreviousSetupTicket(int ticketIndex);
-    virtual void CheckCurrentSetupTicket();
-    virtual void CheckPreviousSetupTicket(int ticketIndex);
-    virtual void RecordTicketOpenData();
+    virtual void ManagePreviousSetupTicket(Ticket &ticket);
+    virtual void CheckCurrentSetupTicket(Ticket &ticket);
+    virtual void CheckPreviousSetupTicket(Ticket &ticket);
+    virtual void RecordTicketOpenData(Ticket &ticket);
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
@@ -97,17 +98,36 @@ bool StartOfDayHedge::Confirmation()
 
 void StartOfDayHedge::PlaceOrders()
 {
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
+    double entry = CurrentTick().Bid() + OrderHelper::PipsToRange(mPipsFromOpen);
+    double stopLoss = 0.0;
+
+    if (mPipsFromOpen > 0)
     {
-        RecordError(GetLastError());
-        return;
+        if (SetupType() == OP_BUY)
+        {
+            stopLoss = CurrentTick().Bid();
+            EAHelper::PlaceStopOrder<StartOfDayHedge>(this, entry, stopLoss);
+        }
+        else if (SetupType() == OP_SELL)
+        {
+            stopLoss = entry + MathAbs(entry - CurrentTick().Bid());
+            EAHelper::PlaceLimitOrder<StartOfDayHedge>(this, entry, stopLoss);
+        }
+    }
+    else
+    {
+        if (SetupType() == OP_BUY)
+        {
+            stopLoss = entry - MathAbs(entry - CurrentTick().Bid());
+            EAHelper::PlaceLimitOrder<StartOfDayHedge>(this, entry, stopLoss);
+        }
+        else if (SetupType() == OP_SELL)
+        {
+            stopLoss = CurrentTick().Bid();
+            EAHelper::PlaceStopOrder<StartOfDayHedge>(this, entry, stopLoss);
+        }
     }
 
-    double entry = currentTick.bid + OrderHelper::PipsToRange(mPipsFromOpen);
-    double stopLoss = currentTick.bid;
-
-    EAHelper::PlaceStopOrder<StartOfDayHedge>(this, entry, stopLoss);
     mStopTrading = true;
 }
 
@@ -121,17 +141,18 @@ void StartOfDayHedge::ManageCurrentPendingSetupTicket(Ticket &ticket)
 
 void StartOfDayHedge::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
-    EAHelper::MoveToBreakEvenAfterPips<StartOfDayHedge>(this, ticket, MathAbs(mPipsFromOpen) / 2);
+    // EAHelper::MoveToBreakEvenAfterPips<StartOfDayHedge>(this, ticket, MathAbs(mPipsFromOpen) / 2);
 }
 
 bool StartOfDayHedge::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    return EAHelper::TicketStopLossIsMovedToBreakEven<StartOfDayHedge>(this, ticket);
+    // return EAHelper::TicketStopLossIsMovedToBreakEven<StartOfDayHedge>(this, ticket);
+    return false;
 }
 
 void StartOfDayHedge::ManagePreviousSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckTrailStopLossEveryXPips<StartOfDayHedge>(this, ticket, mTrailStopLossPips * 2, mTrailStopLossPips);
+    // EAHelper::CheckTrailStopLossEveryXPips<StartOfDayHedge>(this, ticket, mTrailStopLossPips * 2, mTrailStopLossPips);
 }
 
 void StartOfDayHedge::CheckCurrentSetupTicket(Ticket &ticket)

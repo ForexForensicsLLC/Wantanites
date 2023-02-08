@@ -1832,22 +1832,22 @@ static void EAHelper::InternalPlaceLimitOrder(TEA &ea, int orderType, double ent
     {
         if (fallbackMarketOrder && entry >= ea.CurrentTick().Ask() && ea.CurrentTick().Ask() - entry <= OrderHelper::PipsToRange(maxMarketOrderSlippage))
         {
-            orderPlaceError = OrderHelper::PlaceMarketOrder(OP_BUY, lots, ea.CurrentTick().Ask(), stopLoss, 0, ea.MagicNumber(), ticket);
+            orderPlaceError = OrderHelper::PlaceMarketOrder(OP_BUY, lotSize, ea.CurrentTick().Ask(), stopLoss, 0, ea.MagicNumber(), ticket);
         }
         else if (entry < ea.CurrentTick().Ask())
         {
-            orderPlaceError = OrderHelper::PlaceLimitOrder(orderType, lots, entry, stopLoss, 0, ea.MagicNumber(), ticket);
+            orderPlaceError = OrderHelper::PlaceLimitOrder(orderType, lotSize, entry, stopLoss, 0, ea.MagicNumber(), ticket);
         }
     }
     else if (orderType == OP_SELLLIMIT)
     {
         if (fallbackMarketOrder && entry <= ea.CurrentTick().Bid() && entry - ea.CurrentTick().Bid() <= OrderHelper::PipsToRange(maxMarketOrderSlippage))
         {
-            orderPlaceError = OrderHelper::PlaceMarketOrder(OP_SELL, lots, ea.CurrentTick().Bid(), stopLoss, 0, ea.MagicNumber(), ticket);
+            orderPlaceError = OrderHelper::PlaceMarketOrder(OP_SELL, lotSize, ea.CurrentTick().Bid(), stopLoss, 0, ea.MagicNumber(), ticket);
         }
         else if (entry > ea.CurrentTick().Bid())
         {
-            orderPlaceError = OrderHelper::PlaceLimitOrder(orderType, lots, entry, stopLoss, 0, ea.MagicNumber(), ticket);
+            orderPlaceError = OrderHelper::PlaceLimitOrder(orderType, lotSize, entry, stopLoss, 0, ea.MagicNumber(), ticket);
         }
     }
 

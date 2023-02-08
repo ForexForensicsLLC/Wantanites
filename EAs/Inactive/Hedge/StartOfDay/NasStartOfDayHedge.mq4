@@ -35,6 +35,8 @@ StartOfDayHedge *SODHIncreasingSells;
 StartOfDayHedge *SODHDecreasingBuys;
 StartOfDayHedge *SODHDecreasingSells;
 
+TradingSession *TS;
+
 double MaxSpreadPips = 10;
 double StopLossPaddingPips = 0;
 double TrailStopLossPips = 125;
@@ -48,33 +50,35 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
+    TS = new TradingSession(16, 30, 19, 0);
+
     SODHIncreasingBuys = new StartOfDayHedge(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                              RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
     SODHIncreasingBuys.mPipsFromOpen = PipsFromOpen;
     SODHIncreasingBuys.mTrailStopLossPips = TrailStopLossPips;
-    SODHIncreasingBuys.AddTradingSession(16, 30, 19, 0);
+    SODHIncreasingBuys.AddTradingSession(TS);
 
     SODHIncreasingSells = new StartOfDayHedge(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                               RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
     SODHIncreasingSells.mPipsFromOpen = PipsFromOpen;
     SODHIncreasingSells.mTrailStopLossPips = TrailStopLossPips;
-    SODHIncreasingSells.AddTradingSession(16, 30, 19, 0);
+    SODHIncreasingSells.AddTradingSession(TS);
 
     SODHDecreasingBuys = new StartOfDayHedge(-3, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                              RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
     SODHDecreasingBuys.mPipsFromOpen = -PipsFromOpen;
     SODHDecreasingBuys.mTrailStopLossPips = TrailStopLossPips;
-    SODHDecreasingBuys.AddTradingSession(16, 30, 19, 0);
+    SODHDecreasingBuys.AddTradingSession(TS);
 
     SODHDecreasingSells = new StartOfDayHedge(-4, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                               RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
     SODHDecreasingSells.mPipsFromOpen = -PipsFromOpen;
     SODHDecreasingSells.mTrailStopLossPips = TrailStopLossPips;
-    SODHDecreasingSells.AddTradingSession(16, 30, 19, 0);
+    SODHDecreasingSells.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
 }
