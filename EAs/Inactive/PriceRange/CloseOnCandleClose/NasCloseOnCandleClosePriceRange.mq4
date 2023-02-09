@@ -11,6 +11,7 @@
 #include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
 #include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
 #include <WantaCapital/EAs/Inactive/PriceRange/CloseOnCandleClose/CloseOnCandleClosePriceRange.mqh>
+#include <WantaCapital/Framework/Helpers/MailHelper.mqh>
 
 string ForcedSymbol = "US100";
 int ForcedTimeFrame = 5;
@@ -73,6 +74,8 @@ void OnDeinit(const int reason)
     delete EntryWriter;
     delete ExitWriter;
     delete ErrorWriter;
+
+    MailHelper::SendEADeinitEmail(Directory, reason);
 }
 
 void OnTick()

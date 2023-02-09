@@ -11,12 +11,13 @@
 #include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
 #include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
 #include <WantaCapital/EAs/Inactive/PriceRange/CloseOnCandleClose/CloseOnCandleClosePriceRange.mqh>
+#include <WantaCapital/Framework/Helpers/MailHelper.mqh>
 
 string ForcedSymbol = "US30";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
-double RiskPercent = 1;
+double RiskPercent = 0.5;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
@@ -72,6 +73,8 @@ void OnDeinit(const int reason)
     delete EntryWriter;
     delete ExitWriter;
     delete ErrorWriter;
+
+    MailHelper::SendEADeinitEmail(Directory, reason);
 }
 
 void OnTick()

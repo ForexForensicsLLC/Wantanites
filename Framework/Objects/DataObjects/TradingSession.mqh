@@ -76,6 +76,7 @@ TradingSession::TradingSession(TradingSession &ts)
 
 TradingSession::~TradingSession()
 {
+    delete mExcludedDays;
 }
 
 void TradingSession::ExcludeDay(DayOfWeekEnum dayOfWeek)
