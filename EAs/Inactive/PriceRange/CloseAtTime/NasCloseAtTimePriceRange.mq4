@@ -36,7 +36,7 @@ PriceRange *PRSells;
 TradingSession *TS;
 
 // Nas
-int CloseHour = 23; // TODO: Switch to 23 when using on my own account for a lot more profits. Using 19 only for Prop Firms
+int CloseHour = 19; // TODO: Switch to 23 when using on my own account for a lot more profits. Using 19 only for Prop Firms
 int CloseMinute = 0;
 double PipsFromOpen = 250;
 // this needs to be higher than the spread before the session since the spread doesn't drop right as the candle opens and we only calaculte once per bar
@@ -51,7 +51,7 @@ int OnInit()
     }
 
     TS = new TradingSession(16, 30, 16, 35);
-    // TS.ExcludeDay(DayOfWeekEnum::Wednesday);
+    TS.ExcludeDay(DayOfWeekEnum::Wednesday);
 
     PRBuys = new PriceRange(MagicNumbers::NasMorningPriceRangeBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
                             EntryWriter, ExitWriter, ErrorWriter);
