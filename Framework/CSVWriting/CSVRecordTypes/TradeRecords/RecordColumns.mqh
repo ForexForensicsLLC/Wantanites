@@ -205,7 +205,8 @@ string RecordColumns::CurrentDrawdown(string columnIndex)
         return RowNumber;
     }
 
-    return StringFormat("=MIN((%s%d - MAX($%s$%d:%s%d)) / MAX($%s$%d:%s%d))",
+    // add double qutoes around the formula so the csv ignores the ',' in it
+    return StringFormat("\"=MIN((%s%d - MAX($%s$%d:%s%d)) / MAX($%s$%d:%s%d), 0)\"",
                         columnIndex,
                         RowNumber,
                         columnIndex,

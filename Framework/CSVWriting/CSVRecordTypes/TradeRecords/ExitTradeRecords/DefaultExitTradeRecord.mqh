@@ -40,7 +40,8 @@ void DefaultExitTradeRecord::WriteHeaders(int fileHandle, bool writeDelimiter = 
     FileHelper::WriteString(fileHandle, "Total Move Pips");
     FileHelper::WriteString(fileHandle, "Potential RR");
     FileHelper::WriteString(fileHandle, "RR Secured");
-    FileHelper::WriteString(fileHandle, "Current Drawdown", writeDelimiter);
+    FileHelper::WriteString(fileHandle, "Current Drawdown");
+    FileHelper::WriteString(fileHandle, "Percent Change", writeDelimiter);
 }
 
 void DefaultExitTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = false)
@@ -58,7 +59,8 @@ void DefaultExitTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = f
     FileHelper::WriteDouble(fileHandle, TotalMovePips(), Digits);
     FileHelper::WriteDouble(fileHandle, PotentialRR(), 2);
     FileHelper::WriteDouble(fileHandle, RRSecured(), 2);
-    FileHelper::WriteString(fileHandle, CurrentDrawdown("F"), writeDelimiter); // F is the column where AccountBalanceAfter is located
+    FileHelper::WriteString(fileHandle, CurrentDrawdown("F"));               // F is the column where AccountBalanceAfter is located
+    FileHelper::WriteString(fileHandle, PercentChange("F"), writeDelimiter); // F is the column where AccountBalanceAfter is located
 }
 
 void DefaultExitTradeRecord::ReadRow(int fileHandle)
@@ -76,5 +78,6 @@ void DefaultExitTradeRecord::ReadRow(int fileHandle)
     mTotalMovePips = StrToDouble(FileReadString(fileHandle));
     mPotentialRR = StrToDouble(FileReadString(fileHandle));
     mRRSecured = StrToDouble(FileReadString(fileHandle));
-    FileReadString(fileHandle); // don't need to set anything for CurentDrawdown
+    FileReadString(fileHandle); // don't need to set anything for Curent Drawdown
+    FileReadString(fileHandle); // don't need to set anything for Percent Change
 }

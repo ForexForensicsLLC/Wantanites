@@ -142,6 +142,8 @@ void CSVRecordWriter::CountRows()
         record.ReadRow(mFileHandle);
         mRowCount += 1;
     }
+
+    delete record;
 }
 
 template <typename TRecord>
@@ -150,6 +152,7 @@ void CSVRecordWriter::CheckWriteHeaders(TRecord &record)
     if (FileTell(mFileHandle) == 0)
     {
         record.WriteHeaders(mFileHandle);
+        mRowCount += 1;
     }
 }
 
