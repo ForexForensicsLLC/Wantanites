@@ -19,29 +19,13 @@ public:
     virtual void WriteHeaders(int fileHandle, bool writeDelimiter);
     virtual void WriteRecord(int fileHandle, bool writeDelimiter);
 
-    void WriteCloseHeaders(int fileHandle);
-    void WriteAdditionalHeaders(int fileHandle, bool writeDelimiter);
-
-    void WriteCloseRecord(int fileHandle);
-    void WriteAdditionalRecord(int fileHandle, bool writeDelimiter);
+    void ReadRow(int fileHandle);
 };
 
 DefaultExitTradeRecord::DefaultExitTradeRecord() : RecordColumns() {}
 DefaultExitTradeRecord::~DefaultExitTradeRecord() {}
 
 void DefaultExitTradeRecord::WriteHeaders(int fileHandle, bool writeDelimiter = false)
-{
-    WriteCloseHeaders(fileHandle);
-    WriteAdditionalHeaders(fileHandle, writeDelimiter);
-}
-
-void DefaultExitTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = false)
-{
-    WriteCloseRecord(fileHandle);
-    WriteAdditionalRecord(fileHandle, writeDelimiter);
-}
-
-void DefaultExitTradeRecord::WriteCloseHeaders(int fileHandle)
 {
     FileHelper::WriteString(fileHandle, "Exit Time");
     FileHelper::WriteString(fileHandle, "Magic Number");
@@ -50,19 +34,16 @@ void DefaultExitTradeRecord::WriteCloseHeaders(int fileHandle)
     FileHelper::WriteString(fileHandle, "Order Type");
     FileHelper::WriteString(fileHandle, "Account Balance After");
     FileHelper::WriteString(fileHandle, "Entry Price");
-    FileHelper::WriteString(fileHandle, "Slippage");
     FileHelper::WriteString(fileHandle, "Original Stop Loss");
     FileHelper::WriteString(fileHandle, "Exit Price");
-}
-
-void DefaultExitTradeRecord::WriteAdditionalHeaders(int fileHandle, bool writeDelimiter = false)
-{
+    FileHelper::WriteString(fileHandle, "Stop Loss Exit Slippage");
     FileHelper::WriteString(fileHandle, "Total Move Pips");
     FileHelper::WriteString(fileHandle, "Potential RR");
     FileHelper::WriteString(fileHandle, "RR Secured");
+    FileHelper::WriteString(fileHandle, "Current Drawdown", writeDelimiter);
 }
 
-void DefaultExitTradeRecord::WriteCloseRecord(int fileHandle)
+void DefaultExitTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = false)
 {
     FileHelper::WriteDateTime(fileHandle, ExitTime);
     FileHelper::WriteInteger(fileHandle, MagicNumber);
@@ -71,14 +52,29 @@ void DefaultExitTradeRecord::WriteCloseRecord(int fileHandle)
     FileHelper::WriteString(fileHandle, OrderType);
     FileHelper::WriteDouble(fileHandle, AccountBalanceAfter, 2);
     FileHelper::WriteDouble(fileHandle, EntryPrice, Digits);
-    FileHelper::WriteDouble(fileHandle, Slippage, Digits);
     FileHelper::WriteDouble(fileHandle, OriginalStopLoss, Digits);
     FileHelper::WriteDouble(fileHandle, ExitPrice, Digits);
-}
-
-void DefaultExitTradeRecord::WriteAdditionalRecord(int fileHandle, bool writeDelimiter = false)
-{
+    FileHelper::WriteDouble(fileHandle, StopLossExitSlippage, Digits);
     FileHelper::WriteDouble(fileHandle, TotalMovePips(), Digits);
     FileHelper::WriteDouble(fileHandle, PotentialRR(), 2);
     FileHelper::WriteDouble(fileHandle, RRSecured(), 2);
+    FileHelper::WriteString(fileHandle, CurrentDrawdown("F"), writeDelimiter); // F is the column where AccountBalanceAfter is located
+}
+
+void DefaultExitTradeRecord::ReadRow(int fileHandle)
+{
+    ExitTime = FileReadDatetime(fileHandle);
+    MagicNumber = StrToInteger(FileReadString(fileHandle));
+    TicketNumber = StrToInteger(FileReadString(fileHandle));
+    Symbol = FileReadString(fileHandle);
+    OrderType = FileReadString(fileHandle);
+    AccountBalanceAfter = StrToDouble(FileReadString(fileHandle));
+    EntryPrice = StrToDouble(FileReadString(fileHandle));
+    OriginalStopLoss = StrToDouble(FileReadString(fileHandle));
+    ExitPrice = StrToDouble(FileReadString(fileHandle));
+    StopLossExitSlippage = StrToDouble(FileReadString(fileHandle));
+    mTotalMovePips = StrToDouble(FileReadString(fileHandle));
+    mPotentialRR = StrToDouble(FileReadString(fileHandle));
+    mRRSecured = StrToDouble(FileReadString(fileHandle));
+    FileReadString(fileHandle); // don't need to set anything for CurentDrawdown
 }

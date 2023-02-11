@@ -19,6 +19,7 @@ public:
     int Error;
     int LastState;
     string AdditionalInformation;
+    int RowNumber;
 
 public:
     DefaultErrorRecord();
@@ -26,6 +27,8 @@ public:
 
     void WriteHeaders(int fileHandle, bool writeDelimiter);
     virtual void WriteRecord(int fileHandle, bool writeDelimiter);
+
+    void ReadRow(int fileHandle);
 };
 
 DefaultErrorRecord::DefaultErrorRecord()
@@ -36,6 +39,7 @@ DefaultErrorRecord::DefaultErrorRecord()
     Error = ERR_NO_ERROR;
     LastState = EMPTY;
     AdditionalInformation = "EMPTY";
+    RowNumber = "EMPTY";
 }
 
 DefaultErrorRecord::~DefaultErrorRecord() {}
@@ -58,4 +62,14 @@ void DefaultErrorRecord::WriteRecord(int fileHandle, bool writeDelimiter = false
     FileHelper::WriteInteger(fileHandle, Error);
     FileHelper::WriteInteger(fileHandle, LastState);
     FileHelper::WriteString(fileHandle, AdditionalInformation, writeDelimiter);
+}
+
+void DefaultErrorRecord::ReadRow(int fileHandle)
+{
+    ErrorTime = FileReadDatetime(fileHandle);
+    MagicNumber = StrToInteger(FileReadString(fileHandle));
+    Symbol = FileReadString(fileHandle);
+    Error = StrToInteger(FileReadString(fileHandle));
+    LastState = StrToInteger(FileReadString(fileHandle));
+    AdditionalInformation = FileReadString(fileHandle);
 }

@@ -12,16 +12,16 @@
 #include <WantaCapital/Framework/Helpers/MailHelper.mqh>
 
 input string SymbolHeader = "==== Symbol Info ====";
-input string SymbolInstructions = "US100 Symbol Name. Might Need to adjust for your broker";
-input string SymbolToUse = "US100";
+input string SymbolInstructions = "US30 Symbol Name. Might Need to adjust for your broker";
+input string SymbolToUse = "US30";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
-double RiskPercent = 1;
+input double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-string StrategyName = "TheNotoriousNAS/";
+string StrategyName = "DependableDow/";
 string EAName = "";
 string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
@@ -60,7 +60,6 @@ int OnInit()
     }
 
     TS = new TradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
-    TS.ExcludeDay(DayOfWeekEnum::Wednesday);
 
     PRBuys = new PriceRange(MagicNumberBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
                             EntryWriter, ExitWriter, ErrorWriter);

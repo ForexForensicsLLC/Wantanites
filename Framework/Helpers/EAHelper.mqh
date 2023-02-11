@@ -3005,6 +3005,7 @@ static void EAHelper::SetDefaultEntryTradeData(TEA &ea, TRecord &record, Ticket 
     record.Lots = ticket.Lots();
     record.EntryTime = ticket.OpenTime();
     record.EntryPrice = ticket.OpenPrice();
+    record.EntrySlippage = MathAbs(ticket.OpenPrice() - ticket.OriginalOpenPrice());
     record.OriginalStopLoss = ticket.OriginalStopLoss();
 }
 
@@ -3021,13 +3022,17 @@ static void EAHelper::SetDefaultCloseTradeData(TEA &ea, TRecord &record, Ticket 
     record.EntryTimeFrame = entryTimeFrame;
     record.OrderType = OrderType() == 0 ? "Buy" : "Sell";
     record.EntryPrice = ticket.OpenPrice();
-    record.Slippage = MathAbs(ticket.OpenPrice() - ticket.OriginalOpenPrice());
     record.EntryTime = ticket.OpenTime();
     record.OriginalStopLoss = ticket.OriginalStopLoss();
 
     record.AccountBalanceAfter = AccountBalance();
     record.ExitTime = OrderCloseTime();
     record.ExitPrice = OrderClosePrice();
+
+    if (OrderStopLoss() > 0.0)
+    {
+        record.StopLossExitSlippage = MathAbs(OrderStopLoss() - OrderClosePrice());
+    }
 
     if (ticket.DistanceRanFromOpen() > -1.0)
     {

@@ -11,16 +11,20 @@
 #include <WantaCapital\Framework\Helpers\OrderHelper.mqh>
 #include <WantaCapital\Framework\Helpers\FileHelper.mqh>
 
+#include <WantaCapital\Framework\Constants\ConstantValues.mqh>
+
 class RecordColumns
 {
 public:
     double mTotalMovePips;
     double mPotentialRR;
-    double mRRAcquired;
+    double mRRSecured;
 
 public:
     RecordColumns();
     ~RecordColumns();
+
+    int RowNumber;
 
     int MagicNumber;
     int TicketNumber;
@@ -32,7 +36,7 @@ public:
     double Lots;
     datetime EntryTime;
     double EntryPrice;
-    double Slippage;
+    double EntrySlippage;
     double OriginalStopLoss;
     string EntryImage;
     string HigherTimeFrameEntryImage;
@@ -45,6 +49,7 @@ public:
     double AccountBalanceAfter;
     datetime ExitTime;
     double ExitPrice;
+    double StopLossExitSlippage;
     string ExitImage;
     string HigherTimeFrameExitImage;
     string LowerTimeFrameExitImage;
@@ -52,41 +57,45 @@ public:
     double TotalMovePips();
     double PotentialRR();
     double RRSecured();
-    string Psychology();
+    string CurrentDrawdown(string columnIndex);
+    string PercentChange(string columnIndex);
 };
 
 RecordColumns::RecordColumns()
 {
-    mTotalMovePips = -1.0;
-    mPotentialRR = -1.0;
-    mRRAcquired = -1.0;
+    mTotalMovePips = ConstantValues::EmptyDouble;
+    mPotentialRR = ConstantValues::EmptyDouble;
+    mRRSecured = -99;
+
+    RowNumber = ConstantValues::UnsetString;
 
     MagicNumber = EMPTY;
     TicketNumber = EMPTY;
-    Symbol = "EMPTY";
+    Symbol = ConstantValues::UnsetString;
     EntryTimeFrame = EMPTY;
 
-    OrderType = "EMPTY";
-    AccountBalanceBefore = -1.0;
-    Lots = -1.0;
+    OrderType = ConstantValues::UnsetString;
+    AccountBalanceBefore = ConstantValues::EmptyDouble;
+    Lots = ConstantValues::EmptyDouble;
     EntryTime = 0;
-    EntryPrice = -1.0;
-    Slippage = -1.0;
-    OriginalStopLoss = -1.0;
-    EntryImage = "EMPTY";
-    HigherTimeFrameEntryImage = "EMPTY";
-    LowerTimeFrameEntryImage = "EMPTY";
+    EntryPrice = ConstantValues::EmptyDouble;
+    EntrySlippage = ConstantValues::EmptyDouble;
+    OriginalStopLoss = ConstantValues::EmptyDouble;
+    EntryImage = ConstantValues::UnsetString;
+    HigherTimeFrameEntryImage = ConstantValues::UnsetString;
+    LowerTimeFrameEntryImage = ConstantValues::UnsetString;
 
     NewTicketNumber = EMPTY;
-    ExpectedPartialRR = -1.0;
-    ActualPartialRR = -1.0;
+    ExpectedPartialRR = ConstantValues::EmptyDouble;
+    ActualPartialRR = ConstantValues::EmptyDouble;
 
-    AccountBalanceAfter = -1.0;
+    AccountBalanceAfter = ConstantValues::EmptyDouble;
     ExitTime = 0;
-    ExitPrice = -1.0;
-    ExitImage = "EMPTY";
-    HigherTimeFrameExitImage = "EMPTY";
-    LowerTimeFrameExitImage = "EMPTY";
+    ExitPrice = ConstantValues::EmptyDouble;
+    StopLossExitSlippage = ConstantValues::EmptyDouble;
+    ExitImage = ConstantValues::UnsetString;
+    HigherTimeFrameExitImage = ConstantValues::UnsetString;
+    LowerTimeFrameExitImage = ConstantValues::UnsetString;
 }
 
 RecordColumns::~RecordColumns()
@@ -163,42 +172,65 @@ double RecordColumns::PotentialRR()
 
 double RecordColumns::RRSecured()
 {
-    if (EntryPrice - OriginalStopLoss == 0)
+    if (mRRSecured != -99)
     {
-        // return -2 here so that i know something went wrong. Should never happen naturally
-        return -2.0;
+        return mRRSecured;
     }
 
-    double rrLost = 0.0;
+    if (EntryPrice - OriginalStopLoss == 0)
+    {
+        // return -99 here so that i know something went wrong. Should never happen naturally
+        return -99;
+    }
+
     if (OrderType == "Buy")
     {
-        rrLost = (EntryPrice - ExitPrice) / (EntryPrice - OriginalStopLoss);
+        mRRSecured = (EntryPrice - ExitPrice) / (EntryPrice - OriginalStopLoss);
     }
     else if (OrderType == "Sell")
     {
-        rrLost = (ExitPrice - EntryPrice) / (OriginalStopLoss - EntryPrice);
+        mRRSecured = (ExitPrice - EntryPrice) / (OriginalStopLoss - EntryPrice);
     }
 
-    return (-1 * rrLost);
+    // switch the sign since the calc gives positive values when exiting at a worse price than we entered at and a negative value when exiting at a better price
+    mRRSecured *= -1;
+    return mRRSecured;
 }
 
-string RecordColumns::Psychology()
+// ColumnIndex should be the Character representing the column i.e A, B, C etc.
+string RecordColumns::CurrentDrawdown(string columnIndex)
 {
-    MathSrand(1);
+    if (RowNumber == ConstantValues::UnsetString)
+    {
+        return RowNumber;
+    }
 
-    if (AccountBalanceAfter > AccountBalanceBefore)
+    return StringFormat("=MIN((%s%d - MAX($%s$%d:%s%d)) / MAX($%s$%d:%s%d))",
+                        columnIndex,
+                        RowNumber,
+                        columnIndex,
+                        2,
+                        columnIndex,
+                        RowNumber,
+                        columnIndex,
+                        2,
+                        columnIndex,
+                        RowNumber);
+}
+
+// ColumnIndex should be the Character representing the column i.e A, B, C etc.
+string RecordColumns::PercentChange(string columnIndex)
+{
+    if (RowNumber == ConstantValues::UnsetString)
     {
-        string winStatements[3] = {"Ayyyyy", "Looks like I got lucky today", "Don't get too confident. You never know when a losing stread may start"};
-        return winStatements[(MathRand() % ArraySize(winStatements))];
+        return RowNumber;
     }
-    else if (AccountBalanceAfter == AccountBalanceBefore)
-    {
-        string breakEvenStatements[3] = {"Good Practice", "Better than losing", "Staying alive baby"};
-        return breakEvenStatements[(MathRand() % ArraySize(breakEvenStatements))];
-    }
-    else
-    {
-        string loseStatments[3] = {"Perfect", "Losing is just a part of trading", "Just Unlucky *shrug*"};
-        return loseStatments[(MathRand() % ArraySize(loseStatments))];
-    }
+
+    return StringFormat("=(%s%d - %s%d) / %s%d",
+                        columnIndex,
+                        RowNumber,
+                        columnIndex,
+                        RowNumber - 1,
+                        columnIndex,
+                        RowNumber);
 }

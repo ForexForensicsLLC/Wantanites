@@ -8,6 +8,8 @@
 #property version "1.00"
 #property strict
 
+#include <WantaCapital\Framework\Constants\ConstantValues.mqh>
+
 class FileHelper
 {
 private:
@@ -34,7 +36,7 @@ static void FileHelper::SendFailedFileWriteEmail(string type, T value)
 
 static void FileHelper::WriteDelimiter(int fileHandle)
 {
-    FileWriteString(fileHandle, ",");
+    FileWriteString(fileHandle, ConstantValues::CSVDelimiter);
 }
 
 static bool FileHelper::InternalWriteString(int fileHandle, string value, bool writeDelimiter = true)

@@ -8,6 +8,8 @@
 #property version "1.00"
 #property strict
 
+#include <WantaCapital\Framework\Constants\ConstantValues.mqh>
+
 template <typename TRecord>
 class CSVRecordWriter
 {
@@ -18,10 +20,11 @@ protected:
     bool mFileIsOpen;
     int mFileHandle;
 
-    // int mRowCount;
+    int mRowCount;
 
     void CheckWriteHeaders(TRecord &record);
     void Init();
+    void CountRows();
 
 public:
     CSVRecordWriter(string directory, string csvFileName);
@@ -47,8 +50,7 @@ CSVRecordWriter::CSVRecordWriter(string directory, string csvFileName)
     mFileIsOpen = false;
     mFileHandle = INVALID_HANDLE;
 
-    Open();
-    // Init();
+    Init();
 }
 
 template <typename TRecord>
@@ -62,14 +64,15 @@ void CSVRecordWriter::Init()
 {
     Open();
     SeekToStart(); // TODO: This may have to involve the TRecord if I plan on including the results at the start of the doc. Each record should tell where the actually record
-    // writing starts
-    // CountRows();
+                   // writing starts
+    mRowCount = 1;
+    CountRows();
 }
 
 template <typename TRecord>
 void CSVRecordWriter::Open()
 {
-    mFileHandle = FileOpen(mDirectory + mCSVFileName, FILE_CSV | FILE_READ | FILE_WRITE, ",");
+    mFileHandle = FileOpen(mDirectory + mCSVFileName, FILE_CSV | FILE_READ | FILE_WRITE, ConstantValues::CSVDelimiter);
     if (mFileHandle == INVALID_HANDLE)
     {
         return;
@@ -87,8 +90,7 @@ bool CSVRecordWriter::SeekToStart()
 {
     if (!mFileIsOpen)
     {
-        Open();
-        // Init();
+        Init();
     }
 
     if (mFileHandle == INVALID_HANDLE)
@@ -112,8 +114,7 @@ bool CSVRecordWriter::SeekToEnd()
 {
     if (!mFileIsOpen)
     {
-        Open();
-        // Init();
+        Init();
     }
 
     if (mFileHandle == INVALID_HANDLE)
@@ -133,6 +134,17 @@ bool CSVRecordWriter::SeekToEnd()
 }
 
 template <typename TRecord>
+void CSVRecordWriter::CountRows()
+{
+    TRecord *record = new TRecord();
+    while (!FileIsEnding(mFileHandle))
+    {
+        record.ReadRow(mFileHandle);
+        mRowCount += 1;
+    }
+}
+
+template <typename TRecord>
 void CSVRecordWriter::CheckWriteHeaders(TRecord &record)
 {
     if (FileTell(mFileHandle) == 0)
@@ -146,8 +158,7 @@ void CSVRecordWriter::WriteRecord(TRecord &record)
 {
     if (!mFileIsOpen)
     {
-        Open();
-        // Init();
+        Init();
     }
 
     if (mFileHandle == INVALID_HANDLE)
@@ -163,8 +174,9 @@ void CSVRecordWriter::WriteRecord(TRecord &record)
     CheckWriteHeaders(record);
     FileWriteString(mFileHandle, "\n");
 
-    // mRowCount += 1;
-    // record.RowNumber = mRowCount;
-
+    record.RowNumber = mRowCount;
     record.WriteRecord(mFileHandle);
+
+    // incremenet after since we start at 1
+    mRowCount += 1;
 }

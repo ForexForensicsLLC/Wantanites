@@ -35,7 +35,7 @@ void DefaultEntryTradeRecord::WriteHeaders(int fileHandle, bool writeDelimiter =
     FileHelper::WriteString(fileHandle, "Account Balance Before");
     FileHelper::WriteString(fileHandle, "Lots");
     FileHelper::WriteString(fileHandle, "Entry Price");
-    FileHelper::WriteString(fileHandle, "Slippage");
+    FileHelper::WriteString(fileHandle, "Entry Slippage");
     FileHelper::WriteString(fileHandle, "Original Stop Loss", writeDelimiter);
 }
 void DefaultEntryTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = false)
@@ -48,7 +48,7 @@ void DefaultEntryTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = 
     FileHelper::WriteDouble(fileHandle, AccountBalanceBefore, 2);
     FileHelper::WriteDouble(fileHandle, Lots, 2);
     FileHelper::WriteDouble(fileHandle, EntryPrice, Digits);
-    FileHelper::WriteDouble(fileHandle, Slippage, Digits);
+    FileHelper::WriteDouble(fileHandle, EntrySlippage, Digits);
     FileHelper::WriteDouble(fileHandle, OriginalStopLoss, Digits, writeDelimiter);
 }
 
@@ -62,6 +62,6 @@ void DefaultEntryTradeRecord::ReadRow(int fileHandle)
     AccountBalanceBefore = StrToDouble(FileReadString(fileHandle));
     Lots = StrToDouble(FileReadString(fileHandle));
     EntryPrice = StrToDouble(FileReadString(fileHandle));
-    Slippage = StrToDouble(FileReadString(fileHandle));
+    EntrySlippage = StrToDouble(FileReadString(fileHandle));
     OriginalStopLoss = StrToDouble(FileReadString(fileHandle));
 }
