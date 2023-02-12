@@ -25,6 +25,7 @@ public:
     static int ExecutionErrors::ORDER_ENTRY_FURTHER_THEN_PRICE;
     static int ExecutionErrors::ORDER_IS_OPEN;
     static int ExecutionErrors::ORDER_IS_CLOSED;
+    static int ExecutionErrors::UNABLE_TO_RETRIEVE_VALUE_FOR_CHECKER;
 
     // 6200s Are for MQL Extension Errors
     static int ExecutionErrors::COULD_NOT_RETRIEVE_LOW;
@@ -54,6 +55,7 @@ static int ExecutionErrors::NEW_STOPLOSS_EQUALS_OLD = 6100;
 static int ExecutionErrors::ORDER_ENTRY_FURTHER_THEN_PRICE = 6101;
 static int ExecutionErrors::ORDER_IS_OPEN = 6102;
 static int ExecutionErrors::ORDER_IS_CLOSED = 6103;
+static int ExecutionErrors::UNABLE_TO_RETRIEVE_VALUE_FOR_CHECKER = 6104;
 
 // 6200s Are for MQL Extension Errors
 static int ExecutionErrors::COULD_NOT_RETRIEVE_LOW = 6200;

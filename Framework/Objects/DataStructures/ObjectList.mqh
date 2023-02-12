@@ -44,6 +44,9 @@ public:
 
     template <typename U, typename V>
     void RemoveWhere(U locator, V value);
+
+    template <typename U, typename V>
+    bool Contains(U locator, V value);
 };
 
 template <typename T>

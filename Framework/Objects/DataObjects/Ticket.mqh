@@ -14,8 +14,9 @@
 #include <WantaCapital\Framework\Constants\TerminalErrors.mqh>
 
 #include <WantaCapital\Framework\Objects\DataObjects\Partial.mqh>
-#include <WantaCapital\Framework\Objects\DataStructures\ObjectList.mqh>
 #include <WantaCapital\Framework\Objects\DataStructures\List.mqh>
+#include <WantaCapital\Framework\Objects\DataStructures\Dictionary.mqh>
+#include <WantaCapital\Framework\Objects\DataStructures\ObjectList.mqh>
 
 class Ticket
 {
@@ -36,8 +37,8 @@ private:
     double mLots;
     double mRRAcquired;
     double mDistanceRanFromOpen;
-
     bool mStopLossIsMovedToBreakEven;
+
     int SelectTicket(string action, bool fallbackSearchOpen);
 
 public:
@@ -47,6 +48,10 @@ public:
     ~Ticket();
 
     ObjectList<Partial> *mPartials;
+
+    // Dictionary of <function name chcking if a ticket was activated or closed, previous result>
+    Dictionary<string, bool> *mActivatedSinceLastCheckCheckers;
+    Dictionary<string, bool> *mClosedSinceLastCheckCheckers;
 
     int Number() { return mNumber; }
 
@@ -84,10 +89,10 @@ public:
 
     int IsActive(bool &active);
     int WasActivated(bool &active);
-    int WasActivatedSinceLastCheck(bool &active);
+    int WasActivatedSinceLastCheck(string checker, bool &active);
 
     int IsClosed(bool &closed);
-    int WasClosedSinceLastCheck(bool &closed);
+    int WasClosedSinceLastCheck(string checker, bool &closed);
 
     int Close();
     void SetPartials(List<double> &partialRRs, List<double> &partialPercents);
@@ -98,12 +103,18 @@ public:
 Ticket::Ticket()
 {
     mPartials = new ObjectList<Partial>();
+    mActivatedSinceLastCheckCheckers = new Dictionary<string, bool>();
+    mClosedSinceLastCheckCheckers = new Dictionary<string, bool>();
+
     SetNewTicket(EMPTY);
 }
 
 Ticket::Ticket(int ticket)
 {
     mPartials = new ObjectList<Partial>();
+    mActivatedSinceLastCheckCheckers = new Dictionary<string, bool>();
+    mClosedSinceLastCheckCheckers = new Dictionary<string, bool>();
+
     SetNewTicket(ticket);
 }
 
@@ -111,7 +122,10 @@ Ticket::Ticket(Ticket &ticket)
 {
     mNumber = ticket.Number();
     mRRAcquired = ticket.mRRAcquired;
+
     mPartials = new ObjectList<Partial>(ticket.mPartials);
+    mActivatedSinceLastCheckCheckers = new Dictionary<string, bool>(ticket.mActivatedSinceLastCheckCheckers);
+    mClosedSinceLastCheckCheckers = new Dictionary<string, bool>(ticket.mClosedSinceLastCheckCheckers);
 
     mDistanceRanFromOpen = ticket.mDistanceRanFromOpen;
     mOpenPrice = ticket.OpenPrice();
@@ -151,6 +165,8 @@ void Ticket::SetNewTicket(int ticket)
     mLots = ConstantValues::EmptyDouble;
 
     mPartials.Clear();
+    mActivatedSinceLastCheckCheckers.Clear();
+    mClosedSinceLastCheckCheckers.Clear();
 }
 
 int Ticket::Type()
@@ -412,26 +428,39 @@ int Ticket::WasActivated(bool &wasActivated)
     return ERR_NO_ERROR;
 }
 
-int Ticket::WasActivatedSinceLastCheck(bool &wasActivatedSinceLastCheck)
+int Ticket::WasActivatedSinceLastCheck(string checker, bool &wasActivatedSinceLastCheck)
 {
-    if (mWasActivated)
-    {
-        wasActivatedSinceLastCheck = !mLastActiveCheck;
-        mLastActiveCheck = true;
+    wasActivatedSinceLastCheck = false;
 
-        return ERR_NO_ERROR;
+    if (!mActivatedSinceLastCheckCheckers.HasKey(checker))
+    {
+        mActivatedSinceLastCheckCheckers.Add(checker, false);
+    }
+    else
+    {
+        bool lastCheck = false;
+        if (!mActivatedSinceLastCheckCheckers.GetValueByKey(checker, lastCheck))
+        {
+            return ExecutionErrors::UNABLE_TO_RETRIEVE_VALUE_FOR_CHECKER;
+        }
+
+        // we were already activated so we can just return with the value set to false
+        if (lastCheck)
+        {
+            return ERR_NO_ERROR;
+        }
     }
 
     bool wasActivated = false;
     int wasActivatedError = WasActivated(wasActivated);
     if (wasActivatedError != ERR_NO_ERROR)
     {
-        wasActivatedSinceLastCheck = false;
         return wasActivatedError;
     }
 
+    // can just update and return wasActivated since we know it was preveously false so any change to it would just be itself
+    mActivatedSinceLastCheckCheckers.UpdateValueForKey(checker, wasActivated);
     wasActivatedSinceLastCheck = wasActivated;
-    mLastActiveCheck = wasActivated;
 
     return ERR_NO_ERROR;
 }
@@ -457,26 +486,39 @@ int Ticket::IsClosed(bool &closed)
     return ERR_NO_ERROR;
 }
 
-int Ticket::WasClosedSinceLastCheck(bool &wasClosedSinceLastCheck)
+int Ticket::WasClosedSinceLastCheck(string checker, bool &wasClosedSinceLastCheck)
 {
-    if (mIsClosed)
-    {
-        wasClosedSinceLastCheck = !mLastCloseCheck;
-        mLastCloseCheck = true;
+    wasClosedSinceLastCheck = false;
 
-        return ERR_NO_ERROR;
+    if (!mClosedSinceLastCheckCheckers.HasKey(checker))
+    {
+        mClosedSinceLastCheckCheckers.Add(checker, false);
+    }
+    else
+    {
+        bool lastCheck = false;
+        if (!mClosedSinceLastCheckCheckers.GetValueByKey(checker, lastCheck))
+        {
+            return ExecutionErrors::UNABLE_TO_RETRIEVE_VALUE_FOR_CHECKER;
+        }
+
+        // we were already activated so we can just return with the value set to false
+        if (lastCheck)
+        {
+            return ERR_NO_ERROR;
+        }
     }
 
     bool isClosed = false;
     int closedError = IsClosed(isClosed);
     if (closedError != ERR_NO_ERROR)
     {
-        wasClosedSinceLastCheck = false;
         return closedError;
     }
 
+    // can just update and return wasActivated since we know it was preveously false so any change to it would just be itself
+    mClosedSinceLastCheckCheckers.UpdateValueForKey(checker, isClosed);
     wasClosedSinceLastCheck = isClosed;
-    mLastCloseCheck = isClosed;
 
     return ERR_NO_ERROR;
 }

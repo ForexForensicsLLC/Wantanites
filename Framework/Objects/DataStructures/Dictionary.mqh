@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Objects\List.mqh>
+#include <WantaCapital\Framework\Objects\DataStructures\List.mqh>
 
 template <typename T, typename U>
 class Dictionary
@@ -19,7 +19,10 @@ private:
 
 public:
     Dictionary();
+    Dictionary(Dictionary<T, U> &dictionary);
     ~Dictionary();
+
+    T operator[](int index) { return mKeys[index]; }
 
     // adds an item to the end of the list
     void Add(T key, U value);
@@ -36,6 +39,8 @@ public:
     // returns true and sets value if the key exists, returns false otherwise
     bool GetValueByKey(T key, U &value);
 
+    void UpdateValueForKey(T key, U value);
+
     // removes a key/value pair by value
     void RemoveByKey(T key);
 
@@ -51,6 +56,24 @@ Dictionary::Dictionary()
 {
     mKeys = new List<T>();
     mValues = new List<U>();
+}
+
+template <typename T, typename U>
+Dictionary::Dictionary(Dictionary<T, U> &dictionary)
+{
+    mKeys = new List<T>();
+    mValues = new List<U>();
+
+    for (int i = 0; i < dictionary.Size(); i++)
+    {
+        T key = dictionary[i];
+        U value;
+
+        if (dictionary.GetValueByKey(key, value))
+        {
+            Push(key, value);
+        }
+    }
 }
 
 template <typename T, typename U>
@@ -101,6 +124,16 @@ bool Dictionary::GetValueByKey(T key, U &value)
 
     value = mValues[keyIndex];
     return true;
+}
+
+template <typename T, typename U>
+void Dictionary::UpdateValueForKey(T key, U value)
+{
+    if (HasKey(key))
+    {
+        int keyIndex = mKeys.IndexOf(key);
+        mValues.UpdateItem(keyIndex, value);
+    }
 }
 
 template <typename T, typename U>

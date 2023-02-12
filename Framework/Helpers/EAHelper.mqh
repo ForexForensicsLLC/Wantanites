@@ -2867,7 +2867,7 @@ bool EAHelper::CheckCurrentSetupTicket(TEA &ea, Ticket &ticket)
     ea.mLastState = EAStates::CHECKING_IF_TICKET_IS_ACTIVE;
 
     bool wasActivatedSinceLastCheck = false;
-    int activatedError = ticket.WasActivatedSinceLastCheck(wasActivatedSinceLastCheck);
+    int activatedError = ticket.WasActivatedSinceLastCheck(__FUNCTION__, wasActivatedSinceLastCheck);
     if (TerminalErrors::IsTerminalError(activatedError))
     {
         ea.InvalidateSetup(false, activatedError);
@@ -2883,7 +2883,7 @@ bool EAHelper::CheckCurrentSetupTicket(TEA &ea, Ticket &ticket)
     ea.mLastState = EAStates::CHECKING_IF_TICKET_IS_CLOSED;
 
     bool closed = false;
-    int closeError = ticket.WasClosedSinceLastCheck(closed);
+    int closeError = ticket.WasClosedSinceLastCheck(__FUNCTION__, closed);
     if (TerminalErrors::IsTerminalError(closeError))
     {
         ea.InvalidateSetup(false, closeError);
@@ -2923,7 +2923,7 @@ static bool EAHelper::CheckPreviousSetupTicket(TEA &ea, Ticket &ticket)
 {
     ea.mLastState = EAStates::CHECKING_PREVIOUS_SETUP_TICKET;
     bool closed = false;
-    int closeError = ticket.WasClosedSinceLastCheck(closed);
+    int closeError = ticket.WasClosedSinceLastCheck(__FUNCTION__, closed);
     if (TerminalErrors::IsTerminalError(closeError))
     {
         ea.RecordError(closeError, "");

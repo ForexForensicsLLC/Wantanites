@@ -34,6 +34,8 @@ public:
 
     int IndexOf(T item);
 
+    void UpdateItem(int index, T item);
+
     void RemoveByIndex(int index);
 
     // removes all items from the list and re sizes to 0
@@ -97,6 +99,17 @@ int List::IndexOf(T item)
     }
 
     return EMPTY;
+}
+
+template <typename T>
+void List::UpdateItem(int index, T item)
+{
+    if (index >= Size())
+    {
+        return;
+    }
+
+    mItems[index] = item;
 }
 
 template <typename T>
