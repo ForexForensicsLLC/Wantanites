@@ -3210,6 +3210,13 @@ static void EAHelper::SetDefaultErrorRecordData(TEA &ea, TRecord &record, int er
     record.Symbol = Symbol();
     record.Error = error;
     record.LastState = ea.mLastState;
+
+    // set to unset string so when writing the value the framework doesn't think it failed because it didn't write anything
+    if (additionalInformation == "")
+    {
+        additionalInformation = ConstantValues::UnsetString;
+    }
+
     record.AdditionalInformation = additionalInformation;
 }
 
