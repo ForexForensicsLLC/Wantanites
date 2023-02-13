@@ -111,12 +111,12 @@ void PriceRange::PlaceOrders()
     if (SetupType() == OP_BUY)
     {
         entry = CurrentTick().Ask() + OrderHelper::PipsToRange(mPipsFromOpen);
-        stopLoss = CurrentTick().Ask();
+        stopLoss = CurrentTick().Ask() - OrderHelper::PipsToRange(mStopLossPaddingPips);
     }
     else if (SetupType() == OP_SELL)
     {
         entry = CurrentTick().Bid() - OrderHelper::PipsToRange(mPipsFromOpen);
-        stopLoss = CurrentTick().Bid();
+        stopLoss = CurrentTick().Bid() + OrderHelper::PipsToRange(mStopLossPaddingPips);
     }
 
     EAHelper::PlaceStopOrder<PriceRange>(this, entry, stopLoss);

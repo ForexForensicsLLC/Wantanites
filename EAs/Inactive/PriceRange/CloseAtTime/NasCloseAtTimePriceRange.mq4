@@ -41,7 +41,7 @@ int CloseMinute = 0;
 double PipsFromOpen = 250;
 // this needs to be higher than the spread before the session since the spread doesn't drop right as the candle opens and we only calaculte once per bar
 double MaxSpreadPips = 25;
-double StopLossPaddingPips = 0;
+input double StopLossPaddingPips = 0;
 
 int OnInit()
 {
