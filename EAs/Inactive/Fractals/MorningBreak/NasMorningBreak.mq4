@@ -29,6 +29,8 @@ CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWri
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
+TradingSession *TS;
+
 NasMorningBreak *NMBBuys;
 NasMorningBreak *NMBSells;
 
@@ -49,17 +51,19 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
+    TS = new TradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
+
     NMBBuys = new NasMorningBreak(MagicNumbers::NasMorningFractalBreakBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                   RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
     NMBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    NMBBuys.AddTradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
+    NMBBuys.AddTradingSession(TS);
 
     NMBSells = new NasMorningBreak(MagicNumbers::NasMorningFractalBreakSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                    RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
     NMBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    NMBSells.AddTradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
+    NMBSells.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
 }

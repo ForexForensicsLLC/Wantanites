@@ -143,6 +143,8 @@ Ticket::Ticket(Ticket &ticket)
 Ticket::~Ticket()
 {
     delete mPartials;
+    delete mActivatedSinceLastCheckCheckers;
+    delete mClosedSinceLastCheckCheckers;
 }
 
 void Ticket::SetNewTicket(int ticket)
