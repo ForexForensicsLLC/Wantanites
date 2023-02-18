@@ -2227,13 +2227,6 @@ static void EAHelper::CheckTrailStopLossEveryXPips(TEA &ea, Ticket &ticket, doub
         return;
     }
 
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
-    {
-        ea.RecordError(GetLastError());
-        return;
-    }
-
     double startPips = 0.0;
     double newSL = 0.0;
 
@@ -2241,7 +2234,7 @@ static void EAHelper::CheckTrailStopLossEveryXPips(TEA &ea, Ticket &ticket, doub
     {
         // only want to trail if we run everyxPips past entry, not right away
         startPips = MathMax(OrderOpenPrice(), OrderStopLoss());
-        if (currentTick.bid - startPips >= OrderHelper::PipsToRange(everyXPips))
+        if (ea.CurrentTick().Bid() - startPips >= OrderHelper::PipsToRange(everyXPips))
         {
             if (OrderOpenPrice() > OrderStopLoss())
             {
@@ -2266,7 +2259,7 @@ static void EAHelper::CheckTrailStopLossEveryXPips(TEA &ea, Ticket &ticket, doub
     {
         // only want to trail if we run everyxPips past entry, not right away
         startPips = MathMin(OrderOpenPrice(), OrderStopLoss());
-        if (startPips - currentTick.bid >= OrderHelper::PipsToRange(everyXPips))
+        if (startPips - ea.CurrentTick().Bid() >= OrderHelper::PipsToRange(everyXPips))
         {
             if (OrderOpenPrice() < OrderStopLoss())
             {

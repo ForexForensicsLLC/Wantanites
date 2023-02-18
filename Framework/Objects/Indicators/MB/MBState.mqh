@@ -492,30 +492,8 @@ void MBState::Draw(bool printErrors)
     }
 
     color clr = mType == OP_BUY ? clrLimeGreen : clrRed;
-    // if (mType == OP_BUY)
-    // {
-    //     if (iHigh(mSymbol, mTimeFrame, EndIndex() + 1) < iLow(mSymbol, mTimeFrame, EndIndex() - 1))
-    //     {
-    //         clr = clrLimeGreen;
-    //     }
-    //     else
-    //     {
-    //         clr = clrBlack;
-    //     }
-    // }
-    // else if (mType == OP_SELL)
-    // {
-    //     if (iLow(mSymbol, mTimeFrame, EndIndex() + 1) > iHigh(mSymbol, mTimeFrame, EndIndex() - 1))
-    //     {
-    //         clr = clrRed;
-    //     }
-    //     else
-    //     {
-    //         clr = clrBlack;
-    //     }
-    // }
-
-    if (!ObjectCreate(0, mName, OBJ_RECTANGLE, 0,
+    GetLastError();
+    if (!ObjectCreate(ChartID(), mName, OBJ_RECTANGLE, 0,
                       mStartDateTime,                          // Start
                       iHigh(mSymbol, mTimeFrame, HighIndex()), // High
                       mEndDateTime,                            // End
@@ -529,36 +507,12 @@ void MBState::Draw(bool printErrors)
         return;
     }
 
-    ObjectSetInteger(0, mName, OBJPROP_COLOR, clr);
-    ObjectSetInteger(0, mName, OBJPROP_WIDTH, 2);
-    ObjectSetInteger(0, mName, OBJPROP_BACK, false);
-    ObjectSetInteger(0, mName, OBJPROP_FILL, false);
-    ObjectSetInteger(0, mName, OBJPROP_SELECTED, false);
-    ObjectSetInteger(0, mName, OBJPROP_SELECTABLE, false);
-
-    // double hlinePrice = 0.0;
-    // if (mType == OP_BUY)
-    // {
-    //     hlinePrice = iHigh(mSymbol, mTimeFrame, HighIndex()) - ((iHigh(mSymbol, mTimeFrame, HighIndex()) - iLow(mSymbol, mTimeFrame, LowIndex())) * 0.3);
-    //     ObjectCreate(0, "Threshold" + Number(), OBJ_RECTANGLE, 0,
-    //                  mStartDateTime,
-    //                  iHigh(mSymbol, mTimeFrame, HighIndex()),
-    //                  mEndDateTime,
-    //                  hlinePrice);
-    //     ObjectSetInteger(0, "Threshold" + Number(), OBJPROP_FILL, true);
-    // }
-    // else if (mType == OP_SELL)
-    // {
-    //     hlinePrice = iHigh(mSymbol, mTimeFrame, HighIndex()) - ((iHigh(mSymbol, mTimeFrame, HighIndex()) - iLow(mSymbol, mTimeFrame, LowIndex())) * 0.7);
-    //     ObjectCreate(0, "Threshold" + Number(), OBJ_RECTANGLE, 0,
-    //                  mStartDateTime,
-    //                  iLow(mSymbol, mTimeFrame, LowIndex()),
-    //                  mEndDateTime,
-    //                  hlinePrice);
-    //     ObjectSetInteger(0, "Threshold" + Number(), OBJPROP_FILL, true);
-    // }
-
-    // ObjectSetInteger(0, "Threshold" + Number(), OBJPROP_COLOR, clr);
+    ObjectSetInteger(ChartID(), mName, OBJPROP_COLOR, clr);
+    ObjectSetInteger(ChartID(), mName, OBJPROP_WIDTH, 2);
+    ObjectSetInteger(ChartID(), mName, OBJPROP_BACK, false);
+    ObjectSetInteger(ChartID(), mName, OBJPROP_FILL, false);
+    ObjectSetInteger(ChartID(), mName, OBJPROP_SELECTED, false);
+    ObjectSetInteger(ChartID(), mName, OBJPROP_SELECTABLE, false);
 
     mDrawn = true;
 }

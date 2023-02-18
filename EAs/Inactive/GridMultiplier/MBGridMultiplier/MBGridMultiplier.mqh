@@ -8,14 +8,14 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\EA\EA.mqh>
+#include <WantaCapital\Framework\Objects\DataObjects\EA.mqh>
 #include <WantaCapital\Framework\Helpers\EAHelper.mqh>
 #include <WantaCapital\Framework\Constants\MagicNumbers.mqh>
 
-#include <WantaCapital\Framework\Objects\GridTracker.mqh>
-#include <WantaCapital\Framework\Objects\Dictionary.mqh>
+#include <WantaCapital\Framework\Objects\Indicators\Grid\GridTracker.mqh>
+#include <WantaCapital\Framework\Objects\DataStructures\Dictionary.mqh>
 
-class MBGridMultiplier : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class MBGridMultiplier : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     MBTracker *mMBT;
@@ -28,7 +28,6 @@ public:
     double mMaxEquityDrawDown;
 
     bool mFirstTrade;
-    bool mLastXCandlesPastEMA;
 
     double mStartingEquity;
     int mPreviousAchievedLevel;
@@ -51,13 +50,14 @@ public:
     virtual void InvalidateSetup(bool deletePendingOrder, int error);
     virtual bool Confirmation();
     virtual void PlaceOrders();
-    virtual void ManageCurrentPendingSetupTicket();
-    virtual void ManageCurrentActiveSetupTicket();
+    virtual void PreManageTickets();
+    virtual void ManageCurrentPendingSetupTicket(Ticket &ticket);
+    virtual void ManageCurrentActiveSetupTicket(Ticket &ticket);
     virtual bool MoveToPreviousSetupTickets(Ticket &ticket);
-    virtual void ManagePreviousSetupTicket(int ticketIndex);
-    virtual void CheckCurrentSetupTicket();
-    virtual void CheckPreviousSetupTicket(int ticketIndex);
-    virtual void RecordTicketOpenData();
+    virtual void ManagePreviousSetupTicket(Ticket &ticket);
+    virtual void CheckCurrentSetupTicket(Ticket &ticket);
+    virtual void CheckPreviousSetupTicket(Ticket &ticket);
+    virtual void RecordTicketOpenData(Ticket &ticket);
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
@@ -80,7 +80,6 @@ MBGridMultiplier::MBGridMultiplier(int magicNumber, int setupType, int maxCurren
     mMaxEquityDrawDown = 0.0;
 
     mFirstTrade = true;
-    mLastXCandlesPastEMA = false;
 
     mStartingEquity = 0;
     mPreviousAchievedLevel = 1000;
@@ -354,17 +353,30 @@ void MBGridMultiplier::PlaceOrders()
     }
 
     EAHelper::PlaceMarketOrder<MBGridMultiplier>(this, entry, stopLoss, mLotSize, SetupType(), takeProfit);
-    if (mCurrentSetupTicket.Number() != EMPTY)
+    if (!mCurrentSetupTickets.IsEmpty())
     {
-        mLevelsWithTickets.Add(mGT.CurrentLevel(), mCurrentSetupTicket.Number());
+        mLevelsWithTickets.Add(mGT.CurrentLevel(), mCurrentSetupTickets[0].Number());
     }
 }
 
-void MBGridMultiplier::ManageCurrentPendingSetupTicket()
+void MBGridMultiplier::PreManageTickets()
+{
+    // double equityPercentChange = EAHelper::GetTotalPreviousSetupTicketsEquityPercentChange<MBGridMultiplier>(this, mStartingEquity);
+    // if (equityPercentChange <= -0.3)
+    // {
+    //     Print("Equity Limit Reached: ", equityPercentChange);
+    //     mCloseAllTickets = true;
+    //     mPreviousSetupTickets[ticketIndex].Close();
+
+    //     return;
+    // }
+}
+
+void MBGridMultiplier::ManageCurrentPendingSetupTicket(Ticket &ticket)
 {
 }
 
-void MBGridMultiplier::ManageCurrentActiveSetupTicket()
+void MBGridMultiplier::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
 }
 
@@ -373,11 +385,11 @@ bool MBGridMultiplier::MoveToPreviousSetupTickets(Ticket &ticket)
     return true;
 }
 
-void MBGridMultiplier::ManagePreviousSetupTicket(int ticketIndex)
+void MBGridMultiplier::ManagePreviousSetupTicket(Ticket &ticket)
 {
     if (mCloseAllTickets)
     {
-        mPreviousSetupTickets[ticketIndex].Close();
+        ticket.Close();
         return;
     }
 
@@ -392,33 +404,27 @@ void MBGridMultiplier::ManagePreviousSetupTicket(int ticketIndex)
     // }
 }
 
-void MBGridMultiplier::CheckCurrentSetupTicket()
+void MBGridMultiplier::CheckCurrentSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<MBGridMultiplier>(this, mCurrentSetupTicket);
-    EAHelper::CheckCurrentSetupTicket<MBGridMultiplier>(this);
 }
 
-void MBGridMultiplier::CheckPreviousSetupTicket(int ticketIndex)
+void MBGridMultiplier::CheckPreviousSetupTicket(Ticket &ticket)
 {
     bool isClosed = false;
-    mPreviousSetupTickets[ticketIndex].IsClosed(isClosed);
+    ticket.IsClosed(isClosed);
     if (isClosed)
     {
-        mLevelsWithTickets.RemoveByValue(mPreviousSetupTickets[ticketIndex].Number());
+        mLevelsWithTickets.RemoveByValue(ticket.Number());
     }
-
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<MBGridMultiplier>(this, mPreviousSetupTickets[ticketIndex]);
-    EAHelper::CheckPreviousSetupTicket<MBGridMultiplier>(this, ticketIndex);
 }
 
-void MBGridMultiplier::RecordTicketOpenData()
+void MBGridMultiplier::RecordTicketOpenData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameEntryTradeRecord<MBGridMultiplier>(this);
+    EAHelper::RecordSingleTimeFrameEntryTradeRecord<MBGridMultiplier>(this, ticket);
 }
 
 void MBGridMultiplier::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
-    EAHelper::RecordPartialTradeRecord<MBGridMultiplier>(this, partialedTicket, newTicketNumber);
 }
 
 void MBGridMultiplier::RecordTicketCloseData(Ticket &ticket)

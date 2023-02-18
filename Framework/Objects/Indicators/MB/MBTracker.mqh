@@ -716,9 +716,6 @@ MBTracker::~MBTracker()
     {
         delete mMBs[i];
     }
-
-    ObjectsDeleteAll(ChartID(), "Bias");
-    ObjectsDeleteAll(ChartID(), "Sent");
 }
 
 // -------------- Maintenance Methods --------------------------

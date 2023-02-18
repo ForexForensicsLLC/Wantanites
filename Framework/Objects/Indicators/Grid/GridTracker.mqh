@@ -25,12 +25,13 @@ protected:
     double mUpperLevelDistance;
     double mLowerLevelDistance;
 
+    void SetObjectNamePrefix(string additionalNamePrefix);
     void InternalInit(double basePrice, int maxUpperLevels, int maxLowerLevels, double upperLevelDistance, double lowerLevelDistance);
 
 public:
-    GridTracker();
-    GridTracker(int maxLevels, double levelPips);
-    GridTracker(int maxUpperLevels, int maxLowerLevels, double levelPips);
+    GridTracker(string additionalNamePrefix);
+    GridTracker(string additionalNamePrefix, int maxLevels, double levelPips);
+    GridTracker(string additionalNamePrefix, int maxUpperLevels, int maxLowerLevels, double levelPips);
     ~GridTracker();
 
     void ReInit(double basePrice, int maxUpperLevels, int maxLowerLevel, double upperLevelDistance, double lowerLevelDistance);
@@ -51,24 +52,32 @@ public:
     virtual void Reset();
 };
 
-GridTracker::GridTracker()
+GridTracker::GridTracker(string additionalNamePrefix)
 {
+    SetObjectNamePrefix(additionalNamePrefix);
     Reset();
 }
 
-GridTracker::GridTracker(int maxLevels, double levelPips)
+GridTracker::GridTracker(string additionalNamePrefix, int maxLevels, double levelPips)
 {
+    SetObjectNamePrefix(additionalNamePrefix);
     InternalInit(0.0, maxLevels, maxLevels, levelPips, levelPips);
 }
 
-GridTracker::GridTracker(int maxUpperLevels, int maxLowerLevels, double levelPips)
+GridTracker::GridTracker(string additionalNamePrefix, int maxUpperLevels, int maxLowerLevels, double levelPips)
 {
+    SetObjectNamePrefix(additionalNamePrefix);
     InternalInit(0.0, maxUpperLevels, maxLowerLevels, levelPips, levelPips);
 }
 
 GridTracker::~GridTracker()
 {
     ObjectsDeleteAll(ChartID(), mObjectNamePrefix);
+}
+
+void GridTracker::SetObjectNamePrefix(string additionalNamePrefix)
+{
+    mObjectNamePrefix = "GridTracker" + additionalNamePrefix + "-";
 }
 
 void GridTracker::InternalInit(double basePrice, int maxUpperLevels, int maxLowerLevels, double upperLevelDistance, double lowerLevelDistance)
@@ -115,18 +124,24 @@ int GridTracker::CurrentLevel()
     }
     else if (currentTick.bid > mBasePrice)
     {
-        currentPlace = (currentTick.bid - mBasePrice) / mUpperLevelDistance;
-        if (currentPlace >= mCurrentLevel + 1 && currentPlace <= mMaxUpperLevel)
+        if (mUpperLevelDistance != 0)
         {
-            mCurrentLevel += 1;
+            currentPlace = (currentTick.bid - mBasePrice) / mUpperLevelDistance;
+            if (currentPlace >= mCurrentLevel + 1 && currentPlace <= mMaxUpperLevel)
+            {
+                mCurrentLevel += 1;
+            }
         }
     }
     else if (currentTick.bid < mBasePrice)
     {
-        currentPlace = (currentTick.bid - mBasePrice) / mLowerLevelDistance;
-        if (currentPlace <= mCurrentLevel - 1 && currentPlace >= mMaxLowerLevel)
+        if (mLowerLevelDistance != 0)
         {
-            mCurrentLevel -= 1;
+            currentPlace = (currentTick.bid - mBasePrice) / mLowerLevelDistance;
+            if (currentPlace <= mCurrentLevel - 1 && currentPlace >= mMaxLowerLevel)
+            {
+                mCurrentLevel -= 1;
+            }
         }
     }
 
@@ -171,18 +186,25 @@ void GridTracker::Draw()
     datetime endTime = iTime(Symbol(), Period(), -30);
 
     ObjectCreate(NULL, mObjectNamePrefix + IntegerToString(0), OBJ_TREND, 0, startTime, mBasePrice, endTime, mBasePrice);
-    ObjectSet(mObjectNamePrefix + IntegerToString(0), OBJPROP_COLOR, clrAqua);
+    ObjectSet(mObjectNamePrefix + IntegerToString(0), OBJPROP_COLOR, clrRoyalBlue);
 
+    color clr;
     for (int i = 1; i <= mMaxUpperLevel; i++)
     {
         linePriceUpper = mBasePrice + (mUpperLevelDistance * i);
         ObjectCreate(NULL, mObjectNamePrefix + IntegerToString(i), OBJ_TREND, 0, startTime, linePriceUpper, endTime, linePriceUpper);
+
+        clr = i == mMaxUpperLevel ? clrRed : clrSalmon;
+        ObjectSetInteger(ChartID(), mObjectNamePrefix + IntegerToString(i), OBJPROP_COLOR, clr);
     }
 
     for (int i = 1; i <= -mMaxLowerLevel; i++)
     {
         linePriceLower = mBasePrice - (mLowerLevelDistance * i);
         ObjectCreate(NULL, mObjectNamePrefix + IntegerToString(-i), OBJ_TREND, 0, startTime, linePriceLower, endTime, linePriceLower);
+
+        clr = i == -mMaxUpperLevel ? clrRed : clrSalmon;
+        ObjectSetInteger(ChartID(), mObjectNamePrefix + IntegerToString(-i), OBJPROP_COLOR, clr);
     }
 
     mDrawn = true;
