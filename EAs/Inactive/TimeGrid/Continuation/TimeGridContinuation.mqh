@@ -8,55 +8,43 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\EA\EA.mqh>
+#include <WantaCapital\Framework\Objects\DataObjects\EA.mqh>
 #include <WantaCapital\Framework\Helpers\EAHelper.mqh>
 #include <WantaCapital\Framework\Constants\MagicNumbers.mqh>
-#include <WantaCapital\Framework\Objects\TimeGridTracker.mqh>
+#include <WantaCapital\Framework\Objects\Indicators\Grid\TimeGridTracker.mqh>
 
 class TimeGrid : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
-    TimeGridTracker *mTGT;
-
-    int mEntryTimeFrame;
-    string mEntrySymbol;
-
-    int mBarCount;
-    int mLastDay;
-
-    double mStartingEquity;
-    int mLastAchievedLevel;
+    GridTracker *mGT;
 
     double mLotSize;
-    double mEntryPaddingPips;
-    double mMinStopLossPips;
-    double mPipsToWaitBeforeBE;
-    double mBEAdditionalPips;
-
-    datetime mEntryCandleTime;
+    double mStartingEquity;
+    int mLastAchievedLevel;
 
 public:
     TimeGrid(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
              CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-             CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, TimeGridTracker *&tgt);
+             CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, GridTracker *&gt);
     ~TimeGrid();
 
     virtual double RiskPercent() { return mRiskPercent; }
 
-    virtual void Run();
+    virtual void PreRun();
     virtual bool AllowedToTrade();
     virtual void CheckSetSetup();
     virtual void CheckInvalidateSetup();
     virtual void InvalidateSetup(bool deletePendingOrder, int error);
     virtual bool Confirmation();
     virtual void PlaceOrders();
-    virtual void ManageCurrentPendingSetupTicket();
-    virtual void ManageCurrentActiveSetupTicket();
+    virtual void PreManageTickets();
+    virtual void ManageCurrentPendingSetupTicket(Ticket &ticket);
+    virtual void ManageCurrentActiveSetupTicket(Ticket &ticket);
     virtual bool MoveToPreviousSetupTickets(Ticket &ticket);
-    virtual void ManagePreviousSetupTicket(int ticketIndex);
-    virtual void CheckCurrentSetupTicket();
-    virtual void CheckPreviousSetupTicket(int ticketIndex);
-    virtual void RecordTicketOpenData();
+    virtual void ManagePreviousSetupTicket(Ticket &ticket);
+    virtual void CheckCurrentSetupTicket(Ticket &ticket);
+    virtual void CheckPreviousSetupTicket(Ticket &ticket);
+    virtual void RecordTicketOpenData(Ticket &ticket);
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
@@ -66,26 +54,14 @@ public:
 
 TimeGrid::TimeGrid(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                    CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                   CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, TimeGridTracker *&tgt)
+                   CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, GridTracker *&gt)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
-    mTGT = tgt;
+    mGT = gt;
 
-    mEntrySymbol = Symbol();
-    mEntryTimeFrame = Period();
-
-    mBarCount = 0;
-    mLastDay = Day();
-
+    mLotSize = 0;
     mStartingEquity = 0;
     mLastAchievedLevel = 10000;
-
-    mEntryPaddingPips = 0.0;
-    mMinStopLossPips = 0.0;
-    mPipsToWaitBeforeBE = 0.0;
-    mBEAdditionalPips = 0.0;
-
-    mEntryCandleTime = 0;
 
     mLargestAccountBalance = 200000;
 
@@ -98,13 +74,9 @@ TimeGrid::~TimeGrid()
 {
 }
 
-void TimeGrid::Run()
+void TimeGrid::PreRun()
 {
-    mTGT.Draw();
-    EAHelper::Run<TimeGrid>(this);
-
-    mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
-    mLastDay = Day();
+    mGT.Draw();
 }
 
 bool TimeGrid::AllowedToTrade()
@@ -114,28 +86,10 @@ bool TimeGrid::AllowedToTrade()
 
 void TimeGrid::CheckSetSetup()
 {
-    if (mStartingEquity == 0)
+    if (Hour() == mTradingSessions[0].HourStart() && Minute() == mTradingSessions[0].MinuteStart())
     {
-        mStartingEquity = AccountEquity();
-    }
-
-    if (mSetupType == OP_BUY)
-    {
-        if (mTGT.CurrentLevel() > 0 &&
-            (mTGT.CurrentLevel() > mLastAchievedLevel || mLastAchievedLevel == 10000))
-        {
-            mHasSetup = true;
-            mLastAchievedLevel = mTGT.CurrentLevel();
-        }
-    }
-    else if (mSetupType == OP_SELL)
-    {
-        if (mTGT.CurrentLevel() < 0 &&
-            mTGT.CurrentLevel() < mLastAchievedLevel)
-        {
-            mHasSetup = true;
-            mLastAchievedLevel = mTGT.CurrentLevel();
-        }
+        mGT.UpdateBasePrice(CurrentTick().Bid());
+        mHasSetup = true;
     }
 }
 
@@ -143,61 +97,80 @@ void TimeGrid::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
-    if (mLastDay != Day())
-    {
-        // move these here so that we dont' reset it when we invalidate after placing an order
-        mLastAchievedLevel = 10000;
-        mStartingEquity = 0;
-
-        InvalidateSetup(true);
-    }
+    // if (mLastAchievedLevel != 0 && mGT.CurrentLevel() == 0)
+    // {
+    //     InvalidateSetup(true);
+    // }
 }
 
 void TimeGrid::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
     EAHelper::InvalidateSetup<TimeGrid>(this, deletePendingOrder, mStopTrading, error);
+
+    mLastAchievedLevel = 10000;
+    mStartingEquity = 0;
 }
 
 bool TimeGrid::Confirmation()
 {
-    return true;
+    if (SetupType() == OP_BUY)
+    {
+        if (mGT.CurrentLevel() > 0 &&
+            (mGT.CurrentLevel() > mLastAchievedLevel || mLastAchievedLevel == 10000))
+        {
+            mLastAchievedLevel = mGT.CurrentLevel();
+            return true;
+        }
+    }
+    else if (SetupType() == OP_SELL)
+    {
+        if (mGT.CurrentLevel() < 0 &&
+            mGT.CurrentLevel() < mLastAchievedLevel)
+        {
+            mLastAchievedLevel = mGT.CurrentLevel();
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void TimeGrid::PlaceOrders()
 {
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
-    {
-        RecordError(GetLastError());
-        return;
-    }
-
     double entry = 0.0;
     double stopLoss = 0.0;
     double takeProfit = 0.0;
 
-    if (mSetupType == OP_BUY)
+    if (SetupType() == OP_BUY)
     {
-        entry = currentTick.ask;
-        stopLoss = mTGT.LevelPrice(mTGT.CurrentLevel() - 1);
-        takeProfit = mTGT.LevelPrice(mTGT.CurrentLevel() + 1);
+        entry = CurrentTick().Ask();
+        stopLoss = mGT.LevelPrice(mGT.CurrentLevel() - 1);
+        takeProfit = mGT.LevelPrice(mGT.CurrentLevel() + 1);
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
-        entry = currentTick.bid;
-        stopLoss = mTGT.LevelPrice(mTGT.CurrentLevel() + 1);
-        takeProfit = mTGT.LevelPrice(mTGT.CurrentLevel() - 1);
+        entry = CurrentTick().Bid();
+        stopLoss = mGT.LevelPrice(mGT.CurrentLevel() + 1);
+        takeProfit = mGT.LevelPrice(mGT.CurrentLevel() - 1);
     }
 
-    EAHelper::PlaceMarketOrder<TimeGrid>(this, entry, stopLoss, 0.0, mSetupType, takeProfit);
-    InvalidateSetup(false);
+    if (mStartingEquity == 0)
+    {
+        mStartingEquity = AccountEquity();
+    }
+
+    EAHelper::PlaceMarketOrder<TimeGrid>(this, entry, stopLoss, 0.0, SetupType(), takeProfit);
 }
 
-void TimeGrid::ManageCurrentPendingSetupTicket()
+void TimeGrid::PreManageTickets()
 {
 }
 
-void TimeGrid::ManageCurrentActiveSetupTicket()
+void TimeGrid::ManageCurrentPendingSetupTicket(Ticket &ticket)
+{
+}
+
+void TimeGrid::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
 }
 
@@ -206,25 +179,21 @@ bool TimeGrid::MoveToPreviousSetupTickets(Ticket &ticket)
     return true;
 }
 
-void TimeGrid::ManagePreviousSetupTicket(int ticketIndex)
+void TimeGrid::ManagePreviousSetupTicket(Ticket &ticket)
 {
 }
 
-void TimeGrid::CheckCurrentSetupTicket()
+void TimeGrid::CheckCurrentSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<TimeGrid>(this, mCurrentSetupTicket);
-    EAHelper::CheckCurrentSetupTicket<TimeGrid>(this);
 }
 
-void TimeGrid::CheckPreviousSetupTicket(int ticketIndex)
+void TimeGrid::CheckPreviousSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<TimeGrid>(this, mPreviousSetupTickets[ticketIndex]);
-    EAHelper::CheckPreviousSetupTicket<TimeGrid>(this, ticketIndex);
 }
 
-void TimeGrid::RecordTicketOpenData()
+void TimeGrid::RecordTicketOpenData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameEntryTradeRecord<TimeGrid>(this);
+    EAHelper::RecordSingleTimeFrameEntryTradeRecord<TimeGrid>(this, ticket);
 }
 
 void TimeGrid::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
@@ -249,4 +218,6 @@ bool TimeGrid::ShouldReset()
 
 void TimeGrid::Reset()
 {
+    mStopTrading = false;
+    InvalidateSetup(true);
 }

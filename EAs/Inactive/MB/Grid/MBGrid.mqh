@@ -167,9 +167,9 @@ void MBGrid::CheckSetSetup()
 
                     mGT.ReInit(iOpen(mEntrySymbol, mEntryTimeFrame, 0),
                                totalUpperLevels,
-                               0,
+                               1,
                                OrderHelper::PipsToRange(mMinLevelPips),
-                               0);
+                               OrderHelper::PipsToRange(mMinLevelPips));
 
                     // double potentialMaxLoss = 0;
                     // double potentialMaxLossPips = 0;
@@ -236,9 +236,9 @@ void MBGrid::CheckSetSetup()
                     }
 
                     mGT.ReInit(iOpen(mEntrySymbol, mEntryTimeFrame, 0),
-                               0,
+                               1,
                                totalLowerLevels,
-                               0,
+                               OrderHelper::PipsToRange(mMinLevelPips),
                                OrderHelper::PipsToRange(mMinLevelPips));
 
                     // double potentialMaxLoss = 0;
@@ -336,10 +336,10 @@ bool MBGrid::Confirmation()
     //     return false;
     // }
 
-    // if ((SetupType() == OP_BUY && mGT.CurrentLevel() < 0) || (SetupType() == OP_SELL && mGT.CurrentLevel() > 0))
-    // {
-    //     return false;
-    // }
+    if ((SetupType() == OP_BUY && mGT.CurrentLevel() < 0) || (SetupType() == OP_SELL && mGT.CurrentLevel() > 0))
+    {
+        return false;
+    }
 
     if (mGT.CurrentLevel() != mPreviousAchievedLevel && !mLevelsWithTickets.HasKey(mGT.CurrentLevel()))
     {
@@ -367,8 +367,14 @@ void MBGrid::PlaceOrders()
         entry = CurrentTick().Ask();
         // don't want to place a tp on the last level because they we won't call ManagePreviousSetupTickets on it to check that we are at the last level
         // takeProfit = mGT.AtMaxLevel() ? 0.0 : mGT.LevelPrice(mGT.CurrentLevel() + 1);
-        // stopLoss = mGT.LevelPrice(mGT.CurrentLevel() - 1);
-        stopLoss = iLow(mEntrySymbol, mEntryTimeFrame, tempMBState.LowIndex());
+        if (mGT.CurrentLevel() == 0)
+        {
+            stopLoss = iLow(mEntrySymbol, mEntryTimeFrame, tempMBState.LowIndex());
+        }
+        else
+        {
+            stopLoss = mGT.LevelPrice(mGT.CurrentLevel() - 1);
+        }
     }
     else if (SetupType() == OP_SELL)
     {
@@ -376,7 +382,14 @@ void MBGrid::PlaceOrders()
         // don't want to place a tp on the last level because they we won't call ManagePreviousSetupTickets on it to check that we are at the last level
         // takeProfit = mGT.AtMaxLevel() ? 0.0 : mGT.LevelPrice(mGT.CurrentLevel() - 1);
         // stopLoss = mGT.LevelPrice(mGT.CurrentLevel() + 1);
-        stopLoss = iHigh(mEntrySymbol, mEntryTimeFrame, tempMBState.HighIndex());
+        if (mGT.CurrentLevel() == 0)
+        {
+            stopLoss = iHigh(mEntrySymbol, mEntryTimeFrame, tempMBState.HighIndex());
+        }
+        else
+        {
+            stopLoss = mGT.LevelPrice(mGT.CurrentLevel() + 1);
+        }
     }
 
     if (mFirstTrade)

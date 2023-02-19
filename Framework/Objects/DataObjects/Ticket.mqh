@@ -72,6 +72,8 @@ public:
     double Lots();
     void Lots(double lots) { mLots = lots; }
 
+    double Profit();
+
     double RRAcquired() { return mRRAcquired; }
     void RRAcquired(double rrAcquired) { mRRAcquired = rrAcquired; }
 
@@ -301,6 +303,21 @@ double Ticket::Lots()
 
     mLots = OrderLots();
     return mLots;
+}
+
+double Ticket::Profit()
+{
+    int selectError = SelectIfOpen("Retrieving Profit");
+    if (selectError != ERR_NO_ERROR)
+    {
+        SendMail("Unable To Retrieve Profit",
+                 "Error: " + IntegerToString(selectError) + "\n" +
+                     "Ticket Number: " + IntegerToString(mNumber));
+
+        return ConstantValues::EmptyDouble;
+    }
+
+    return OrderProfit();
 }
 
 void Ticket::UpdateTicketNumber(int newTicketNumber)

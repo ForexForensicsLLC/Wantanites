@@ -10,19 +10,19 @@
 
 #include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
 #include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Inactive/TimeGrid/Continuation/TimeGridContinuation.mqh>
+#include <WantaCapital/EAs/Inactive/Hedge/StartOfDay/AtOpenPrice/StartOfDayHedge.mqh>
 
 string ForcedSymbol = "US100";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
-double RiskPercent = 2;
+double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-string StrategyName = "TimeGrid/";
+string StrategyName = "Hedge/";
 string EAName = "Nas/";
-string SetupTypeName = "Continuation/";
+string SetupTypeName = "StartOfDayAtOpenPrice/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -30,24 +30,14 @@ CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<Partial
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
+StartOfDayHedge *SODHBuys;
+StartOfDayHedge *SODHSells;
+
 TradingSession *TS;
 
-GridTracker *GTBuys;
-GridTracker *GTSells;
-
-TimeGrid *TGBuys;
-TimeGrid *TGSells;
-
-double LotSize = 0.1;
-double MaxLevels = 20;
-double LevelPips = 500;
-double MaxSpreadPips = 25;
-double StopLossPaddingPips = 0;
-
-int HourStart = 16;
-int MinuteStart = 30;
-int HourEnd = 19;
-int MinuteEnd = 0;
+double MaxSpreadPips = 10;
+double StopLossPaddingPips = 10000;
+double TrailStopLossPips = 500;
 
 int OnInit()
 {
@@ -56,35 +46,33 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    TS = new TradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
+    TS = new TradingSession(16, 30, 19, 0);
 
-    GTBuys = new GridTracker("Buys", MaxLevels, OrderHelper::PipsToRange(LevelPips));
-    GTSells = new GridTracker("Sells", MaxLevels, OrderHelper::PipsToRange(LevelPips));
+    SODHBuys = new StartOfDayHedge(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                   RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
-    TGBuys = new TimeGrid(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                          ExitWriter, ErrorWriter, GTBuys);
+    SODHBuys.mTrailStopLossPips = TrailStopLossPips;
+    SODHBuys.AddTradingSession(TS);
+    SODHBuys.AddPartial(2, 50);
+    SODHBuys.AddPartial(5, 100);
+    SODHBuys.SetPartialCSVRecordWriter(PartialWriter);
 
-    TGBuys.mLotSize = LotSize;
-    TGBuys.AddTradingSession(TS);
-    TGBuys.SetPartialCSVRecordWriter(PartialWriter);
+    SODHSells = new StartOfDayHedge(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                    RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
-    TGSells = new TimeGrid(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                           ExitWriter, ErrorWriter, GTSells);
-
-    TGSells.mLotSize = LotSize;
-    TGSells.AddTradingSession(TS);
-    TGSells.SetPartialCSVRecordWriter(PartialWriter);
+    SODHSells.mTrailStopLossPips = TrailStopLossPips;
+    SODHSells.AddTradingSession(TS);
+    SODHSells.AddPartial(2, 50);
+    SODHSells.AddPartial(5, 100);
+    SODHSells.SetPartialCSVRecordWriter(PartialWriter);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete GTBuys;
-    delete GTSells;
-
-    delete TGBuys;
-    delete TGSells;
+    delete SODHBuys;
+    delete SODHSells;
 
     delete EntryWriter;
     delete PartialWriter;
@@ -94,6 +82,6 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    TGBuys.Run();
-    TGSells.Run();
+    SODHBuys.Run();
+    SODHSells.Run();
 }

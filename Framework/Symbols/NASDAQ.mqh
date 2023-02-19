@@ -8,20 +8,16 @@
 #property version "1.00"
 #property strict
 
-class NASDAQ
+#include <WantaCapital\Framework\Symbols\Symbol.mqh>
+
+class NASDAQ : public Symbol
 {
 public:
-    static string BrokerSymbol();
-    static double PipValuePerLot();
+    virtual string BrokerSymbol() { return "US100.cash"; }
+    virtual double PipValuePerLot();
 };
 
-static string NASDAQ::BrokerSymbol()
+double NASDAQ::PipValuePerLot()
 {
-    return "NAS100";
-}
-
-static double NASDAQ::PipValuePerLot()
-{
-    Print("Lot Size: ", MarketInfo(BrokerSymbol(), MODE_LOTSIZE), ", Tick Size: ", MarketInfo(BrokerSymbol(), MODE_TICKSIZE));
     return MarketInfo(BrokerSymbol(), MODE_LOTSIZE) * MarketInfo(BrokerSymbol(), MODE_TICKSIZE) * 10;
 }

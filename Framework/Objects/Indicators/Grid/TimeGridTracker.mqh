@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Objects\GridTracker.mqh>
+#include <WantaCapital\Framework\Objects\Indicators\Grid\GridTracker.mqh>
 
 #include <WantaCapital\Framework\Helpers\DateTimeHelper.mqh>
 #include <WantaCapital\Framework\Helpers\OrderHelper.mqh>
@@ -31,7 +31,7 @@ private:
     void Calculate(int barIndex);
 
 public:
-    TimeGridTracker(int hourStart, int minuteStart, int hourEnd, int minuteEnd, int maxLevel, double levelPips);
+    TimeGridTracker(string additionalNamePrefix, int hourStart, int minuteStart, int hourEnd, int minuteEnd, int maxLevel, double levelPips);
     ~TimeGridTracker();
 
     virtual double BasePrice();
@@ -41,7 +41,8 @@ public:
     virtual void Reset();
 };
 
-TimeGridTracker::TimeGridTracker(int hourStart, int minuteStart, int hourEnd, int minuteEnd, int maxLevel, double levelPips) : GridTracker(maxLevel, levelPips)
+TimeGridTracker::TimeGridTracker(string additionalNamePrefix, int hourStart, int minuteStart, int hourEnd, int minuteEnd, int maxLevel, double levelPips)
+    : GridTracker(additionalNamePrefix, maxLevel, levelPips)
 {
     mObjectNamePrefix = "TimeGrid";
 

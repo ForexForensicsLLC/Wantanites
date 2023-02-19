@@ -8,8 +8,6 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Helpers\OrderHelper.mqh>
-
 class GridTracker
 {
 protected:
@@ -30,11 +28,12 @@ protected:
 
 public:
     GridTracker(string additionalNamePrefix);
-    GridTracker(string additionalNamePrefix, int maxLevels, double levelPips);
-    GridTracker(string additionalNamePrefix, int maxUpperLevels, int maxLowerLevels, double levelPips);
+    GridTracker(string additionalNamePrefix, int maxLevels, double levelDistance);
+    GridTracker(string additionalNamePrefix, int maxUpperLevels, int maxLowerLevels, double levelDistance);
     ~GridTracker();
 
     void ReInit(double basePrice, int maxUpperLevels, int maxLowerLevel, double upperLevelDistance, double lowerLevelDistance);
+    void UpdateBasePrice(double basePrice);
 
     int MaxUpperLevels() { return mMaxUpperLevel; }
     int MaxLowerLevels() { return mMaxLowerLevel; }
@@ -96,6 +95,15 @@ void GridTracker::InternalInit(double basePrice, int maxUpperLevels, int maxLowe
 void GridTracker::ReInit(double basePrice, int maxUpperLevels, int maxLowerLevel, double upperLevelDistance, double lowerLevelDistance)
 {
     InternalInit(basePrice, maxUpperLevels, maxLowerLevel, upperLevelDistance, lowerLevelDistance);
+}
+
+void GridTracker::UpdateBasePrice(double basePrice)
+{
+    mCurrentLevel = 0;
+    mBasePrice = basePrice;
+
+    mDrawn = false;
+    ObjectsDeleteAll(ChartID(), mObjectNamePrefix);
 }
 
 bool GridTracker::AtMaxLevel()
@@ -221,6 +229,6 @@ void GridTracker::Reset()
     mUpperLevelDistance = 0.0;
     mLowerLevelDistance = 0.0;
 
-    ObjectsDeleteAll(ChartID(), mObjectNamePrefix);
     mDrawn = false;
+    ObjectsDeleteAll(ChartID(), mObjectNamePrefix);
 }

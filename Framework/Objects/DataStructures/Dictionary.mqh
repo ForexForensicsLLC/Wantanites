@@ -24,6 +24,9 @@ public:
 
     T operator[](int index) { return mKeys[index]; }
 
+    T GetKey(int index) { return mKeys[index]; }
+    U GetValue(int index) { return mValues[index]; }
+
     // adds an item to the end of the list
     void Add(T key, U value);
 
