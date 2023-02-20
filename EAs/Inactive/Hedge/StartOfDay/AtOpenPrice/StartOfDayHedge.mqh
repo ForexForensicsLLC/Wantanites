@@ -264,5 +264,5 @@ void StartOfDayHedge::Reset()
     mStopTrading = false;
     mHasSetup = false;
 
-    // EAHelper::CloseAllCurrentAndPendingTickets<StartOfDayHedge>(this);
+    EAHelper::CloseAllCurrentAndPendingTickets<StartOfDayHedge>(this);
 }

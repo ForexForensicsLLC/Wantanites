@@ -12,7 +12,7 @@
 #include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
 #include <WantaCapital/EAs/Inactive/TimeRange/TimeRangeBreakout/StartOfDayTimeRangeBreakout.mqh>
 
-string ForcedSymbol = "US100";
+string ForcedSymbol = "GBPCAD";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
@@ -21,8 +21,8 @@ int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
 string StrategyName = "TimeRangeBreakout/";
-string EAName = "Nas/";
-string SetupTypeName = "";
+string EAName = "GC/";
+string SetupTypeName = "Continuation/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -35,9 +35,10 @@ TimeRangeBreakout *TRB;
 StartOfDayTimeRangeBreakout *TRBBuys;
 StartOfDayTimeRangeBreakout *TRBSells;
 
-int CloseHour = 19;
+// UJ
+int CloseHour = 23;
 int CloseMinute = 0;
-double MaxSpreadPips = 25;
+double MaxSpreadPips = 3;
 double StopLossPaddingPips = 0;
 
 int OnInit()
@@ -47,18 +48,19 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    TS = new TradingSession(17, 0, 19, 0);
-    TRB = new TimeRangeBreakout(16, 30, 17, 0);
+    TS = new TradingSession(11, 0, 23, 0);
+    // shold be 1 - 3 am my time
+    TRB = new TimeRangeBreakout(9, 0, 11, 0);
 
-    TRBBuys = new StartOfDayTimeRangeBreakout(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                              ExitWriter, ErrorWriter, TRB);
+    TRBBuys = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                              RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
 
     TRBBuys.mCloseHour = CloseHour;
     TRBBuys.mCloseMinute = CloseMinute;
     TRBBuys.AddTradingSession(TS);
 
-    TRBSells = new StartOfDayTimeRangeBreakout(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                               ExitWriter, ErrorWriter, TRB);
+    TRBSells = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
+                                               MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
 
     TRBSells.mCloseHour = CloseHour;
     TRBSells.mCloseMinute = CloseMinute;
@@ -69,6 +71,7 @@ int OnInit()
 
 void OnDeinit(const int reason)
 {
+    delete TS;
     delete TRB;
 
     delete TRBBuys;

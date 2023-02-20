@@ -18,8 +18,6 @@
 #include <WantaCapital\Framework\Helpers\ScreenShotHelper.mqh>
 #include <WantaCapital\Framework\Helpers\CandleStickHelper.mqh>
 
-#include <WantaCapital\Framework\Objects\Indicators\Time\TimeRangeBreakout.mqh>
-
 #include <WantaCapital\Framework\Objects\Indicators\MB\LiquidationSetupTracker.mqh>
 
 class EAHelper
@@ -108,6 +106,9 @@ public:
     static bool MostRecentCandleBrokeTimeRange(TEA &ea);
     template <typename TEA>
     static bool HasTimeRangeBreakoutReversal(TEA &ea);
+
+    template <typename TEA>
+    static bool MostRecentCandleBrokeDateRange(TEA &ea);
 
     // =========================================================================
     // Check Invalidate Setup
@@ -1515,6 +1516,21 @@ static bool EAHelper::HasTimeRangeBreakoutReversal(TEA &ea)
     else if (ea.SetupType() == OP_SELL)
     {
         return ea.mTRB.BrokeRangeHigh();
+    }
+
+    return false;
+}
+
+template <typename TEA>
+static bool EAHelper::MostRecentCandleBrokeDateRange(TEA &ea)
+{
+    if (ea.SetupType() == OP_BUY)
+    {
+        return ea.mDRB.MostRecentCandleBrokeRangeHigh();
+    }
+    else if (ea.SetupType() == OP_SELL)
+    {
+        return ea.mDRB.MostRecentCandleBrokeRangeLow();
     }
 
     return false;

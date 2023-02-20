@@ -36,7 +36,7 @@ StartOfDayHedge *SODHSells;
 TradingSession *TS;
 
 double MaxSpreadPips = 10;
-double StopLossPaddingPips = 10000;
+double StopLossPaddingPips = 1000;
 double TrailStopLossPips = 500;
 
 int OnInit()
@@ -53,8 +53,6 @@ int OnInit()
 
     SODHBuys.mTrailStopLossPips = TrailStopLossPips;
     SODHBuys.AddTradingSession(TS);
-    SODHBuys.AddPartial(2, 50);
-    SODHBuys.AddPartial(5, 100);
     SODHBuys.SetPartialCSVRecordWriter(PartialWriter);
 
     SODHSells = new StartOfDayHedge(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
@@ -62,8 +60,6 @@ int OnInit()
 
     SODHSells.mTrailStopLossPips = TrailStopLossPips;
     SODHSells.AddTradingSession(TS);
-    SODHSells.AddPartial(2, 50);
-    SODHSells.AddPartial(5, 100);
     SODHSells.SetPartialCSVRecordWriter(PartialWriter);
 
     return (INIT_SUCCEEDED);
