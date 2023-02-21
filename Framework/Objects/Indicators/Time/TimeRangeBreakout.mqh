@@ -185,8 +185,8 @@ void TimeRangeBreakout::Calculate(int barIndex)
 
 void TimeRangeBreakout::Reset()
 {
-    mRangeStartTime = DateTimeHelper::HourMinuteToDateTime(mRangeHourStartTime, mRangeMinuteStartTime);
-    mRangeEndTime = DateTimeHelper::HourMinuteToDateTime(mRangeHourEndTime, mRangeMinuteEndTime);
+    mRangeStartTime = DateTimeHelper::HourMinuteToDateTime(mRangeHourStartTime, mRangeMinuteStartTime, Day());
+    mRangeEndTime = DateTimeHelper::HourMinuteToDateTime(mRangeHourEndTime, mRangeMinuteEndTime, Day());
 
     mUpdateRangeStart = true;
     mUpdateRangeEnd = true;

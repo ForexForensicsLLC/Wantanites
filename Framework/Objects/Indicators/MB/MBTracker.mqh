@@ -52,19 +52,11 @@ private:
     int MostRecentMBIndex() { return mMBsToTrack - mCurrentMBs; }
 
     // --- MB Creation Methods ---
-    // Tested
     void CheckMostRecentMBIsBroken(int barIndex);
     void CalculateMB(int barIndex);
-
     bool IsEngulfingCandle(int mbType, int index);
-
-    // Tested
     void CheckSetRetracement(int startingIndex, int mbType, int prevMBType);
-
-    // Tested
     void CheckSetPendingMB(int startingIndex, int mbType);
-
-    // Tested
     void CreateMB(int mbType, int startIndex, int endIndex, int highIndex, int lowIndex);
     void ResetTracking();
 
@@ -134,6 +126,8 @@ public:
 
     // -- Zone Display Methods --
     void DrawZonesForNMostRecentMBs(int nMBs);
+
+    void Clear();
 };
 
 // ##############################################################
@@ -182,7 +176,7 @@ void MBTracker::Update()
         for (int i = limit; i > 0; i--)
         {
             // This is added so that the inital load of MBs still functions as usual
-            if (/*mInitialLoad &&*/ mMBsCreated > 0)
+            if (/*mInitialLoad &&*/ mCurrentMBs > 0)
             {
                 CheckMostRecentMBIsBroken(i);
             }
@@ -625,7 +619,7 @@ void MBTracker::CreateMB(int mbType, int startIndex, int endIndex, int highIndex
 }
 
 // method that resets all tracking
-void MBTracker::ResetTracking(void)
+void MBTracker::ResetTracking()
 {
     mPendingBullishMB = false;
     mPendingBearishMB = false;
@@ -774,7 +768,7 @@ bool MBTracker::GetNthMostRecentMB(int nthMB, MBState *&mbState)
 
     if (nthMB >= mCurrentMBs)
     {
-        Print("Nth MB, ", nthMB, ", is further than current MBs, ", mCurrentMBs);
+        // Print("Nth MB, ", nthMB, ", is further than current MBs, ", mCurrentMBs);
         return false;
     }
 
@@ -866,7 +860,7 @@ int MBTracker::GetNthMostRecentMBsType(int nthMB)
 
     if (nthMB >= mCurrentMBs)
     {
-        Print("Nth MB, ", nthMB, ", is further than current MBs, ", mCurrentMBs);
+        // Print("Nth MB, ", nthMB, ", is further than current MBs, ", mCurrentMBs);
         return false;
     }
 
@@ -976,7 +970,7 @@ bool MBTracker::MBIsMostRecent(int mbNumber)
 {
     Update();
 
-    if (mMBsCreated <= 0)
+    if (mCurrentMBs <= 0)
     {
         return false;
     }
@@ -1224,4 +1218,17 @@ void MBTracker::DrawZonesForNMostRecentMBs(int nMBs)
     {
         mMBs[i].DrawZones(mPrintErrors);
     }
+}
+
+void MBTracker::Clear()
+{
+    for (int i = MostRecentMBIndex(); i < mMBsToTrack; i++)
+    {
+        delete mMBs[i];
+    }
+
+    mCurrentMBs = 0;
+    mMBsCreated = 0;
+
+    ResetTracking();
 }

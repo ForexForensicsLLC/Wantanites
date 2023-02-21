@@ -8,6 +8,7 @@
 #property version "1.00"
 #property strict
 
+#include <WantaCapital\Framework\Helpers\DateTimeHelper.mqh>
 #include <WantaCapital\Framework\Objects\DataStructures\List.mqh>
 
 enum DayOfWeekEnum
@@ -188,12 +189,6 @@ bool TradingSession::WithinHourMinute()
     {
         return true;
     }
-
-    // int currentTime = (Hour() * 59) + Minute();
-    // int startTime = (mHourStart * 59) + mMinuteStart;
-    // int endTime = (mExclusiveHourEnd * 59) + mExclusiveMinuteEnd;
-
-    // return currentTime >= startTime && currentTime < endTime;
 
     datetime startTime = DateTimeHelper::HourMinuteToDateTime(mHourStart, mMinuteStart, Day());
     datetime endTime = DateTimeHelper::HourMinuteToDateTime(mExclusiveHourEnd, mExclusiveMinuteEnd, Day());

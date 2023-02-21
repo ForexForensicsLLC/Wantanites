@@ -26,6 +26,7 @@ string SetupTypeName = "Continuation/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
+CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>(Directory + "Partials/", "Partials.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
@@ -33,6 +34,9 @@ TradingSession *TS;
 
 DateRangeBreakout *DRBBuys;
 DateRangeBreakout *DRBSells;
+
+GridTracker *GTBuys;
+GridTracker *GTSells;
 
 DateRangeBreakoutContinuation *DRBCBuys;
 DateRangeBreakoutContinuation *DRBCSells;
@@ -56,19 +60,28 @@ int OnInit()
     DRBBuys = new DateRangeBreakout(12, 16, Year(), 2, 1, Year() + 1);
     DRBSells = new DateRangeBreakout(12, 16, Year(), 2, 1, Year() + 1);
 
+    GTBuys = new GridTracker("Buys", 50, 1, OrderHelper::PipsToRange(100));
+    GTSells = new GridTracker("Sells", 1, 50, OrderHelper::PipsToRange(100));
+
     DRBCBuys = new DateRangeBreakoutContinuation(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
-                                                 RiskPercent, EntryWriter, ExitWriter, ErrorWriter, DRBBuys);
+                                                 RiskPercent, EntryWriter, ExitWriter, ErrorWriter, DRBBuys, GTBuys);
 
     DRBCBuys.mCloseDay = CloseDay;
     DRBCBuys.mCloseMonth = CloseMonth;
     DRBCBuys.AddTradingSession(TS);
 
+    DRBCBuys.AddPartial(10, 50);
+    DRBCBuys.SetPartialCSVRecordWriter(PartialWriter);
+
     DRBCSells = new DateRangeBreakoutContinuation(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
-                                                  MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, DRBSells);
+                                                  MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, DRBSells, GTSells);
 
     DRBCSells.mCloseDay = CloseDay;
     DRBCSells.mCloseMonth = CloseMonth;
     DRBCSells.AddTradingSession(TS);
+
+    DRBCSells.AddPartial(10, 50);
+    DRBCSells.SetPartialCSVRecordWriter(PartialWriter);
 
     return (INIT_SUCCEEDED);
 }
@@ -76,13 +89,18 @@ int OnInit()
 void OnDeinit(const int reason)
 {
     delete TS;
+
     delete DRBBuys;
     delete DRBSells;
+
+    delete GTBuys;
+    delete GTSells;
 
     delete DRBCBuys;
     delete DRBCSells;
 
     delete EntryWriter;
+    delete PartialWriter;
     delete ExitWriter;
     delete ErrorWriter;
 }

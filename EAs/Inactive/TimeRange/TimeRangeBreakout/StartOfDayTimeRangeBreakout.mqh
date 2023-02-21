@@ -12,6 +12,8 @@
 #include <WantaCapital\Framework\Helpers\EAHelper.mqh>
 #include <WantaCapital\Framework\Constants\MagicNumbers.mqh>
 
+#include <WantaCapital\Framework\Objects\Indicators\Time\TimeRangeBreakout.mqh>
+
 class StartOfDayTimeRangeBreakout : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
@@ -132,10 +134,10 @@ void StartOfDayTimeRangeBreakout::ManageCurrentPendingSetupTicket(Ticket &ticket
 
 void StartOfDayTimeRangeBreakout::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
-    if (EAHelper::CloseTicketIfPastTime<StartOfDayTimeRangeBreakout>(this, ticket, mCloseHour, mCloseMinute))
-    {
-        return;
-    }
+    // if (EAHelper::CloseTicketIfPastTime<StartOfDayTimeRangeBreakout>(this, ticket, mCloseHour, mCloseMinute))
+    // {
+    //     return;
+    // }
 }
 
 void StartOfDayTimeRangeBreakout::PreManageTickets()
@@ -186,4 +188,5 @@ bool StartOfDayTimeRangeBreakout::ShouldReset()
 void StartOfDayTimeRangeBreakout::Reset()
 {
     mStopTrading = false;
+    EAHelper::CloseAllCurrentAndPendingTickets<StartOfDayTimeRangeBreakout>(this);
 }

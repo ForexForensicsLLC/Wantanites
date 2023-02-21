@@ -35,8 +35,8 @@ TimeRangeBreakout *TRB;
 StartOfDayTimeRangeBreakout *TRBBuys;
 StartOfDayTimeRangeBreakout *TRBSells;
 
-int CloseHour = 19;
-int CloseMinute = 0;
+int CloseHour = 5;
+int CloseMinute = 59;
 double MaxSpreadPips = 25;
 double StopLossPaddingPips = 0;
 
@@ -47,8 +47,10 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    TS = new TradingSession(17, 0, 19, 0);
-    TRB = new TimeRangeBreakout(16, 30, 17, 0);
+    TS = new TradingSession();
+    TS.AddHourMinuteSession(13, 0, 5, 59);
+
+    TRB = new TimeRangeBreakout(6, 0, 13, 0);
 
     TRBBuys = new StartOfDayTimeRangeBreakout(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                                               ExitWriter, ErrorWriter, TRB);

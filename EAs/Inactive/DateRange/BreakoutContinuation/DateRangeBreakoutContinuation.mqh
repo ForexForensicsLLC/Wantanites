@@ -12,20 +12,29 @@
 #include <WantaCapital\Framework\Helpers\EAHelper.mqh>
 #include <WantaCapital\Framework\Constants\MagicNumbers.mqh>
 
+#include <WantaCapital\Framework\Objects\Indicators\Grid\GridTracker.mqh>
 #include <WantaCapital\Framework\Objects\Indicators\Time\DateRangeBreakout.mqh>
 
-class DateRangeBreakoutContinuation : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class DateRangeBreakoutContinuation : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     DateRangeBreakout *mDRB;
+    GridTracker *mGT;
 
     int mCloseMonth;
     int mCloseDay;
 
+    int mLastAchievedLevel;
+    Dictionary<int, int> *mLevelsWithTickets;
+
+    bool mCloseAllTickets;
+    bool mFirstTicket;
+    double mStartingEquity;
+
 public:
     DateRangeBreakoutContinuation(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                                   CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                                  CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, DateRangeBreakout *&drb);
+                                  CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, DateRangeBreakout *&drb, GridTracker *&gt);
     ~DateRangeBreakoutContinuation();
 
     virtual double RiskPercent() { return mRiskPercent; }
@@ -54,13 +63,21 @@ public:
 
 DateRangeBreakoutContinuation::DateRangeBreakoutContinuation(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                                                              CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                                                             CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, DateRangeBreakout *&drb)
+                                                             CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, DateRangeBreakout *&drb, GridTracker *&gt)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mDRB = drb;
+    mGT = gt;
 
     mCloseMonth = 0;
     mCloseDay = 0;
+
+    mLastAchievedLevel = 10000;
+    mLevelsWithTickets = new Dictionary<int, int>();
+
+    mCloseAllTickets = false;
+    mFirstTicket = true;
+    mStartingEquity = 0;
 
     EAHelper::FindSetPreviousAndCurrentSetupTickets<DateRangeBreakoutContinuation>(this);
     EAHelper::SetPreviousSetupTicketsOpenData<DateRangeBreakoutContinuation, SingleTimeFrameEntryTradeRecord>(this);
@@ -68,6 +85,7 @@ DateRangeBreakoutContinuation::DateRangeBreakoutContinuation(int magicNumber, in
 
 DateRangeBreakoutContinuation::~DateRangeBreakoutContinuation()
 {
+    delete mLevelsWithTickets;
 }
 
 void DateRangeBreakoutContinuation::PreRun()
@@ -84,6 +102,7 @@ void DateRangeBreakoutContinuation::CheckSetSetup()
 {
     if (EAHelper::MostRecentCandleBrokeDateRange<DateRangeBreakoutContinuation>(this))
     {
+        mGT.UpdateBasePrice(CurrentTick().Bid());
         mHasSetup = true;
     }
 }
@@ -100,7 +119,13 @@ void DateRangeBreakoutContinuation::InvalidateSetup(bool deletePendingOrder, int
 
 bool DateRangeBreakoutContinuation::Confirmation()
 {
-    return true;
+    if (mGT.CurrentLevel() != mLastAchievedLevel && !mLevelsWithTickets.HasKey(mGT.CurrentLevel()))
+    {
+        mLastAchievedLevel = mGT.CurrentLevel();
+        return true;
+    }
+
+    return false;
 }
 
 void DateRangeBreakoutContinuation::PlaceOrders()
@@ -111,16 +136,35 @@ void DateRangeBreakoutContinuation::PlaceOrders()
     if (SetupType() == OP_BUY)
     {
         entry = CurrentTick().Ask();
-        stopLoss = mDRB.RangeLow();
+        // stopLoss = mGT.LevelPrice(mGT.CurrentLevel() - 2);
     }
     else if (SetupType() == OP_SELL)
     {
         entry = CurrentTick().Bid();
-        stopLoss = mDRB.RangeHigh();
+        // stopLoss = mGT.LevelPrice(mGT.CurrentLevel() + 2);
+    }
+
+    if (mFirstTicket)
+    {
+        mStartingEquity = AccountEquity();
+        mFirstTicket = false;
     }
 
     EAHelper::PlaceMarketOrder<DateRangeBreakoutContinuation>(this, entry, stopLoss);
-    mStopTrading = true;
+    if (!mCurrentSetupTickets.IsEmpty())
+    {
+        mLevelsWithTickets.Add(mGT.CurrentLevel(), mCurrentSetupTickets[0].Number());
+    }
+}
+
+void DateRangeBreakoutContinuation::PreManageTickets()
+{
+    double equityPercentChange = EAHelper::GetTotalPreviousSetupTicketsEquityPercentChange<DateRangeBreakoutContinuation>(this, mStartingEquity);
+    if (equityPercentChange < -15)
+    {
+        mCloseAllTickets = true;
+        mStopTrading = true;
+    }
 }
 
 void DateRangeBreakoutContinuation::ManageCurrentPendingSetupTicket(Ticket &ticket)
@@ -129,19 +173,27 @@ void DateRangeBreakoutContinuation::ManageCurrentPendingSetupTicket(Ticket &tick
 
 void DateRangeBreakoutContinuation::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
-}
+    if (mCloseAllTickets)
+    {
+        ticket.Close();
+    }
 
-void DateRangeBreakoutContinuation::PreManageTickets()
-{
+    EAHelper::MoveToBreakEvenAfterPips<DateRangeBreakoutContinuation>(this, ticket, 100);
 }
 
 bool DateRangeBreakoutContinuation::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    return false;
+    return EAHelper::TicketStopLossIsMovedToBreakEven<DateRangeBreakoutContinuation>(this, ticket);
 }
 
 void DateRangeBreakoutContinuation::ManagePreviousSetupTicket(Ticket &ticket)
 {
+    if (mCloseAllTickets)
+    {
+        ticket.Close();
+    }
+
+    EAHelper::CheckTrailStopLossEveryXPips<DateRangeBreakoutContinuation>(this, ticket, 200, 100);
 }
 
 void DateRangeBreakoutContinuation::CheckCurrentSetupTicket(Ticket &ticket)
@@ -150,6 +202,7 @@ void DateRangeBreakoutContinuation::CheckCurrentSetupTicket(Ticket &ticket)
 
 void DateRangeBreakoutContinuation::CheckPreviousSetupTicket(Ticket &ticket)
 {
+    EAHelper::CheckPartialTicket<DateRangeBreakoutContinuation>(this, ticket);
 }
 
 void DateRangeBreakoutContinuation::RecordTicketOpenData(Ticket &ticket)
@@ -178,9 +231,13 @@ bool DateRangeBreakoutContinuation::ShouldReset()
 
 void DateRangeBreakoutContinuation::Reset()
 {
-    Print("Reset");
     mStopTrading = false;
     InvalidateSetup(false);
+    mLevelsWithTickets.Clear();
+
+    mCloseAllTickets = false;
+    mFirstTicket = true;
+    mStartingEquity = 0;
 
     // the year we start running the program on will be correct for the next range and doeesn't need to be incremented
     if (TimeYear(mDRB.RangeStartTime()) != Year())
