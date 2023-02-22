@@ -50,17 +50,12 @@ MBGridMultiplier *MBGMBuys;
 MBGridMultiplier *MBGMSells;
 
 double StartingNumberOfLevels = 5;
-double MinLevelPips = 5;
+double MinLevelPips = 30;
 double MaxEquityDrawDown = -10;
 double MaxLevels = 20;
 double LevelPips = 10;
 double MaxSpreadPips = 2;
 double StopLossPaddingPips = 0;
-
-int HourStart = 0;
-int MinuteStart = 0;
-int HourEnd = 23;
-int MinuteEnd = 59;
 
 int OnInit()
 {
@@ -72,12 +67,10 @@ int OnInit()
     MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors,
                         CalculateOnTick);
 
-    MBT.DrawNMostRecentMBs(-1);
+    TS = new TradingSession();
 
-    TS = new TradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
-
-    GTBuys = new GridTracker();
-    GTSells = new GridTracker();
+    GTBuys = new GridTracker("Buys");
+    GTSells = new GridTracker("Sells");
 
     MBGMBuys = new MBGridMultiplier(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                                     ExitWriter, ErrorWriter, MBT, GTBuys);

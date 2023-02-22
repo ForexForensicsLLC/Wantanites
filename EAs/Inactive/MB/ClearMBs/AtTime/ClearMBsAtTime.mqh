@@ -21,6 +21,7 @@ public:
     MBTracker *mMBT;
 
     int mFirstMBInSetupNumber;
+    int mLastSetupMBNumber;
 
     bool mClearMBs;
     int mClearHour;
@@ -64,6 +65,7 @@ ClearMBsAtTime::ClearMBsAtTime(int magicNumber, int setupType, int maxCurrentSet
     mMBT = mbt;
 
     mFirstMBInSetupNumber = EMPTY;
+    mLastSetupMBNumber = EMPTY;
 
     mClearMBs = true;
     mClearHour = 0;
@@ -84,6 +86,7 @@ void ClearMBsAtTime::PreRun()
     {
         mMBT.Clear();
         mClearMBs = false;
+        mLastSetupMBNumber = EMPTY;
     }
 
     mMBT.DrawNMostRecentMBs(-1);
@@ -98,6 +101,11 @@ bool ClearMBsAtTime::AllowedToTrade()
 void ClearMBsAtTime::CheckSetSetup()
 {
     if (mMBT.CurrentMBs() <= 0)
+    {
+        return;
+    }
+
+    if (mLastSetupMBNumber == mMBT.MBsCreated() - 1)
     {
         return;
     }
@@ -126,6 +134,23 @@ void ClearMBsAtTime::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO
 
 bool ClearMBsAtTime::Confirmation()
 {
+    // double wickLength = 0.0;
+    // double priceIntoZone = 0.0;
+
+    // if (SetupType() == OP_BUY)
+    // {
+    //     wickLength = MathMin(iOpen(mEntrySymbol, mEntryTimeFrame, 0), CurrentTick().Bid()) - iLow(mEntrySymbol, mEntryTimeFrame, 0);
+    //     priceIntoZone = iLow(mEntrySymbol, mEntryTimeFrame, 0);
+    // }
+    // else if (SetupType() == OP_SELL)
+    // {
+    //     wickLength = iHigh(mEntrySymbol, mEntryTimeFrame, 0) - MathMax(iOpen(mEntrySymbol, mEntryTimeFrame, 0), CurrentTick().Bid());
+    //     priceIntoZone = iHigh(mEntrySymbol, mEntryTimeFrame, 0);
+    // }
+
+    // return OrderHelper::RangeToPips(wickLength) >= 300 &&
+    //        EAHelper::PriceIsFurtherThanPercentIntoHoldingZone<ClearMBsAtTime>(this, mMBT, mFirstMBInSetupNumber, priceIntoZone, .8);
+
     return EAHelper::DojiInsideMostRecentMBsHoldingZone<ClearMBsAtTime>(this, mMBT, mFirstMBInSetupNumber, 1);
 }
 
@@ -152,6 +177,11 @@ void ClearMBsAtTime::PlaceOrders()
     }
 
     EAHelper::PlaceMarketOrder<ClearMBsAtTime>(this, entry, stopLoss);
+    if (!mCurrentSetupTickets.IsEmpty())
+    {
+        mLastSetupMBNumber = mFirstMBInSetupNumber;
+        InvalidateSetup(false);
+    }
 }
 
 void ClearMBsAtTime::PreManageTickets()
@@ -164,11 +194,12 @@ void ClearMBsAtTime::ManageCurrentPendingSetupTicket(Ticket &ticket)
 
 void ClearMBsAtTime::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
+    EAHelper::MoveToBreakEvenAfterPips<ClearMBsAtTime>(this, ticket, 200, 10);
 }
 
 bool ClearMBsAtTime::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    return false;
+    return EAHelper::TicketStopLossIsMovedToBreakEven<ClearMBsAtTime>(this, ticket);
 }
 
 void ClearMBsAtTime::ManagePreviousSetupTicket(Ticket &ticket)
@@ -177,7 +208,7 @@ void ClearMBsAtTime::ManagePreviousSetupTicket(Ticket &ticket)
 
 void ClearMBsAtTime::CheckCurrentSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckPartialTicket<ClearMBsAtTime>(this, ticket);
+    // EAHelper::CheckPartialTicket<ClearMBsAtTime>(this, ticket);
 }
 
 void ClearMBsAtTime::CheckPreviousSetupTicket(Ticket &ticket)
@@ -212,4 +243,5 @@ bool ClearMBsAtTime::ShouldReset()
 void ClearMBsAtTime::Reset()
 {
     mClearMBs = true;
+    EAHelper::CloseAllCurrentAndPreviousSetupTickets<ClearMBsAtTime>(this);
 }

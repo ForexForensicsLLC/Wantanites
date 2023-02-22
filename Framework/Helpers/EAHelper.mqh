@@ -212,7 +212,7 @@ public:
     // Manage All Tickets
     // =========================================================================
     template <typename TEA>
-    static void CloseAllCurrentAndPendingTickets(TEA &ea);
+    static void CloseAllCurrentAndPreviousSetupTickets(TEA &ea);
 
     // =========================================================================
     // Manage Pending Ticket
@@ -2062,7 +2062,7 @@ static void EAHelper::PlaceStopOrderForTheLittleDipper(TEA &ea)
 */
 
 template <typename TEA>
-static void EAHelper::CloseAllCurrentAndPendingTickets(TEA &ea)
+static void EAHelper::CloseAllCurrentAndPreviousSetupTickets(TEA &ea)
 {
     for (int i = ea.mCurrentSetupTickets.Size() - 1; i >= 0; i--)
     {
