@@ -212,6 +212,8 @@ public:
     // Manage All Tickets
     // =========================================================================
     template <typename TEA>
+    static void CloseAllPendingTickets(TEA &ea);
+    template <typename TEA>
     static void CloseAllCurrentAndPreviousSetupTickets(TEA &ea);
 
     // =========================================================================
@@ -2060,6 +2062,39 @@ static void EAHelper::PlaceStopOrderForTheLittleDipper(TEA &ea)
                             |___/
 
 */
+template <typename TEA>
+static void EAHelper::CloseAllPendingTickets(TEA &ea)
+{
+    for (int i = ea.mCurrentSetupTickets.Size() - 1; i >= 0; i--)
+    {
+        bool active = false;
+        int error = ea.mCurrentSetupTickets[i].IsActive(active);
+        if (TerminalErrors::IsTerminalError(error))
+        {
+            ea.RecordError(error);
+        }
+
+        if (!active)
+        {
+            ea.mCurrentSetupTickets[i].Close();
+        }
+    }
+
+    for (int i = ea.mPreviousSetupTickets.Size() - 1; i >= 0; i--)
+    {
+        bool active = false;
+        int error = ea.mPreviousSetupTickets[i].IsActive(active);
+        if (TerminalErrors::IsTerminalError(error))
+        {
+            ea.RecordError(error);
+        }
+
+        if (!active)
+        {
+            ea.mPreviousSetupTickets[i].Close();
+        }
+    }
+}
 
 template <typename TEA>
 static void EAHelper::CloseAllCurrentAndPreviousSetupTickets(TEA &ea)

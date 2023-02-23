@@ -23,9 +23,15 @@ public:
     int mFirstMBInSetupNumber;
     int mLastSetupMBNumber;
 
+    double mMinWickLength;
+
     bool mClearMBs;
     int mClearHour;
     int mClearMinute;
+
+    double mMinStopLossDistance;
+    double mPipsToWaitBeforeBE;
+    double mBEAdditionalPips;
 
 public:
     ClearMBsAtTime(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
@@ -67,9 +73,15 @@ ClearMBsAtTime::ClearMBsAtTime(int magicNumber, int setupType, int maxCurrentSet
     mFirstMBInSetupNumber = EMPTY;
     mLastSetupMBNumber = EMPTY;
 
+    mMinWickLength = 0.0;
+
     mClearMBs = true;
     mClearHour = 0;
     mClearMinute = 0;
+
+    mMinStopLossDistance = 0.0;
+    mPipsToWaitBeforeBE = 0.0;
+    mBEAdditionalPips = 0.0;
 
     EAHelper::FindSetPreviousAndCurrentSetupTickets<ClearMBsAtTime>(this);
     EAHelper::UpdatePreviousSetupTicketsRRAcquried<ClearMBsAtTime, PartialTradeRecord>(this);
@@ -134,30 +146,32 @@ void ClearMBsAtTime::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO
 
 bool ClearMBsAtTime::Confirmation()
 {
-    // double wickLength = 0.0;
+    double wickLength = 0.0;
     // double priceIntoZone = 0.0;
 
-    // if (SetupType() == OP_BUY)
-    // {
-    //     wickLength = MathMin(iOpen(mEntrySymbol, mEntryTimeFrame, 0), CurrentTick().Bid()) - iLow(mEntrySymbol, mEntryTimeFrame, 0);
-    //     priceIntoZone = iLow(mEntrySymbol, mEntryTimeFrame, 0);
-    // }
-    // else if (SetupType() == OP_SELL)
-    // {
-    //     wickLength = iHigh(mEntrySymbol, mEntryTimeFrame, 0) - MathMax(iOpen(mEntrySymbol, mEntryTimeFrame, 0), CurrentTick().Bid());
-    //     priceIntoZone = iHigh(mEntrySymbol, mEntryTimeFrame, 0);
-    // }
+    if (SetupType() == OP_BUY)
+    {
+        wickLength = MathMin(iOpen(mEntrySymbol, mEntryTimeFrame, 0), CurrentTick().Bid()) - iLow(mEntrySymbol, mEntryTimeFrame, 0);
+        // priceIntoZone = iLow(mEntrySymbol, mEntryTimeFrame, 0);
+    }
+    else if (SetupType() == OP_SELL)
+    {
+        wickLength = iHigh(mEntrySymbol, mEntryTimeFrame, 0) - MathMax(iOpen(mEntrySymbol, mEntryTimeFrame, 0), CurrentTick().Bid());
+        // priceIntoZone = iHigh(mEntrySymbol, mEntryTimeFrame, 0);
+    }
 
     // return OrderHelper::RangeToPips(wickLength) >= 300 &&
     //        EAHelper::PriceIsFurtherThanPercentIntoHoldingZone<ClearMBsAtTime>(this, mMBT, mFirstMBInSetupNumber, priceIntoZone, .8);
 
-    return EAHelper::DojiInsideMostRecentMBsHoldingZone<ClearMBsAtTime>(this, mMBT, mFirstMBInSetupNumber, 1);
+    return OrderHelper::RangeToPips(wickLength) >= mMinWickLength &&
+           EAHelper ::DojiInsideMostRecentMBsHoldingZone<ClearMBsAtTime>(this, mMBT, mFirstMBInSetupNumber, 0);
 }
 
 void ClearMBsAtTime::PlaceOrders()
 {
     double entry = 0.0;
     double stopLoss = 0.0;
+    double takeProfit = OrderHelper::PipsToRange(10);
 
     ZoneState *tempZoneState;
     if (!mMBT.GetNthMostRecentMBsClosestValidZone(0, tempZoneState))
@@ -168,15 +182,17 @@ void ClearMBsAtTime::PlaceOrders()
     if (SetupType() == OP_BUY)
     {
         entry = CurrentTick().Ask();
-        stopLoss = MathMin(tempZoneState.ExitPrice(), entry - OrderHelper::PipsToRange(250));
+        stopLoss = MathMin(tempZoneState.ExitPrice(), entry - mMinStopLossDistance);
+        takeProfit = entry + takeProfit;
     }
     else if (SetupType() == OP_SELL)
     {
         entry = CurrentTick().Bid();
-        stopLoss = MathMax(tempZoneState.ExitPrice(), entry + OrderHelper::PipsToRange(250));
+        stopLoss = MathMax(tempZoneState.ExitPrice(), entry + mMinStopLossDistance);
+        takeProfit = entry - takeProfit;
     }
 
-    EAHelper::PlaceMarketOrder<ClearMBsAtTime>(this, entry, stopLoss);
+    EAHelper::PlaceMarketOrder<ClearMBsAtTime>(this, entry, stopLoss, 0.0, SetupType(), takeProfit);
     if (!mCurrentSetupTickets.IsEmpty())
     {
         mLastSetupMBNumber = mFirstMBInSetupNumber;
@@ -194,16 +210,24 @@ void ClearMBsAtTime::ManageCurrentPendingSetupTicket(Ticket &ticket)
 
 void ClearMBsAtTime::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
-    EAHelper::MoveToBreakEvenAfterPips<ClearMBsAtTime>(this, ticket, 200, 10);
+    // EAHelper::MoveToBreakEvenAfterPips<ClearMBsAtTime>(this, ticket, mPipsToWaitBeforeBE, mBEAdditionalPips);
 }
 
 bool ClearMBsAtTime::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    return EAHelper::TicketStopLossIsMovedToBreakEven<ClearMBsAtTime>(this, ticket);
+    datetime openTime = ticket.OpenTime();
+    if (openTime == EMPTY)
+    {
+        return false;
+    }
+
+    return iBarShift(mEntrySymbol, mEntryTimeFrame, openTime) > 0;
+    // return EAHelper::TicketStopLossIsMovedToBreakEven<ClearMBsAtTime>(this, ticket);
 }
 
 void ClearMBsAtTime::ManagePreviousSetupTicket(Ticket &ticket)
 {
+    EAHelper::CloseIfPercentIntoStopLoss<ClearMBsAtTime>(this, ticket, 0.4);
 }
 
 void ClearMBsAtTime::CheckCurrentSetupTicket(Ticket &ticket)

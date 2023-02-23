@@ -562,7 +562,7 @@ static bool SetupHelper::HammerCandleStickPatternBreak(string symbol, int timeFr
 }
 
 // bearish candlestick pattern where a candle wick liqudiates the candle high before it
-// hopint to see price break down after
+// hoping to see price break down after
 static bool SetupHelper::ShootingStarCandleStickPattern(string symbol, int timeFrame, int startingCandle)
 {
     // bool lowNotBelowPrevious = iLow(symbol, timeFrame, startingCandle) > iLow(symbol, timeFrame, startingCandle + 1);

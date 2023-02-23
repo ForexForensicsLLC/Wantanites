@@ -188,5 +188,5 @@ bool StartOfDayTimeRangeBreakout::ShouldReset()
 void StartOfDayTimeRangeBreakout::Reset()
 {
     mStopTrading = false;
-    EAHelper::CloseAllCurrentAndPendingTickets<StartOfDayTimeRangeBreakout>(this);
+    EAHelper::CloseAllCurrentAndPreviousSetupTickets<StartOfDayTimeRangeBreakout>(this);
 }
