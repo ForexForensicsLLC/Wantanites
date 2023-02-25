@@ -10,9 +10,9 @@
 
 #include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
 #include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Inactive/MB/ClearMBs/AtTime/ClearMBsAtTime.mqh>
+#include <WantaCapital/EAs/Inactive/MB/ClearMBs/AtTime/MBBreak/ClearMBsAtTimeMBBreak.mqh>
 
-string ForcedSymbol = "EURUSD";
+string ForcedSymbol = "US100";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
@@ -21,8 +21,8 @@ int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
 string StrategyName = "MB/";
-string EAName = "EU/";
-string SetupTypeName = "ClearMBsAtTime/";
+string EAName = "Nas/";
+string SetupTypeName = "ClearMBsAtTimeMBBreak/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -46,14 +46,12 @@ bool CalculateOnTick = false;
 ClearMBsAtTime *CMBsATBuys;
 ClearMBsAtTime *CMBsATSells;
 
-double MinWickLengthPips = 3;
-int ClearHour = 14;
-int ClearMinute = 45;
-double MaxSpreadPips = 3;
-double StopLossPaddingPips = 0;
-double MinStopLossPips = 7;
-double PipsToWaitBeforeBE = 5;
-double BEAdditionalPips = 1;
+int ClearHour = 16;
+int ClearMinute = 0;
+double MaxSpreadPips = 25;
+double StopLossPaddingPips = 250;
+double PipsToWaitBeforeBE = 200;
+double BEAdditionalPips = 10;
 
 int OnInit()
 {
@@ -63,7 +61,7 @@ int OnInit()
     }
 
     TS = new TradingSession();
-    TS.AddHourMinuteSession(15, 0, 19, 0);
+    TS.AddHourMinuteSession(16, 30, 17, 30);
 
     MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors,
                         CalculateOnTick);
@@ -71,10 +69,8 @@ int OnInit()
     CMBsATBuys = new ClearMBsAtTime(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                                     ExitWriter, ErrorWriter, MBT);
 
-    CMBsATBuys.mMinWickLength = OrderHelper::PipsToRange(MinWickLengthPips);
     CMBsATBuys.mClearHour = ClearHour;
     CMBsATBuys.mClearMinute = ClearMinute;
-    CMBsATBuys.mMinStopLossDistance = OrderHelper::PipsToRange(MinStopLossPips);
     CMBsATBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     CMBsATBuys.mBEAdditionalPips = BEAdditionalPips;
     CMBsATBuys.AddTradingSession(TS);
@@ -84,10 +80,8 @@ int OnInit()
     CMBsATSells = new ClearMBsAtTime(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                                      ExitWriter, ErrorWriter, MBT);
 
-    CMBsATSells.mMinWickLength = OrderHelper::PipsToRange(MinWickLengthPips);
     CMBsATSells.mClearHour = ClearHour;
     CMBsATSells.mClearMinute = ClearMinute;
-    CMBsATSells.mMinStopLossDistance = OrderHelper::PipsToRange(MinStopLossPips);
     CMBsATSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     CMBsATSells.mBEAdditionalPips = BEAdditionalPips;
     CMBsATSells.AddTradingSession(TS);

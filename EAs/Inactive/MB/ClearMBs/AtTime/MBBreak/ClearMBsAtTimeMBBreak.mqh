@@ -122,9 +122,64 @@ void ClearMBsAtTime::CheckSetSetup()
         return;
     }
 
-    if (EAHelper::CheckSetSingleMBSetup<ClearMBsAtTime>(this, mMBT, mFirstMBInSetupNumber, SetupType()))
+    if (EAHelper::CheckSetSingleMBSetup<ClearMBsAtTime>(this, mMBT, mFirstMBInSetupNumber))
     {
-        mHasSetup = true;
+        int currentRetracementIndex = EMPTY;
+
+        MBState *tempMBState;
+        if (!mMBT.GetMB(mFirstMBInSetupNumber, tempMBState))
+        {
+            return;
+        }
+
+        if (SetupType() == OP_BUY)
+        {
+            if (tempMBState.Type() == SetupType())
+            {
+                if (!mMBT.HasPendingBullishMB())
+                {
+                    return;
+                }
+
+                if (!mMBT.CurrentBullishRetracementIndexIsValid(currentRetracementIndex))
+                {
+                    return;
+                }
+
+                if (CurrentTick().Bid() >= iHigh(mEntrySymbol, mEntryTimeFrame, currentRetracementIndex))
+                {
+                    mHasSetup = true;
+                }
+            }
+            else if (CurrentTick().Bid() >= iHigh(mEntrySymbol, mEntryTimeFrame, tempMBState.HighIndex()))
+            {
+                mHasSetup = true;
+            }
+        }
+        else if (SetupType() == OP_SELL)
+        {
+            if (tempMBState.Type() == SetupType())
+            {
+                if (!mMBT.HasPendingBearishMB())
+                {
+                    return;
+                }
+
+                if (!mMBT.CurrentBearishRetracementIndexIsValid(currentRetracementIndex))
+                {
+                    return;
+                }
+
+                if (CurrentTick().Bid() <= iLow(mEntrySymbol, mEntryTimeFrame, currentRetracementIndex))
+                {
+                    mHasSetup = true;
+                }
+            }
+            else if (CurrentTick().Bid() <= iLow(mEntrySymbol, mEntryTimeFrame, tempMBState.LowIndex()))
+            {
+                mHasSetup = true;
+            }
+        }
     }
 }
 
@@ -146,53 +201,63 @@ void ClearMBsAtTime::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO
 
 bool ClearMBsAtTime::Confirmation()
 {
-    double wickLength = 0.0;
-    // double priceIntoZone = 0.0;
+    // int currentRetracementIndex = EMPTY;
+    // bool brokeMB = false;
 
-    if (SetupType() == OP_BUY)
-    {
-        wickLength = MathMin(iOpen(mEntrySymbol, mEntryTimeFrame, 0), CurrentTick().Bid()) - iLow(mEntrySymbol, mEntryTimeFrame, 0);
-        // priceIntoZone = iLow(mEntrySymbol, mEntryTimeFrame, 0);
-    }
-    else if (SetupType() == OP_SELL)
-    {
-        wickLength = iHigh(mEntrySymbol, mEntryTimeFrame, 0) - MathMax(iOpen(mEntrySymbol, mEntryTimeFrame, 0), CurrentTick().Bid());
-        // priceIntoZone = iHigh(mEntrySymbol, mEntryTimeFrame, 0);
-    }
+    // if (SetupType() == OP_BUY)
+    // {
+    //     if (!mMBT.HasPendingBullishMB())
+    //     {
+    //         return false;
+    //     }
 
-    // return OrderHelper::RangeToPips(wickLength) >= 300 &&
-    //        EAHelper::PriceIsFurtherThanPercentIntoHoldingZone<ClearMBsAtTime>(this, mMBT, mFirstMBInSetupNumber, priceIntoZone, .8);
+    //     if (!mMBT.CurrentBullishRetracementIndexIsValid(currentRetracementIndex))
+    //     {
+    //         return false;
+    //     }
 
-    return OrderHelper::RangeToPips(wickLength) >= mMinWickLength &&
-           EAHelper ::DojiInsideMostRecentMBsHoldingZone<ClearMBsAtTime>(this, mMBT, mFirstMBInSetupNumber, 0);
+    //     brokeMB = CurrentTick().Bid() >= iHigh(mEntrySymbol, mEntryTimeFrame, currentRetracementIndex);
+    // }
+    // else if (SetupType() == OP_SELL)
+    // {
+    //     if (!mMBT.HasPendingBearishMB())
+    //     {
+    //         return false;
+    //     }
+
+    //     if (!mMBT.CurrentBearishRetracementIndexIsValid(currentRetracementIndex))
+    //     {
+    //         return false;
+    //     }
+
+    //     brokeMB = CurrentTick().Bid() <= iLow(mEntrySymbol, mEntryTimeFrame, currentRetracementIndex);
+    // }
+
+    // return brokeMB;
+
+    return true;
 }
 
 void ClearMBsAtTime::PlaceOrders()
 {
     double entry = 0.0;
     double stopLoss = 0.0;
-    double takeProfit = OrderHelper::PipsToRange(10);
-
-    ZoneState *tempZoneState;
-    if (!mMBT.GetNthMostRecentMBsClosestValidZone(0, tempZoneState))
-    {
-        return;
-    }
+    // double takeProfit = OrderHelper::PipsToRange(10);
 
     if (SetupType() == OP_BUY)
     {
         entry = CurrentTick().Ask();
-        stopLoss = MathMin(tempZoneState.ExitPrice(), entry - mMinStopLossDistance);
-        takeProfit = entry + takeProfit;
+        stopLoss = entry - OrderHelper::PipsToRange(mStopLossPaddingPips);
+        // takeProfit = entry + takeProfit;
     }
     else if (SetupType() == OP_SELL)
     {
         entry = CurrentTick().Bid();
-        stopLoss = MathMax(tempZoneState.ExitPrice(), entry + mMinStopLossDistance);
-        takeProfit = entry - takeProfit;
+        stopLoss = entry + OrderHelper::PipsToRange(mStopLossPaddingPips);
+        // takeProfit = entry - takeProfit;
     }
 
-    EAHelper::PlaceMarketOrder<ClearMBsAtTime>(this, entry, stopLoss, 0.0, SetupType(), takeProfit);
+    EAHelper::PlaceMarketOrder<ClearMBsAtTime>(this, entry, stopLoss);
     if (!mCurrentSetupTickets.IsEmpty())
     {
         mLastSetupMBNumber = mFirstMBInSetupNumber;
@@ -210,24 +275,17 @@ void ClearMBsAtTime::ManageCurrentPendingSetupTicket(Ticket &ticket)
 
 void ClearMBsAtTime::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
-    // EAHelper::MoveToBreakEvenAfterPips<ClearMBsAtTime>(this, ticket, mPipsToWaitBeforeBE, mBEAdditionalPips);
+    EAHelper::MoveToBreakEvenAfterPips<ClearMBsAtTime>(this, ticket, mPipsToWaitBeforeBE, mBEAdditionalPips);
 }
 
 bool ClearMBsAtTime::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    datetime openTime = ticket.OpenTime();
-    if (openTime == EMPTY)
-    {
-        return false;
-    }
-
-    return iBarShift(mEntrySymbol, mEntryTimeFrame, openTime) > 0;
-    // return EAHelper::TicketStopLossIsMovedToBreakEven<ClearMBsAtTime>(this, ticket);
+    return EAHelper::TicketStopLossIsMovedToBreakEven<ClearMBsAtTime>(this, ticket);
 }
 
 void ClearMBsAtTime::ManagePreviousSetupTicket(Ticket &ticket)
 {
-    EAHelper::CloseIfPercentIntoStopLoss<ClearMBsAtTime>(this, ticket, 0.4);
+    EAHelper::CheckTrailStopLossEveryXPips<ClearMBsAtTime>(this, ticket, 10, 5);
 }
 
 void ClearMBsAtTime::CheckCurrentSetupTicket(Ticket &ticket)

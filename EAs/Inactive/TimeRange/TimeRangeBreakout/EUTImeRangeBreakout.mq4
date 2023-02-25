@@ -35,10 +35,8 @@ TimeRangeBreakout *TRB;
 StartOfDayTimeRangeBreakout *TRBBuys;
 StartOfDayTimeRangeBreakout *TRBSells;
 
-// UJ
-int CloseHour = 23;
-int CloseMinute = 0;
-double MaxSpreadPips = 1.5;
+// EU
+double MaxSpreadPips = 2;
 double StopLossPaddingPips = 0;
 
 int OnInit()
@@ -48,21 +46,16 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    TS = new TradingSession(8, 0, 23, 0);
-    TRB = new TimeRangeBreakout(8, 0, 9, 30);
+    TS = new TradingSession();
+    TS.AddHourMinuteSession(14, 0, 23, 0);
+    TRB = new TimeRangeBreakout(11, 0, 14, 0);
 
-    TRBBuys = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+    TRBBuys = new StartOfDayTimeRangeBreakout(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                               RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
-
-    TRBBuys.mCloseHour = CloseHour;
-    TRBBuys.mCloseMinute = CloseMinute;
     TRBBuys.AddTradingSession(TS);
 
-    TRBSells = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
+    TRBSells = new StartOfDayTimeRangeBreakout(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
                                                MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
-
-    TRBSells.mCloseHour = CloseHour;
-    TRBSells.mCloseMinute = CloseMinute;
     TRBSells.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
@@ -70,7 +63,6 @@ int OnInit()
 
 void OnDeinit(const int reason)
 {
-    delete TS;
     delete TRB;
 
     delete TRBBuys;

@@ -19,9 +19,6 @@ class StartOfDayTimeRangeBreakout : public EA<SingleTimeFrameEntryTradeRecord, E
 public:
     TimeRangeBreakout *mTRB;
 
-    int mCloseHour;
-    int mCloseMinute;
-
 public:
     StartOfDayTimeRangeBreakout(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                                 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
@@ -58,9 +55,6 @@ StartOfDayTimeRangeBreakout::StartOfDayTimeRangeBreakout(int magicNumber, int se
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mTRB = trb;
-
-    mCloseHour = 0;
-    mCloseMinute = 0;
 
     EAHelper::FindSetPreviousAndCurrentSetupTickets<StartOfDayTimeRangeBreakout>(this);
     EAHelper::SetPreviousSetupTicketsOpenData<StartOfDayTimeRangeBreakout, SingleTimeFrameEntryTradeRecord>(this);
@@ -134,10 +128,6 @@ void StartOfDayTimeRangeBreakout::ManageCurrentPendingSetupTicket(Ticket &ticket
 
 void StartOfDayTimeRangeBreakout::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
-    // if (EAHelper::CloseTicketIfPastTime<StartOfDayTimeRangeBreakout>(this, ticket, mCloseHour, mCloseMinute))
-    // {
-    //     return;
-    // }
 }
 
 void StartOfDayTimeRangeBreakout::PreManageTickets()
