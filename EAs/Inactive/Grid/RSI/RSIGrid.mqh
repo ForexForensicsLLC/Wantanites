@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                    AlwaysGrid.mqh |
+//|                                                    RSIGrid.mqh |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -15,7 +15,7 @@
 #include <WantaCapital\Framework\Objects\Indicators\Grid\GridTracker.mqh>
 #include <WantaCapital\Framework\Objects\DataStructures\Dictionary.mqh>
 
-class AlwaysGrid : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class RSIGrid : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     GridTracker *mGT;
@@ -36,10 +36,13 @@ public:
     datetime mFurthestEquityDrawDownTime;
 
 public:
-    AlwaysGrid(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-               CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-               CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, GridTracker *&gt);
-    ~AlwaysGrid();
+    RSIGrid(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+            CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+            CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, GridTracker *&gt);
+    ~RSIGrid();
+
+    double RSI(int index) { return iRSI(mEntrySymbol, mEntryTimeFrame, 14, PRICE_CLOSE, index); }
+    double EMA(int index) { return iMA(mEntrySymbol, 1440, 200, 0, MODE_EMA, PRICE_CLOSE, index); }
 
     virtual double RiskPercent() { return mRiskPercent; }
 
@@ -65,9 +68,9 @@ public:
     virtual void Reset();
 };
 
-AlwaysGrid::AlwaysGrid(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                       CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                       CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, GridTracker *&gt)
+RSIGrid::RSIGrid(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+                 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                 CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, GridTracker *&gt)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mGT = gt;
@@ -87,33 +90,37 @@ AlwaysGrid::AlwaysGrid(int magicNumber, int setupType, int maxCurrentSetupTrades
     mFurthestEquityDrawDownPercent = 0.0;
     mFurthestEquityDrawDownTime = 0;
 
-    EAHelper::FindSetPreviousAndCurrentSetupTickets<AlwaysGrid>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<AlwaysGrid, SingleTimeFrameEntryTradeRecord>(this);
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<RSIGrid>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<RSIGrid, SingleTimeFrameEntryTradeRecord>(this);
 }
 
-AlwaysGrid::~AlwaysGrid()
+RSIGrid::~RSIGrid()
 {
     Print("Magic Number: ", MagicNumber(), ", Furthest Equity DD Percent: ", mFurthestEquityDrawDownPercent, " at ", TimeToStr(mFurthestEquityDrawDownTime));
     delete mLevelsWithTickets;
 }
 
-void AlwaysGrid::PreRun()
+void RSIGrid::PreRun()
 {
     mGT.Draw();
 }
 
-bool AlwaysGrid::AllowedToTrade()
+bool RSIGrid::AllowedToTrade()
 {
-    return EAHelper::BelowSpread<AlwaysGrid>(this);
+    return EAHelper::BelowSpread<RSIGrid>(this);
 }
 
-void AlwaysGrid::CheckSetSetup()
+void RSIGrid::CheckSetSetup()
 {
-    mGT.UpdateBasePrice(CurrentTick().Bid());
-    mHasSetup = true;
+    bool setup = (SetupType() == OP_BUY && RSI(0) <= 70 && CurrentTick().Bid() > EMA(0)) || (SetupType() == OP_SELL && RSI(0) >= 70 && CurrentTick().Bid() < EMA(0));
+    if (setup)
+    {
+        mGT.UpdateBasePrice(CurrentTick().Bid());
+        mHasSetup = true;
+    }
 }
 
-void AlwaysGrid::CheckInvalidateSetup()
+void RSIGrid::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
@@ -123,10 +130,9 @@ void AlwaysGrid::CheckInvalidateSetup()
     }
 }
 
-void AlwaysGrid::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void RSIGrid::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
-    Print("Invalidate Setup");
-    EAHelper::InvalidateSetup<AlwaysGrid>(this, deletePendingOrder, mStopTrading, error);
+    EAHelper::InvalidateSetup<RSIGrid>(this, deletePendingOrder, mStopTrading, error);
 
     mFirstTrade = true;
     mPreviousAchievedLevel = 1000;
@@ -136,7 +142,7 @@ void AlwaysGrid::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERR
     mLevelsWithTickets.Clear();
 }
 
-bool AlwaysGrid::Confirmation()
+bool RSIGrid::Confirmation()
 {
     if (mGT.AtMaxLevel())
     {
@@ -152,7 +158,7 @@ bool AlwaysGrid::Confirmation()
     return false;
 }
 
-void AlwaysGrid::PlaceOrders()
+void RSIGrid::PlaceOrders()
 {
     double entry = 0.0;
     double stopLoss = 0.0;
@@ -178,28 +184,28 @@ void AlwaysGrid::PlaceOrders()
     int increaseLotSizeTimes = MathFloor(mPreviousSetupTickets.Size() / mIncreaseLotSizePeriod);
     double lotSize = mStartingLotSize * MathPow(mIncreaseLotSizeFactor, increaseLotSizeTimes);
 
-    EAHelper::PlaceMarketOrder<AlwaysGrid>(this, entry, stopLoss, lotSize);
+    EAHelper::PlaceMarketOrder<RSIGrid>(this, entry, stopLoss, lotSize);
     if (!mCurrentSetupTickets.IsEmpty())
     {
         mLevelsWithTickets.Add(mGT.CurrentLevel(), mCurrentSetupTickets[0].Number());
     }
 }
 
-void AlwaysGrid::PreManageTickets()
+void RSIGrid::PreManageTickets()
 {
     if (mCloseAllTickets)
     {
         return;
     }
 
-    double equityPercentChange = EAHelper::GetTotalPreviousSetupTicketsEquityPercentChange<AlwaysGrid>(this, mStartingEquity);
+    double equityPercentChange = EAHelper::GetTotalPreviousSetupTicketsEquityPercentChange<RSIGrid>(this, mStartingEquity);
     if (equityPercentChange < mFurthestEquityDrawDownPercent)
     {
         mFurthestEquityDrawDownPercent = equityPercentChange;
         mFurthestEquityDrawDownTime = TimeCurrent();
     }
 
-    if (equityPercentChange <= mMaxEquityDrawDownPercent /* || equityPercentChange >= .1*/)
+    if (equityPercentChange <= mMaxEquityDrawDownPercent /*|| equityPercentChange >= .2*/)
     {
         mCloseAllTickets = true;
         return;
@@ -233,20 +239,20 @@ void AlwaysGrid::PreManageTickets()
     }
 }
 
-void AlwaysGrid::ManageCurrentPendingSetupTicket(Ticket &ticket)
+void RSIGrid::ManageCurrentPendingSetupTicket(Ticket &ticket)
 {
 }
 
-void AlwaysGrid::ManageCurrentActiveSetupTicket(Ticket &ticket)
+void RSIGrid::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
 }
 
-bool AlwaysGrid::MoveToPreviousSetupTickets(Ticket &ticket)
+bool RSIGrid::MoveToPreviousSetupTickets(Ticket &ticket)
 {
     return true;
 }
 
-void AlwaysGrid::ManagePreviousSetupTicket(Ticket &ticket)
+void RSIGrid::ManagePreviousSetupTicket(Ticket &ticket)
 {
     if (mCloseAllTickets)
     {
@@ -267,11 +273,11 @@ void AlwaysGrid::ManagePreviousSetupTicket(Ticket &ticket)
     }
 }
 
-void AlwaysGrid::CheckCurrentSetupTicket(Ticket &ticket)
+void RSIGrid::CheckCurrentSetupTicket(Ticket &ticket)
 {
 }
 
-void AlwaysGrid::CheckPreviousSetupTicket(Ticket &ticket)
+void RSIGrid::CheckPreviousSetupTicket(Ticket &ticket)
 {
     bool isClosed = false;
     ticket.IsClosed(isClosed);
@@ -281,30 +287,30 @@ void AlwaysGrid::CheckPreviousSetupTicket(Ticket &ticket)
     }
 }
 
-void AlwaysGrid::RecordTicketOpenData(Ticket &ticket)
+void RSIGrid::RecordTicketOpenData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameEntryTradeRecord<AlwaysGrid>(this, ticket);
+    EAHelper::RecordSingleTimeFrameEntryTradeRecord<RSIGrid>(this, ticket);
 }
 
-void AlwaysGrid::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
+void RSIGrid::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
 }
 
-void AlwaysGrid::RecordTicketCloseData(Ticket &ticket)
+void RSIGrid::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameExitTradeRecord<AlwaysGrid>(this, ticket, Period());
+    EAHelper::RecordSingleTimeFrameExitTradeRecord<RSIGrid>(this, ticket, Period());
 }
 
-void AlwaysGrid::RecordError(int error, string additionalInformation = "")
+void RSIGrid::RecordError(int error, string additionalInformation = "")
 {
-    EAHelper::RecordSingleTimeFrameErrorRecord<AlwaysGrid>(this, error, additionalInformation);
+    EAHelper::RecordSingleTimeFrameErrorRecord<RSIGrid>(this, error, additionalInformation);
 }
 
-bool AlwaysGrid::ShouldReset()
+bool RSIGrid::ShouldReset()
 {
     return false;
 }
 
-void AlwaysGrid::Reset()
+void RSIGrid::Reset()
 {
 }

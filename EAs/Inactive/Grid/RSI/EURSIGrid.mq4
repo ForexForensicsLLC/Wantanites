@@ -10,7 +10,7 @@
 
 #include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
 #include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Inactive/Grid/AlwaysGrid/AlwaysGrid.mqh>
+#include <WantaCapital/EAs/Inactive/Grid/RSI/RSIGrid.mqh>
 
 string ForcedSymbol = "EURUSD";
 int ForcedTimeFrame = 60;
@@ -22,7 +22,7 @@ int MaxTradesPerDay = 5;
 
 string StrategyName = "Grid/";
 string EAName = "EU/";
-string SetupTypeName = "AlwaysGrid/";
+string SetupTypeName = "RSIGrid/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -34,8 +34,8 @@ CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<S
 GridTracker *GTBuys;
 GridTracker *GTSells;
 
-AlwaysGrid *MBGMBuys;
-AlwaysGrid *MBGMSells;
+RSIGrid *MBGMBuys;
+RSIGrid *MBGMSells;
 
 double MaxOppositeLevels = 50;
 double LevelDistance = OrderHelper::PipsToRange(30);
@@ -58,13 +58,11 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    // TS = new TradingSession();
-
     GTBuys = new GridTracker("Buys", 1, MaxOppositeLevels, LevelDistance, LevelDistance);
     GTSells = new GridTracker("Sells", MaxOppositeLevels, 1, LevelDistance, LevelDistance);
 
-    MBGMBuys = new AlwaysGrid(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                              ExitWriter, ErrorWriter, GTBuys);
+    MBGMBuys = new RSIGrid(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                           ExitWriter, ErrorWriter, GTBuys);
 
     MBGMBuys.mStartingLotSize = StartingLotSize;
     MBGMBuys.mIncreaseLotSizePeriod = IncreaseLotSizePeriod;
@@ -72,8 +70,8 @@ int OnInit()
     MBGMBuys.mMaxEquityDrawDownPercent = MaxEquityDrawDownPercent;
     // MBGMBuys.AddTradingSession(TS);
 
-    MBGMSells = new AlwaysGrid(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                               ExitWriter, ErrorWriter, GTSells);
+    MBGMSells = new RSIGrid(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                            ExitWriter, ErrorWriter, GTSells);
 
     MBGMSells.mStartingLotSize = StartingLotSize;
     MBGMSells.mIncreaseLotSizePeriod = IncreaseLotSizePeriod;
