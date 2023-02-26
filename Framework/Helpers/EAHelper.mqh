@@ -2885,8 +2885,15 @@ static double EAHelper::GetTotalPreviousSetupTicketsEquityPercentChange(TEA &ea,
         }
     }
 
-    double currentEquity = AccountBalance() + profits;
-    return (currentEquity - startingEquity) / currentEquity * 100;
+    double finalEquity = startingEquity + profits;
+
+    // can happen if we don't have any tickets and we haven't set the starting equity yet
+    if (finalEquity == 0)
+    {
+        return 0;
+    }
+
+    return (finalEquity - startingEquity) / finalEquity * 100;
 }
 /*
 

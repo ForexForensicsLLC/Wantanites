@@ -29,7 +29,7 @@ protected:
 public:
     GridTracker(string additionalNamePrefix);
     GridTracker(string additionalNamePrefix, int maxLevels, double levelDistance);
-    GridTracker(string additionalNamePrefix, int maxUpperLevels, int maxLowerLevels, double levelDistance);
+    GridTracker(string additionalNamePrefix, int maxUpperLevels, int maxLowerLevels, double upperLevelDistance, double lowerLevelDistance);
     ~GridTracker();
 
     void ReInit(double basePrice, int maxUpperLevels, int maxLowerLevel, double upperLevelDistance, double lowerLevelDistance);
@@ -57,16 +57,16 @@ GridTracker::GridTracker(string additionalNamePrefix)
     Reset();
 }
 
-GridTracker::GridTracker(string additionalNamePrefix, int maxLevels, double levelPips)
+GridTracker::GridTracker(string additionalNamePrefix, int maxLevels, double levelDistance)
 {
     SetObjectNamePrefix(additionalNamePrefix);
-    InternalInit(0.0, maxLevels, maxLevels, levelPips, levelPips);
+    InternalInit(0.0, maxLevels, maxLevels, levelDistance, levelDistance);
 }
 
-GridTracker::GridTracker(string additionalNamePrefix, int maxUpperLevels, int maxLowerLevels, double levelPips)
+GridTracker::GridTracker(string additionalNamePrefix, int maxUpperLevels, int maxLowerLevels, double upperLevelDistance, double lowerLevelDistance)
 {
     SetObjectNamePrefix(additionalNamePrefix);
-    InternalInit(0.0, maxUpperLevels, maxLowerLevels, levelPips, levelPips);
+    InternalInit(0.0, maxUpperLevels, maxLowerLevels, upperLevelDistance, lowerLevelDistance);
 }
 
 GridTracker::~GridTracker()
@@ -135,9 +135,13 @@ int GridTracker::CurrentLevel()
         if (mUpperLevelDistance != 0)
         {
             currentPlace = (currentTick.bid - mBasePrice) / mUpperLevelDistance;
-            if (currentPlace >= mCurrentLevel + 1 && currentPlace <= mMaxUpperLevel)
+            if (currentPlace >= mCurrentLevel + 1 && mCurrentLevel + 1 <= mMaxUpperLevel)
             {
                 mCurrentLevel += 1;
+            }
+            else if (currentPlace <= mCurrentLevel - 1)
+            {
+                mCurrentLevel -= 1;
             }
         }
     }
@@ -146,9 +150,13 @@ int GridTracker::CurrentLevel()
         if (mLowerLevelDistance != 0)
         {
             currentPlace = (currentTick.bid - mBasePrice) / mLowerLevelDistance;
-            if (currentPlace <= mCurrentLevel - 1 && currentPlace >= mMaxLowerLevel)
+            if (currentPlace <= mCurrentLevel - 1 && mCurrentLevel - 1 >= mMaxLowerLevel)
             {
                 mCurrentLevel -= 1;
+            }
+            else if (currentPlace >= mCurrentLevel + 1)
+            {
+                mCurrentLevel += 1;
             }
         }
     }

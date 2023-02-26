@@ -10,7 +10,7 @@
 
 #include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
 #include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Inactive/MB/ClearMBs/AtTime/ClearMBsAtTime.mqh>
+#include <WantaCapital/EAs/Inactive/MB/ClearMBs/AtTime/Doji/ClearMBsAtTime.mqh>
 
 string ForcedSymbol = "EURUSD";
 int ForcedTimeFrame = 5;
