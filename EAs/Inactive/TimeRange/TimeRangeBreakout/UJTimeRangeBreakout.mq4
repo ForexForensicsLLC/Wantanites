@@ -26,18 +26,17 @@ string SetupTypeName = "Continuation/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
-CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>(Directory + "Partials/", "Partials.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
+
+TradingSession *TS;
 
 TimeRangeBreakout *TRB;
 StartOfDayTimeRangeBreakout *TRBBuys;
 StartOfDayTimeRangeBreakout *TRBSells;
 
 // UJ
-int CloseHour = 23;
-int CloseMinute = 0;
-double MaxSpreadPips = 1.5;
+double MaxSpreadPips = 3;
 double StopLossPaddingPips = 0;
 
 int OnInit()
@@ -47,25 +46,17 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
+    TS = new TradingSession();
+    TS.AddHourMinuteSession(2, 0, 23, 0);
+
     TRB = new TimeRangeBreakout(0, 0, 2, 0);
     TRBBuys = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                               RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
-
-    TRBBuys.SetPartialCSVRecordWriter(PartialWriter);
-
-    TRBBuys.mCloseHour = CloseHour;
-    TRBBuys.mCloseMinute = CloseMinute;
-
-    TRBBuys.AddTradingSession(2, 0, 22, 59);
+    TRBBuys.AddTradingSession(TS);
 
     TRBSells = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
                                                MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
-    TRBSells.SetPartialCSVRecordWriter(PartialWriter);
-
-    TRBSells.mCloseHour = CloseHour;
-    TRBSells.mCloseMinute = CloseMinute;
-
-    TRBSells.AddTradingSession(2, 0, 22, 59);
+    TRBSells.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
 }
@@ -78,7 +69,6 @@ void OnDeinit(const int reason)
     delete TRBSells;
 
     delete EntryWriter;
-    delete PartialWriter;
     delete ExitWriter;
     delete ErrorWriter;
 }

@@ -8,16 +8,16 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
-#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Inactive/PriceRange/PriceRange.mqh>
+#include <WantaCapital/EAs/Inactive/PriceRange/CloseOnCandleClose/CloseOnCandleClosePriceRange.mqh>
+#include <WantaCapital/Framework/Helpers/MailHelper.mqh>
 
-input string SymbolHeader = "US100 Symbol Name. Might Need to adjust for your broker";
-input string ForcedSymbol = "US100";
+input string SymbolHeader = "==== Symbol Info ====";
+input string SymbolInstructions = "US100 Symbol Name. Might Need to adjust for your broker";
+input string SymbolToUse = "US100";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
-input double RiskPercent = 1;
+double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
@@ -33,45 +33,46 @@ CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<S
 PriceRange *PRBuys;
 PriceRange *PRSells;
 
-// Nas
-input string PipHeader = "Pip Values. Based on 2 Decimal Places in Symbol. Might need to adjust for your broker";
+TradingSession *TS;
+
+input string MagicNumbersHeader = "==== Magic Numbers ===";
+input int MagicNumberBuys = -1;
+input int MagicNumberSells = -2;
+
+input string PipHeader = "==== Pip Values ====";
+input string PipInstructions = "Pip Values. Based on 2 Decimal Places in Symbol. Might need to adjust for your broker";
 input double PipsFromOpen = 250;
-// this needs to be higher than the spread before the session since the spread doesn't drop right as the candle opens and we only calaculte once per bar
 input double MaxSpreadPips = 25;
 double StopLossPaddingPips = 0;
 
-input string CloseTime = "Close Ticket Time. Should be equal to 23:00 GMT+3 for default. Might need to adjust for your broker";
-input int CloseHour = 23; // TODO: Switch to 23 when using on my own account for a lot more profits. Using 19 only for Prop Firms
-input int CloseMinute = 0;
-
-input string TradingTime = "Trading Time. Should be equal to 16:30 GMT+3 for default. Might need to adjust for your broker";
+input string TimeHeader = "==== Time Values ====";
+input string TimeInstructions = "Trading Time. Should be equal to 16:30 GMT+3 for default. Might need to adjust for your broker";
 input int HourStart = 16;
 input int MinuteStart = 30;
-input int HourEnd = 16;
-input int MinuteEnd = 35;
+input int HourEnd = 19;
+input int MinuteEnd = 0;
 
 int OnInit()
 {
-    if (!EAHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
+    if (!EAHelper::CheckSymbolAndTimeFrame(SymbolToUse, ForcedTimeFrame))
     {
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    PRBuys = new PriceRange(MagicNumbers::NasMorningPriceRangeBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
+    TS = new TradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
+    TS.ExcludeDay(DayOfWeekEnum::Wednesday);
+
+    PRBuys = new PriceRange(MagicNumberBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
                             EntryWriter, ExitWriter, ErrorWriter);
 
-    PRBuys.mCloseHour = CloseHour;
-    PRBuys.mCloseMinute = CloseMinute;
     PRBuys.mPipsFromOpen = PipsFromOpen;
-    PRBuys.AddTradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
+    PRBuys.AddTradingSession(TS);
 
-    PRSells = new PriceRange(MagicNumbers::NasMorningPriceRangeSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
+    PRSells = new PriceRange(MagicNumberSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
                              EntryWriter, ExitWriter, ErrorWriter);
 
-    PRSells.mCloseHour = CloseHour;
-    PRSells.mCloseMinute = CloseMinute;
     PRSells.mPipsFromOpen = PipsFromOpen;
-    PRSells.AddTradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
+    PRSells.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
 }
@@ -84,6 +85,8 @@ void OnDeinit(const int reason)
     delete EntryWriter;
     delete ExitWriter;
     delete ErrorWriter;
+
+    MailHelper::SendEADeinitEmail(Directory, reason);
 }
 
 void OnTick()

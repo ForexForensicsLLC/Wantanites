@@ -11,11 +11,18 @@
 class DateTimeHelper
 {
 public:
-    static datetime HourMinuteToDateTime(int hour, int minute);
+    static datetime HourMinuteToDateTime(int hour, int minute, int day);
+    static datetime DayMonthYearToDateTime(int day, int month, int year);
 };
 
-datetime DateTimeHelper::HourMinuteToDateTime(int hour, int minute)
+datetime DateTimeHelper::HourMinuteToDateTime(int hour, int minute, int day)
 {
-    string timeString = Year() + "." + Month() + "." + Day() + " " + IntegerToString(hour) + ":" + IntegerToString(minute);
+    string timeString = Year() + "." + Month() + "." + day + " " + IntegerToString(hour) + ":" + IntegerToString(minute);
     return StringToTime(timeString);
+}
+
+datetime DateTimeHelper::DayMonthYearToDateTime(int day, int month, int year)
+{
+    string dateString = IntegerToString(year) + "." + IntegerToString(month) + "." + IntegerToString(day);
+    return StringToTime(dateString);
 }

@@ -20,6 +20,8 @@ public:
 
     void WriteHeaders(int fileHandle);
     virtual void WriteRecord(int fileHandle);
+
+    void ReadRow(int fileHandle);
 };
 
 SingleTimeFrameErrorRecord::SingleTimeFrameErrorRecord() : DefaultErrorRecord()
@@ -41,4 +43,10 @@ void SingleTimeFrameErrorRecord::WriteRecord(int fileHandle)
 {
     DefaultErrorRecord::WriteRecord(fileHandle, true);
     FileHelper::WriteString(fileHandle, ErrorImage);
+}
+
+void SingleTimeFrameErrorRecord::ReadRow(int fileHandle)
+{
+    DefaultErrorRecord::ReadRow(fileHandle);
+    ErrorImage = FileReadString(fileHandle);
 }

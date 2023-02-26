@@ -8,23 +8,16 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\EA\EA.mqh>
+#include <WantaCapital\Framework\Objects\DataObjects\EA.mqh>
 #include <WantaCapital\Framework\Helpers\EAHelper.mqh>
 #include <WantaCapital\Framework\Constants\MagicNumbers.mqh>
 
-class StartOfDayTimeRangeBreakout : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+#include <WantaCapital\Framework\Objects\Indicators\Time\TimeRangeBreakout.mqh>
+
+class StartOfDayTimeRangeBreakout : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     TimeRangeBreakout *mTRB;
-
-    int mEntryTimeFrame;
-    string mEntrySymbol;
-
-    int mBarCount;
-    int mLastDay;
-
-    int mCloseHour;
-    int mCloseMinute;
 
 public:
     StartOfDayTimeRangeBreakout(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
@@ -34,20 +27,21 @@ public:
 
     virtual double RiskPercent() { return mRiskPercent; }
 
-    virtual void Run();
+    virtual void PreRun();
     virtual bool AllowedToTrade();
     virtual void CheckSetSetup();
     virtual void CheckInvalidateSetup();
     virtual void InvalidateSetup(bool deletePendingOrder, int error);
     virtual bool Confirmation();
     virtual void PlaceOrders();
-    virtual void ManageCurrentPendingSetupTicket();
-    virtual void ManageCurrentActiveSetupTicket();
+    virtual void PreManageTickets();
+    virtual void ManageCurrentPendingSetupTicket(Ticket &ticket);
+    virtual void ManageCurrentActiveSetupTicket(Ticket &ticket);
     virtual bool MoveToPreviousSetupTickets(Ticket &ticket);
-    virtual void ManagePreviousSetupTicket(int ticketIndex);
-    virtual void CheckCurrentSetupTicket();
-    virtual void CheckPreviousSetupTicket(int ticketIndex);
-    virtual void RecordTicketOpenData();
+    virtual void ManagePreviousSetupTicket(Ticket &ticket);
+    virtual void CheckCurrentSetupTicket(Ticket &ticket);
+    virtual void CheckPreviousSetupTicket(Ticket &ticket);
+    virtual void RecordTicketOpenData(Ticket &ticket);
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
@@ -62,17 +56,7 @@ StartOfDayTimeRangeBreakout::StartOfDayTimeRangeBreakout(int magicNumber, int se
 {
     mTRB = trb;
 
-    mEntrySymbol = Symbol();
-    mEntryTimeFrame = Period();
-
-    mBarCount = 0;
-    mLastDay = Day();
-
-    mCloseHour = 0;
-    mCloseMinute = 0;
-
     EAHelper::FindSetPreviousAndCurrentSetupTickets<StartOfDayTimeRangeBreakout>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<StartOfDayTimeRangeBreakout, PartialTradeRecord>(this);
     EAHelper::SetPreviousSetupTicketsOpenData<StartOfDayTimeRangeBreakout, SingleTimeFrameEntryTradeRecord>(this);
 }
 
@@ -80,12 +64,9 @@ StartOfDayTimeRangeBreakout::~StartOfDayTimeRangeBreakout()
 {
 }
 
-void StartOfDayTimeRangeBreakout::Run()
+void StartOfDayTimeRangeBreakout::PreRun()
 {
-    EAHelper::RunDrawTimeRange<StartOfDayTimeRangeBreakout>(this, mTRB);
-
-    mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
-    mLastDay = Day();
+    mTRB.Draw();
 }
 
 bool StartOfDayTimeRangeBreakout::AllowedToTrade()
@@ -105,7 +86,7 @@ void StartOfDayTimeRangeBreakout::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
-    if (mLastDay != Day())
+    if (LastDay() != Day())
     {
         InvalidateSetup(true);
     }
@@ -123,24 +104,17 @@ bool StartOfDayTimeRangeBreakout::Confirmation()
 
 void StartOfDayTimeRangeBreakout::PlaceOrders()
 {
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
-    {
-        RecordError(GetLastError());
-        return;
-    }
-
     double entry = 0.0;
     double stopLoss = 0.0;
 
     if (SetupType() == OP_BUY)
     {
-        entry = currentTick.ask;
+        entry = CurrentTick().Ask();
         stopLoss = mTRB.RangeLow();
     }
     else if (SetupType() == OP_SELL)
     {
-        entry = currentTick.bid;
+        entry = CurrentTick().Bid();
         stopLoss = mTRB.RangeHigh();
     }
 
@@ -148,16 +122,16 @@ void StartOfDayTimeRangeBreakout::PlaceOrders()
     mStopTrading = true;
 }
 
-void StartOfDayTimeRangeBreakout::ManageCurrentPendingSetupTicket()
+void StartOfDayTimeRangeBreakout::ManageCurrentPendingSetupTicket(Ticket &ticket)
 {
 }
 
-void StartOfDayTimeRangeBreakout::ManageCurrentActiveSetupTicket()
+void StartOfDayTimeRangeBreakout::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
-    if (EAHelper::CloseTicketIfPastTime<StartOfDayTimeRangeBreakout>(this, mCurrentSetupTicket, mCloseHour, mCloseMinute))
-    {
-        return;
-    }
+}
+
+void StartOfDayTimeRangeBreakout::PreManageTickets()
+{
 }
 
 bool StartOfDayTimeRangeBreakout::MoveToPreviousSetupTickets(Ticket &ticket)
@@ -165,30 +139,25 @@ bool StartOfDayTimeRangeBreakout::MoveToPreviousSetupTickets(Ticket &ticket)
     return false;
 }
 
-void StartOfDayTimeRangeBreakout::ManagePreviousSetupTicket(int ticketIndex)
+void StartOfDayTimeRangeBreakout::ManagePreviousSetupTicket(Ticket &ticket)
 {
 }
 
-void StartOfDayTimeRangeBreakout::CheckCurrentSetupTicket()
+void StartOfDayTimeRangeBreakout::CheckCurrentSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<StartOfDayTimeRangeBreakout>(this, mCurrentSetupTicket);
-    EAHelper::CheckCurrentSetupTicket<StartOfDayTimeRangeBreakout>(this);
 }
 
-void StartOfDayTimeRangeBreakout::CheckPreviousSetupTicket(int ticketIndex)
+void StartOfDayTimeRangeBreakout::CheckPreviousSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<StartOfDayTimeRangeBreakout>(this, mPreviousSetupTickets[ticketIndex]);
-    EAHelper::CheckPreviousSetupTicket<StartOfDayTimeRangeBreakout>(this, ticketIndex);
 }
 
-void StartOfDayTimeRangeBreakout::RecordTicketOpenData()
+void StartOfDayTimeRangeBreakout::RecordTicketOpenData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameEntryTradeRecord<StartOfDayTimeRangeBreakout>(this);
+    EAHelper::RecordSingleTimeFrameEntryTradeRecord<StartOfDayTimeRangeBreakout>(this, ticket);
 }
 
 void StartOfDayTimeRangeBreakout::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
-    EAHelper::RecordPartialTradeRecord<StartOfDayTimeRangeBreakout>(this, partialedTicket, newTicketNumber);
 }
 
 void StartOfDayTimeRangeBreakout::RecordTicketCloseData(Ticket &ticket)
@@ -209,4 +178,5 @@ bool StartOfDayTimeRangeBreakout::ShouldReset()
 void StartOfDayTimeRangeBreakout::Reset()
 {
     mStopTrading = false;
+    EAHelper::CloseAllCurrentAndPreviousSetupTickets<StartOfDayTimeRangeBreakout>(this);
 }

@@ -8,24 +8,14 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\EA\EA.mqh>
+#include <WantaCapital\Framework\Objects\DataObjects\EA.mqh>
 #include <WantaCapital\Framework\Helpers\EAHelper.mqh>
 #include <WantaCapital\Framework\Constants\MagicNumbers.mqh>
 
 class PriceRange : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
-    int mCloseHour;
-    int mCloseMinute;
     double mPipsFromOpen;
-
-    double mStartingPrice;
-
-    int mEntryTimeFrame;
-    string mEntrySymbol;
-
-    int mBarCount;
-    int mLastDay;
 
 public:
     PriceRange(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
@@ -35,20 +25,21 @@ public:
 
     virtual double RiskPercent() { return mRiskPercent; }
 
-    virtual void Run();
+    virtual void PreRun();
     virtual bool AllowedToTrade();
     virtual void CheckSetSetup();
     virtual void CheckInvalidateSetup();
     virtual void InvalidateSetup(bool deletePendingOrder, int error);
     virtual bool Confirmation();
     virtual void PlaceOrders();
-    virtual void ManageCurrentPendingSetupTicket();
-    virtual void ManageCurrentActiveSetupTicket();
+    virtual void PreManageTickets();
+    virtual void ManageCurrentPendingSetupTicket(Ticket &ticket);
+    virtual void ManageCurrentActiveSetupTicket(Ticket &ticket);
     virtual bool MoveToPreviousSetupTickets(Ticket &ticket);
-    virtual void ManagePreviousSetupTicket(int ticketIndex);
-    virtual void CheckCurrentSetupTicket();
-    virtual void CheckPreviousSetupTicket(int ticketIndex);
-    virtual void RecordTicketOpenData();
+    virtual void ManagePreviousSetupTicket(Ticket &ticket);
+    virtual void CheckCurrentSetupTicket(Ticket &ticket);
+    virtual void CheckPreviousSetupTicket(Ticket &ticket);
+    virtual void RecordTicketOpenData(Ticket &ticket);
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
@@ -61,17 +52,7 @@ PriceRange::PriceRange(int magicNumber, int setupType, int maxCurrentSetupTrades
                        CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
-    mCloseHour = 0;
-    mCloseMinute = 0;
     mPipsFromOpen = 0.0;
-
-    mStartingPrice = 0.0;
-
-    mEntrySymbol = Symbol();
-    mEntryTimeFrame = Period();
-
-    mBarCount = 0;
-    mLastDay = Day();
 
     EAHelper::FindSetPreviousAndCurrentSetupTickets<PriceRange>(this);
     EAHelper::UpdatePreviousSetupTicketsRRAcquried<PriceRange, PartialTradeRecord>(this);
@@ -82,12 +63,8 @@ PriceRange::~PriceRange()
 {
 }
 
-void PriceRange::Run()
+void PriceRange::PreRun()
 {
-    EAHelper::Run<PriceRange>(this);
-
-    mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
-    mLastDay = Day();
 }
 
 bool PriceRange::AllowedToTrade()
@@ -97,34 +74,9 @@ bool PriceRange::AllowedToTrade()
 
 void PriceRange::CheckSetSetup()
 {
-    if (mStartingPrice == 0.0 && Hour() == mTradingSessions[0].HourStart() && Minute() == mTradingSessions[0].MinuteStart())
+    if (Hour() == mTradingSessions[0].HourStart() && Minute() == mTradingSessions[0].MinuteStart())
     {
-        mStartingPrice = iOpen(mEntrySymbol, mEntryTimeFrame, 0);
-    }
-
-    if (mStartingPrice != 0.0)
-    {
-        MqlTick currentTick;
-        if (!SymbolInfoTick(Symbol(), currentTick))
-        {
-            RecordError(GetLastError());
-            return;
-        }
-
-        if (mSetupType == OP_BUY)
-        {
-            if (mStartingPrice - currentTick.bid >= OrderHelper::PipsToRange(mPipsFromOpen))
-            {
-                mHasSetup = true;
-            }
-        }
-        else if (mSetupType == OP_SELL)
-        {
-            if (currentTick.bid - mStartingPrice >= OrderHelper::PipsToRange(mPipsFromOpen))
-            {
-                mHasSetup = true;
-            }
-        }
+        mHasSetup = true;
     }
 }
 
@@ -140,72 +92,39 @@ void PriceRange::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERR
 
 bool PriceRange::Confirmation()
 {
-    if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
-    {
-        return false;
-    }
-
-    if (mSetupType == OP_BUY)
-    {
-        return CandleStickHelper::IsBullish(mEntrySymbol, mEntryTimeFrame, 1);
-    }
-    else if (mSetupType == OP_SELL)
-    {
-        return CandleStickHelper::IsBearish(mEntrySymbol, mEntryTimeFrame, 1);
-    }
-
-    return false;
+    return true;
 }
 
 void PriceRange::PlaceOrders()
 {
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
-    {
-        RecordError(GetLastError());
-        return;
-    }
-
     double entry = 0.0;
     double stopLoss = 0.0;
 
-    if (mSetupType == OP_BUY)
+    if (SetupType() == OP_BUY)
     {
-        entry = currentTick.ask;
+        entry = CurrentTick().Bid() - OrderHelper::PipsToRange(mPipsFromOpen);
         stopLoss = entry - OrderHelper::PipsToRange(mStopLossPaddingPips);
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
-        entry = currentTick.bid;
+        entry = CurrentTick().Bid() + OrderHelper::PipsToRange(mPipsFromOpen);
         stopLoss = entry + OrderHelper::PipsToRange(mStopLossPaddingPips);
     }
 
-    EAHelper::PlaceMarketOrder<PriceRange>(this, entry, stopLoss);
+    EAHelper::PlaceLimitOrder<PriceRange>(this, entry, stopLoss);
     mStopTrading = true;
 }
 
-void PriceRange::ManageCurrentPendingSetupTicket()
+void PriceRange::PreManageTickets()
 {
 }
 
-void PriceRange::ManageCurrentActiveSetupTicket()
+void PriceRange::ManageCurrentPendingSetupTicket(Ticket &ticket)
 {
-    // if (mSetupType == OP_BUY)
-    // {
-    //     if (iLow(mEntrySymbol, mEntryTimeFrame, 0) < iLow(mEntrySymbol, mEntryTimeFrame, 1))
-    //     {
-    //         mCurrentSetupTicket.Close();
-    //     }
-    // }
-    // else if (mSetupType == OP_SELL)
-    // {
-    //     if (iHigh(mEntrySymbol, mEntryTimeFrame, 0) > iHigh(mEntrySymbol, mEntryTimeFrame, 1))
-    //     {
-    //         mCurrentSetupTicket.Close();
-    //     }
-    // }
+}
 
-    EAHelper::CloseTicketIfPastTime<PriceRange>(this, mCurrentSetupTicket, mCloseHour, mCloseMinute);
+void PriceRange::ManageCurrentActiveSetupTicket(Ticket &ticket)
+{
 }
 
 bool PriceRange::MoveToPreviousSetupTickets(Ticket &ticket)
@@ -213,25 +132,21 @@ bool PriceRange::MoveToPreviousSetupTickets(Ticket &ticket)
     return false;
 }
 
-void PriceRange::ManagePreviousSetupTicket(int ticketIndex)
+void PriceRange::ManagePreviousSetupTicket(Ticket &ticket)
 {
 }
 
-void PriceRange::CheckCurrentSetupTicket()
+void PriceRange::CheckCurrentSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<PriceRange>(this, mCurrentSetupTicket);
-    EAHelper::CheckCurrentSetupTicket<PriceRange>(this);
 }
 
-void PriceRange::CheckPreviousSetupTicket(int ticketIndex)
+void PriceRange::CheckPreviousSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<PriceRange>(this, mPreviousSetupTickets[ticketIndex]);
-    EAHelper::CheckPreviousSetupTicket<PriceRange>(this, ticketIndex);
 }
 
-void PriceRange::RecordTicketOpenData()
+void PriceRange::RecordTicketOpenData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameEntryTradeRecord<PriceRange>(this);
+    EAHelper::RecordSingleTimeFrameEntryTradeRecord<PriceRange>(this, ticket);
 }
 
 void PriceRange::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
@@ -257,7 +172,7 @@ bool PriceRange::ShouldReset()
 void PriceRange::Reset()
 {
     InvalidateSetup(false);
-
     mStopTrading = false;
-    mStartingPrice = 0.0;
+
+    EAHelper::CloseAllCurrentAndPendingTickets<PriceRange>(this);
 }

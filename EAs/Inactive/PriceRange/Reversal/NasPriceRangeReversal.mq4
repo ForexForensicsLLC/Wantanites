@@ -12,7 +12,7 @@
 #include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
 #include <WantaCapital/EAs/Inactive/PriceRange/Reversal/PriceRangeReversal.mqh>
 
-string ForcedSymbol = "NAS100";
+string ForcedSymbol = "US100";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
@@ -33,13 +33,13 @@ CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<S
 PriceRange *PRBuys;
 PriceRange *PRSells;
 
+TradingSession *TS;
+
 // Nas
-int CloseHour = 19;
-int CloseMinute = 0;
-double PipsFromOpen = 25;
+double PipsFromOpen = 250;
 // this needs to be higher than the spread before the session since the spread doesn't drop right as the candle opens and we only calaculte once per bar
-double MaxSpreadPips = 2.5;
-double StopLossPaddingPips = 25;
+double MaxSpreadPips = 25;
+double StopLossPaddingPips = 350;
 
 int OnInit()
 {
@@ -48,25 +48,21 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    PRBuys = new PriceRange(MagicNumbers::NasMorningPriceRangeBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
+    TS = new TradingSession(16, 30, 19, 0);
+
+    PRBuys = new PriceRange(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
                             EntryWriter, ExitWriter, ErrorWriter);
 
-    PRBuys.mCloseHour = CloseHour;
-    PRBuys.mCloseMinute = CloseMinute;
     PRBuys.mPipsFromOpen = PipsFromOpen;
-
     PRBuys.SetPartialCSVRecordWriter(PartialWriter);
-    PRBuys.AddTradingSession(16, 30, 16, 50);
+    PRBuys.AddTradingSession(TS);
 
-    PRSells = new PriceRange(MagicNumbers::NasMorningPriceRangeSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
+    PRSells = new PriceRange(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
                              EntryWriter, ExitWriter, ErrorWriter);
 
-    PRSells.mCloseHour = CloseHour;
-    PRSells.mCloseMinute = CloseMinute;
     PRSells.mPipsFromOpen = PipsFromOpen;
-
     PRSells.SetPartialCSVRecordWriter(PartialWriter);
-    PRSells.AddTradingSession(16, 30, 16, 50);
+    PRSells.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
 }

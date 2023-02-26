@@ -12,6 +12,11 @@ class ConstantValues
 {
 public:
     static double EmptyDouble;
+
+    static string UnsetString;
+    static string CSVDelimiter;
 };
 
 static double ConstantValues::EmptyDouble = -1.0;
+static string ConstantValues::UnsetString = "EMPTY";
+static string ConstantValues::CSVDelimiter = ",";

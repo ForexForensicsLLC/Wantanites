@@ -18,6 +18,8 @@ public:
 
     virtual void WriteHeaders(int fileHandle, bool writeDelimiter);
     virtual void WriteRecord(int fileHandle, bool writeDelimiter);
+
+    void ReadRow(int fileHandle);
 };
 
 MultiTimeFrameExitTradeRecord::MultiTimeFrameExitTradeRecord() : DefaultExitTradeRecord() {}
@@ -25,18 +27,21 @@ MultiTimeFrameExitTradeRecord::~MultiTimeFrameExitTradeRecord() {}
 
 void MultiTimeFrameExitTradeRecord::WriteHeaders(int fileHandle, bool writeDelimiter = false)
 {
-    DefaultExitTradeRecord::WriteCloseHeaders(fileHandle);
+    DefaultExitTradeRecord::WriteHeaders(fileHandle, true);
     FileHelper::WriteString(fileHandle, "High TF Exit Image");
-    FileHelper::WriteString(fileHandle, "Lower TF Exit Imaage");
-
-    DefaultExitTradeRecord::WriteAdditionalHeaders(fileHandle, writeDelimiter);
+    FileHelper::WriteString(fileHandle, "Lower TF Exit Imaage", writeDelimiter);
 }
 
 void MultiTimeFrameExitTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = false)
 {
-    DefaultExitTradeRecord::WriteCloseRecord(fileHandle);
+    DefaultExitTradeRecord::WriteRecord(fileHandle, true);
     FileHelper::WriteString(fileHandle, HigherTimeFrameExitImage);
-    FileHelper::WriteString(fileHandle, LowerTimeFrameExitImage);
+    FileHelper::WriteString(fileHandle, LowerTimeFrameExitImage, writeDelimiter);
+}
 
-    DefaultExitTradeRecord::WriteAdditionalRecord(fileHandle, writeDelimiter);
+void MultiTimeFrameExitTradeRecord::ReadRow(int fileHandle)
+{
+    DefaultExitTradeRecord::ReadRow(fileHandle);
+    HigherTimeFrameExitImage = FileReadString(fileHandle);
+    LowerTimeFrameExitImage = FileReadString(fileHandle);
 }

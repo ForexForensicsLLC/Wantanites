@@ -12,7 +12,7 @@
 #include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
 #include <WantaCapital/EAs/Inactive/TimeRange/TimeRangeBreakout/StartOfDayTimeRangeBreakout.mqh>
 
-string ForcedSymbol = "NAS100";
+string ForcedSymbol = "US100";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
@@ -26,23 +26,19 @@ string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
-CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>(Directory + "Partials/", "Partials.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
+
+TradingSession *TS;
 
 TimeRangeBreakout *TRB;
 StartOfDayTimeRangeBreakout *TRBBuys;
 StartOfDayTimeRangeBreakout *TRBSells;
 
-// Gold
-int CloseHour = 23;
-int CloseMinute = 0;
-double MaxSpreadPips = 1;
-double EntryPaddingPips = 0;
-double MinStopLossPips = 0;
+int CloseHour = 5;
+int CloseMinute = 59;
+double MaxSpreadPips = 25;
 double StopLossPaddingPips = 0;
-double PipsToWaitBeforeBE = 40;
-double BEAdditionalPips = 0;
 
 int OnInit()
 {
@@ -51,33 +47,24 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    TRB = new TimeRangeBreakout(0, 0, 4, 0);
+    TS = new TradingSession();
+    TS.AddHourMinuteSession(13, 0, 5, 59);
+
+    TRB = new TimeRangeBreakout(6, 0, 13, 0);
+
     TRBBuys = new StartOfDayTimeRangeBreakout(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                                               ExitWriter, ErrorWriter, TRB);
 
-    TRBBuys.SetPartialCSVRecordWriter(PartialWriter);
-
     TRBBuys.mCloseHour = CloseHour;
     TRBBuys.mCloseMinute = CloseMinute;
-    TRBBuys.mEntryPaddingPips = EntryPaddingPips;
-    TRBBuys.mMinStopLossPips = MinStopLossPips;
-    TRBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    TRBBuys.mBEAdditionalPips = BEAdditionalPips;
-
-    TRBBuys.AddTradingSession(4, 0, 23, 0);
+    TRBBuys.AddTradingSession(TS);
 
     TRBSells = new StartOfDayTimeRangeBreakout(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                                                ExitWriter, ErrorWriter, TRB);
-    TRBSells.SetPartialCSVRecordWriter(PartialWriter);
 
     TRBSells.mCloseHour = CloseHour;
     TRBSells.mCloseMinute = CloseMinute;
-    TRBSells.mEntryPaddingPips = EntryPaddingPips;
-    TRBSells.mMinStopLossPips = MinStopLossPips;
-    TRBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    TRBSells.mBEAdditionalPips = BEAdditionalPips;
-
-    TRBSells.AddTradingSession(4, 0, 23, 0);
+    TRBSells.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
 }
@@ -90,7 +77,6 @@ void OnDeinit(const int reason)
     delete TRBSells;
 
     delete EntryWriter;
-    delete PartialWriter;
     delete ExitWriter;
     delete ErrorWriter;
 }

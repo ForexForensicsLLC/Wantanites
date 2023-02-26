@@ -11,7 +11,6 @@
 #include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
 #include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
 #include <WantaCapital/EAs/Inactive/TimeGrid/Continuation/TimeGridContinuation.mqh>
-#include <WantaCapital/Framework/Objects/TimeGridTracker.mqh>
 
 string ForcedSymbol = "US100";
 int ForcedTimeFrame = 5;
@@ -31,21 +30,24 @@ CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<Partial
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-TimeGridTracker *TGT;
+TradingSession *TS;
+
+GridTracker *GTBuys;
+GridTracker *GTSells;
 
 TimeGrid *TGBuys;
 TimeGrid *TGSells;
 
-// EU
 double LotSize = 0.1;
-double MaxLevels = 5;
-double LevelPips = 50;
+double MaxLevels = 20;
+double LevelPips = 500;
 double MaxSpreadPips = 25;
-double EntryPaddingPips = 0;
-double MinStopLossPips = 100;
 double StopLossPaddingPips = 0;
-double PipsToWaitBeforeBE = 100;
-double BEAdditionalPips = 0;
+
+int HourStart = 16;
+int MinuteStart = 30;
+int HourEnd = 19;
+int MinuteEnd = 0;
 
 int OnInit()
 {
@@ -54,39 +56,32 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    TGT = new TimeGridTracker(16, 30, 16, 35, MaxLevels, LevelPips);
+    TS = new TradingSession(HourStart, MinuteStart, HourEnd, MinuteEnd);
+
+    GTBuys = new GridTracker("Buys", MaxLevels, OrderHelper::PipsToRange(LevelPips));
+    GTSells = new GridTracker("Sells", MaxLevels, OrderHelper::PipsToRange(LevelPips));
 
     TGBuys = new TimeGrid(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                          ExitWriter, ErrorWriter, TGT);
-
-    TGBuys.SetPartialCSVRecordWriter(PartialWriter);
+                          ExitWriter, ErrorWriter, GTBuys);
 
     TGBuys.mLotSize = LotSize;
-    TGBuys.mEntryPaddingPips = EntryPaddingPips;
-    TGBuys.mMinStopLossPips = MinStopLossPips;
-    TGBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    TGBuys.mBEAdditionalPips = BEAdditionalPips;
-
-    TGBuys.AddTradingSession(16, 30, 16, 35);
+    TGBuys.AddTradingSession(TS);
+    TGBuys.SetPartialCSVRecordWriter(PartialWriter);
 
     TGSells = new TimeGrid(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                           ExitWriter, ErrorWriter, TGT);
-    TGSells.SetPartialCSVRecordWriter(PartialWriter);
+                           ExitWriter, ErrorWriter, GTSells);
 
     TGSells.mLotSize = LotSize;
-    TGSells.mEntryPaddingPips = EntryPaddingPips;
-    TGSells.mMinStopLossPips = MinStopLossPips;
-    TGSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    TGSells.mBEAdditionalPips = BEAdditionalPips;
-
-    TGSells.AddTradingSession(16, 30, 16, 35);
+    TGSells.AddTradingSession(TS);
+    TGSells.SetPartialCSVRecordWriter(PartialWriter);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete TGT;
+    delete GTBuys;
+    delete GTSells;
 
     delete TGBuys;
     delete TGSells;

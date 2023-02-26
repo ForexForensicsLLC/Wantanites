@@ -18,6 +18,8 @@ public:
 
     virtual void WriteHeaders(int fileHandle, bool writeDelimiter);
     virtual void WriteRecord(int fileHandle, bool writeDelimiter);
+
+    void ReadRow(int fileHandle);
 };
 
 SingleTimeFrameExitTradeRecord::SingleTimeFrameExitTradeRecord() : DefaultExitTradeRecord() {}
@@ -25,16 +27,18 @@ SingleTimeFrameExitTradeRecord::~SingleTimeFrameExitTradeRecord() {}
 
 void SingleTimeFrameExitTradeRecord::WriteHeaders(int fileHandle, bool writeDelimiter = false)
 {
-    DefaultExitTradeRecord::WriteCloseHeaders(fileHandle);
-    FileHelper::WriteString(fileHandle, "Exit Image");
-
-    DefaultExitTradeRecord::WriteAdditionalHeaders(fileHandle, writeDelimiter);
+    DefaultExitTradeRecord::WriteHeaders(fileHandle, true);
+    FileHelper::WriteString(fileHandle, "Exit Image", writeDelimiter);
 }
 
 void SingleTimeFrameExitTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = false)
 {
-    DefaultExitTradeRecord::WriteCloseRecord(fileHandle);
-    FileHelper::WriteString(fileHandle, ExitImage);
+    DefaultExitTradeRecord::WriteRecord(fileHandle, true);
+    FileHelper::WriteString(fileHandle, ExitImage, writeDelimiter);
+}
 
-    DefaultExitTradeRecord::WriteAdditionalRecord(fileHandle, writeDelimiter);
+void SingleTimeFrameExitTradeRecord::ReadRow(int fileHandle)
+{
+    DefaultExitTradeRecord::ReadRow(fileHandle);
+    ExitImage = FileReadString(fileHandle);
 }
