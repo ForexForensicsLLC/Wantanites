@@ -38,18 +38,15 @@ RSIGrid *MBGMBuys;
 RSIGrid *MBGMSells;
 
 double MaxOppositeLevels = 50;
-double LevelDistance = OrderHelper::PipsToRange(30);
-double StartingLotSize = 0.01;
-int IncreaseLotSizePeriod = 1;
-double IncreaseLotSizeFactor = 2;
-double MaxEquityDrawDownPercent = -20;
+double LevelDistance = OrderHelper::PipsToRange(60);
+double StartingLotSize = 0.05;
+double LotsPerBalancePeriod = 10000;
+double LotsPerBalanceLotIncrement = 0.01;
+int IncreaseLotSizePeriod = 3;
+double IncreaseLotSizeFactor = 1.5;
+double MaxEquityDrawDownPercent = -3;
 double MaxSpreadPips = 2;
 double StopLossPaddingPips = 0;
-
-int HourStart = 0;
-int MinuteStart = 0;
-int HourEnd = 23;
-int MinuteEnd = 59;
 
 int OnInit()
 {
@@ -65,6 +62,8 @@ int OnInit()
                            ExitWriter, ErrorWriter, GTBuys);
 
     MBGMBuys.mStartingLotSize = StartingLotSize;
+    MBGMBuys.mLotsPerBalancePeriod = LotsPerBalancePeriod;
+    MBGMBuys.mLotsPerBalanceLotIncrement = LotsPerBalanceLotIncrement;
     MBGMBuys.mIncreaseLotSizePeriod = IncreaseLotSizePeriod;
     MBGMBuys.mIncreaseLotSizeFactor = IncreaseLotSizeFactor;
     MBGMBuys.mMaxEquityDrawDownPercent = MaxEquityDrawDownPercent;
@@ -74,6 +73,8 @@ int OnInit()
                             ExitWriter, ErrorWriter, GTSells);
 
     MBGMSells.mStartingLotSize = StartingLotSize;
+    MBGMSells.mLotsPerBalancePeriod = LotsPerBalancePeriod;
+    MBGMSells.mLotsPerBalanceLotIncrement = LotsPerBalanceLotIncrement;
     MBGMSells.mIncreaseLotSizePeriod = IncreaseLotSizePeriod;
     MBGMSells.mIncreaseLotSizeFactor = IncreaseLotSizeFactor;
     MBGMSells.mMaxEquityDrawDownPercent = MaxEquityDrawDownPercent;
