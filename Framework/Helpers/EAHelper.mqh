@@ -575,12 +575,12 @@ static void EAHelper::ManageCurrentSetupTicket(TEA &ea)
 {
     for (int i = ea.mCurrentSetupTickets.Size() - 1; i >= 0; i--)
     {
+        // do any custom checking first since tickets will be removed in CheckCurrentSetupTicket if they are closed
+        ea.CheckCurrentSetupTicket(ea.mCurrentSetupTickets[i]);
+
+        // default checking that every ticket needs to go through
         CheckUpdateHowFarPriceRanFromOpen(ea, ea.mCurrentSetupTickets[i]);
-        if (!CheckCurrentSetupTicket(ea, ea.mCurrentSetupTickets[i]))
-        {
-            // check for any custom checking that needs to be done but only if the ticket hasn't been closed
-            ea.CheckCurrentSetupTicket(ea.mCurrentSetupTickets[i]);
-        }
+        CheckCurrentSetupTicket(ea, ea.mCurrentSetupTickets[i]);
     }
 
     // do a different loop in case the tickets were closed above
@@ -623,12 +623,12 @@ static void EAHelper::ManagePreviousSetupTickets(TEA &ea)
     // can't manage tickets that were just closed and deleted
     for (int i = ea.mPreviousSetupTickets.Size() - 1; i >= 0; i--)
     {
+        // do any custom checking first since tickets will be removed in CheckPreviousSetupTicket if they are closed
+        ea.CheckPreviousSetupTicket(ea.mPreviousSetupTickets[i]);
+
+        // default checking that every ticket needs to go through
         CheckUpdateHowFarPriceRanFromOpen(ea, ea.mPreviousSetupTickets[i]);
-        if (!CheckPreviousSetupTicket(ea, ea.mPreviousSetupTickets[i]))
-        {
-            // check for any custom checking that needs to be done but only if the ticket hasn't been closed
-            ea.CheckPreviousSetupTicket(ea.mPreviousSetupTickets[i]);
-        }
+        CheckPreviousSetupTicket(ea, ea.mPreviousSetupTickets[i]);
     }
 
     // do a different loop just in case the tickets were closed above
