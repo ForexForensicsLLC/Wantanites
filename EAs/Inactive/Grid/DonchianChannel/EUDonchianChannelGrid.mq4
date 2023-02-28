@@ -37,14 +37,14 @@ GridTracker *GTSells;
 DonchianChannelGrid *MBGMBuys;
 DonchianChannelGrid *MBGMSells;
 
+// Grid Parameters
 double MaxLevels = 100;
-double LevelDistance = OrderHelper::PipsToRange(50);
-double StartingLotSize = 0.01;
+double LevelDistance = OrderHelper::PipsToRange(30);
+
+// EA Parameters
 double LotsPerBalancePeriod = 10000;
 double LotsPerBalanceLotIncrement = 0.01;
-int IncreaseLotSizePeriod = 1;
-double IncreaseLotSizeFactor = 2;
-double MaxEquityDrawDownPercent = -3;
+double TicketNumberInDrawDownToTriggerSurviveMode = 10;
 double MaxSpreadPips = 2;
 double StopLossPaddingPips = 0;
 
@@ -63,22 +63,22 @@ int OnInit()
     MBGMBuys = new DonchianChannelGrid(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                                        ExitWriter, ErrorWriter, GTBuys, DC);
 
-    MBGMBuys.mStartingLotSize = StartingLotSize;
+    MBGMBuys.mTicketNumberInDrawDownToTriggerSurviveMode = TicketNumberInDrawDownToTriggerSurviveMode;
     MBGMBuys.mLotsPerBalancePeriod = LotsPerBalancePeriod;
     MBGMBuys.mLotsPerBalanceLotIncrement = LotsPerBalanceLotIncrement;
-    MBGMBuys.mIncreaseLotSizePeriod = IncreaseLotSizePeriod;
-    MBGMBuys.mIncreaseLotSizeFactor = IncreaseLotSizeFactor;
-    MBGMBuys.mMaxEquityDrawDownPercent = MaxEquityDrawDownPercent;
+    // MBGMBuys.mIncreaseLotSizePeriod = IncreaseLotSizePeriod;
+    // MBGMBuys.mIncreaseLotSizeFactor = IncreaseLotSizeFactor;
+    // MBGMBuys.mMaxEquityDrawDownPercent = MaxEquityDrawDownPercent;
 
     MBGMSells = new DonchianChannelGrid(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                                         ExitWriter, ErrorWriter, GTSells, DC);
 
-    MBGMSells.mStartingLotSize = StartingLotSize;
+    MBGMSells.mTicketNumberInDrawDownToTriggerSurviveMode = TicketNumberInDrawDownToTriggerSurviveMode;
     MBGMSells.mLotsPerBalancePeriod = LotsPerBalancePeriod;
     MBGMSells.mLotsPerBalanceLotIncrement = LotsPerBalanceLotIncrement;
-    MBGMSells.mIncreaseLotSizePeriod = IncreaseLotSizePeriod;
-    MBGMSells.mIncreaseLotSizeFactor = IncreaseLotSizeFactor;
-    MBGMSells.mMaxEquityDrawDownPercent = MaxEquityDrawDownPercent;
+    // MBGMSells.mIncreaseLotSizePeriod = IncreaseLotSizePeriod;
+    // MBGMSells.mIncreaseLotSizeFactor = IncreaseLotSizeFactor;
+    // MBGMSells.mMaxEquityDrawDownPercent = MaxEquityDrawDownPercent;
 
     return (INIT_SUCCEEDED);
 }

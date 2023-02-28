@@ -16,14 +16,22 @@
 #include <WantaCapital\Framework\Objects\Indicators\Grid\GridTracker.mqh>
 #include <WantaCapital\Framework\Objects\DataStructures\Dictionary.mqh>
 
+enum Mode
+{
+    Profit,
+    Survive
+};
+
 class DonchianChannelGrid : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
+    Mode mMode;
+
     GridTracker *mGT;
     DonchianChannel *mDC;
     Dictionary<int, int> *mLevelsWithTickets;
 
-    double mStartingLotSize;
+    int mTicketNumberInDrawDownToTriggerSurviveMode;
     double mLotsPerBalancePeriod;
     double mLotsPerBalanceLotIncrement;
     int mIncreaseLotSizePeriod;
@@ -35,18 +43,19 @@ public:
     int mPreviousAchievedLevel;
     int mLevelProfitTargetHit;
     bool mCloseAllTickets;
+    bool mInvalidateWhenAllTicketsAreClosed;
 
     double mFurthestEquityDrawDownPercent;
     datetime mFurthestEquityDrawDownTime;
+
+    double mFurthestTotalEquityDrawDownPercent;
+    datetime mFurthestTotalEquityDrawDownTime;
 
 public:
     DonchianChannelGrid(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                         CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
                         CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, GridTracker *&gt, DonchianChannel *&dc);
     ~DonchianChannelGrid();
-
-    double RSI(int index) { return iRSI(mEntrySymbol, mEntryTimeFrame, 14, PRICE_CLOSE, index); }
-    double EMA(int index) { return iMA(mEntrySymbol, 1440, 200, 0, MODE_EMA, PRICE_CLOSE, index); }
 
     virtual double RiskPercent() { return mRiskPercent; }
 
@@ -77,11 +86,13 @@ DonchianChannelGrid::DonchianChannelGrid(int magicNumber, int setupType, int max
                                          CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, GridTracker *&gt, DonchianChannel *&dc)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
+    mMode = Mode::Profit;
+
     mGT = gt;
     mDC = dc;
     mLevelsWithTickets = new Dictionary<int, int>();
 
-    mStartingLotSize = 0.0;
+    mTicketNumberInDrawDownToTriggerSurviveMode = 0;
     mLotsPerBalancePeriod = 0.0;
     mLotsPerBalanceLotIncrement = 0.0;
     mIncreaseLotSizePeriod = 0;
@@ -93,9 +104,13 @@ DonchianChannelGrid::DonchianChannelGrid(int magicNumber, int setupType, int max
     mPreviousAchievedLevel = 1000;
     mLevelProfitTargetHit = -99;
     mCloseAllTickets = false;
+    mInvalidateWhenAllTicketsAreClosed = false;
 
     mFurthestEquityDrawDownPercent = 0.0;
     mFurthestEquityDrawDownTime = 0;
+
+    mFurthestTotalEquityDrawDownPercent = 0;
+    mFurthestTotalEquityDrawDownTime = 0;
 
     EAHelper::FindSetPreviousAndCurrentSetupTickets<DonchianChannelGrid>(this);
     EAHelper::SetPreviousSetupTicketsOpenData<DonchianChannelGrid, SingleTimeFrameEntryTradeRecord>(this);
@@ -104,6 +119,8 @@ DonchianChannelGrid::DonchianChannelGrid(int magicNumber, int setupType, int max
 DonchianChannelGrid::~DonchianChannelGrid()
 {
     Print("Magic Number: ", MagicNumber(), ", Furthest Equity DD Percent: ", mFurthestEquityDrawDownPercent, " at ", TimeToStr(mFurthestEquityDrawDownTime));
+    Print("Magic Number: ", MagicNumber(), ", Furthest Total Equity DD Percent: ", mFurthestTotalEquityDrawDownPercent, " at ", TimeToStr(mFurthestTotalEquityDrawDownTime));
+
     delete mLevelsWithTickets;
 }
 
@@ -159,28 +176,10 @@ void DonchianChannelGrid::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
-    if (mCloseAllTickets && mPreviousSetupTickets.Size() == 0)
+    if (mInvalidateWhenAllTicketsAreClosed && mPreviousSetupTickets.Size() == 0)
     {
         InvalidateSetup(true);
         return;
-    }
-
-    if (mHasSetup)
-    {
-        if (SetupType() == OP_BUY)
-        {
-            if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < mDC.MiddleChannel(1) && mPreviousSetupTickets.Size() == 0)
-            {
-                InvalidateSetup(true);
-            }
-        }
-        else if (SetupType() == OP_SELL)
-        {
-            if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > mDC.MiddleChannel(1) && mPreviousSetupTickets.Size() == 0)
-            {
-                InvalidateSetup(true);
-            }
-        }
     }
 }
 
@@ -189,11 +188,13 @@ void DonchianChannelGrid::InvalidateSetup(bool deletePendingOrder, int error = E
     Print("Invaliding Setup: ", MagicNumber());
     EAHelper::InvalidateSetup<DonchianChannelGrid>(this, deletePendingOrder, mStopTrading, error);
 
+    mMode = Mode::Profit;
     mFirstTrade = true;
     mPreviousAchievedLevel = 1000;
     mStartingEquity = 0;
     mLevelProfitTargetHit = -99;
     mCloseAllTickets = false;
+    mInvalidateWhenAllTicketsAreClosed = false;
     mLevelsWithTickets.Clear();
     mGT.UpdateBasePrice(0.0);
 }
@@ -202,8 +203,12 @@ bool DonchianChannelGrid::Confirmation()
 {
     if (mGT.CurrentLevel() != mPreviousAchievedLevel && !mLevelsWithTickets.HasKey(mGT.CurrentLevel()))
     {
-        mPreviousAchievedLevel = mGT.CurrentLevel();
-        return true;
+        bool conf = mMode == Mode::Profit || (mMode == Mode::Survive && mGT.CurrentLevel() % 5 == 0);
+        if (conf)
+        {
+            mPreviousAchievedLevel = mGT.CurrentLevel();
+            return true;
+        }
     }
 
     return false;
@@ -214,6 +219,12 @@ void DonchianChannelGrid::PlaceOrders()
     double entry = 0.0;
     double stopLoss = 0.0;
     double takeProfit = 0.0;
+
+    // switch to survive mode if this is going to be our nth ticket in drawdown
+    if (mMode != Mode::Survive && mPreviousSetupTickets.Size() + 1 >= mTicketNumberInDrawDownToTriggerSurviveMode)
+    {
+        mMode = Mode::Survive;
+    }
 
     if (SetupType() == OP_BUY)
     {
@@ -226,18 +237,18 @@ void DonchianChannelGrid::PlaceOrders()
         takeProfit = mGT.LevelPrice(mGT.CurrentLevel() - 1);
     }
 
-    if (mFirstTrade)
+    double lotSize = mLotsPerBalanceLotIncrement * MathMax(1, MathFloor(AccountBalance() / mLotsPerBalancePeriod));
+    if (mMode == Mode::Survive)
     {
-        mStartingEquity = AccountBalance();
-        mFirstTrade = false;
-    }
-
-    double lotSize = mStartingLotSize;
-    if (mPreviousSetupTickets.Size() >= 10)
-    {
-        int increaseLotSizeTimes = MathFloor(mPreviousSetupTickets.Size() / mIncreaseLotSizePeriod);
-        lotSize *= MathPow(mIncreaseLotSizeFactor, increaseLotSizeTimes);
         takeProfit = 0.0;
+        double totalLots = 0.0;
+
+        for (int i = 0; i < mPreviousSetupTickets.Size(); i++)
+        {
+            totalLots += mPreviousSetupTickets[i].Lots();
+        }
+
+        lotSize = totalLots;
     }
 
     EAHelper::PlaceMarketOrder<DonchianChannelGrid>(this, entry, stopLoss, lotSize, SetupType(), takeProfit);
@@ -254,18 +265,26 @@ void DonchianChannelGrid::PreManageTickets()
         return;
     }
 
-    if (mPreviousSetupTickets.Size() >= 10)
+    double equityPercentChange = EAHelper::GetTotalPreviousSetupTicketsEquityPercentChange<DonchianChannelGrid>(this, AccountBalance());
+    if (equityPercentChange > mFurthestEquityDrawDownPercent)
     {
-        double equityPercentChange = EAHelper::GetTotalPreviousSetupTicketsEquityPercentChange<DonchianChannelGrid>(this, mStartingEquity);
-        if (equityPercentChange > mFurthestEquityDrawDownPercent)
-        {
-            mFurthestEquityDrawDownPercent = equityPercentChange;
-            mFurthestEquityDrawDownTime = TimeCurrent();
-        }
+        mFurthestEquityDrawDownPercent = equityPercentChange;
+        mFurthestEquityDrawDownTime = TimeCurrent();
+    }
 
+    double totalEquityPercentChange = (AccountEquity() - AccountBalance()) / AccountBalance() * 100;
+    if (totalEquityPercentChange < mFurthestTotalEquityDrawDownPercent)
+    {
+        mFurthestTotalEquityDrawDownPercent = totalEquityPercentChange;
+        mFurthestTotalEquityDrawDownTime = TimeCurrent();
+    }
+
+    if (mMode == Mode::Survive)
+    {
         if (/*equityPercentChange <= mMaxEquityDrawDownPercent ||*/ equityPercentChange >= .2)
         {
             mCloseAllTickets = true;
+            mInvalidateWhenAllTicketsAreClosed = true;
             return;
         }
     }

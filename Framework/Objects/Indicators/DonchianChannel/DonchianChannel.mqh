@@ -29,9 +29,9 @@ public:
     DonchianChannel(int period);
     ~DonchianChannel();
 
-    double UpperChannel(int index) { return mUpperChannel[index]; }
-    double MiddleChannel(int index) { return mMiddleChannel[index]; }
-    double LowerChannel(int index) { return mLowerChannel[index]; }
+    double UpperChannel(int index);
+    double MiddleChannel(int index);
+    double LowerChannel(int index);
 
     void Draw();
 };
@@ -59,8 +59,43 @@ DonchianChannel::~DonchianChannel()
     delete mLowerChannel;
 }
 
+double DonchianChannel::UpperChannel(int index)
+{
+    if (mUpperChannel.Size() < index)
+    {
+        return 0.0;
+    }
+
+    return mUpperChannel[index];
+}
+
+double DonchianChannel::MiddleChannel(int index)
+{
+    if (mMiddleChannel.Size() < index)
+    {
+        return 0.0;
+    }
+
+    return mMiddleChannel[index];
+}
+
+double DonchianChannel::LowerChannel(int index)
+{
+    if (mLowerChannel.Size() < index)
+    {
+        return 0.0;
+    }
+
+    return mLowerChannel[index];
+}
+
 void DonchianChannel::Update()
 {
+    if (iBars(Symbol(), Period()) < mPeriod)
+    {
+        return;
+    }
+
     int totalBars = iBars(Symbol(), Period());
     int start = totalBars - mBarsCalculated;
 
