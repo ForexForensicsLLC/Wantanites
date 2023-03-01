@@ -32,6 +32,7 @@ public:
     Dictionary<int, int> *mLevelsWithTickets;
 
     int mTicketNumberInDrawDownToTriggerSurviveMode;
+    int mSurviveLevelModulus;
     double mLotsPerBalancePeriod;
     double mLotsPerBalanceLotIncrement;
     int mIncreaseLotSizePeriod;
@@ -56,6 +57,9 @@ public:
                         CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
                         CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, GridTracker *&gt, DonchianChannel *&dc);
     ~DonchianChannelGrid();
+
+    virtual double StochasticMain(int index) { return iStochastic(mEntrySymbol, mEntryTimeFrame, 5, 3, 3, MODE_SMA, 0, MODE_MAIN, index); }
+    virtual double StochasticSignal(int index) { return iStochastic(mEntrySymbol, mEntryTimeFrame, 5, 3, 3, MODE_SMA, 0, MODE_SIGNAL, index); }
 
     virtual double RiskPercent() { return mRiskPercent; }
 
@@ -93,6 +97,7 @@ DonchianChannelGrid::DonchianChannelGrid(int magicNumber, int setupType, int max
     mLevelsWithTickets = new Dictionary<int, int>();
 
     mTicketNumberInDrawDownToTriggerSurviveMode = 0;
+    mSurviveLevelModulus = 0;
     mLotsPerBalancePeriod = 0.0;
     mLotsPerBalanceLotIncrement = 0.0;
     mIncreaseLotSizePeriod = 0;
@@ -185,7 +190,6 @@ void DonchianChannelGrid::CheckInvalidateSetup()
 
 void DonchianChannelGrid::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
-    Print("Invaliding Setup: ", MagicNumber());
     EAHelper::InvalidateSetup<DonchianChannelGrid>(this, deletePendingOrder, mStopTrading, error);
 
     mMode = Mode::Profit;
@@ -203,7 +207,7 @@ bool DonchianChannelGrid::Confirmation()
 {
     if (mGT.CurrentLevel() != mPreviousAchievedLevel && !mLevelsWithTickets.HasKey(mGT.CurrentLevel()))
     {
-        bool conf = mMode == Mode::Profit || (mMode == Mode::Survive && mGT.CurrentLevel() % 5 == 0);
+        bool conf = mMode == Mode::Profit || (mMode == Mode::Survive && mGT.CurrentLevel() % mSurviveLevelModulus == 0);
         if (conf)
         {
             mPreviousAchievedLevel = mGT.CurrentLevel();
@@ -220,7 +224,6 @@ void DonchianChannelGrid::PlaceOrders()
     double stopLoss = 0.0;
     double takeProfit = 0.0;
 
-    // switch to survive mode if this is going to be our nth ticket in drawdown
     if (mMode != Mode::Survive && mPreviousSetupTickets.Size() + 1 >= mTicketNumberInDrawDownToTriggerSurviveMode)
     {
         mMode = Mode::Survive;

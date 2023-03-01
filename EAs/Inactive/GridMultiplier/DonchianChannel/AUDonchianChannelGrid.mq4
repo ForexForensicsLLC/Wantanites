@@ -12,7 +12,7 @@
 #include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
 #include <WantaCapital/EAs/Inactive/Grid/DonchianChannel/DonchianChannelGrid.mqh>
 
-string ForcedSymbol = "EURUSD";
+string ForcedSymbol = "AUDUSD";
 int ForcedTimeFrame = 1440;
 
 // --- EA Inputs ---
@@ -21,7 +21,7 @@ int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
 string StrategyName = "Grid/";
-string EAName = "EU/";
+string EAName = "AU/";
 string SetupTypeName = "DonchianChannelGrid/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
@@ -42,9 +42,10 @@ double MaxLevels = 100;
 double LevelDistance = OrderHelper::PipsToRange(30);
 
 // EA Parameters
+double TicketNumberInDrawDownToTriggerSurviveMode = 10;
+int SurviveLevelModulus = 5;
 double LotsPerBalancePeriod = 10000;
 double LotsPerBalanceLotIncrement = 0.01;
-double TicketNumberInDrawDownToTriggerSurviveMode = 10;
 double MaxSpreadPips = 2;
 double StopLossPaddingPips = 0;
 
@@ -64,6 +65,7 @@ int OnInit()
                                        ExitWriter, ErrorWriter, GTBuys, DC);
 
     MBGMBuys.mTicketNumberInDrawDownToTriggerSurviveMode = TicketNumberInDrawDownToTriggerSurviveMode;
+    MBGMBuys.mSurviveLevelModulus = SurviveLevelModulus;
     MBGMBuys.mLotsPerBalancePeriod = LotsPerBalancePeriod;
     MBGMBuys.mLotsPerBalanceLotIncrement = LotsPerBalanceLotIncrement;
     // MBGMBuys.mIncreaseLotSizePeriod = IncreaseLotSizePeriod;
@@ -74,6 +76,7 @@ int OnInit()
                                         ExitWriter, ErrorWriter, GTSells, DC);
 
     MBGMSells.mTicketNumberInDrawDownToTriggerSurviveMode = TicketNumberInDrawDownToTriggerSurviveMode;
+    MBGMSells.mSurviveLevelModulus = SurviveLevelModulus;
     MBGMSells.mLotsPerBalancePeriod = LotsPerBalancePeriod;
     MBGMSells.mLotsPerBalanceLotIncrement = LotsPerBalanceLotIncrement;
     // MBGMSells.mIncreaseLotSizePeriod = IncreaseLotSizePeriod;
