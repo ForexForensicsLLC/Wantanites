@@ -10,7 +10,7 @@
 
 #include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
 #include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Inactive/Grid/DonchianChannel/DonchianChannelGrid.mqh>
+#include <WantaCapital/EAs/Inactive/GridMultiplier/DonchianChannel/DonchianChannelGrid.mqh>
 
 string ForcedSymbol = "EURUSD";
 int ForcedTimeFrame = 1440;
@@ -44,8 +44,8 @@ double LevelDistance = OrderHelper::PipsToRange(50);
 // EA Parameters
 double TicketNumberInDrawDownToTriggerSurviveMode = 10;
 int SurviveLevelModulus = 5;
-double LotsPerBalancePeriod = 5000;
-double LotsPerBalanceLotIncrement = 0.05;
+double LotsPerBalancePeriod = 1000;
+double LotsPerBalanceLotIncrement = 0.1;
 double MaxSpreadPips = 2;
 double StopLossPaddingPips = 0;
 

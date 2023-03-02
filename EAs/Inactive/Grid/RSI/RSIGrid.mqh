@@ -116,7 +116,7 @@ bool RSIGrid::AllowedToTrade()
 
 void RSIGrid::CheckSetSetup()
 {
-    bool setup = (SetupType() == OP_BUY && RSI(0) <= 70 && CurrentTick().Bid() > EMA(0)) || (SetupType() == OP_SELL && RSI(0) >= 70 && CurrentTick().Bid() < EMA(0));
+    bool setup = (SetupType() == OP_BUY && RSI(0) <= 30 && CurrentTick().Bid() < EMA(0)) || (SetupType() == OP_SELL && RSI(0) >= 70 && CurrentTick().Bid() > EMA(0));
     if (setup)
     {
         mGT.UpdateBasePrice(CurrentTick().Bid());

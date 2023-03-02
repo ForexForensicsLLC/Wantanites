@@ -268,37 +268,7 @@ void MBGridMultiplier::PreManageTickets()
     if (equityPercentChange >= 0.2)
     {
         mCloseAllTickets = true;
-
         return;
-    }
-
-    if (mFirstMBInSetupNumber != mMBT.MBsCreated() - 1)
-    {
-        mCloseAllTickets = true;
-        return;
-    }
-
-    int currentLevel = mGT.CurrentLevel();
-    int levelProfitTargetHit = -99;
-
-    for (int i = 0; i < mLevelsWithTickets.Size(); i++)
-    {
-        if (SetupType() == OP_BUY)
-        {
-            if (mLevelsWithTickets[i] < currentLevel)
-            {
-                mLevelProfitTargetHit = mLevelsWithTickets[i];
-                break;
-            }
-        }
-        else if (SetupType() == OP_SELL)
-        {
-            if (mLevelsWithTickets[i] > currentLevel)
-            {
-                mLevelProfitTargetHit = mLevelsWithTickets[i];
-                break;
-            }
-        }
     }
 }
 
@@ -321,42 +291,6 @@ void MBGridMultiplier::ManagePreviousSetupTicket(Ticket &ticket)
     {
         ticket.Close();
         return;
-    }
-
-    if (mLevelProfitTargetHit != -99)
-    {
-        if (SetupType() == OP_BUY)
-        {
-            for (int i = 0; i < mLevelsWithTickets.Size(); i++)
-            {
-                if (mLevelsWithTickets[i] < mLevelProfitTargetHit)
-                {
-                    int ticketNumber;
-                    if (mLevelsWithTickets.GetValueByKey(mLevelsWithTickets[i], ticketNumber) && ticketNumber == ticket.Number())
-                    {
-                        Print("Level Profit Target Hit");
-                        ticket.Close();
-                    }
-                }
-            }
-        }
-        else if (SetupType() == OP_SELL)
-        {
-            for (int i = 0; i < mLevelsWithTickets.Size(); i++)
-            {
-                if (mLevelsWithTickets[i] > mLevelProfitTargetHit)
-                {
-                    int ticketNumber;
-                    if (mLevelsWithTickets.GetValueByKey(mLevelsWithTickets[i], ticketNumber) && ticketNumber == ticket.Number())
-                    {
-                        Print("Level Profit Target Hit");
-                        ticket.Close();
-                    }
-                }
-            }
-        }
-
-        mLevelProfitTargetHit = -99;
     }
 }
 

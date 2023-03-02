@@ -35,7 +35,7 @@ TimeRangeBreakout *TRB;
 StartOfDayTimeRangeBreakout *TRBBuys;
 StartOfDayTimeRangeBreakout *TRBSells;
 
-double MaxSpreadPips = 3;
+double MaxSpreadPips = 6;
 double StopLossPaddingPips = 0;
 
 int OnInit()
@@ -46,9 +46,9 @@ int OnInit()
     }
 
     TS = new TradingSession();
-    TS.AddHourMinuteSession(10, 0, 22, 59);
+    TS.AddHourMinuteSession(3, 0, 22, 59);
 
-    TRB = new TimeRangeBreakout(8, 0, 10, 0);
+    TRB = new TimeRangeBreakout(0, 0, 3, 0);
     TRBBuys = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                               RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
     TRBBuys.AddTradingSession(TS);
