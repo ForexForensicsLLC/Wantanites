@@ -12,7 +12,7 @@
 #include <WantaCapital\Framework\Helpers\EAHelper.mqh>
 #include <WantaCapital\Framework\Constants\MagicNumbers.mqh>
 
-class PriceRange : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class PriceRange : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     double mPipsFromOpen;
@@ -137,6 +137,11 @@ void PriceRange::ManageCurrentPendingSetupTicket(Ticket &ticket)
 
 void PriceRange::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
+    if (EAHelper::CloseIfPercentIntoStopLoss<PriceRange>(this, ticket, 0.2))
+    {
+        return;
+    }
+
     EAHelper::MoveToBreakEvenAfterPips<PriceRange>(this, ticket, mPipsToWaitBeforeBE, mBEAdditionalPips);
 }
 
@@ -147,7 +152,7 @@ bool PriceRange::MoveToPreviousSetupTickets(Ticket &ticket)
 
 void PriceRange::ManagePreviousSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckTrailStopLossEveryXPips<PriceRange>(this, ticket, 250, 100);
+    EAHelper::CheckTrailStopLossEveryXPips<PriceRange>(this, ticket, 10, 5);
 }
 
 void PriceRange::CheckCurrentSetupTicket(Ticket &ticket)
@@ -156,6 +161,7 @@ void PriceRange::CheckCurrentSetupTicket(Ticket &ticket)
 
 void PriceRange::CheckPreviousSetupTicket(Ticket &ticket)
 {
+    // EAHelper::CheckPartialTicket<PriceRange>(this, ticket);
 }
 
 void PriceRange::RecordTicketOpenData(Ticket &ticket)
@@ -165,6 +171,7 @@ void PriceRange::RecordTicketOpenData(Ticket &ticket)
 
 void PriceRange::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
+    // EAHelper::RecordPartialTradeRecord<PriceRange>(this, partialedTicket, newTicketNumber);
 }
 
 void PriceRange::RecordTicketCloseData(Ticket &ticket)
