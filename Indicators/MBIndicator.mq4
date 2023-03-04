@@ -13,7 +13,7 @@ input int MBsToTrack = 200;
 input int MaxZonesInMB = 5;
 input int AllowZoneMitigation = false;
 
-#include <WantaCapital\InProgress\MBTracker.mqh>
+#include <Wantanites\InProgress\MBTracker.mqh>
 
 MBTracker* MBT;
 

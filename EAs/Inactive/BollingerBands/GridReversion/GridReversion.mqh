@@ -8,10 +8,10 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\EA\EA.mqh>
-#include <WantaCapital\Framework\Helpers\EAHelper.mqh>
-#include <WantaCapital\Framework\Constants\MagicNumbers.mqh>
-#include <WantaCapital\Framework\Objects\PriceGridTracker.mqh>
+#include <Wantanites\Framework\EA\EA.mqh>
+#include <Wantanites\Framework\Helpers\EAHelper.mqh>
+#include <Wantanites\Framework\Constants\MagicNumbers.mqh>
+#include <Wantanites\Framework\Objects\PriceGridTracker.mqh>
 
 class PriceGridReversion : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {

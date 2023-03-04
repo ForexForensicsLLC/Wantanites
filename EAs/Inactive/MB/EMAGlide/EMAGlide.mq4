@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Inactive/EMAGlide/EMAGlide.mqh>
+#include <Wantanites/Framework/Constants/SymbolConstants.mqh>
+#include <Wantanites/EAs/Inactive/EMAGlide/EMAGlide.mqh>
 
 int SetupTimeFrame = 15;
 

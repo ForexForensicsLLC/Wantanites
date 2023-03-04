@@ -8,13 +8,13 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\CSVWriting\CSVTradeRecordWriter.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVTradeRecordWriter.mqh>
 
-#include <WantaCapital\Framework\Constants\Index.mqh>
-#include <WantaCapital\Framework\UnitTests\BoolUnitTest.mqh>
+#include <Wantanites\Framework\Constants\Index.mqh>
+#include <Wantanites\Framework\UnitTests\BoolUnitTest.mqh>
 
-#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\Index.mqh>
-#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\UnitTestRecords\DefaultUnitTestRecord.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\Index.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\UnitTestRecords\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/Objects/CSVRecordWriter/WriteTradeRecordOpenData/";
 const int NumberOfAsserts = 10;

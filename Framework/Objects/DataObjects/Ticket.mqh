@@ -8,15 +8,15 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Constants\ConstantValues.mqh>
+#include <Wantanites\Framework\Constants\ConstantValues.mqh>
 
-#include <WantaCapital\Framework\Constants\ExecutionErrors.mqh>
-#include <WantaCapital\Framework\Constants\TerminalErrors.mqh>
+#include <Wantanites\Framework\Constants\ExecutionErrors.mqh>
+#include <Wantanites\Framework\Constants\TerminalErrors.mqh>
 
-#include <WantaCapital\Framework\Objects\DataObjects\Partial.mqh>
-#include <WantaCapital\Framework\Objects\DataStructures\List.mqh>
-#include <WantaCapital\Framework\Objects\DataStructures\Dictionary.mqh>
-#include <WantaCapital\Framework\Objects\DataStructures\ObjectList.mqh>
+#include <Wantanites\Framework\Objects\DataObjects\Partial.mqh>
+#include <Wantanites\Framework\Objects\DataStructures\List.mqh>
+#include <Wantanites\Framework\Objects\DataStructures\Dictionary.mqh>
+#include <Wantanites\Framework\Objects\DataStructures\ObjectList.mqh>
 
 class Ticket
 {

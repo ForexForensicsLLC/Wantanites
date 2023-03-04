@@ -1,4 +1,4 @@
-#include <WantaCapital/EAs/PrimeMemberships/PrimeMembership.mqh>
+#include <Wantanites/EAs/PrimeMemberships/PrimeMembership.mqh>
 
 // --- EA Inputs ---
 string ForcedSymbol = "US500";

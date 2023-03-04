@@ -8,17 +8,17 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Helpers\EAErrorHelper.mqh>
+#include <Wantanites\Framework\Helpers\EAErrorHelper.mqh>
 
-#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\Index.mqh>
-#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\ErrorRecords\Index.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\Index.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\ErrorRecords\Index.mqh>
 
-#include <WantaCapital\Framework\Helpers\SetupHelper.mqh>
-#include <WantaCapital\Framework\Helpers\OrderHelper.mqh>
-#include <WantaCapital\Framework\Helpers\ScreenShotHelper.mqh>
-#include <WantaCapital\Framework\Helpers\CandleStickHelper.mqh>
+#include <Wantanites\Framework\Helpers\SetupHelper.mqh>
+#include <Wantanites\Framework\Helpers\OrderHelper.mqh>
+#include <Wantanites\Framework\Helpers\ScreenShotHelper.mqh>
+#include <Wantanites\Framework\Helpers\CandleStickHelper.mqh>
 
-#include <WantaCapital\Framework\Objects\Indicators\MB\LiquidationSetupTracker.mqh>
+#include <Wantanites\Framework\Objects\Indicators\MB\LiquidationSetupTracker.mqh>
 
 class EAHelper
 {

@@ -8,10 +8,10 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
-#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Inactive/TimeGrid/Continuation/TimeGridContinuation.mqh>
-#include <WantaCapital/Framework/Objects/TimeGridTracker.mqh>
+#include <Wantanites/Framework/Constants/MagicNumbers.mqh>
+#include <Wantanites/Framework/Constants/SymbolConstants.mqh>
+#include <Wantanites/EAs/Inactive/TimeGrid/Continuation/TimeGridContinuation.mqh>
+#include <Wantanites/Framework/Objects/TimeGridTracker.mqh>
 
 string ForcedSymbol = "AUDCAD";
 int ForcedTimeFrame = 5;

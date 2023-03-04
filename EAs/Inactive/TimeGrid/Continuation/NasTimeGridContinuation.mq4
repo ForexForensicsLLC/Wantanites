@@ -8,9 +8,9 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
-#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Inactive/TimeGrid/Continuation/TimeGridContinuation.mqh>
+#include <Wantanites/Framework/Constants/MagicNumbers.mqh>
+#include <Wantanites/Framework/Constants/SymbolConstants.mqh>
+#include <Wantanites/EAs/Inactive/TimeGrid/Continuation/TimeGridContinuation.mqh>
 
 string ForcedSymbol = "US100";
 int ForcedTimeFrame = 5;

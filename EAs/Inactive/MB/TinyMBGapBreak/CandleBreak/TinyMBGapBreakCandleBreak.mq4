@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Active/TinyMBGapBreak/CandleBreak/TinyMBGapBreakCandleBreak.mqh>
+#include <Wantanites/Framework/Constants/SymbolConstants.mqh>
+#include <Wantanites/EAs/Active/TinyMBGapBreak/CandleBreak/TinyMBGapBreakCandleBreak.mqh>
 
 string ForcedSymbol = "US30";
 int ForcedTimeFrame = 1;

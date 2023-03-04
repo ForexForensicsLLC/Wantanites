@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Objects\Indicators\MB\MBTracker.mqh>
+#include <Wantanites\Framework\Objects\Indicators\MB\MBTracker.mqh>
 
 class LiquidationSetupTracker
 {

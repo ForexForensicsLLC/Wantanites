@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Active/CandleZone/NeighborMBNoBodiesIn/NeighborMBNoBodiesIn.mqh>
+#include <Wantanites/Framework/Constants/SymbolConstants.mqh>
+#include <Wantanites/EAs/Active/CandleZone/NeighborMBNoBodiesIn/NeighborMBNoBodiesIn.mqh>
 
 string ForcedSymbol = "US30";
 int ForcedTimeFrame = 1;

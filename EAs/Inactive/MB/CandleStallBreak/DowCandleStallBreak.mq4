@@ -8,9 +8,9 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
-#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Active/CandleStallBreak/CandleStallBreak.mqh>
+#include <Wantanites/Framework/Constants/MagicNumbers.mqh>
+#include <Wantanites/Framework/Constants/SymbolConstants.mqh>
+#include <Wantanites/EAs/Active/CandleStallBreak/CandleStallBreak.mqh>
 
 string ForcedSymbol = "US30";
 int ForcedTimeFrame = 1;

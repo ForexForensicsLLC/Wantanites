@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/EAs/MBEngulfingEntry/MBEngulfingEntry.mqh>
+#include <Wantanites/EAs/MBEngulfingEntry/MBEngulfingEntry.mqh>
 
 // --- EA Inputs ---
 double RiskPercent = 0.25;

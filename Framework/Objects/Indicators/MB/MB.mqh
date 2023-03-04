@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Objects\Indicators\MB\MBState.mqh>
-#include <WantaCapital\Framework\Objects\Indicators\MB\Zone.mqh>
+#include <Wantanites\Framework\Objects\Indicators\MB\MBState.mqh>
+#include <Wantanites\Framework\Objects\Indicators\MB\Zone.mqh>
 
 class MB : public MBState
 {

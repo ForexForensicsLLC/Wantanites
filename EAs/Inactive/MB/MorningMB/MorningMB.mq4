@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Inactive/MorningMB/MorningMB.mqh>
+#include <Wantanites/Framework/Constants/SymbolConstants.mqh>
+#include <Wantanites/EAs/Inactive/MorningMB/MorningMB.mqh>
 
 // --- EA Inputs ---
 double RiskPercent = 1;

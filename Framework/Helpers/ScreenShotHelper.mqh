@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Helpers\OrderHelper.mqh>
-#include <WantaCapital\Framework\Constants\Index.mqh>
+#include <Wantanites\Framework\Helpers\OrderHelper.mqh>
+#include <Wantanites\Framework\Constants\Index.mqh>
 
 class ScreenShotHelper
 {

@@ -8,14 +8,14 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\EntryTradeRecords\DefaultEntryTradeRecord.mqh>
-#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\EntryTradeRecords\SingleTimeFrameEntryTradeRecord.mqh>
-#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\EntryTradeRecords\MultiTimeFrameEntryTradeRecord.mqh>
-#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\EntryTradeRecords\MBEntryTradeRecord.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\EntryTradeRecords\DefaultEntryTradeRecord.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\EntryTradeRecords\SingleTimeFrameEntryTradeRecord.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\EntryTradeRecords\MultiTimeFrameEntryTradeRecord.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\EntryTradeRecords\MBEntryTradeRecord.mqh>
 
-#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\ExitTradeRecords\DefaultExitTradeRecord.mqh>
-#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\ExitTradeRecords\SingleTimeFrameExitTradeRecord.mqh>
-#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\ExitTradeRecords\MultiTimeFrameExitTradeRecord.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\ExitTradeRecords\DefaultExitTradeRecord.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\ExitTradeRecords\SingleTimeFrameExitTradeRecord.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\ExitTradeRecords\MultiTimeFrameExitTradeRecord.mqh>
 
-#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\PartialTradeRecords\EmptyPartialTradeRecord.mqh>
-#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\PartialTradeRecords\PartialTradeRecord.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\PartialTradeRecords\EmptyPartialTradeRecord.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\PartialTradeRecords\PartialTradeRecord.mqh>

@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/EAs/InnerBreaks/LiquidationBigDipper.mqh>
+#include <Wantanites/EAs/InnerBreaks/LiquidationBigDipper.mqh>
 
 // --- EA Inputs ---
 input double StopLossPaddingPips = 0;

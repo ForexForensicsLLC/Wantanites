@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/EAs/Sinji/Sinji.mqh>
+#include <Wantanites/EAs/Sinji/Sinji.mqh>
 
 // --- EA Inputs ---
 input double StopLossPaddingPips = 10;

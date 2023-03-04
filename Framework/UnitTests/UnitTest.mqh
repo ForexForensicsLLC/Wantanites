@@ -8,10 +8,10 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Constants\Index.mqh>
+#include <Wantanites\Framework\Constants\Index.mqh>
 
-#include <WantaCapital\Framework\Helpers\ScreenShotHelper.mqh>
-#include <WantaCapital\Framework\CSVWriting\CSVRecordWriter.mqh>
+#include <Wantanites\Framework\Helpers\ScreenShotHelper.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordWriter.mqh>
 
 template <typename TUnitTest, typename TRecord>
 class UnitTest

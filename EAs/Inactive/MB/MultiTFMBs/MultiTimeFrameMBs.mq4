@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Inactive/MultiTFMBs/MultiTimeFrameMBs.mqh>
+#include <Wantanites/Framework/Constants/SymbolConstants.mqh>
+#include <Wantanites/EAs/Inactive/MultiTFMBs/MultiTimeFrameMBs.mqh>
 
 int SetupTimeFrame = 240;
 int EntryTimeFrame = 1;

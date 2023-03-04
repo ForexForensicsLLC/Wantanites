@@ -8,9 +8,9 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
-#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Inactive/Fractals/NasMorningBreak/NasMorningBreak.mqh>
+#include <Wantanites/Framework/Constants/MagicNumbers.mqh>
+#include <Wantanites/Framework/Constants/SymbolConstants.mqh>
+#include <Wantanites/EAs/Inactive/Fractals/NasMorningBreak/NasMorningBreak.mqh>
 
 input string SymbolHeader = "US100 Symbol Name. Might Need to adjust for your broker";
 input string ForcedSymbol = "US100";

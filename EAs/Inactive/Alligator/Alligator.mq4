@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/EAs/Inactive/Alligator/Alligator.mqh>
+#include <Wantanites/EAs/Inactive/Alligator/Alligator.mqh>
 
 // --- EA Inputs ---
 string ForcedSymbol = "US30";

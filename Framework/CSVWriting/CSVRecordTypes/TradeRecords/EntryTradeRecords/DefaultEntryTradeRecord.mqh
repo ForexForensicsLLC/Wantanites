@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\TradeRecords\RecordColumns.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\RecordColumns.mqh>
 
 class DefaultEntryTradeRecord : public RecordColumns
 {

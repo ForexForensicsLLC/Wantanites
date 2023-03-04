@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Objects\DataStructures\ObjectList.mqh>
-#include <WantaCapital\Framework\Objects\Indicators\PipsChanged\PipsChanged.mqh>
+#include <Wantanites\Framework\Objects\DataStructures\ObjectList.mqh>
+#include <Wantanites\Framework\Objects\Indicators\PipsChanged\PipsChanged.mqh>
 
 class PipsChangedTracker
 {

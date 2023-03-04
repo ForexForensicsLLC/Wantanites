@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Inactive/5MinMBSetup/WickFractal/WickFractal.mqh>
+#include <Wantanites/Framework/Constants/SymbolConstants.mqh>
+#include <Wantanites/EAs/Inactive/5MinMBSetup/WickFractal/WickFractal.mqh>
 
 int SetupTimeFrame = 5;
 

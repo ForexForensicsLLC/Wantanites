@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/EAs/Active/ImpulseReversal/FailedContinuationFiftyPercentIntoZone/ImpulseReversal.mqh>
-#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
+#include <Wantanites/EAs/Active/ImpulseReversal/FailedContinuationFiftyPercentIntoZone/ImpulseReversal.mqh>
+#include <Wantanites/Framework/Constants/SymbolConstants.mqh>
 
 string ForcedSymbol = "US30";
 int ForcedTimeFrame = 1;

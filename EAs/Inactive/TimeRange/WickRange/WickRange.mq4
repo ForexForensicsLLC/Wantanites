@@ -8,9 +8,9 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
-#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Inactive/TimeRange/WickRange/WickRange.mqh>
+#include <Wantanites/Framework/Constants/MagicNumbers.mqh>
+#include <Wantanites/Framework/Constants/SymbolConstants.mqh>
+#include <Wantanites/EAs/Inactive/TimeRange/WickRange/WickRange.mqh>
 
 string ForcedSymbol = "USDJPY";
 int ForcedTimeFrame = 5;
