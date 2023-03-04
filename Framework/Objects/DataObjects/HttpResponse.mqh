@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Objects\DataStructures\JSON.mqh>
+#include <Wantanites\Framework\Objects\DataStructures\JSON.mqh>
 
 class HttpResponse
 {

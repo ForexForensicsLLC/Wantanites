@@ -8,9 +8,9 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\EAs\The Sunrise Shatter\TheSunriseShatterSingleMB.mqh>
-#include <WantaCapital\EAs\The Sunrise Shatter\TheSunriseShatterDoubleMB.mqh>
-#include <WantaCapital\EAs\The Sunrise Shatter\TheSunriseShatterLiquidationMB.mqh>
+#include <Wantanites\EAs\The Sunrise Shatter\TheSunriseShatterSingleMB.mqh>
+#include <Wantanites\EAs\The Sunrise Shatter\TheSunriseShatterDoubleMB.mqh>
+#include <Wantanites\EAs\The Sunrise Shatter\TheSunriseShatterLiquidationMB.mqh>
 
 // --- EA Inputs ---
 input double StopLossPaddingPips = 0;

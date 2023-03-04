@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Symbols\USDCAD.mqh>
+#include <Wantanites\Framework\Symbols\USDCAD.mqh>
 
 class USDCAD
 {

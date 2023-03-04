@@ -8,10 +8,10 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Objects\DataObjects\EA.mqh>
-#include <WantaCapital\Framework\Helpers\EAHelper.mqh>
-#include <WantaCapital\Framework\Constants\MagicNumbers.mqh>
-#include <WantaCapital\Framework\Symbols\NASDAQ.mqh>
+#include <Wantanites\Framework\Objects\DataObjects\EA.mqh>
+#include <Wantanites\Framework\Helpers\EAHelper.mqh>
+#include <Wantanites\Framework\Constants\MagicNumbers.mqh>
+#include <Wantanites\Framework\Symbols\NASDAQ.mqh>
 
 class StartOfDayHedge : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {

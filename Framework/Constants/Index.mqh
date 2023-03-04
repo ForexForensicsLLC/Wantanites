@@ -9,7 +9,7 @@
 
 #define out
 
-#include <WantaCapital/Framework/Constants/TerminalErrors.mqh>
-#include <WantaCapital/Framework/Constants/ExecutionErrors.mqh>
+#include <Wantanites/Framework/Constants/TerminalErrors.mqh>
+#include <Wantanites/Framework/Constants/ExecutionErrors.mqh>
 
-#include <WantaCapital/Framework/Constants/Results.mqh>
+#include <Wantanites/Framework/Constants/Results.mqh>

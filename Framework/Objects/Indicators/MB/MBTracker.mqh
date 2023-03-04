@@ -8,9 +8,9 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Constants\Index.mqh>
-#include <WantaCapital\Framework\Objects\Indicators\MB\MB.mqh>
-#include <WantaCapital\Framework\Helpers\CandleStickHelper.mqh>
+#include <Wantanites\Framework\Constants\Index.mqh>
+#include <Wantanites\Framework\Objects\Indicators\MB\MB.mqh>
+#include <Wantanites\Framework\Helpers\CandleStickHelper.mqh>
 
 class MBTracker
 {

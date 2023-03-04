@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/Framework/UnitTests/UnitTest.mqh>
+#include <Wantanites/Framework/UnitTests/UnitTest.mqh>
 
 template <typename TRecord>
 class IntUnitTest : public UnitTest<int, TRecord>

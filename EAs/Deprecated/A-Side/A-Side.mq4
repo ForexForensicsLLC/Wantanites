@@ -10,8 +10,8 @@
 #property show_inputs
 
 //Make sure path is correct
-#include <WantaCapital\Framework\Trackers\MBTracker.mqh>
-#include <WantaCapital\Framework\Helpers\OrderHelper.mqh>
+#include <Wantanites\Framework\Trackers\MBTracker.mqh>
+#include <Wantanites\Framework\Helpers\OrderHelper.mqh>
 
 // --- EA Inputs ---
 input double StopLossPaddingPips = 7;

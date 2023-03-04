@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Objects\Indicators\MB\ZoneState.mqh>
+#include <Wantanites\Framework\Objects\Indicators\MB\ZoneState.mqh>
 
 class Zone : public ZoneState
 {

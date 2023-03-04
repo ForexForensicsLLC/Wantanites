@@ -8,10 +8,10 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
-#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Inactive/PriceRange/TrailSL/TrailSLPriceRange.mqh>
-#include <WantaCapital/Framework/Helpers/MailHelper.mqh>
+#include <Wantanites/Framework/Constants/MagicNumbers.mqh>
+#include <Wantanites/Framework/Constants/SymbolConstants.mqh>
+#include <Wantanites/EAs/Inactive/PriceRange/TrailSL/TrailSLPriceRange.mqh>
+#include <Wantanites/Framework/Helpers/MailHelper.mqh>
 
 string ForcedSymbol = "US100";
 int ForcedTimeFrame = 5;

@@ -8,12 +8,12 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Objects\DataObjects\EA.mqh>
-#include <WantaCapital\Framework\Helpers\EAHelper.mqh>
-#include <WantaCapital\Framework\Constants\MagicNumbers.mqh>
+#include <Wantanites\Framework\Objects\DataObjects\EA.mqh>
+#include <Wantanites\Framework\Helpers\EAHelper.mqh>
+#include <Wantanites\Framework\Constants\MagicNumbers.mqh>
 
-#include <WantaCapital\Framework\Objects\Indicators\Grid\GridTracker.mqh>
-#include <WantaCapital\Framework\Objects\DataStructures\Dictionary.mqh>
+#include <Wantanites\Framework\Objects\Indicators\Grid\GridTracker.mqh>
+#include <Wantanites\Framework\Objects\DataStructures\Dictionary.mqh>
 
 class MBGridMultiplier : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {

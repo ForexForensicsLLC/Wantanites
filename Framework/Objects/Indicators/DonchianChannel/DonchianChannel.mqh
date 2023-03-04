@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Helpers\MQLHelper.mqh>
+#include <Wantanites\Framework\Helpers\MQLHelper.mqh>
 
 class DonchianChannel
 {

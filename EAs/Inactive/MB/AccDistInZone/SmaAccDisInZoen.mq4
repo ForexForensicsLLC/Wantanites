@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/Framework/Trackers/CandleStickPatternTracker.mqh>
-#include <WantaCapital/EAs/SMAccDistInZone.mqh>
+#include <Wantanites/Framework/Trackers/CandleStickPatternTracker.mqh>
+#include <Wantanites/EAs/SMAccDistInZone.mqh>
 
 // --- EA Inputs ---
 input double StopLossPaddingPips = 10;

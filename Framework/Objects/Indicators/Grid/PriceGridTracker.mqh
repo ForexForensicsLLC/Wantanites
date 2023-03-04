@@ -8,10 +8,10 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Objects\GridTracker.mqh>
+#include <Wantanites\Framework\Objects\GridTracker.mqh>
 
-#include <WantaCapital\Framework\Helpers\DateTimeHelper.mqh>
-#include <WantaCapital\Framework\Helpers\OrderHelper.mqh>
+#include <Wantanites\Framework\Helpers\DateTimeHelper.mqh>
+#include <Wantanites\Framework\Helpers\OrderHelper.mqh>
 
 class PriceGridTracker : public GridTracker
 {

@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Helpers\ScreenShotHelper.mqh>
-#include <WantaCapital\Framework\Helpers\MQLHelper.mqh>
+#include <Wantanites\Framework\Helpers\ScreenShotHelper.mqh>
+#include <Wantanites\Framework\Helpers\MQLHelper.mqh>
 
 struct Doji
 {

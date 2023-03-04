@@ -8,18 +8,18 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\EAs\The Sunrise Shatter\TheSunriseShatterSingleMB.mqh>
-#include <WantaCapital\EAs\The Sunrise Shatter\TheSunriseShatterDoubleMB.mqh>
-#include <WantaCapital\EAs\The Sunrise Shatter\TheSunriseShatterLiquidationMB.mqh>
+#include <Wantanites\EAs\The Sunrise Shatter\TheSunriseShatterSingleMB.mqh>
+#include <Wantanites\EAs\The Sunrise Shatter\TheSunriseShatterDoubleMB.mqh>
+#include <Wantanites\EAs\The Sunrise Shatter\TheSunriseShatterLiquidationMB.mqh>
 
-#include <WantaCapital\Framework\Constants\Index.mqh>
+#include <Wantanites\Framework\Constants\Index.mqh>
 
-#include <WantaCapital\Framework\Trackers\MBTracker.mqh>
-#include <WantaCapital\Framework\Objects\MinROCFromTimeStamp.mqh>
+#include <Wantanites\Framework\Trackers\MBTracker.mqh>
+#include <Wantanites\Framework\Objects\MinROCFromTimeStamp.mqh>
 
-#include <WantaCapital\Framework\UnitTests\BoolUnitTest.mqh>
+#include <Wantanites\Framework\UnitTests\BoolUnitTest.mqh>
 
-#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\UnitTestRecords\DefaultUnitTestRecord.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\UnitTestRecords\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/EAs/The Sunrise Shatter/Tests/";
 const int NumberOfAsserts = 50;

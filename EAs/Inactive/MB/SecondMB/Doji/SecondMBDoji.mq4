@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Inactive/SecondMB/Doji/SecondMBDoji.mqh>
+#include <Wantanites/Framework/Constants/SymbolConstants.mqh>
+#include <Wantanites/EAs/Inactive/SecondMB/Doji/SecondMBDoji.mqh>
 
 // --- EA Inputs ---
 double RiskPercent = 1;

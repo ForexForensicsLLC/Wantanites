@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Objects\DataObjects\HttpResponse.mqh>
+#include <Wantanites\Framework\Objects\DataObjects\HttpResponse.mqh>
 
 class API
 {

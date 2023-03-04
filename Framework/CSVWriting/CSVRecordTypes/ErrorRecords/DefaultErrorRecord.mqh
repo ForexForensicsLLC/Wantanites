@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Helpers\FileHelper.mqh>
+#include <Wantanites\Framework\Helpers\FileHelper.mqh>
 
 class DefaultErrorRecord
 {

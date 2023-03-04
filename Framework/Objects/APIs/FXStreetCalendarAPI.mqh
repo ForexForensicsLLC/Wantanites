@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Objects\APIs\API.mqh>
-#include <WantaCapital\Framework\Objects\DataObjects\AuthToken.mqh>
+#include <Wantanites\Framework\Objects\APIs\API.mqh>
+#include <Wantanites\Framework\Objects\DataObjects\AuthToken.mqh>
 
 class FXStreetCalendarAPI : public API
 {

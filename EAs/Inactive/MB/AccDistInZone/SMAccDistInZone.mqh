@@ -8,11 +8,11 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/Framework/Trackers/CandleStickPatternTracker.mqh>
+#include <Wantanites/Framework/Trackers/CandleStickPatternTracker.mqh>
 
-#include <WantaCapital\Framework\EA\EA.mqh>
-#include <WantaCapital\Framework\Helpers\EAHelper.mqh>
-#include <WantaCapital\Framework\Constants\MagicNumbers.mqh>
+#include <Wantanites\Framework\EA\EA.mqh>
+#include <Wantanites\Framework\Helpers\EAHelper.mqh>
+#include <Wantanites\Framework\Constants\MagicNumbers.mqh>
 
 class SMAccDistInZone : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {

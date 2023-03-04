@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/EAs/Inactive/PriceRange/CloseOnCandleClose/CloseOnCandleClosePriceRange.mqh>
-#include <WantaCapital/Framework/Helpers/MailHelper.mqh>
+#include <Wantanites/EAs/Inactive/PriceRange/CloseOnCandleClose/CloseOnCandleClosePriceRange.mqh>
+#include <Wantanites/Framework/Helpers/MailHelper.mqh>
 
 input string SymbolHeader = "==== Symbol Info ====";
 input string SymbolInstructions = "US30 Symbol Name. Might Need to adjust for your broker";

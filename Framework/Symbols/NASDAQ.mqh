@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Symbols\Symbol.mqh>
+#include <Wantanites\Framework\Symbols\Symbol.mqh>
 
 class NASDAQ : public Symbol
 {

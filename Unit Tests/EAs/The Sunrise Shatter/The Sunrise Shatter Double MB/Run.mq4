@@ -8,16 +8,16 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\EAs\The Sunrise Shatter\TheSunriseShatterDoubleMB - Copy.mqh>
+#include <Wantanites\EAs\The Sunrise Shatter\TheSunriseShatterDoubleMB - Copy.mqh>
 
-#include <WantaCapital\Framework\Constants\Index.mqh>
+#include <Wantanites\Framework\Constants\Index.mqh>
 
-#include <WantaCapital\Framework\Trackers\MBTracker.mqh>
-#include <WantaCapital\Framework\Objects\MinROCFromTimeStamp.mqh>
+#include <Wantanites\Framework\Trackers\MBTracker.mqh>
+#include <Wantanites\Framework\Objects\MinROCFromTimeStamp.mqh>
 
-#include <WantaCapital\Framework\UnitTests\BoolUnitTest.mqh>
+#include <Wantanites\Framework\UnitTests\BoolUnitTest.mqh>
 
-#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/EAs/The Sunrise Shatter/The Sunrise Shatter Double MB/Run/";
 const int NumberOfAsserts = 100;

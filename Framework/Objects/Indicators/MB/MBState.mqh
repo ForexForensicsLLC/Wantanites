@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Objects\Indicators\MB\Zone.mqh>
-#include <WantaCapital\Framework\Helpers\MQLHelper.mqh>
+#include <Wantanites\Framework\Objects\Indicators\MB\Zone.mqh>
+#include <Wantanites\Framework\Helpers\MQLHelper.mqh>
 
 enum Status
 {

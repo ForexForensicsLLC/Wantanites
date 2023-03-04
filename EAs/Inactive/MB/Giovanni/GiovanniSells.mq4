@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/EAs/Giovanni/Giovanni.mqh>
+#include <Wantanites/EAs/Giovanni/Giovanni.mqh>
 
 // --- EA Inputs ---
 string ForcedSymbol = "US100";

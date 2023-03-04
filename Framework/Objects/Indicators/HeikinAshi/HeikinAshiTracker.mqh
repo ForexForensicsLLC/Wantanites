@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Objects\ObjectList.mqh>
-#include <WantaCapital\Framework\Objects\HeikinAshiCandle.mqh>
+#include <Wantanites\Framework\Objects\ObjectList.mqh>
+#include <Wantanites\Framework\Objects\HeikinAshiCandle.mqh>
 
 class HeikinAshiTracker
 {

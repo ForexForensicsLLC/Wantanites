@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\Helpers\DateTimeHelper.mqh>
-#include <WantaCapital\Framework\Objects\DataStructures\List.mqh>
+#include <Wantanites\Framework\Helpers\DateTimeHelper.mqh>
+#include <Wantanites\Framework\Objects\DataStructures\List.mqh>
 
 enum DayOfWeekEnum
 {

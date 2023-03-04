@@ -8,9 +8,9 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
-#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Active/ImpulseContinuation/TinyMBBreak/TinyMBBreak.mqh>
+#include <Wantanites/Framework/Constants/MagicNumbers.mqh>
+#include <Wantanites/Framework/Constants/SymbolConstants.mqh>
+#include <Wantanites/EAs/Active/ImpulseContinuation/TinyMBBreak/TinyMBBreak.mqh>
 
 string EntrySymbol = "NAS100";
 string EntryTimeFrame = 1;

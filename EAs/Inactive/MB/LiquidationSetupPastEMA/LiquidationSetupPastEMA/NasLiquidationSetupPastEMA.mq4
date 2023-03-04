@@ -8,9 +8,9 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
-#include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Active/LiquidationSetupPastEMA/LiquidationSetupPastEMA.mqh>
+#include <Wantanites/Framework/Constants/MagicNumbers.mqh>
+#include <Wantanites/Framework/Constants/SymbolConstants.mqh>
+#include <Wantanites/EAs/Active/LiquidationSetupPastEMA/LiquidationSetupPastEMA.mqh>
 
 string ForcedSymbol = "NAS100";
 int ForcedTimeFrame = 1;

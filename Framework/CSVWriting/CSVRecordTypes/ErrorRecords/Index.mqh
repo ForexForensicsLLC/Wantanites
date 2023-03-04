@@ -8,5 +8,5 @@
 #property version "1.00"
 #property strict
 
-#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\ErrorRecords\SingleTimeFrameErrorRecord.mqh>
-#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\ErrorRecords\MultiTimeFrameErrorRecord.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\ErrorRecords\SingleTimeFrameErrorRecord.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\ErrorRecords\MultiTimeFrameErrorRecord.mqh>

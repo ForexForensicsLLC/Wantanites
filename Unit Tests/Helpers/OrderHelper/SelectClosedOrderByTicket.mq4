@@ -7,11 +7,11 @@
 #property link "https://www.mql5.com"
 #property version "1.00"
 #property strict
-#include <WantaCapital\Framework\Helpers\OrderHelper.mqh>
-#include <WantaCapital\Framework\UnitTests\IntUnitTest.mqh>
-#include <WantaCapital\Framework\UnitTests\BoolUnitTest.mqh>
+#include <Wantanites\Framework\Helpers\OrderHelper.mqh>
+#include <Wantanites\Framework\UnitTests\IntUnitTest.mqh>
+#include <Wantanites\Framework\UnitTests\BoolUnitTest.mqh>
 
-#include <WantaCapital\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\DefaultUnitTestRecord.mqh>
 
 const string Directory = "/UnitTests/Helpers/OrderHelper/SelectClosedOrderByTicket/";
 const int NumberOfAsserts = 25;
