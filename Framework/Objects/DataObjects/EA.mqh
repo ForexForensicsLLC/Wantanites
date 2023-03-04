@@ -14,7 +14,7 @@
 #include <WantaCapital\Framework\Constants\EAStates.mqh>
 #include <WantaCapital\Framework\CSVWriting\CSVRecordWriter.mqh>
 #include <WantaCapital\Framework\Objects\DataObjects\TradingSession.mqh>
-// test
+
 template <typename TEntryRecord, typename TPartialRecord, typename TExitRecord, typename TErrorRecord>
 class EA
 {
