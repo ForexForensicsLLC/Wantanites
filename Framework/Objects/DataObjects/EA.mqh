@@ -14,7 +14,7 @@
 #include <Wantanites\Framework\Constants\EAStates.mqh>
 #include <Wantanites\Framework\CSVWriting\CSVRecordWriter.mqh>
 #include <Wantanites\Framework\Objects\DataObjects\TradingSession.mqh>
-
+// tes
 template <typename TEntryRecord, typename TPartialRecord, typename TExitRecord, typename TErrorRecord>
 class EA
 {
