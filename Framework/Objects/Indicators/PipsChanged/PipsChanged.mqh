@@ -97,7 +97,6 @@ void PipsChanged::Draw()
 
     ma /= mMAPeriod;
 
-    Print("Symbol: ", mSymbol, ", MA: ", ma);
     string name = mObjectNamePrefix + "_" + TimeToStr(TimeCurrent());
     ObjectCreate(ChartID(), name, OBJ_TREND, 1, TimeCurrent(), ma);
 }

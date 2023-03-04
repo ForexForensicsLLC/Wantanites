@@ -127,7 +127,6 @@ void MBGridMultiplier::CheckSetSetup()
             return;
         }
 
-        int levels = tempMBState.Height() / OrderHelper::PipsToRange(mMinLevelPips);
         double pipsThreshold = 3;
         if (SetupType() == OP_BUY)
         {
@@ -139,66 +138,8 @@ void MBGridMultiplier::CheckSetSetup()
             if (CurrentTick().Bid() < iHigh(mEntrySymbol, mEntryTimeFrame, tempMBState.HighIndex()) + OrderHelper::PipsToRange(pipsThreshold) &&
                 CurrentTick().Bid() > iHigh(mEntrySymbol, mEntryTimeFrame, tempMBState.HighIndex()) - OrderHelper::PipsToRange(pipsThreshold))
             {
-                // if (CandleStickHelper::BrokeFurther(OP_BUY, mEntrySymbol, mEntryTimeFrame, 1))
-                // {
-                // int currentRetracementIndex = EMPTY;
-                // if (!mMBT.CurrentBullishRetracementIndexIsValid(currentRetracementIndex))
-                // {
-                //     return;
-                // }
-
-                // double totalUpperDistance = iHigh(mEntrySymbol, mEntryTimeFrame, currentRetracementIndex) - CurrentTick().Bid();
-                // int totalUpperLevels = 0;
-                // double upperLevelDistance = 0.0;
-                // GetGridLevelsAndDistance(totalUpperDistance, totalUpperLevels, upperLevelDistance);
-
-                // if (totalUpperLevels == 0)
-                // {
-                //     Print("No Upper Levels. Total Distance: ", totalUpperDistance, ", Upper Level Distance: ", upperLevelDistance,
-                //           ", Starting Levels: ", mStartingNumberOfLevels, ", Min Level Distance: ", mMinLevelPips);
-                //     return;
-                // }
-
-                // double totalLowerDistance = CurrentTick().Bid() - iLow(mEntrySymbol, mEntryTimeFrame, tempMBState.LowIndex());
-                // int totalLowerLevels = 0;
-                // double lowerLevelDistance = 0.0;
-                // GetGridLevelsAndDistance(totalLowerDistance, totalLowerLevels, lowerLevelDistance);
-
-                // if (totalLowerLevels == 0)
-                // {
-                //     Print("No Lower Levels. Total Distance: ", totalLowerDistance, ", Upper Level Distance: ", lowerLevelDistance,
-                //           ", Starting Levels: ", mStartingNumberOfLevels, ", Min Level Distance: ", mMinLevelPips);
-                //     return;
-                // }
-
-                mGT.ReInit(CurrentTick().Bid(),
-                           1,
-                           levels,
-                           OrderHelper::PipsToRange(mMinLevelPips),
-                           OrderHelper::PipsToRange(mMinLevelPips));
-
-                // double potentialMaxLoss = 0;
-                // double potentialMaxLossPips = 0;
-                // for (int i = totalUpperLevels; i > 0; i--)
-                // {
-                //     potentialMaxLoss += i;
-                // }
-
-                // potentialMaxLossPips = potentialMaxLoss * upperLevelDistance;
-
-                // potentialMaxLoss = 0;
-                // for (int i = totalLowerLevels; i > 0; i--)
-                // {
-                //     potentialMaxLoss += i;
-                // }
-
-                // potentialMaxLossPips += potentialMaxLoss * lowerLevelDistance;
-
-                // potentialMaxLossPips = OrderHelper::RangeToPips(totalUpperDistance + totalLowerDistance);
-                // mLotSize = OrderHelper::GetLotSize(potentialMaxLossPips, RiskPercent()) / totalUpperLevels;
-                // Print("Total levels: ", totalUpperLevels + totalLowerLevels, ", Potential Max Loss: ", potentialMaxLoss, ", Potential Max Loss Pips: ", potentialMaxLossPips);
+                mGT.UpdateBasePrice(CurrentTick().Bid());
                 mHasSetup = true;
-                //}
             }
         }
         else if (SetupType() == OP_SELL)
@@ -211,87 +152,10 @@ void MBGridMultiplier::CheckSetSetup()
             if (CurrentTick().Bid() < iLow(mEntrySymbol, mEntryTimeFrame, tempMBState.LowIndex()) + OrderHelper::PipsToRange(pipsThreshold) &&
                 CurrentTick().Bid() > iLow(mEntrySymbol, mEntryTimeFrame, tempMBState.LowIndex()) - OrderHelper::PipsToRange(pipsThreshold))
             {
-                // if (CandleStickHelper::BrokeFurther(OP_SELL, mEntrySymbol, mEntryTimeFrame, 1))
-                // {
-                // int currentRetracementIndex = EMPTY;
-                // if (!mMBT.CurrentBearishRetracementIndexIsValid(currentRetracementIndex))
-                // {
-                //     return;
-                // }
-
-                // double totalUpperDistance = iHigh(mEntrySymbol, mEntryTimeFrame, tempMBState.HighIndex()) - CurrentTick().Bid();
-                // int totalUpperLevels = 0;
-                // double upperLevelDistance = 0.0;
-                // GetGridLevelsAndDistance(totalUpperDistance, totalUpperLevels, upperLevelDistance);
-
-                // if (totalUpperLevels == 0)
-                // {
-                //     Print("No Upper Levels. Total Distance: ", totalUpperDistance, ", Upper Level Distance: ", upperLevelDistance,
-                //           ", Starting Levels: ", mStartingNumberOfLevels, ", Min Level Distance: ", mMinLevelPips);
-                //     return;
-                // }
-
-                // double totalLowerDistance = CurrentTick().Bid() - iLow(mEntrySymbol, mEntryTimeFrame, currentRetracementIndex);
-                // int totalLowerLevels = 0;
-                // double lowerLevelDistance = 0.0;
-                // GetGridLevelsAndDistance(totalLowerDistance, totalLowerLevels, lowerLevelDistance);
-
-                // if (totalLowerLevels == 0)
-                // {
-                //     Print("No Lower Levels. Total Distance: ", totalLowerDistance, ", Upper Level Distance: ", lowerLevelDistance,
-                //           ", Starting Levels: ", mStartingNumberOfLevels, ", Min Level Distance: ", mMinLevelPips);
-                //     return;
-                // }
-
-                mGT.ReInit(CurrentTick().Bid(),
-                           levels,
-                           1,
-                           OrderHelper::PipsToRange(mMinLevelPips),
-                           OrderHelper::PipsToRange(mMinLevelPips));
-
-                // double potentialMaxLoss = 0;
-                // double potentialMaxLossPips = 0;
-                // for (int i = totalUpperLevels; i > 0; i--)
-                // {
-                //     potentialMaxLoss += i;
-                // }
-
-                // potentialMaxLossPips = potentialMaxLoss * upperLevelDistance;
-
-                // potentialMaxLoss = 0;
-                // for (int i = totalLowerLevels; i > 0; i--)
-                // {
-                //     potentialMaxLoss += i;
-                // }
-
-                // potentialMaxLossPips += potentialMaxLoss * lowerLevelDistance;
-
-                // potentialMaxLossPips = OrderHelper::RangeToPips(totalUpperDistance + totalLowerDistance);
-                // mLotSize = OrderHelper::GetLotSize(potentialMaxLossPips, RiskPercent()) / totalLowerLevels;
-                Print("Sell Setup");
+                mGT.UpdateBasePrice(CurrentTick().Bid());
                 mHasSetup = true;
-                //}
             }
         }
-    }
-}
-
-void MBGridMultiplier::GetGridLevelsAndDistance(double totalDistance, int &levels, double &levelDistance)
-{
-    levelDistance = totalDistance / mStartingNumberOfLevels;
-    levels = mStartingNumberOfLevels;
-    double minLevelDistance = OrderHelper::PipsToRange(mMinLevelPips);
-
-    while (levelDistance < minLevelDistance)
-    {
-        levels -= 1;
-        if (levels == 0)
-        {
-            Print("Zero Levels. Total Distance: ", totalDistance, ", Min Level Distance: ", minLevelDistance, ", Starting Levels: ", mStartingNumberOfLevels);
-            break;
-        }
-
-        levelDistance = totalDistance / levels;
     }
 }
 
@@ -401,41 +265,10 @@ void MBGridMultiplier::PlaceOrders()
 void MBGridMultiplier::PreManageTickets()
 {
     double equityPercentChange = EAHelper::GetTotalPreviousSetupTicketsEquityPercentChange<MBGridMultiplier>(this, mStartingEquity);
-    if (equityPercentChange <= -20)
-    {
-        Print("Equity Limit Reached: ", equityPercentChange);
-        mCloseAllTickets = true;
-
-        return;
-    }
-
-    if (mFirstMBInSetupNumber != mMBT.MBsCreated() - 1)
+    if (equityPercentChange >= 0.2)
     {
         mCloseAllTickets = true;
         return;
-    }
-
-    int currentLevel = mGT.CurrentLevel();
-    int levelProfitTargetHit = -99;
-
-    for (int i = 0; i < mLevelsWithTickets.Size(); i++)
-    {
-        if (SetupType() == OP_BUY)
-        {
-            if (mLevelsWithTickets[i] < currentLevel)
-            {
-                mLevelProfitTargetHit = mLevelsWithTickets[i];
-                break;
-            }
-        }
-        else if (SetupType() == OP_SELL)
-        {
-            if (mLevelsWithTickets[i] > currentLevel)
-            {
-                mLevelProfitTargetHit = mLevelsWithTickets[i];
-                break;
-            }
-        }
     }
 }
 
@@ -458,42 +291,6 @@ void MBGridMultiplier::ManagePreviousSetupTicket(Ticket &ticket)
     {
         ticket.Close();
         return;
-    }
-
-    if (mLevelProfitTargetHit != -99)
-    {
-        if (SetupType() == OP_BUY)
-        {
-            for (int i = 0; i < mLevelsWithTickets.Size(); i++)
-            {
-                if (mLevelsWithTickets[i] < mLevelProfitTargetHit)
-                {
-                    int ticketNumber;
-                    if (mLevelsWithTickets.GetValueByKey(mLevelsWithTickets[i], ticketNumber) && ticketNumber == ticket.Number())
-                    {
-                        Print("Level Profit Target Hit");
-                        ticket.Close();
-                    }
-                }
-            }
-        }
-        else if (SetupType() == OP_SELL)
-        {
-            for (int i = 0; i < mLevelsWithTickets.Size(); i++)
-            {
-                if (mLevelsWithTickets[i] > mLevelProfitTargetHit)
-                {
-                    int ticketNumber;
-                    if (mLevelsWithTickets.GetValueByKey(mLevelsWithTickets[i], ticketNumber) && ticketNumber == ticket.Number())
-                    {
-                        Print("Level Profit Target Hit");
-                        ticket.Close();
-                    }
-                }
-            }
-        }
-
-        mLevelProfitTargetHit = -99;
     }
 }
 

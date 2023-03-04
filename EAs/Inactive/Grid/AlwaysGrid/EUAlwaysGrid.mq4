@@ -39,6 +39,7 @@ AlwaysGrid *MBGMSells;
 
 double MaxOppositeLevels = 50;
 double LevelDistance = OrderHelper::PipsToRange(30);
+
 double StartingLotSize = 0.01;
 int IncreaseLotSizePeriod = 1;
 double IncreaseLotSizeFactor = 2;

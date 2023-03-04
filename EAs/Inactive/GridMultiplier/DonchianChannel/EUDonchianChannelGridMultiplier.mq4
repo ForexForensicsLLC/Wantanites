@@ -10,7 +10,7 @@
 
 #include <WantaCapital/Framework/Constants/MagicNumbers.mqh>
 #include <WantaCapital/Framework/Constants/SymbolConstants.mqh>
-#include <WantaCapital/EAs/Inactive/Grid/RSI/RSIGrid.mqh>
+#include <WantaCapital/EAs/Inactive/GridMultiplier/DonchianChannel/DonchianChannelGrid.mqh>
 
 string ForcedSymbol = "EURUSD";
 int ForcedTimeFrame = 1440;
@@ -22,29 +22,30 @@ int MaxTradesPerDay = 5;
 
 string StrategyName = "Grid/";
 string EAName = "EU/";
-string SetupTypeName = "RSIGrid/";
+string SetupTypeName = "DonchianChannelGrid/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-// TradingSession *TS;
+DonchianChannel *DC;
 
 GridTracker *GTBuys;
 GridTracker *GTSells;
 
-RSIGrid *MBGMBuys;
-RSIGrid *MBGMSells;
+DonchianChannelGrid *MBGMBuys;
+DonchianChannelGrid *MBGMSells;
 
-double MaxOppositeLevels = 50;
-double LevelDistance = OrderHelper::PipsToRange(60);
-double StartingLotSize = 0.05;
+// Grid Parameters
+double MaxLevels = 100;
+double LevelDistance = OrderHelper::PipsToRange(50);
+
+// EA Parameters
+double TicketNumberInDrawDownToTriggerSurviveMode = 10;
+int SurviveLevelModulus = 5;
 double LotsPerBalancePeriod = 1000;
-double LotsPerBalanceLotIncrement = 0.05;
-int IncreaseLotSizePeriod = 3;
-double IncreaseLotSizeFactor = 1.5;
-double MaxEquityDrawDownPercent = -100;
+double LotsPerBalanceLotIncrement = 0.1;
 double MaxSpreadPips = 2;
 double StopLossPaddingPips = 0;
 
@@ -55,36 +56,40 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    GTBuys = new GridTracker("Buys", 1, MaxOppositeLevels, LevelDistance, LevelDistance);
-    GTSells = new GridTracker("Sells", MaxOppositeLevels, 1, LevelDistance, LevelDistance);
+    DC = new DonchianChannel(365);
 
-    MBGMBuys = new RSIGrid(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                           ExitWriter, ErrorWriter, GTBuys);
+    GTBuys = new GridTracker("Buys", MaxLevels, MaxLevels, LevelDistance, LevelDistance);
+    GTSells = new GridTracker("Sells", MaxLevels, MaxLevels, LevelDistance, LevelDistance);
 
-    MBGMBuys.mStartingLotSize = StartingLotSize;
+    MBGMBuys = new DonchianChannelGrid(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                       ExitWriter, ErrorWriter, GTBuys, DC);
+
+    MBGMBuys.mTicketNumberInDrawDownToTriggerSurviveMode = TicketNumberInDrawDownToTriggerSurviveMode;
+    MBGMBuys.mSurviveLevelModulus = SurviveLevelModulus;
     MBGMBuys.mLotsPerBalancePeriod = LotsPerBalancePeriod;
     MBGMBuys.mLotsPerBalanceLotIncrement = LotsPerBalanceLotIncrement;
-    MBGMBuys.mIncreaseLotSizePeriod = IncreaseLotSizePeriod;
-    MBGMBuys.mIncreaseLotSizeFactor = IncreaseLotSizeFactor;
-    MBGMBuys.mMaxEquityDrawDownPercent = MaxEquityDrawDownPercent;
-    // MBGMBuys.AddTradingSession(TS);
+    // MBGMBuys.mIncreaseLotSizePeriod = IncreaseLotSizePeriod;
+    // MBGMBuys.mIncreaseLotSizeFactor = IncreaseLotSizeFactor;
+    // MBGMBuys.mMaxEquityDrawDownPercent = MaxEquityDrawDownPercent;
 
-    MBGMSells = new RSIGrid(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                            ExitWriter, ErrorWriter, GTSells);
+    MBGMSells = new DonchianChannelGrid(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                        ExitWriter, ErrorWriter, GTSells, DC);
 
-    MBGMSells.mStartingLotSize = StartingLotSize;
+    MBGMSells.mTicketNumberInDrawDownToTriggerSurviveMode = TicketNumberInDrawDownToTriggerSurviveMode;
+    MBGMSells.mSurviveLevelModulus = SurviveLevelModulus;
     MBGMSells.mLotsPerBalancePeriod = LotsPerBalancePeriod;
     MBGMSells.mLotsPerBalanceLotIncrement = LotsPerBalanceLotIncrement;
-    MBGMSells.mIncreaseLotSizePeriod = IncreaseLotSizePeriod;
-    MBGMSells.mIncreaseLotSizeFactor = IncreaseLotSizeFactor;
-    MBGMSells.mMaxEquityDrawDownPercent = MaxEquityDrawDownPercent;
-    // MBGMSells.AddTradingSession(TS);
+    // MBGMSells.mIncreaseLotSizePeriod = IncreaseLotSizePeriod;
+    // MBGMSells.mIncreaseLotSizeFactor = IncreaseLotSizeFactor;
+    // MBGMSells.mMaxEquityDrawDownPercent = MaxEquityDrawDownPercent;
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
+    delete DC;
+
     delete GTBuys;
     delete GTSells;
 

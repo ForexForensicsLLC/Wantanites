@@ -18,52 +18,38 @@
 class ImpulseReversal : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
-    PriceGridTracker *mPGT;
-
-    double mLotSize;
     double mMinPercentChange;
-
-    int mEntryTimeFrame;
-    string mEntrySymbol;
-
-    int mBarCount;
-    int mLastDay;
-
-    double mStartingEquity;
-    bool mPlacedFirstTicket;
-    int mLastPriceLevel;
 
     double mEntryPaddingPips;
     double mMinStopLossPips;
     double mPipsToWaitBeforeBE;
     double mBEAdditionalPips;
 
-    datetime mEntryCandleTime;
-
     double mMinEquityDrawDown;
 
 public:
     ImpulseReversal(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                     CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                    CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, PriceGridTracker *&pgt);
+                    CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter);
     ~ImpulseReversal();
 
     virtual double RiskPercent() { return mRiskPercent; }
 
-    virtual void Run();
+    virtual void PreRun();
     virtual bool AllowedToTrade();
     virtual void CheckSetSetup();
     virtual void CheckInvalidateSetup();
     virtual void InvalidateSetup(bool deletePendingOrder, int error);
     virtual bool Confirmation();
     virtual void PlaceOrders();
-    virtual void ManageCurrentPendingSetupTicket();
-    virtual void ManageCurrentActiveSetupTicket();
+    virtual void PreManageTickets();
+    virtual void ManageCurrentPendingSetupTicket(Ticket &ticket);
+    virtual void ManageCurrentActiveSetupTicket(Ticket &ticket);
     virtual bool MoveToPreviousSetupTickets(Ticket &ticket);
-    virtual void ManagePreviousSetupTicket(int ticketIndex);
-    virtual void CheckCurrentSetupTicket();
-    virtual void CheckPreviousSetupTicket(int ticketIndex);
-    virtual void RecordTicketOpenData();
+    virtual void ManagePreviousSetupTicket(Ticket &ticket);
+    virtual void CheckCurrentSetupTicket(Ticket &ticket);
+    virtual void CheckPreviousSetupTicket(Ticket &ticket);
+    virtual void RecordTicketOpenData(Ticket &ticket);
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
@@ -72,32 +58,17 @@ public:
 
 ImpulseReversal::ImpulseReversal(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                                  CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                                 CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, PriceGridTracker *&pgt)
+                                 CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
-    mPGT = pgt;
-
-    mLotSize = 0.0;
     mMinPercentChange = 0.0;
-
-    mEntrySymbol = Symbol();
-    mEntryTimeFrame = Period();
-
-    mBarCount = 0;
-
-    mStartingEquity = 0.0;
-    mPlacedFirstTicket = false;
-    mLastPriceLevel = 10000;
 
     mEntryPaddingPips = 0.0;
     mMinStopLossPips = 0.0;
     mPipsToWaitBeforeBE = 0.0;
     mBEAdditionalPips = 0.0;
 
-    mEntryCandleTime = 0;
-
     mMinEquityDrawDown = 0;
-
     mLargestAccountBalance = 200000;
 
     EAHelper::FindSetPreviousAndCurrentSetupTickets<ImpulseReversal>(this);
@@ -110,42 +81,27 @@ ImpulseReversal::~ImpulseReversal()
     Print("Magic Number: ", MagicNumber(), ", Min Equity DD: ", mMinEquityDrawDown);
 }
 
-void ImpulseReversal::Run()
+void ImpulseReversal::PreRun()
 {
-    EAHelper::Run<ImpulseReversal>(this);
-    mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
 }
 
 bool ImpulseReversal::AllowedToTrade()
 {
-    return EAHelper::BelowSpread<ImpulseReversal>(this) && (EAHelper::WithinTradingSession<ImpulseReversal>(this) || mPreviousSetupTickets.Size() > 0);
+    return EAHelper::BelowSpread<ImpulseReversal>(this) && EAHelper::WithinTradingSession<ImpulseReversal>(this);
 }
 
 void ImpulseReversal::CheckSetSetup()
 {
-    if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
+    if (iBars(mEntrySymbol, mEntryTimeFrame) <= BarCount())
     {
         return;
     }
 
-    int furthestIndexCheck = 30;
-    int furthestIndex = EMPTY;
-
     bool hasImbalance = false;
     bool hasMinPercentChange = false;
 
-    if (mSetupType == OP_BUY)
+    if (SetupType() == OP_BUY)
     {
-        if (!MQLHelper::GetLowestIndexBetween(mEntrySymbol, mEntryTimeFrame, furthestIndexCheck, 0, true, furthestIndex))
-        {
-            return;
-        }
-
-        if (furthestIndex > 2)
-        {
-            return;
-        }
-
         for (int i = 2; i <= 4; i++)
         {
             if (CandleStickHelper::HasImbalance(OP_SELL, mEntrySymbol, mEntryTimeFrame, i))
@@ -166,18 +122,8 @@ void ImpulseReversal::CheckSetSetup()
 
         mHasSetup = true;
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
-        if (!MQLHelper::GetHighestIndexBetween(mEntrySymbol, mEntryTimeFrame, furthestIndexCheck, 0, true, furthestIndex))
-        {
-            return;
-        }
-
-        if (furthestIndex > 2)
-        {
-            return;
-        }
-
         for (int i = 2; i <= 4; i++)
         {
             if (CandleStickHelper::HasImbalance(OP_BUY, mEntrySymbol, mEntryTimeFrame, i))
@@ -203,56 +149,19 @@ void ImpulseReversal::CheckSetSetup()
 void ImpulseReversal::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
-
-    if (mPlacedFirstTicket && mPreviousSetupTickets.Size() == 0)
-    {
-        mStopTrading = true;
-    }
 }
 
 void ImpulseReversal::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
     EAHelper::InvalidateSetup<ImpulseReversal>(this, deletePendingOrder, mStopTrading, error);
-
-    mStartingEquity = 0.0;
-    mPlacedFirstTicket = false;
-    mLastPriceLevel = 1000;
-    mPGT.Reset();
 }
 
 bool ImpulseReversal::Confirmation()
 {
-    // if (mSetupType == OP_BUY)
-    // {
-    //     if (mPGT.CurrentLevel() <= 0 &&
-    //         mPGT.CurrentLevel() < mLastPriceLevel)
-    //     {
-    //         mLastPriceLevel = mPGT.CurrentLevel();
-    //         return true;
-    //     }
-    // }
-    // else if (mSetupType == OP_SELL)
-    // {
-    //     if (mPGT.CurrentLevel() >= 0 &&
-    //         (mPGT.CurrentLevel() > mLastPriceLevel || mLastPriceLevel == 1000))
-    //     {
-    //         mLastPriceLevel = mPGT.CurrentLevel();
-    //         return true;
-    //     }
-    // }
-
-    if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
+    bool hasTicket = !mCurrentSetupTicket.IsEmpty();
+    if (iBars(mEntrySymbol, mEntryTimeFrame) <= BarCount())
     {
-        return false;
-    }
-
-    if (mSetupType == OP_BUY)
-    {
-        return CandleStickHelper::IsBullish(mEntrySymbol, mEntryTimeFrame, 1);
-    }
-    else if (mSetupType == OP_SELL)
-    {
-        return CandleStickHelper::IsBearish(mEntrySymbol, mEntryTimeFrame, 1);
+        return hasTicket;
     }
 
     return false;
@@ -260,114 +169,47 @@ bool ImpulseReversal::Confirmation()
 
 void ImpulseReversal::PlaceOrders()
 {
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
-    {
-        RecordError(GetLastError());
-        return;
-    }
-
     double entry = 0.0;
     double stopLoss = 0.0;
 
     if (mSetupType == OP_BUY)
     {
-        entry = currentTick.ask;
-
-        if (mPreviousSetupTickets.Size() > 0 && entry > mPreviousSetupTickets[mPreviousSetupTickets.Size() - 1].OpenPrice())
-        {
-            return;
-        }
+        entry = CurrentTick().Ask();
     }
     else if (mSetupType == OP_SELL)
     {
-        entry = currentTick.bid;
-
-        if (mPreviousSetupTickets.Size() > 0 && entry < mPreviousSetupTickets[mPreviousSetupTickets.Size() - 1].OpenPrice())
-        {
-            return;
-        }
+        entry = CurrentTick().Bid();
     }
 
-    if (mPreviousSetupTickets.Size() == 0)
-    {
-        mStartingEquity = AccountEquity();
-        mPlacedFirstTicket = true;
-    }
-
-    double lotSize = mLotSize;
-    // int currentTickets = mPreviousSetupTickets.Size();
-    // while (currentTickets >= 3)
-    // {
-    //     lotSize += mLotSize;
-    //     currentTickets -= 3;
-    // }
-
-    double currentDrawdown = 0.0;
-    for (int i = 0; i < mPreviousSetupTickets.Size(); i++)
-    {
-        mPreviousSetupTickets[i].SelectIfOpen("Adding drawdown");
-        currentDrawdown += OrderProfit();
-        Print("Order Profit: ", OrderProfit());
-    }
-
-    double valuePerPipPerLot = EURUSD::PipValuePerLot();
-    double pipTarget = 5;
-    double equityTarget = (AccountBalance() * 0.001) + MathAbs(currentDrawdown);
-    double profitPerPip = equityTarget / pipTarget;
-    Print("Value / Pip / Lot: ", valuePerPipPerLot, ", Pip Target: ", pipTarget, ", Equity Target: ", equityTarget, ", Profit / Pip: ", profitPerPip);
-
-    lotSize = equityTarget / valuePerPipPerLot / pipTarget;
-    Print(lotSize);
     EAHelper::PlaceMarketOrder<ImpulseReversal>(this, entry, stopLoss, lotSize);
 }
 
-void ImpulseReversal::ManageCurrentPendingSetupTicket()
+void ImpulseReversal::ManageCurrentPendingSetupTicket(Ticket &ticket)
 {
 }
 
-void ImpulseReversal::ManageCurrentActiveSetupTicket()
+void ImpulseReversal::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
 }
 
 bool ImpulseReversal::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    return true;
+    return false;
 }
 
-void ImpulseReversal::ManagePreviousSetupTicket(int ticketIndex)
+void ImpulseReversal::ManagePreviousSetupTicket(Ticket &ticket)
 {
-    // close all tickets if we are down 10% or up 1%
-    double equityPercentChange = (AccountEquity() - mStartingEquity) / AccountEquity() * 100;
-    // double equityTarget = MathMax(0.2 / mPreviousSetupTickets.Size(), 0.05);
-    // double equityTarget = 1 / mPreviousSetupTickets.Size();
-    double equityTarget = .1;
-
-    if (equityPercentChange <= -100 || equityPercentChange > equityTarget)
-    {
-        mPreviousSetupTickets[ticketIndex].Close();
-        return;
-    }
-
-    if (equityPercentChange < mMinEquityDrawDown)
-    {
-        mMinEquityDrawDown = equityPercentChange;
-    }
 }
 
-void ImpulseReversal::CheckCurrentSetupTicket()
+void ImpulseReversal::CheckCurrentSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<ImpulseReversal>(this, mCurrentSetupTicket);
-    EAHelper::CheckCurrentSetupTicket<ImpulseReversal>(this);
 }
 
-void ImpulseReversal::CheckPreviousSetupTicket(int ticketIndex)
+void ImpulseReversal::CheckPreviousSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<ImpulseReversal>(this, mPreviousSetupTickets[ticketIndex]);
-    EAHelper::CheckPreviousSetupTicket<ImpulseReversal>(this, ticketIndex);
 }
 
-void ImpulseReversal::RecordTicketOpenData()
+void ImpulseReversal::RecordTicketOpenData(Ticket &ticket)
 {
     EAHelper::RecordSingleTimeFrameEntryTradeRecord<ImpulseReversal>(this);
 }

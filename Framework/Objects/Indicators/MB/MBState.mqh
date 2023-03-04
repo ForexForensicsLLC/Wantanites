@@ -80,7 +80,6 @@ public:
     int ZoneCount() { return mZoneCount; }
     int UnretrievedZoneCount() { return mUnretrievedZoneCount; }
 
-    // Tested
     bool StartIsBrokenFromBarIndex(int barIndex);
     bool GlobalStartIsBroken();
 
@@ -91,7 +90,6 @@ public:
     bool GetClosestValidZone(ZoneState *&zoneState);
     bool ClosestValidZoneIsHolding(int barIndex);
 
-    // Tested
     bool GetShallowestZone(ZoneState *&zoneState);
     bool GetDeepestHoldingZone(ZoneState *&zoneState);
 

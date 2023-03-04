@@ -12,13 +12,10 @@
 #include <WantaCapital\Framework\Helpers\EAHelper.mqh>
 #include <WantaCapital\Framework\Constants\MagicNumbers.mqh>
 
-class PriceRange : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class PriceRange : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     double mPipsFromOpen;
-
-    double mPipsToWaitBeforeBE;
-    double mBEAdditionalPips;
 
 public:
     PriceRange(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
@@ -57,9 +54,6 @@ PriceRange::PriceRange(int magicNumber, int setupType, int maxCurrentSetupTrades
 {
     mPipsFromOpen = 0.0;
 
-    mPipsToWaitBeforeBE = 0.0;
-    mBEAdditionalPips = 0.0;
-
     EAHelper::FindSetPreviousAndCurrentSetupTickets<PriceRange>(this);
     EAHelper::SetPreviousSetupTicketsOpenData<PriceRange, SingleTimeFrameEntryTradeRecord>(this);
 }
@@ -84,10 +78,7 @@ void PriceRange::CheckSetSetup()
         return;
     }
 
-    if (Hour() == mTradingSessions[0].HourStart() && Minute() == mTradingSessions[0].MinuteStart())
-    {
-        mHasSetup = true;
-    }
+    mHasSetup = true;
 }
 
 void PriceRange::CheckInvalidateSetup()
@@ -122,8 +113,6 @@ void PriceRange::PlaceOrders()
     }
 
     EAHelper::PlaceStopOrder<PriceRange>(this, entry, stopLoss);
-
-    mStopTrading = true;
     InvalidateSetup(false);
 }
 
@@ -133,16 +122,16 @@ void PriceRange::PreManageTickets()
 
 void PriceRange::ManageCurrentPendingSetupTicket(Ticket &ticket)
 {
+    int entryIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, ticket.OpenTime());
+    if (entryIndex > 0)
+    {
+        ticket.Close();
+    }
 }
 
 void PriceRange::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
-    if (EAHelper::CloseIfPercentIntoStopLoss<PriceRange>(this, ticket, 0.2))
-    {
-        return;
-    }
-
-    EAHelper::MoveToBreakEvenAfterPips<PriceRange>(this, ticket, mPipsToWaitBeforeBE, mBEAdditionalPips);
+    EAHelper::MoveToBreakEvenAfterPips<PriceRange>(this, ticket, 5, 0.5);
 }
 
 bool PriceRange::MoveToPreviousSetupTickets(Ticket &ticket)
@@ -161,7 +150,6 @@ void PriceRange::CheckCurrentSetupTicket(Ticket &ticket)
 
 void PriceRange::CheckPreviousSetupTicket(Ticket &ticket)
 {
-    // EAHelper::CheckPartialTicket<PriceRange>(this, ticket);
 }
 
 void PriceRange::RecordTicketOpenData(Ticket &ticket)
@@ -171,7 +159,6 @@ void PriceRange::RecordTicketOpenData(Ticket &ticket)
 
 void PriceRange::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
-    // EAHelper::RecordPartialTradeRecord<PriceRange>(this, partialedTicket, newTicketNumber);
 }
 
 void PriceRange::RecordTicketCloseData(Ticket &ticket)
@@ -191,6 +178,4 @@ bool PriceRange::ShouldReset()
 
 void PriceRange::Reset()
 {
-    mStopTrading = false;
-    EAHelper::CloseAllCurrentAndPreviousSetupTickets<PriceRange>(this);
 }

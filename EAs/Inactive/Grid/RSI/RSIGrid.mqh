@@ -22,6 +22,8 @@ public:
     Dictionary<int, int> *mLevelsWithTickets;
 
     double mStartingLotSize;
+    double mLotsPerBalancePeriod;
+    double mLotsPerBalanceLotIncrement;
     int mIncreaseLotSizePeriod;
     double mIncreaseLotSizeFactor;
     double mMaxEquityDrawDownPercent;
@@ -77,6 +79,8 @@ RSIGrid::RSIGrid(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce
     mLevelsWithTickets = new Dictionary<int, int>();
 
     mStartingLotSize = 0.0;
+    mLotsPerBalancePeriod = 0.0;
+    mLotsPerBalanceLotIncrement = 0.0;
     mIncreaseLotSizePeriod = 0;
     mIncreaseLotSizeFactor = 0.0;
     mMaxEquityDrawDownPercent = 0.0;
@@ -112,7 +116,7 @@ bool RSIGrid::AllowedToTrade()
 
 void RSIGrid::CheckSetSetup()
 {
-    bool setup = (SetupType() == OP_BUY && RSI(0) <= 70 && CurrentTick().Bid() > EMA(0)) || (SetupType() == OP_SELL && RSI(0) >= 70 && CurrentTick().Bid() < EMA(0));
+    bool setup = (SetupType() == OP_BUY && RSI(0) <= 30 && CurrentTick().Bid() < EMA(0)) || (SetupType() == OP_SELL && RSI(0) >= 70 && CurrentTick().Bid() > EMA(0));
     if (setup)
     {
         mGT.UpdateBasePrice(CurrentTick().Bid());
@@ -181,8 +185,15 @@ void RSIGrid::PlaceOrders()
         mFirstTrade = false;
     }
 
+    double startingLotSize = AccountBalance() / mLotsPerBalancePeriod * mLotsPerBalanceLotIncrement;
+    //  double lotSize = startingLotSize;
+    //  if (mPreviousSetupTickets.Size() > 0 && mPreviousSetupTickets.Size() % mIncreaseLotSizePeriod == 0)
+    //  {
+    //      lotSize = startingLotSize * MathPow(mIncreaseLotSizeFactor, mPreviousSetupTickets.Size() / mIncreaseLotSizePeriod);
+    //  }
+
     int increaseLotSizeTimes = MathFloor(mPreviousSetupTickets.Size() / mIncreaseLotSizePeriod);
-    double lotSize = mStartingLotSize * MathPow(mIncreaseLotSizeFactor, increaseLotSizeTimes);
+    double lotSize = startingLotSize * MathPow(mIncreaseLotSizeFactor, increaseLotSizeTimes);
 
     EAHelper::PlaceMarketOrder<RSIGrid>(this, entry, stopLoss, lotSize);
     if (!mCurrentSetupTickets.IsEmpty())
@@ -205,38 +216,38 @@ void RSIGrid::PreManageTickets()
         mFurthestEquityDrawDownTime = TimeCurrent();
     }
 
-    if (equityPercentChange <= mMaxEquityDrawDownPercent /*|| equityPercentChange >= .2*/)
+    if (equityPercentChange <= mMaxEquityDrawDownPercent || equityPercentChange >= .2)
     {
         mCloseAllTickets = true;
         return;
     }
 
-    if (mGT.AtMaxLevel())
-    {
-        mCloseAllTickets = true;
-        return;
-    }
+    // if (mGT.AtMaxLevel())
+    // {
+    //     mCloseAllTickets = true;
+    //     return;
+    // }
 
-    int currentLevel = mGT.CurrentLevel();
-    for (int i = 0; i < mLevelsWithTickets.Size(); i++)
-    {
-        if (SetupType() == OP_BUY)
-        {
-            if (mLevelsWithTickets[i] < currentLevel)
-            {
-                mCloseAllTickets = true;
-                break;
-            }
-        }
-        else if (SetupType() == OP_SELL)
-        {
-            if (mLevelsWithTickets[i] > currentLevel)
-            {
-                mCloseAllTickets = true;
-                break;
-            }
-        }
-    }
+    // int currentLevel = mGT.CurrentLevel();
+    // for (int i = 0; i < mLevelsWithTickets.Size(); i++)
+    // {
+    //     if (SetupType() == OP_BUY)
+    //     {
+    //         if (mLevelsWithTickets[i] < currentLevel)
+    //         {
+    //             mCloseAllTickets = true;
+    //             break;
+    //         }
+    //     }
+    //     else if (SetupType() == OP_SELL)
+    //     {
+    //         if (mLevelsWithTickets[i] > currentLevel)
+    //         {
+    //             mCloseAllTickets = true;
+    //             break;
+    //         }
+    //     }
+    // }
 }
 
 void RSIGrid::ManageCurrentPendingSetupTicket(Ticket &ticket)
