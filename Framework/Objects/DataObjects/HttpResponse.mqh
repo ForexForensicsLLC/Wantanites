@@ -21,6 +21,7 @@ public:
     HttpResponse(int code, string headers, char data[]);
     ~HttpResponse();
 
+    int ResponseCode() { return mCode; }
     bool DidSucceed() { return mCode == 200; }
 
     JSON *Data() { return mData; }
