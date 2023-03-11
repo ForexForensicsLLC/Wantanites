@@ -19,7 +19,7 @@
 class EconomicCalendarDB
 {
 private:
-    string Directory() { return "C:/Users/WantaTyler/source/repos/EconomicCalendar/WebScraper/Database/Data/"; }
+    string Directory() { return "C:/Users/WantaTyler/source/repos/EconomicCalendar/Data/"; }
     string DateToPath(datetime date);
     string EventsDocument() { return "Events.Events.csv"; }
 
