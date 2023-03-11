@@ -21,7 +21,7 @@ class EconomicCalendarDB
 private:
     string Directory() { return "C:/Users/WantaTyler/source/repos/EconomicCalendar/WebScraper/Database/Data/"; }
     string DateToPath(datetime date);
-    string EventsDocument() { return "Events.csv"; }
+    string EventsDocument() { return "Events.Events.csv"; }
 
     string DateToPath(datetime date);
     void ReadEvents(datetime utcStart, datetime utcEnd, datetime utcCurrent, ObjectList<EconomicEvent> *&events, string symbol, ImpactEnum impact);
