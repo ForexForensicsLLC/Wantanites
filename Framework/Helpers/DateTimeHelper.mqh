@@ -13,6 +13,8 @@ class DateTimeHelper
 public:
     static datetime HourMinuteToDateTime(int hour, int minute, int day);
     static datetime DayMonthYearToDateTime(int day, int month, int year);
+
+    static string FormatAsTwoDigits(int value);
 };
 
 datetime DateTimeHelper::HourMinuteToDateTime(int hour, int minute, int day)
@@ -25,4 +27,18 @@ datetime DateTimeHelper::DayMonthYearToDateTime(int day, int month, int year)
 {
     string dateString = IntegerToString(year) + "." + IntegerToString(month) + "." + IntegerToString(day);
     return StringToTime(dateString);
+}
+
+string DateTimeHelper::FormatAsTwoDigits(int value)
+{
+    if (value >= 10)
+    {
+        return IntegerToString(TimeMonth(date));
+    }
+    else
+    {
+        return "0" + IntegerToString(TimeMonth(date));
+    }
+
+    return "";
 }

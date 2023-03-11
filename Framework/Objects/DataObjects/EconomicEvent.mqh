@@ -8,35 +8,54 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Objects\DataStructures\JSON.mqh>
+#include <Wantanites\Framework\CSVRecordWriting\CSVRecordTypes\ObjectRecords\EconomicEventRecord.mqh>
+
+enum ImpactEnum
+{
+    Unset = 0,
+    Low = 1,
+    Medium = 2,
+    High = 3,
+    Holiday = 4
+};
 
 class EconomicEvent
 {
 private:
+    string mId;
     datetime mDate;
     bool mAllDay;
     string mTitle;
     string mSymbol;
-    int mImpact;
+    ImpactEnum mImpact;
     string mForecast;
     string mPrevious;
 
 public:
-    EconomiceEvent(JSON &json);
+    EconomicEvent(EconomicEventRecord &record);
     EconomicEvent(EconomicEvent &e);
     ~EconomicEvent();
 
+    string Id() { return mId; }
     datetime Date() { return mDate; }
     bool AllDay() { return mAllDay; }
     string Title() { return mTitle; }
     string Symbol() { return mSymbol; }
-    int Impact() { return mImpact; }
+    ImpactEnum Impact() { return mImpact; }
     string Forecast() { return mForecast; }
     string Previous() { return mPrevious; }
 };
 
-EconomicEvent::EconomiceEvent(JSON &json)
+EconomicEvent::EconomicEvent(EconomicEventRecord &record)
 {
+    mId = record.Id;
+    mDate = record.Date;
+    mAllDay = record.AllDay;
+    mTitle = record.Title;
+    mSymbol = record.Symbol;
+    mImpact = record.Impact;
+    mForecast = record.Forecast;
+    mPrevious = record.Previous;
 }
 
 EconomicEvent::EconomicEvent(EconomicEvent &e)
