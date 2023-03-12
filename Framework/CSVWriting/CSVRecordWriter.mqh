@@ -37,7 +37,7 @@ public:
     bool SeekToStart();
     bool SeekToEnd();
 
-    void Open();
+    bool Open();
     void WriteRecord(TRecord &record);
 };
 
@@ -62,27 +62,27 @@ CSVRecordWriter::~CSVRecordWriter()
 template <typename TRecord>
 void CSVRecordWriter::Init()
 {
-    Open();
-    SeekToStart(); // TODO: This may have to involve the TRecord if I plan on including the results at the start of the doc. Each record should tell where the actually record
-                   // writing starts
+    if (!Open())
+    {
+        return;
+    }
+
     mRowCount = 1;
     CountRows();
 }
 
 template <typename TRecord>
-void CSVRecordWriter::Open()
+bool CSVRecordWriter::Open()
 {
     mFileHandle = FileOpen(mDirectory + mCSVFileName, FILE_CSV | FILE_READ | FILE_WRITE, ConstantValues::CSVDelimiter);
     if (mFileHandle == INVALID_HANDLE)
     {
-        return;
+        Print("Failed to open file: ", mDirectory + mCSVFileName, ". Error: ", GetLastError());
+        return false;
     }
 
     mFileIsOpen = true;
-    if (!SeekToEnd())
-    {
-        return;
-    }
+    return true;
 }
 
 template <typename TRecord>

@@ -13,89 +13,73 @@
 #include <Wantanites\Framework\CSVWriting\CSVRecordWriter.mqh>
 #include <Wantanites\Framework\CSVWriting\CSVRecordTypes\ObjectRecords\EconomicEventRecord.mqh>
 
-#include <Wantanites\Framwork\Objects\DataStructures\ObjectList.mqh>
-#include <Wantanites\Framework\Objects\DataObjects\EcononmicEvent.mqh>
+#include <Wantanites\Framework\Objects\DataStructures\ObjectList.mqh>
+#include <Wantanites\Framework\Objects\DataObjects\EconomicEvent.mqh>
 
 class EconomicCalendarHelper
 {
 private:
-    static string Directory() { return "C:/Users/WantaTyler/source/repos/EconomicCalendar/Data/"; }
+    static string Directory() { return "EconomicCalendar/"; }
     static string EventPath(datetime date);
     static string EventsDocument() { return "Events.Events.csv"; }
 
-    static string DateToPath(datetime date);
-    static void ReadEvents(datetime utcStart, datetime utcEnd, datetime utcCurrent, string symbol, ImpactEnum impact, ObjectList<EconomicEvent> *&economicEvents);
+    static void ReadEvents(datetime utcStart, datetime utcEnd, datetime utcCurrent, ObjectList<EconomicEvent> *&economicEvents, string symbol, ImpactEnum impact);
 
 public:
-    static void GetEventsFrom(datetime utcStart, string symbol, ImpactEnum impact, ObjectList<EconomicEvent> *&economicEvents);
-    static void GetEventsBetween(datetime utcStart, datetime utcEnd, string symbol, ImpactEnum impact, ObjectList<EconomicEvent> *&economicEvents);
+    static void GetEventsBetween(datetime utcStart, datetime utcEnd, ObjectList<EconomicEvent> *&economicEvents, string symbol, ImpactEnum impact);
 };
-
-EconomicCalendarHelper::EconomicCalendarHelper()
-{
-}
-
-EconomicCalendarHelper::~EconomicCalendarHelper()
-{
-}
 
 // returns a string in the format of yyyy/MM/dd
 string EconomicCalendarHelper::EventPath(datetime date)
 {
-    string path = IntegerToString(TimeYear(date)) + "/" +
-                  DateTimeHelper::FormatAsTwoDigits(TimeMonth(date)) + "/" +
-                  DateTimeHelper::FormatAsTwoDigits(TimeDay(date)) + "/";
+    return IntegerToString(TimeYear(date)) + "/" +
+           DateTimeHelper::FormatAsTwoDigits(TimeMonth(date)) + "/" +
+           DateTimeHelper::FormatAsTwoDigits(TimeDay(date)) + "/";
 }
 
-void EconomicCalendarHelper::ReadEvents(datetime utcStart, datetime utcEnd, datetime utcCurrent, string symbol, ImpactEnum impact, ObjectList<EconomicEvent> *&economicEvents)
+void EconomicCalendarHelper::ReadEvents(datetime utcStart, datetime utcEnd, datetime utcCurrent, ObjectList<EconomicEvent> *&economicEvents, string symbol, ImpactEnum impact)
 {
-    CSVRecordWriter<EconomicEvent> csvRecordWriter = new CSVRecordWriter(Directory + EventPath(utcCurrent), EventsDocument());
+    CSVRecordWriter<EconomicEventRecord> *csvRecordWriter = new CSVRecordWriter<EconomicEventRecord>(Directory() + EventPath(utcCurrent), EventsDocument());
     csvRecordWriter.SeekToStart();
 
     EconomicEventRecord *record = new EconomicEventRecord();
-
     while (!FileIsEnding(csvRecordWriter.FileHandle()))
     {
         record.ReadRow(csvRecordWriter.FileHandle());
 
-        // header row
-        if (record.Id == "Id")
+        // for some reason the Id header is read as some weird characters.
+        // This finds it, and the first empty cell by assuming all other Ids have the time appended to them (which they do)
+        if (StringFind(record.Id, ".") == -1)
         {
             continue;
         }
 
-        if (record.Date < utcStart || record.Date > utcEnd)
-        {
-            continue;
-        }
-
+        // Filter by Symbol
         if (symbol != "" && record.Symbol != symbol)
         {
             continue;
         }
 
+        // Filter by Impact
         if (impact != ImpactEnum::Unset && record.Impact != impact)
         {
             continue;
         }
 
-        evnts.Add(new EconoimcEvent(record));
+        EconomicEvent *tempEvent = new EconomicEvent(record);
+        economicEvents.Add(tempEvent);
     }
+
+    delete record;
+    delete csvRecordWriter;
 }
 
-void EconomicCalendarHelper::GetEventsFrom(datetime utcStart, string symbol = "", ImpactEnum impact = 0, ObjectList<EconomicEvent> *&economicEvents)
-{
-    return GetEventsBetween(utcStart, TimeGMT(), symbol, impact);
-}
-
-void EconomicCalendarHelper::GetEventsBetween(datetime utcStart, datetime utcEnd, string symbol = "", ImpactEnum impact = 0, ObjectList<EconomicEvent> *&economicEvents)
+void EconomicCalendarHelper::GetEventsBetween(datetime utcStart, datetime utcEnd, ObjectList<EconomicEvent> *&economicEvents, string symbol = "", ImpactEnum impact = 0)
 {
     datetime currentDate = utcStart;
-    while (currentDate <= utcEnd)
+    while (TimeDay(currentDate) < TimeDay(utcEnd))
     {
-        ReadEvents(utcStart, utcEnd, currentDate, symbol, impact, economicEvents);
+        ReadEvents(utcStart, utcEnd, currentDate, economicEvents, symbol, impact);
         currentDate += (60 * 60 * 24); // add one day in seconds
     }
-
-    return events;
 }

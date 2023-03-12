@@ -48,7 +48,7 @@ int OnInit()
     }
 
     TS = new TradingSession();
-    TS.AddHourMinuteSession(15, 0, 22, 0);
+    TS.AddHourMinuteSession(14, 30, 22, 0);
 
     EBNHBuys = new EnterBeforeNewsHedge(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                         RiskPercent, EntryWriter, ExitWriter, ErrorWriter);

@@ -8,14 +8,14 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\CSVRecordWriting\CSVRecordTypes\ObjectRecords\EconomicEventRecord.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\ObjectRecords\EconomicEventRecord.mqh>
 
 enum ImpactEnum
 {
     Unset = 0,
-    Low = 1,
-    Medium = 2,
-    High = 3,
+    LowImpact = 1,
+    MediumImpact = 2,
+    HighImpact = 3,
     Holiday = 4
 };
 

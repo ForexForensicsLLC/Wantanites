@@ -1550,7 +1550,7 @@ static void EAHelper::GetEconomicEventsForDate(TEA &ea, datetime utcDate, string
     datetime startTime = DateTimeHelper::DayMonthYearToDateTime(TimeDay(utcDate), TimeMonth(utcDate), TimeYear(utcDate));
     datetime endTime = startTime + (60 * 60 * 24);
 
-    EconomicCalendarHelper::GetEventsBetween(startTime, endTime, symbol, impact, ea.mEconomicEvents);
+    EconomicCalendarHelper::GetEventsBetween(startTime, endTime, ea.mEconomicEvents, symbol, impact);
 }
 
 template <typename TEA>

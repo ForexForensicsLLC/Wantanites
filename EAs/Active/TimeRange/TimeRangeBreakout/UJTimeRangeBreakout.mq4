@@ -48,7 +48,9 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    TS = new TradingSession(2, 0, 22, 59);
+    TS = new TradingSession();
+    TS.AddHourMinuteSession(2, 0, 22, 59);
+    
     TRB = new TimeRangeBreakout(0, 0, 2, 0);
     TRBBuys = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                               RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);

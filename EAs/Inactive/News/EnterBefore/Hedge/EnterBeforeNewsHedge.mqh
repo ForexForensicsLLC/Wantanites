@@ -12,12 +12,12 @@
 #include <Wantanites\Framework\Helpers\EAHelper.mqh>
 #include <Wantanites\Framework\Constants\MagicNumbers.mqh>
 
-#include <Wantanties\Framework\Objects\DataObjects\EconomicEvent.mqh>
+#include <Wantanites\Framework\Objects\DataObjects\EconomicEvent.mqh>
 
 class EnterBeforeNewsHedge : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
-    ObjectList<EconomicEvent> *mEvents;
+    ObjectList<EconomicEvent> *mEconomicEvents;
     bool mLoadedTodaysEvents;
 
     double mPipsToWatiBeforeBE;
@@ -58,7 +58,7 @@ EnterBeforeNewsHedge::EnterBeforeNewsHedge(int magicNumber, int setupType, int m
                                            CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
-    mEvents = new ObjectList<EconomicEvent>();
+    mEconomicEvents = new ObjectList<EconomicEvent>();
     mLoadedTodaysEvents = false;
 
     mPipsToWatiBeforeBE = 0.0;
@@ -70,6 +70,7 @@ EnterBeforeNewsHedge::EnterBeforeNewsHedge(int magicNumber, int setupType, int m
 
 EnterBeforeNewsHedge::~EnterBeforeNewsHedge()
 {
+    delete mEconomicEvents;
 }
 
 void EnterBeforeNewsHedge::PreRun()
@@ -77,9 +78,10 @@ void EnterBeforeNewsHedge::PreRun()
     // Loads when the GMT day and our local day are the same to ensure we load the correct days events
     // Should load at 7am GMT, 1am Central
     // This strategy doesn't trade until 15 GMT and we create todays events at midnight so this should be ok
-    if (Hour() > TimeGMTOffset() && !mLoadedTodaysEvents)
+    // GMTOffset is in seconds, covnert to hours
+    if (Hour() > (TimeGMTOffset() / 60 / 60) && !mLoadedTodaysEvents)
     {
-        EAHelper::GetEventsForDate<EnterBeforeNewsHedge>(this, TimeGMT(), "USD", ImpactEnum::High);
+        EAHelper::GetEconomicEventsForDate<EnterBeforeNewsHedge>(this, TimeGMT(), "USD", ImpactEnum::HighImpact);
         mLoadedTodaysEvents = true;
     }
 }
@@ -99,19 +101,26 @@ void EnterBeforeNewsHedge::CheckSetSetup()
     datetime timeCurrent = TimeGMT();
     int minTimeDifference = 60 * 5; // 5  minutes in seconds
 
-    for (int i = 0; i < mEvents.Size(); i++)
+    if (Hour() == 16 && Minute() == 55 && Seconds() == 0)
+    {
+        Print("Events: ", mEconomicEvents.Size());
+    }
+
+    for (int i = 0; i < mEconomicEvents.Size(); i++)
     {
         // already past event
-        if (timeCurrent > mEvents[i].Date())
+        Print("Event Date: ", mEconomicEvents[i].Date(), ", Current Time: ", timeCurrent, ", Difference: ", TimeSeconds(mEconomicEvents[i].Date() - timeCurrent), ", Min Difference: ", minTimeDifference);
+        if (timeCurrent > mEconomicEvents[i].Date())
         {
             continue;
         }
 
         // we are 5 minutes within a new event
-        if (mEvents[i].Date() - timeCurrent <= minTimeDifference)
+        if (mEconomicEvents[i].Date() - timeCurrent <= minTimeDifference)
         {
             // remove it so that we don't enter on it again
-            mEvents.Remove(i);
+            Print("Setup");
+            mEconomicEvents.Remove(i);
             mHasSetup = true;
 
             return;
@@ -131,6 +140,7 @@ void EnterBeforeNewsHedge::InvalidateSetup(bool deletePendingOrder, int error = 
 
 bool EnterBeforeNewsHedge::Confirmation()
 {
+    Print("Conf");
     return true;
 }
 
@@ -159,7 +169,7 @@ void EnterBeforeNewsHedge::ManageCurrentPendingSetupTicket(Ticket &ticket)
 
 void EnterBeforeNewsHedge::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
-    EAHelper::MoveTicketToBreakEvenAfterPips<EnterBeforeNewsHedge>(this, ticket, mPipsToWaitBeforeBE, mBEAdditionalPips);
+    EAHelper::MoveToBreakEvenAfterPips<EnterBeforeNewsHedge>(this, ticket, mPipsToWaitBeforeBE, mBEAdditionalPips);
 }
 
 void EnterBeforeNewsHedge::PreManageTickets()
@@ -209,10 +219,11 @@ bool EnterBeforeNewsHedge::ShouldReset()
 
 void EnterBeforeNewsHedge::Reset()
 {
+    Print("Reset");
     mStopTrading = false;
-    InvalidateSetup();
+    InvalidateSetup(true);
 
-    mEvents.Clear();
+    mEconomicEvents.Clear();
 
-    EAHelper::CloseAllCurrentAndPendingSetupTickets<EnterBeforeNewsHedge>(this);
+    EAHelper::CloseAllCurrentAndPreviousSetupTickets<EnterBeforeNewsHedge>(this);
 }
