@@ -18,6 +18,8 @@
 #include <Wantanites\Framework\Helpers\ScreenShotHelper.mqh>
 #include <Wantanites\Framework\Helpers\CandleStickHelper.mqh>
 
+#include <Wantanites\Framework\Helpers\ObjectHelpers\EconomicCalendarHelper.mqh>
+
 #include <Wantanites\Framework\Objects\Indicators\MB\LiquidationSetupTracker.mqh>
 
 class EAHelper
@@ -109,6 +111,9 @@ public:
 
     template <typename TEA>
     static bool MostRecentCandleBrokeDateRange(TEA &ea);
+
+    template <typename TEA>
+    static void GetEconomicEventsForDate(TEA &ea, datetime utcDate, string symbol, ImpactEnum impact);
 
     // =========================================================================
     // Check Invalidate Setup
@@ -1536,6 +1541,16 @@ static bool EAHelper::MostRecentCandleBrokeDateRange(TEA &ea)
     }
 
     return false;
+}
+
+template <typename TEA>
+static void EAHelper::GetEconomicEventsForDate(TEA &ea, datetime utcDate, string symbol = "", ImpactEnum impact = 0)
+{
+    // strip away hour and minute
+    datetime startTime = DateTimeHelper::DayMonthYearToDateTime(TimeDay(utcDate), TimeMonth(utcDate), TimeYear(utcDate));
+    datetime endTime = startTime + (60 * 60 * 24);
+
+    EconomicCalendarHelper::GetEventsBetween(startTime, endTime, ea.mEconomicEvents, symbol, impact);
 }
 
 template <typename TEA>
