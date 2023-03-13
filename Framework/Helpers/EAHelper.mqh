@@ -1558,10 +1558,14 @@ static void EAHelper::GetEconomicEventsForDate(TEA &ea, datetime utcDate, string
 template <typename TEA>
 static bool EAHelper::CurrentCandleIsDuringEconomicEvent(TEA &ea)
 {
+    // iTime looks like it always returns the exact bar time but it doesn't hurt to make sure
+    datetime currntBarTime = iTime(ea.mEntrySymbol, ea.mEntryTimeFrame, 0);
+    int secondsPerCandle = ea.mEntryTimeFrame * 60;
+    datetime exactBarTime = currntBarTime - (currntBarTime % secondsPerCandle); // get exact bar time
+
     for (int i = 0; i < ea.mEconomicEvents.Size(); i++)
     {
-        int candleIndex = iBarShift(ea.mEntrySymbol, ea.mEntryTimeFrame, ea.mEconomicEvents[i].Date());
-        if (candleIndex == 0)
+        if (MathAbs(ea.mEconomicEvents[i].Date() - exactBarTime) <= secondsPerCandle)
         {
             return true;
         }
