@@ -10,9 +10,9 @@
 
 #include <Wantanites/Framework/Constants/MagicNumbers.mqh>
 #include <Wantanites/Framework/Constants/SymbolConstants.mqh>
-#include <Wantanites/EAs/Inactive/News/EnterBefore/Hedge/EnterBeforeNewsHedge.mqh>
+#include <Wantanites/EAs/Inactive/TimeRange/TimeRangeBreakout/NoNews/NoNewsTimeRangeBreakout.mqh>
 
-string ForcedSymbol = "NAS100";
+string ForcedSymbol = "USDJPY";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
@@ -20,9 +20,9 @@ double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-string StrategyName = "News/";
+string StrategyName = "TimeRangeBreakout/";
 string EAName = "UJ/";
-string SetupTypeName = "EnterBeforeHedge/";
+string SetupTypeName = "NoNewsContinuation/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -31,14 +31,13 @@ CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<S
 
 TradingSession *TS;
 
-EnterBeforeNewsHedge *EBNHBuys;
-EnterBeforeNewsHedge *EBNHSells;
+TimeRangeBreakout *TRB;
+NoNewsTimeRangeBreakout *TRBBuys;
+NoNewsTimeRangeBreakout *TRBSells;
 
-// NAS
+// UJ
 double MaxSpreadPips = 3;
-double StopLossPaddingPips = 25;
-double PipsToWaitBeforeBE = 100;
-double BEAdditionalPips = 10;
+double StopLossPaddingPips = 0;
 
 int OnInit()
 {
@@ -48,29 +47,26 @@ int OnInit()
     }
 
     TS = new TradingSession();
-    TS.AddHourMinuteSession(14, 30, 22, 0);
+    TS.AddHourMinuteSession(2, 0, 23, 0);
 
-    EBNHBuys = new EnterBeforeNewsHedge(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
-                                        RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
+    TRB = new TimeRangeBreakout(0, 0, 2, 0);
+    TRBBuys = new NoNewsTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                          RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
+    TRBBuys.AddTradingSession(TS);
 
-    EBNHBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    EBNHBuys.mBEAdditionalPips = BEAdditionalPips;
-    EBNHBuys.AddTradingSession(TS);
-
-    EBNHSells = new EnterBeforeNewsHedge(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
-                                         MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
-
-    EBNHSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    EBNHSells.mBEAdditionalPips = BEAdditionalPips;
-    EBNHSells.AddTradingSession(TS);
+    TRBSells = new NoNewsTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
+                                           MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
+    TRBSells.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete EBNHBuys;
-    delete EBNHSells;
+    delete TRB;
+
+    delete TRBBuys;
+    delete TRBSells;
 
     delete EntryWriter;
     delete ExitWriter;
@@ -79,6 +75,6 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    EBNHBuys.Run();
-    EBNHSells.Run();
+    TRBBuys.Run();
+    TRBSells.Run();
 }

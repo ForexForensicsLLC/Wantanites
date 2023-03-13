@@ -113,7 +113,9 @@ public:
     static bool MostRecentCandleBrokeDateRange(TEA &ea);
 
     template <typename TEA>
-    static void GetEconomicEventsForDate(TEA &ea, datetime utcDate, string symbol, ImpactEnum impact);
+    static void GetEconomicEventsForDate(TEA &ea, datetime utcDate, string symbol, ImpactEnum impact, bool ignoreDuplicateTimes);
+    template <typename TEA>
+    static bool CurrentCandleIsDuringEconomicEvent(TEA &ea);
 
     // =========================================================================
     // Check Invalidate Setup
@@ -1544,13 +1546,28 @@ static bool EAHelper::MostRecentCandleBrokeDateRange(TEA &ea)
 }
 
 template <typename TEA>
-static void EAHelper::GetEconomicEventsForDate(TEA &ea, datetime utcDate, string symbol = "", ImpactEnum impact = 0)
+static void EAHelper::GetEconomicEventsForDate(TEA &ea, datetime utcDate, string symbol = "", ImpactEnum impact = 0, bool ignoreDuplicateTimes = true)
 {
     // strip away hour and minute
     datetime startTime = DateTimeHelper::DayMonthYearToDateTime(TimeDay(utcDate), TimeMonth(utcDate), TimeYear(utcDate));
     datetime endTime = startTime + (60 * 60 * 24);
 
-    EconomicCalendarHelper::GetEventsBetween(startTime, endTime, ea.mEconomicEvents, symbol, impact);
+    EconomicCalendarHelper::GetEventsBetween(startTime, endTime, ea.mEconomicEvents, symbol, impact, ignoreDuplicateTimes);
+}
+
+template <typename TEA>
+static bool EAHelper::CurrentCandleIsDuringEconomicEvent(TEA &ea)
+{
+    for (int i = 0; i < ea.mEconomicEvents.Size(); i++)
+    {
+        int candleIndex = iBarShift(ea.mEntrySymbol, ea.mEntryTimeFrame, ea.mEconomicEvents[i].Date());
+        if (candleIndex == 0)
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 template <typename TEA>

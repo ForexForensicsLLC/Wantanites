@@ -63,7 +63,7 @@ void EconomicEventRecord::WriteRecord(int fileHandle, bool writeDelimiter = fals
 void EconomicEventRecord::ReadRow(int fileHandle)
 {
     Id = FileReadString(fileHandle);
-    Date = DateTimeHelper::YearDayMonthStringToDateTime(FileReadString(fileHandle)); // date is in format yyyy/dd/mm, which mql4 can't parse automatically
+    Date = FileReadDatetime(fileHandle);
     AllDay = FileReadBool(fileHandle);
     Title = FileReadString(fileHandle);
     Symbol = FileReadString(fileHandle);

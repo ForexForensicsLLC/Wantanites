@@ -23,10 +23,11 @@ private:
     static string EventPath(datetime date);
     static string EventsDocument() { return "Events.Events.csv"; }
 
-    static void ReadEvents(datetime utcStart, datetime utcEnd, datetime utcCurrent, ObjectList<EconomicEvent> *&economicEvents, string symbol, ImpactEnum impact);
+    static void ReadEvents(datetime utcStart, datetime utcEnd, datetime utcCurrent, ObjectList<EconomicEvent> *&economicEvents, string symbol, ImpactEnum impact,
+                           bool ignoreDuplicateTimes);
 
 public:
-    static void GetEventsBetween(datetime utcStart, datetime utcEnd, ObjectList<EconomicEvent> *&economicEvents, string symbol, ImpactEnum impact);
+    static void GetEventsBetween(datetime utcStart, datetime utcEnd, ObjectList<EconomicEvent> *&economicEvents, string symbol, ImpactEnum impact, bool ignoreDuplicateTimes);
 };
 
 // returns a string in the format of yyyy/MM/dd
@@ -37,7 +38,8 @@ string EconomicCalendarHelper::EventPath(datetime date)
            DateTimeHelper::FormatAsTwoDigits(TimeDay(date)) + "/";
 }
 
-void EconomicCalendarHelper::ReadEvents(datetime utcStart, datetime utcEnd, datetime utcCurrent, ObjectList<EconomicEvent> *&economicEvents, string symbol, ImpactEnum impact)
+void EconomicCalendarHelper::ReadEvents(datetime utcStart, datetime utcEnd, datetime utcCurrent, ObjectList<EconomicEvent> *&economicEvents, string symbol,
+                                        ImpactEnum impact, bool ignoreDuplicateTimes)
 {
     CSVRecordWriter<EconomicEventRecord> *csvRecordWriter = new CSVRecordWriter<EconomicEventRecord>(Directory() + EventPath(utcCurrent), EventsDocument());
     csvRecordWriter.SeekToStart();
@@ -48,7 +50,7 @@ void EconomicCalendarHelper::ReadEvents(datetime utcStart, datetime utcEnd, date
         record.ReadRow(csvRecordWriter.FileHandle());
 
         // for some reason the Id header is read as some weird characters.
-        // This finds it, and the first empty cell by assuming all other Ids have the time appended to them (which they do)
+        // This finds it, and the first empty cell, by assuming all other Ids have their time appended to them (which they do)
         if (StringFind(record.Id, ".") == -1)
         {
             continue;
@@ -66,6 +68,27 @@ void EconomicCalendarHelper::ReadEvents(datetime utcStart, datetime utcEnd, date
             continue;
         }
 
+        // offset the date since mql4 time is utc+2
+        DateTimeHelper::AddMQL4TimeOffsetToUTCTime(record.Date);
+
+        if (ignoreDuplicateTimes)
+        {
+            bool hasDuplicateTime = false;
+            for (int i = 0; i < economicEvents.Size(); i++)
+            {
+                if (record.Date == economicEvents[i].Date())
+                {
+                    hasDuplicateTime = true;
+                    break;
+                }
+            }
+
+            if (hasDuplicateTime)
+            {
+                continue;
+            }
+        }
+
         EconomicEvent *tempEvent = new EconomicEvent(record);
         economicEvents.Add(tempEvent);
     }
@@ -74,12 +97,13 @@ void EconomicCalendarHelper::ReadEvents(datetime utcStart, datetime utcEnd, date
     delete csvRecordWriter;
 }
 
-void EconomicCalendarHelper::GetEventsBetween(datetime utcStart, datetime utcEnd, ObjectList<EconomicEvent> *&economicEvents, string symbol = "", ImpactEnum impact = 0)
+void EconomicCalendarHelper::GetEventsBetween(datetime utcStart, datetime utcEnd, ObjectList<EconomicEvent> *&economicEvents, string symbol = "", ImpactEnum impact = 0,
+                                              bool ignoreDuplicateTimes = true)
 {
     datetime currentDate = utcStart;
     while (TimeDay(currentDate) < TimeDay(utcEnd))
     {
-        ReadEvents(utcStart, utcEnd, currentDate, economicEvents, symbol, impact);
+        ReadEvents(utcStart, utcEnd, currentDate, economicEvents, symbol, impact, ignoreDuplicateTimes);
         currentDate += (60 * 60 * 24); // add one day in seconds
     }
 }

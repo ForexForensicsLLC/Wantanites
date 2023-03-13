@@ -1,0 +1,87 @@
+//+------------------------------------------------------------------+
+//|                                               TheGrannySmith.mq4 |
+//|                        Copyright 2022, MetaQuotes Software Corp. |
+//|                                             https://www.mql5.com |
+//+------------------------------------------------------------------+
+#property copyright "Copyright 2022, MetaQuotes Software Corp."
+#property link "https://www.mql5.com"
+#property version "1.00"
+#property strict
+
+#include <Wantanites/Framework/Constants/MagicNumbers.mqh>
+#include <Wantanites/Framework/Constants/SymbolConstants.mqh>
+#include <Wantanites/EAs/Inactive/News/EnterBefore/PriceRange/EnterBeforeNewsPriceRange.mqh>
+
+string ForcedSymbol = "NAS100";
+int ForcedTimeFrame = 5;
+
+// --- EA Inputs ---
+double RiskPercent = 1;
+int MaxCurrentSetupTradesAtOnce = 1;
+int MaxTradesPerDay = 5;
+
+string StrategyName = "News/";
+string EAName = "UJ/";
+string SetupTypeName = "EnterBeforePriceRange/";
+string Directory = StrategyName + EAName + SetupTypeName;
+
+CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
+CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
+CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
+
+TradingSession *TS;
+
+EnterBeforeNewsPriceRange *EBNHBuys;
+EnterBeforeNewsPriceRange *EBNHSells;
+
+// NAS
+double MaxSpreadPips = 3;
+double StopLossPaddingPips = 25;
+double EntryPipsFromOrderTrigger = 25;
+double PipsToWaitBeforeBE = 5;
+double BEAdditionalPips = 1;
+
+int OnInit()
+{
+    if (!EAHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
+    {
+        return INIT_PARAMETERS_INCORRECT;
+    }
+
+    TS = new TradingSession();
+    TS.AddHourMinuteSession(14, 00, 22, 0);
+
+    EBNHBuys = new EnterBeforeNewsPriceRange(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                             RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
+
+    EBNHBuys.mEntryPipsFromOrderTrigger = EntryPipsFromOrderTrigger;
+    EBNHBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    EBNHBuys.mBEAdditionalPips = BEAdditionalPips;
+    EBNHBuys.AddTradingSession(TS);
+
+    EBNHSells = new EnterBeforeNewsPriceRange(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
+                                              MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
+
+    EBNHSells.mEntryPipsFromOrderTrigger = EntryPipsFromOrderTrigger;
+    EBNHSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    EBNHSells.mBEAdditionalPips = BEAdditionalPips;
+    EBNHSells.AddTradingSession(TS);
+
+    return (INIT_SUCCEEDED);
+}
+
+void OnDeinit(const int reason)
+{
+    delete EBNHBuys;
+    delete EBNHSells;
+
+    delete EntryWriter;
+    delete ExitWriter;
+    delete ErrorWriter;
+}
+
+void OnTick()
+{
+    EBNHBuys.Run();
+    EBNHSells.Run();
+}
