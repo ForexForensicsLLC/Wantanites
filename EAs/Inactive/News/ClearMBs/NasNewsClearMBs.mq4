@@ -10,7 +10,7 @@
 
 #include <Wantanites/Framework/Constants/MagicNumbers.mqh>
 #include <Wantanites/Framework/Constants/SymbolConstants.mqh>
-#include <Wantanites/EAs/Inactive/News/EnterBefore/PriceRange/EnterBeforeNewsPriceRange.mqh>
+#include <Wantanites/EAs/Inactive/News/Hedge/EnterBeforeNewsHedge.mqh>
 
 string ForcedSymbol = "NAS100";
 int ForcedTimeFrame = 5;
@@ -22,7 +22,7 @@ int MaxTradesPerDay = 5;
 
 string StrategyName = "News/";
 string EAName = "UJ/";
-string SetupTypeName = "EnterBeforePriceRange/";
+string SetupTypeName = "Hedge/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -31,13 +31,12 @@ CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<S
 
 TradingSession *TS;
 
-EnterBeforeNewsPriceRange *EBNHBuys;
-EnterBeforeNewsPriceRange *EBNHSells;
+EnterBeforeNewsHedge *EBNHBuys;
+EnterBeforeNewsHedge *EBNHSells;
 
 // NAS
 double MaxSpreadPips = 3;
 double StopLossPaddingPips = 25;
-double EntryPipsFromOrderTrigger = 25;
 double PipsToWaitBeforeBE = 5;
 double BEAdditionalPips = 1;
 
@@ -51,18 +50,16 @@ int OnInit()
     TS = new TradingSession();
     TS.AddHourMinuteSession(14, 00, 22, 0);
 
-    EBNHBuys = new EnterBeforeNewsPriceRange(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
-                                             RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
+    EBNHBuys = new EnterBeforeNewsHedge(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                        RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
-    EBNHBuys.mEntryPipsFromOrderTrigger = EntryPipsFromOrderTrigger;
     EBNHBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     EBNHBuys.mBEAdditionalPips = BEAdditionalPips;
     EBNHBuys.AddTradingSession(TS);
 
-    EBNHSells = new EnterBeforeNewsPriceRange(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
-                                              MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
+    EBNHSells = new EnterBeforeNewsHedge(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
+                                         MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
 
-    EBNHSells.mEntryPipsFromOrderTrigger = EntryPipsFromOrderTrigger;
     EBNHSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     EBNHSells.mBEAdditionalPips = BEAdditionalPips;
     EBNHSells.AddTradingSession(TS);

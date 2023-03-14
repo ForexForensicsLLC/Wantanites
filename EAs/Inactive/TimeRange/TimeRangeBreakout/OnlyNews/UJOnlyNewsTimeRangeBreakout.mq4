@@ -10,7 +10,7 @@
 
 #include <Wantanites/Framework/Constants/MagicNumbers.mqh>
 #include <Wantanites/Framework/Constants/SymbolConstants.mqh>
-#include <Wantanites/EAs/Inactive/TimeRange/TimeRangeBreakout/StartOfDayTimeRangeBreakout.mqh>
+#include <Wantanites/EAs/Inactive/TimeRange/TimeRangeBreakout/OnlyNews/OnlyNewsTimeRangeBreakout.mqh>
 
 string ForcedSymbol = "USDJPY";
 int ForcedTimeFrame = 5;
@@ -22,7 +22,7 @@ int MaxTradesPerDay = 5;
 
 string StrategyName = "TimeRangeBreakout/";
 string EAName = "UJ/";
-string SetupTypeName = "Continuation/";
+string SetupTypeName = "OnlyNewsContinuation/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -32,13 +32,12 @@ CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<S
 TradingSession *TS;
 
 TimeRangeBreakout *TRB;
-StartOfDayTimeRangeBreakout *TRBBuys;
-StartOfDayTimeRangeBreakout *TRBSells;
+OnlyNewsTimeRangeBreakout *TRBBuys;
+OnlyNewsTimeRangeBreakout *TRBSells;
 
 // UJ
 double MaxSpreadPips = 3;
 double StopLossPaddingPips = 0;
-double MaxSlippage = 3;
 
 int OnInit()
 {
@@ -51,12 +50,12 @@ int OnInit()
     TS.AddHourMinuteSession(2, 0, 23, 0);
 
     TRB = new TimeRangeBreakout(0, 0, 2, 0);
-    TRBBuys = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
-                                              RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
+    TRBBuys = new OnlyNewsTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                            RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
     TRBBuys.AddTradingSession(TS);
 
-    TRBSells = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
-                                               MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
+    TRBSells = new OnlyNewsTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
+                                             MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
     TRBSells.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
