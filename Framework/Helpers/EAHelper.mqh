@@ -308,6 +308,8 @@ public:
     static void RecordMultiTimeFrameEntryTradeRecord(TEA &ea, int higherTimeFrame);
     template <typename TEA>
     static void RecordMultiTimeFrameExitTradeRecord(TEA &ea, Ticket &ticket, int lowerTimeFrame, int higherTimeFrame);
+    template <typename TEA>
+    static void RecordEntryCandleExitTradeRecord(TEA &ea, Ticket &ticket);
 
     template <typename TEA>
     static void RecordMBEntryTradeRecord(TEA &ea, int mbNumber, MBTracker *&mbt, int mbCount, int zoneNumber);
@@ -3174,8 +3176,6 @@ static void EAHelper::RecordSingleTimeFrameExitTradeRecord(TEA &ea, Ticket &tick
 template <typename TEA>
 static void EAHelper::RecordMultiTimeFrameEntryTradeRecord(TEA &ea, int higherTimeFrame)
 {
-    ea.RecordError(-100);
-
     MultiTimeFrameEntryTradeRecord *record = new MultiTimeFrameEntryTradeRecord();
     SetDefaultEntryTradeData<TEA, MultiTimeFrameEntryTradeRecord>(ea, record);
 
@@ -3199,8 +3199,6 @@ static void EAHelper::RecordMultiTimeFrameEntryTradeRecord(TEA &ea, int higherTi
 template <typename TEA>
 static void EAHelper::RecordMultiTimeFrameExitTradeRecord(TEA &ea, Ticket &ticket, int lowerTimeFrame, int higherTimeFrame)
 {
-    ea.RecordError(-200);
-
     MultiTimeFrameExitTradeRecord *record = new MultiTimeFrameExitTradeRecord();
     SetDefaultCloseTradeData<TEA, MultiTimeFrameExitTradeRecord>(ea, record, ticket, lowerTimeFrame);
 
@@ -3216,6 +3214,22 @@ static void EAHelper::RecordMultiTimeFrameExitTradeRecord(TEA &ea, Ticket &ticke
 
     record.LowerTimeFrameExitImage = lowerTimeFrameImage;
     record.HigherTimeFrameExitImage = higherTimeFrameImage;
+
+    ea.mExitCSVRecordWriter.WriteRecord(record);
+    delete record;
+}
+
+template <typename TEA>
+static void EAHelper::RecordEntryCandleExitTradeRecord(TEA &ea, Ticket &ticket)
+{
+    EntryCandleExitTradeRecord *record = new EntryCandleExitTradeRecord();
+    SetDefaultCloseTradeData<TEA, EntryCandleExitTradeRecord>(ea, record, ticket, ea.mEntryTimeFrame);
+
+    int entryCandle = iBarShift(ea.mEntrySymbol, ea.mEntryTimeFrame, ticket.OpenTime());
+    record.CandleOpen = iOpen(ea.mEntrySymbol, ea.mEntryTimeFrame, entryCandle);
+    record.CandleClose = iClose(ea.mEntrySymbol, ea.mEntryTimeFrame, entryCandle);
+    record.CandleHigh = iHigh(ea.mEntrySymbol, ea.mEntryTimeFrame, entryCandle);
+    record.CandleLow = iLow(ea.mEntrySymbol, ea.mEntryTimeFrame, entryCandle);
 
     ea.mExitCSVRecordWriter.WriteRecord(record);
     delete record;

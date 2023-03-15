@@ -10,7 +10,7 @@
 
 #include <Wantanites/Framework/Constants/MagicNumbers.mqh>
 #include <Wantanites/Framework/Constants/SymbolConstants.mqh>
-#include <Wantanites/EAs/Inactive/TimeRange/TimeRangeBreakout/OnlyNews/OnlyNewsTimeRangeBreakout.mqh>
+#include <Wantanites/EAs/Inactive/TimeRange/TimeRangeBreakout/TestNews/TestNewsTimeRangeBreakout.mqh>
 
 string ForcedSymbol = "USDJPY";
 int ForcedTimeFrame = 5;
@@ -22,7 +22,7 @@ int MaxTradesPerDay = 5;
 
 string StrategyName = "TimeRangeBreakout/";
 string EAName = "UJ/";
-string SetupTypeName = "OnlyNewsContinuation/";
+string SetupTypeName = "TestNewsContinuation/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -32,8 +32,8 @@ CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<S
 TradingSession *TS;
 
 TimeRangeBreakout *TRB;
-OnlyNewsTimeRangeBreakout *TRBBuys;
-OnlyNewsTimeRangeBreakout *TRBSells;
+TestNewsTimeRangeBreakout *TRBBuys;
+TestNewsTimeRangeBreakout *TRBSells;
 
 // UJ
 double MaxSpreadPips = 3;
@@ -50,11 +50,11 @@ int OnInit()
     TS.AddHourMinuteSession(2, 0, 23, 0);
 
     TRB = new TimeRangeBreakout(0, 0, 2, 0);
-    TRBBuys = new OnlyNewsTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+    TRBBuys = new TestNewsTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                             RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
     TRBBuys.AddTradingSession(TS);
 
-    TRBSells = new OnlyNewsTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
+    TRBSells = new TestNewsTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
                                              MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
     TRBSells.AddTradingSession(TS);
 
