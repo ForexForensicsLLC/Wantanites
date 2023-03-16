@@ -20,6 +20,10 @@ public:
     MBTracker *mMBT;
 
     ObjectList<EconomicEvent> *mEconomicEvents;
+
+    List<string> *mNewsTitles;
+    List<string> *mNewsSymbols;
+
     bool mLoadedTodaysEvents;
 
     int mFirstMBInSetupNumber;
@@ -124,6 +128,11 @@ void NewsClearMBs::CheckSetSetup()
         return;
     }
 
+    if (mMBT.MBsCreated() <= 0)
+    {
+        return;
+    }
+
     if (EAHelper::CheckSetSingleMBSetup<NewsClearMBs>(this, mMBT, mFirstMBInSetupNumber, SetupType()))
     {
         mHasSetup = true;
@@ -150,7 +159,7 @@ bool NewsClearMBs::Confirmation()
 {
     if (!mLoadedTodaysEvents)
     {
-        EAHelper::GetEconomicEventsForDate<NewsClearMBs>(this, TimeGMT(), "USD", ImpactEnum::HighImpact);
+        EAHelper::GetEconomicEventsForDate<NewsClearMBs>(this, TimeGMT(), mNewsTitles, mNewsSymbols, ImpactEnum::HighImpact);
         mLoadedTodaysEvents = true;
     }
 
@@ -210,7 +219,7 @@ void NewsClearMBs::ManageCurrentPendingSetupTicket(Ticket &ticket)
 void NewsClearMBs::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
     // EAHelper::CheckPartialTicket<NewsClearMBs>(this, ticket);
-    EAHelper::MoveToBreakEvenAfterPips<NewsClearMBs>(this, ticket, mPipsToWaitBeforeBE, mBEAdditionalPips);
+    // EAHelper::MoveToBreakEvenAfterPips<NewsClearMBs>(this, ticket, mPipsToWaitBeforeBE, mBEAdditionalPips);
 }
 
 void NewsClearMBs::PreManageTickets()
@@ -224,6 +233,7 @@ bool NewsClearMBs::MoveToPreviousSetupTickets(Ticket &ticket)
 
 void NewsClearMBs::ManagePreviousSetupTicket(Ticket &ticket)
 {
+    // EAHelper::CheckPartialTicket<NewsClearMBs>(this, ticket);
 }
 
 void NewsClearMBs::CheckCurrentSetupTicket(Ticket &ticket)

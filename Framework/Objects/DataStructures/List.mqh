@@ -29,6 +29,8 @@ public:
     // returns the number of elements in the list
     int Size() { return ArraySize(mItems); }
 
+    bool IsEmpty() { return Size() == 0; }
+
     // returns true if the item is in the list
     bool Contains(T item);
 

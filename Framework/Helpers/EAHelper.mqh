@@ -113,7 +113,7 @@ public:
     static bool MostRecentCandleBrokeDateRange(TEA &ea);
 
     template <typename TEA>
-    static void GetEconomicEventsForDate(TEA &ea, datetime utcDate, string symbol, ImpactEnum impact, bool ignoreDuplicateTimes);
+    static void GetEconomicEventsForDate(TEA &ea, datetime utcDate, List<string> *&titles, List<string> *&symbols, ImpactEnum impact, bool ignoreDuplicateTimes);
     template <typename TEA>
     static bool CurrentCandleIsDuringEconomicEvent(TEA &ea);
 
@@ -1548,22 +1548,23 @@ static bool EAHelper::MostRecentCandleBrokeDateRange(TEA &ea)
 }
 
 template <typename TEA>
-static void EAHelper::GetEconomicEventsForDate(TEA &ea, datetime utcDate, string symbol = "", ImpactEnum impact = 0, bool ignoreDuplicateTimes = true)
+static void EAHelper::GetEconomicEventsForDate(TEA &ea, datetime utcDate, List<string> *&titles, List<string> *&symbols, ImpactEnum impact = 0,
+                                               bool ignoreDuplicateTimes = true)
 {
     // strip away hour and minute
     datetime startTime = DateTimeHelper::DayMonthYearToDateTime(TimeDay(utcDate), TimeMonth(utcDate), TimeYear(utcDate));
     datetime endTime = startTime + (60 * 60 * 24);
 
-    EconomicCalendarHelper::GetEventsBetween(startTime, endTime, ea.mEconomicEvents, symbol, impact, ignoreDuplicateTimes);
+    EconomicCalendarHelper::GetEventsBetween(startTime, endTime, ea.mEconomicEvents, titles, symbols, impact, ignoreDuplicateTimes);
 }
 
 template <typename TEA>
 static bool EAHelper::CurrentCandleIsDuringEconomicEvent(TEA &ea)
 {
     // iTime looks like it always returns the exact bar time but it doesn't hurt to make sure
-    datetime currntBarTime = iTime(ea.mEntrySymbol, ea.mEntryTimeFrame, 0);
+    datetime currentBarTime = iTime(ea.mEntrySymbol, ea.mEntryTimeFrame, 0);
     int secondsPerCandle = ea.mEntryTimeFrame * 60;
-    datetime exactBarTime = currntBarTime - (currntBarTime % secondsPerCandle); // get exact bar time
+    datetime exactBarTime = currentBarTime - (currentBarTime % secondsPerCandle); // get exact bar time
 
     for (int i = 0; i < ea.mEconomicEvents.Size(); i++)
     {
