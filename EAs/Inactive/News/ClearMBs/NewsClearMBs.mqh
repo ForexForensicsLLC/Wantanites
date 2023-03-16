@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                    EnterBeforeNewsHedge.mqh |
+//|                                                    NewsClearMBs.mqh |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -14,20 +14,31 @@
 
 #include <Wantanites\Framework\Objects\DataObjects\EconomicEvent.mqh>
 
-class EnterBeforeNewsHedge : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
+class NewsClearMBs : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
+    MBTracker *mMBT;
+
     ObjectList<EconomicEvent> *mEconomicEvents;
     bool mLoadedTodaysEvents;
+
+    int mFirstMBInSetupNumber;
 
     double mPipsToWatiBeforeBE;
     double mBEAdditionalPips;
 
+    bool mClearMBs;
+    int mClearHour;
+    int mClearMinute;
+
+    int mCloseHour;
+    int mCloseMinute;
+
 public:
-    EnterBeforeNewsHedge(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                         CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                         CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter);
-    ~EnterBeforeNewsHedge();
+    NewsClearMBs(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+                 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                 CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&mbt);
+    ~NewsClearMBs();
 
     virtual double RiskPercent() { return mRiskPercent; }
 
@@ -53,46 +64,99 @@ public:
     virtual void Reset();
 };
 
-EnterBeforeNewsHedge::EnterBeforeNewsHedge(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
-                                           CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                                           CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter)
+NewsClearMBs::NewsClearMBs(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+                           CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
+                           CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&mbt)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
+    mMBT = mbt;
+
     mEconomicEvents = new ObjectList<EconomicEvent>();
     mLoadedTodaysEvents = false;
+
+    mFirstMBInSetupNumber = EMPTY;
 
     mPipsToWatiBeforeBE = 0.0;
     mBEAdditionalPips = 0.0;
 
-    EAHelper::FindSetPreviousAndCurrentSetupTickets<EnterBeforeNewsHedge>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<EnterBeforeNewsHedge, SingleTimeFrameEntryTradeRecord>(this);
+    mClearMBs = true;
+    mClearHour = 0;
+    mClearMinute = 0;
+
+    mCloseHour = 0;
+    mCloseMinute = 0;
+
+    EAHelper::FindSetPreviousAndCurrentSetupTickets<NewsClearMBs>(this);
+    EAHelper::SetPreviousSetupTicketsOpenData<NewsClearMBs, SingleTimeFrameEntryTradeRecord>(this);
 }
 
-EnterBeforeNewsHedge::~EnterBeforeNewsHedge()
+NewsClearMBs::~NewsClearMBs()
 {
     delete mEconomicEvents;
 }
 
-void EnterBeforeNewsHedge::PreRun()
+void NewsClearMBs::PreRun()
 {
+    if (mClearMBs && Hour() == mClearHour && Minute() == mClearMinute)
+    {
+        mMBT.Clear();
+        mClearMBs = false;
+    }
+
+    if ((mCurrentSetupTickets.Size() > 0 || mPreviousSetupTickets.Size() > 0) && Hour() == mCloseHour && Minute() == mCloseMinute)
+    {
+        EAHelper::CloseAllCurrentAndPreviousSetupTickets<NewsClearMBs>(this);
+    }
+
+    mMBT.DrawNMostRecentMBs(-1);
+    mMBT.DrawZonesForNMostRecentMBs(-1);
 }
 
-bool EnterBeforeNewsHedge::AllowedToTrade()
+bool NewsClearMBs::AllowedToTrade()
 {
-    return EAHelper::BelowSpread<EnterBeforeNewsHedge>(this) && EAHelper::WithinTradingSession<EnterBeforeNewsHedge>(this);
+    return EAHelper::BelowSpread<NewsClearMBs>(this) && EAHelper::WithinTradingSession<NewsClearMBs>(this);
 }
 
-void EnterBeforeNewsHedge::CheckSetSetup()
+void NewsClearMBs::CheckSetSetup()
+{
+    if (iBars(mEntrySymbol, mEntryTimeFrame) <= BarCount())
+    {
+        return;
+    }
+
+    if (EAHelper::CheckSetSingleMBSetup<NewsClearMBs>(this, mMBT, mFirstMBInSetupNumber, SetupType()))
+    {
+        mHasSetup = true;
+    }
+}
+
+void NewsClearMBs::CheckInvalidateSetup()
+{
+    mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
+
+    if (mMBT.MBsCreated() - 1 != mFirstMBInSetupNumber)
+    {
+        InvalidateSetup(false);
+    }
+}
+
+void NewsClearMBs::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+{
+    mFirstMBInSetupNumber = EMPTY;
+    EAHelper::InvalidateSetup<NewsClearMBs>(this, deletePendingOrder, mStopTrading, error);
+}
+
+bool NewsClearMBs::Confirmation()
 {
     if (!mLoadedTodaysEvents)
     {
-        EAHelper::GetEconomicEventsForDate<EnterBeforeNewsHedge>(this, TimeGMT(), "USD", ImpactEnum::HighImpact);
+        EAHelper::GetEconomicEventsForDate<NewsClearMBs>(this, TimeGMT(), "USD", ImpactEnum::HighImpact);
         mLoadedTodaysEvents = true;
     }
 
     if (iBars(mEntrySymbol, mEntryTimeFrame) <= BarCount())
     {
-        return;
+        return false;
     }
 
     // this doesn't need to be offseted by MQls utc offset for some reason? Maybe its taken into account already?
@@ -112,29 +176,14 @@ void EnterBeforeNewsHedge::CheckSetSetup()
         {
             // remove it so that we don't enter on it again
             mEconomicEvents.Remove(i);
-            mHasSetup = true;
-
-            return;
+            return true;
         }
     }
+
+    return false;
 }
 
-void EnterBeforeNewsHedge::CheckInvalidateSetup()
-{
-    mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
-}
-
-void EnterBeforeNewsHedge::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
-{
-    EAHelper::InvalidateSetup<EnterBeforeNewsHedge>(this, deletePendingOrder, mStopTrading, error);
-}
-
-bool EnterBeforeNewsHedge::Confirmation()
-{
-    return true;
-}
-
-void EnterBeforeNewsHedge::PlaceOrders()
+void NewsClearMBs::PlaceOrders()
 {
     double entry = 0.0;
     double stopLoss = 0.0;
@@ -150,71 +199,73 @@ void EnterBeforeNewsHedge::PlaceOrders()
         stopLoss = entry + OrderHelper::PipsToRange(mStopLossPaddingPips);
     }
 
-    EAHelper::PlaceMarketOrder<EnterBeforeNewsHedge>(this, entry, stopLoss);
+    EAHelper::PlaceMarketOrder<NewsClearMBs>(this, entry, stopLoss);
     InvalidateSetup(false);
 }
 
-void EnterBeforeNewsHedge::ManageCurrentPendingSetupTicket(Ticket &ticket)
+void NewsClearMBs::ManageCurrentPendingSetupTicket(Ticket &ticket)
 {
 }
 
-void EnterBeforeNewsHedge::ManageCurrentActiveSetupTicket(Ticket &ticket)
+void NewsClearMBs::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
-    EAHelper::MoveToBreakEvenAfterPips<EnterBeforeNewsHedge>(this, ticket, mPipsToWaitBeforeBE, mBEAdditionalPips);
+    // EAHelper::CheckPartialTicket<NewsClearMBs>(this, ticket);
+    EAHelper::MoveToBreakEvenAfterPips<NewsClearMBs>(this, ticket, mPipsToWaitBeforeBE, mBEAdditionalPips);
 }
 
-void EnterBeforeNewsHedge::PreManageTickets()
-{
-}
-
-bool EnterBeforeNewsHedge::MoveToPreviousSetupTickets(Ticket &ticket)
-{
-    return false;
-}
-
-void EnterBeforeNewsHedge::ManagePreviousSetupTicket(Ticket &ticket)
+void NewsClearMBs::PreManageTickets()
 {
 }
 
-void EnterBeforeNewsHedge::CheckCurrentSetupTicket(Ticket &ticket)
+bool NewsClearMBs::MoveToPreviousSetupTickets(Ticket &ticket)
+{
+    return EAHelper::TicketStopLossIsMovedToBreakEven<NewsClearMBs>(this, ticket);
+}
+
+void NewsClearMBs::ManagePreviousSetupTicket(Ticket &ticket)
 {
 }
 
-void EnterBeforeNewsHedge::CheckPreviousSetupTicket(Ticket &ticket)
+void NewsClearMBs::CheckCurrentSetupTicket(Ticket &ticket)
 {
 }
 
-void EnterBeforeNewsHedge::RecordTicketOpenData(Ticket &ticket)
-{
-    EAHelper::RecordSingleTimeFrameEntryTradeRecord<EnterBeforeNewsHedge>(this, ticket);
-}
-
-void EnterBeforeNewsHedge::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
+void NewsClearMBs::CheckPreviousSetupTicket(Ticket &ticket)
 {
 }
 
-void EnterBeforeNewsHedge::RecordTicketCloseData(Ticket &ticket)
+void NewsClearMBs::RecordTicketOpenData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameExitTradeRecord<EnterBeforeNewsHedge>(this, ticket, Period());
+    EAHelper::RecordSingleTimeFrameEntryTradeRecord<NewsClearMBs>(this, ticket);
 }
 
-void EnterBeforeNewsHedge::RecordError(int error, string additionalInformation = "")
+void NewsClearMBs::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
-    EAHelper::RecordSingleTimeFrameErrorRecord<EnterBeforeNewsHedge>(this, error, additionalInformation);
+    EAHelper::RecordPartialTradeRecord<NewsClearMBs>(this, partialedTicket, newTicketNumber);
 }
 
-bool EnterBeforeNewsHedge::ShouldReset()
+void NewsClearMBs::RecordTicketCloseData(Ticket &ticket)
 {
-    return !EAHelper::WithinTradingSession<EnterBeforeNewsHedge>(this);
+    EAHelper::RecordSingleTimeFrameExitTradeRecord<NewsClearMBs>(this, ticket, Period());
 }
 
-void EnterBeforeNewsHedge::Reset()
+void NewsClearMBs::RecordError(int error, string additionalInformation = "")
+{
+    EAHelper::RecordSingleTimeFrameErrorRecord<NewsClearMBs>(this, error, additionalInformation);
+}
+
+bool NewsClearMBs::ShouldReset()
+{
+    return !EAHelper::WithinTradingSession<NewsClearMBs>(this);
+}
+
+void NewsClearMBs::Reset()
 {
     mStopTrading = false;
     mLoadedTodaysEvents = false;
+    mClearMBs = true;
+
     InvalidateSetup(true);
 
     mEconomicEvents.Clear();
-
-    EAHelper::CloseAllCurrentAndPreviousSetupTickets<EnterBeforeNewsHedge>(this);
 }

@@ -2641,6 +2641,13 @@ static void EAHelper::CheckPartialTicket(TEA &ea, Ticket &ticket)
         return;
     }
 
+    if (ticket.mPartials.Size() == 0)
+    {
+        // this should never happen unless the EA is set up wrong
+        // we won't return here so that we intentially cause an index out of range exception below
+        Print("Ticket has no partials");
+    }
+
     RefreshRates();
     MqlTick currentTick;
     if (!SymbolInfoTick(Symbol(), currentTick))
