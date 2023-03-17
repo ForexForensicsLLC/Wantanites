@@ -14,9 +14,17 @@
 
 #include <Wantanites\Framework\Objects\DataObjects\EconomicEvent.mqh>
 
+enum Mode
+{
+    Profit,
+    Survive
+};
+
 class NewsClearMBs : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
+    Mode mMode;
+
     MBTracker *mMBT;
 
     ObjectList<EconomicEvent> *mEconomicEvents;
@@ -73,6 +81,8 @@ NewsClearMBs::NewsClearMBs(int magicNumber, int setupType, int maxCurrentSetupTr
                            CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&mbt)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
+    mMode = Mode::Profit;
+
     mMBT = mbt;
 
     mEconomicEvents = new ObjectList<EconomicEvent>();
@@ -218,8 +228,8 @@ void NewsClearMBs::ManageCurrentPendingSetupTicket(Ticket &ticket)
 
 void NewsClearMBs::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
-    // EAHelper::CheckPartialTicket<NewsClearMBs>(this, ticket);
-    // EAHelper::MoveToBreakEvenAfterPips<NewsClearMBs>(this, ticket, mPipsToWaitBeforeBE, mBEAdditionalPips);
+    EAHelper::CheckPartialTicket<NewsClearMBs>(this, ticket);
+    EAHelper::MoveToBreakEvenAfterPips<NewsClearMBs>(this, ticket, mPipsToWaitBeforeBE, mBEAdditionalPips);
 }
 
 void NewsClearMBs::PreManageTickets()
@@ -233,7 +243,7 @@ bool NewsClearMBs::MoveToPreviousSetupTickets(Ticket &ticket)
 
 void NewsClearMBs::ManagePreviousSetupTicket(Ticket &ticket)
 {
-    // EAHelper::CheckPartialTicket<NewsClearMBs>(this, ticket);
+    EAHelper::CheckPartialTicket<NewsClearMBs>(this, ticket);
 }
 
 void NewsClearMBs::CheckCurrentSetupTicket(Ticket &ticket)
