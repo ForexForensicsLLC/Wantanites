@@ -45,7 +45,7 @@ double MinOrderPips = 5;
 double TakeProfitPips = 10;
 double SurviveTargetPips = 5;
 double LotsPerBalancePeriod = 10000;
-double LotsPerBalanceLotIncrement = 0.02;
+double LotsPerBalanceLotIncrement = 1;
 
 int OnInit()
 {

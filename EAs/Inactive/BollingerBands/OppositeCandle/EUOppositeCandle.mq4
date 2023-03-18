@@ -21,7 +21,7 @@ int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
 string StrategyName = "BollingerBands/";
-string EAName = "GC/";
+string EAName = "EU/";
 string SetupTypeName = "OppositeCandle/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
@@ -29,6 +29,8 @@ CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWri
 CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>(Directory + "Partials/", "Partials.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
+
+TradingSession *TS;
 
 OppositeCandle *OOBuys;
 OppositeCandle *OOSells;
@@ -45,21 +47,22 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
+    TS = new TradingSession();
+    TS.AddHourMinuteSession(16, 30, 19, 0);
+
     OOBuys = new OppositeCandle(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                                 ExitWriter, ErrorWriter);
 
-    OOBuys.mMinStopLossPips = MinStopLossPips;
-
+    OOBuys.AddPartial(1.5, 100);
     OOBuys.SetPartialCSVRecordWriter(PartialWriter);
-    OOBuys.AddTradingSession(16, 30, 19, 0);
+    OOBuys.AddTradingSession(TS);
 
     OOSells = new OppositeCandle(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                                  ExitWriter, ErrorWriter);
 
-    OOSells.mMinStopLossPips = MinStopLossPips;
-
+    OOSells.AddPartial(1.5, 100);
     OOSells.SetPartialCSVRecordWriter(PartialWriter);
-    OOSells.AddTradingSession(16, 30, 19, 0);
+    OOSells.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
 }

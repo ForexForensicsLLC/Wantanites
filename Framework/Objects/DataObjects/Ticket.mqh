@@ -74,6 +74,7 @@ public:
     double Lots();
     void Lots(double lots) { mLots = lots; }
 
+    double TakeProfit();
     double Profit();
 
     double RRAcquired() { return mRRAcquired; }

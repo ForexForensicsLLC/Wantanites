@@ -49,6 +49,7 @@ public:
              CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter);
     ~MidCross();
 
+    double AccountGain() { return AccountBalance() - 10000; }
     double UpperBand(int shift) { return iBands(mEntrySymbol, mEntryTimeFrame, 20, 2, 0, PRICE_CLOSE, MODE_UPPER, shift); }
     double MiddleBand(int shift) { return iBands(mEntrySymbol, mEntryTimeFrame, 20, 2, 0, PRICE_CLOSE, MODE_MAIN, shift); }
     double LowerBand(int shift) { return iBands(mEntrySymbol, mEntryTimeFrame, 20, 2, 0, PRICE_CLOSE, MODE_LOWER, shift); }
@@ -246,7 +247,13 @@ void MidCross::PlaceOrders()
         entry = CurrentTick().Bid();
     }
 
-    double lotSize = 0.0;
+    double lotSize = mLotsPerBalanceLotIncrement;
+    double gain = AccountGain();
+    if (gain > 0)
+    {
+        lotSize *= (MathFloor(gain / mLotsPerBalancePeriod) + 1);
+    }
+
     if (mMode == Mode::Profit)
     {
         if (SetupType() == OP_BUY)
@@ -259,30 +266,32 @@ void MidCross::PlaceOrders()
             takeProfit = entry - OrderHelper::PipsToRange(mTakeProfitPips);
             // stopLoss = UpperBand(0);
         }
-
-        lotSize = mLotsPerBalanceLotIncrement * MathMax(1, MathFloor(AccountBalance() / mLotsPerBalancePeriod));
     }
     else if (mMode == Mode::Survive)
     {
-        // for (int i = 0; i < mPreviousSetupTickets.Size(); i++)
-        // {
-        //     lotSize += mPreviousSetupTickets[i].Lots();
-        // }
+        // double increaseLotPeriod = 3;
+        // int increaseLotMultiplier = 2;
 
-        double currentDrawdown = 0.0;
-        double currentLots = 0.0;
-        double lossesToCover = 0.0;
+        // int factor = MathFloor(mPreviousSetupTickets.Size() / increaseLotPeriod);
+        // lotSize *= MathPow(increaseLotMultiplier, factor);
+
         for (int i = 0; i < mPreviousSetupTickets.Size(); i++)
         {
-            currentDrawdown += mPreviousSetupTickets[i].Profit();
+            lotSize += mPreviousSetupTickets[i].Lots();
         }
 
-        Print("Current Drawdown: ", currentDrawdown, ", Current Lots: ", currentLots, ", Losses To Cover: ", lossesToCover);
-        double valuePerPipPerLot = EURUSD::PipValuePerLot();
-        double equityTarget = (AccountBalance() * 0.002) + MathAbs(lossesToCover);
-        double profitPerPip = equityTarget / mSurviveTargetPips;
-        lotSize = equityTarget / valuePerPipPerLot / mSurviveTargetPips;
-        Print("Value / Pip / Lot: ", valuePerPipPerLot, ", Pip Target: ", mSurviveTargetPips, ", Equity Target: ", equityTarget, ", Profit / Pip: ", profitPerPip, ", Lots: ", lotSize);
+        // double currentDrawdown = 0.0;
+        // double currentLots = 0.0;
+        // double lossesToCover = 0.0;
+        // for (int i = 0; i < mPreviousSetupTickets.Size(); i++)
+        // {
+        //     currentDrawdown += mPreviousSetupTickets[i].Profit();
+        // }
+
+        // double valuePerPipPerLot = EURUSD::PipValuePerLot();
+        // double equityTarget = (AccountBalance() * 0.002) + MathAbs(lossesToCover);
+        // double profitPerPip = equityTarget / mSurviveTargetPips;
+        // lotSize = equityTarget / valuePerPipPerLot / mSurviveTargetPips;
     }
 
     EAHelper::PlaceMarketOrder<MidCross>(this, entry, stopLoss, lotSize, SetupType(), takeProfit);
@@ -343,6 +352,22 @@ void MidCross::CheckCurrentSetupTicket(Ticket &ticket)
 
 void MidCross::CheckPreviousSetupTicket(Ticket &ticket)
 {
+    if (mCloseAllTickets)
+    {
+        return;
+    }
+
+    int error = ticket.SelectIfClosed("Checking");
+    if (error != ERR_NO_ERROR)
+    {
+        return;
+    }
+
+    // close all tickets if the first one we entered hit its TP
+    if (OrderTakeProfit() != 0.0)
+    {
+        mCloseAllTickets = true;
+    }
 }
 
 void MidCross::RecordTicketOpenData(Ticket &ticket)

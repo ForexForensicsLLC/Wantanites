@@ -10,7 +10,7 @@
 
 #include <Wantanites/Framework/Constants/MagicNumbers.mqh>
 #include <Wantanites/Framework/Constants/SymbolConstants.mqh>
-#include <Wantanites/EAs/Inactive/MB/EMAGlide/EMAGlide.mqh>
+#include <Wantanites/EAs/Inactive/MB/ConsecutiveMBs/Morning/ConsecutiveMonrningMBs.mqh>
 
 string ForcedSymbol = "EURUSD";
 int ForcedTimeFrame = 5;
@@ -22,7 +22,7 @@ int MaxTradesPerDay = 5;
 
 string StrategyName = "MB/";
 string EAName = "EU/";
-string SetupTypeName = "MBEMAGlide/";
+string SetupTypeName = "ConsecutiveMonrningMBs/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -43,8 +43,8 @@ bool OnlyZonesInMB = true;
 bool PrintErrors = false;
 bool CalculateOnTick = false;
 
-MBEMAGlide *CMMBBuys;
-MBEMAGlide *CMMBSells;
+ConsecutiveMonrningMBs *CMMBBuys;
+ConsecutiveMonrningMBs *CMMBSells;
 
 double MinWickLengthPips = 3;
 int ClearHour = 14;
@@ -68,8 +68,8 @@ int OnInit()
     MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors,
                         CalculateOnTick);
 
-    CMMBBuys = new MBEMAGlide(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                              ExitWriter, ErrorWriter, MBT);
+    CMMBBuys = new ConsecutiveMonrningMBs(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                          ExitWriter, ErrorWriter, MBT);
 
     CMMBBuys.mMinWickLength = OrderHelper::PipsToRange(MinWickLengthPips);
     CMMBBuys.mClearHour = ClearHour;
@@ -81,8 +81,8 @@ int OnInit()
     CMMBBuys.AddPartial(3, 100);
     CMMBBuys.SetPartialCSVRecordWriter(PartialWriter);
 
-    CMMBSells = new MBEMAGlide(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                               ExitWriter, ErrorWriter, MBT);
+    CMMBSells = new ConsecutiveMonrningMBs(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                           ExitWriter, ErrorWriter, MBT);
 
     CMMBSells.mMinWickLength = OrderHelper::PipsToRange(MinWickLengthPips);
     CMMBSells.mClearHour = ClearHour;
