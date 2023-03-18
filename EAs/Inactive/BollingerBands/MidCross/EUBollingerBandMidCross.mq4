@@ -41,6 +41,11 @@ MidCross *MCSells;
 // EU
 double MaxSpreadPips = 3;
 double StopLossPaddingPips = 5;
+double MinOrderPips = 5;
+double TakeProfitPips = 10;
+double SurviveTargetPips = 5;
+double LotsPerBalancePeriod = 10000;
+double LotsPerBalanceLotIncrement = 0.02;
 
 int OnInit()
 {
@@ -62,6 +67,11 @@ int OnInit()
 
     MCBuys.mEconomicEventTitles = EconomicEventTitles;
     MCBuys.mEconomicEventSymbols = EconomicEventSymbols;
+    MCBuys.mMinOrderPips = MinOrderPips;
+    MCBuys.mTakeProfitPips = TakeProfitPips;
+    MCBuys.mSurviveTargetPips = SurviveTargetPips;
+    MCBuys.mLotsPerBalancePeriod = LotsPerBalancePeriod;
+    MCBuys.mLotsPerBalanceLotIncrement = LotsPerBalanceLotIncrement;
     MCBuys.SetPartialCSVRecordWriter(PartialWriter);
     MCBuys.AddPartial(1, 100);
     MCBuys.AddTradingSession(TS);
@@ -71,6 +81,11 @@ int OnInit()
 
     MCSells.mEconomicEventTitles = EconomicEventTitles;
     MCSells.mEconomicEventSymbols = EconomicEventSymbols;
+    MCSells.mMinOrderPips = MinOrderPips;
+    MCSells.mTakeProfitPips = TakeProfitPips;
+    MCSells.mSurviveTargetPips = SurviveTargetPips;
+    MCSells.mLotsPerBalancePeriod = LotsPerBalancePeriod;
+    MCSells.mLotsPerBalanceLotIncrement = LotsPerBalanceLotIncrement;
     MCSells.SetPartialCSVRecordWriter(PartialWriter);
     MCSells.AddPartial(1, 100);
     MCSells.AddTradingSession(TS);

@@ -32,6 +32,8 @@ public:
     PipsChanged(PipsChanged &pc);
     ~PipsChanged();
 
+    string DisplayName() { return "PipsChanged"; }
+
     void Update();
 };
 

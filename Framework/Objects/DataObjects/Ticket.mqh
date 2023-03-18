@@ -47,6 +47,8 @@ public:
     Ticket(Ticket &ticket);
     ~Ticket();
 
+    string DisplayName() { return "Ticket"; }
+
     ObjectList<Partial> *mPartials;
 
     // Dictionary of <function name chcking if a ticket was activated or closed, previous result>

@@ -80,15 +80,15 @@ bool CSVRecordWriter::Open()
 {
     if (mStopTryingToOpenFile)
     {
-        return;
+        return false;
     }
 
     if (!mCreateIfFileDoesNotExist && !FileIsExist(mDirectory + mCSVFileName))
     {
         Print("File: ", mDirectory + mCSVFileName, " does not exist");
-        mStopTryingToOpen = true;
+        mStopTryingToOpenFile = true;
 
-        return;
+        return false;
     }
 
     mFileHandle = FileOpen(mDirectory + mCSVFileName, FILE_CSV | FILE_READ | FILE_WRITE, ConstantValues::CSVDelimiter);

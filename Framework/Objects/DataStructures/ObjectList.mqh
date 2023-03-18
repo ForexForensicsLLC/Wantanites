@@ -80,6 +80,12 @@ T *ObjectList::GetItemPointer(T &obj)
 template <typename T>
 T *ObjectList::operator[](int index)
 {
+    if (index < 0 || index >= Size())
+    {
+        T *obj = new T();
+        Print("ObjectList<", obj.DisplayName(), "> Index ", IntegerToString(index), " out of range for Size ", IntegerToString(Size()));
+    }
+
     return GetPointer(mItems[index]);
 }
 

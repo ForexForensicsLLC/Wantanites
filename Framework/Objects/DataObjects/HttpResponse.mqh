@@ -21,6 +21,8 @@ public:
     HttpResponse(int code, string headers, char data[]);
     ~HttpResponse();
 
+    string DisplayName() { return "HttpResponse"; }
+
     int ResponseCode() { return mCode; }
     bool DidSucceed() { return mCode == 200; }
 

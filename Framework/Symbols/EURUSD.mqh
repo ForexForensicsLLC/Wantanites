@@ -8,8 +8,6 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Symbols\EURUSD.mqh>
-
 class EURUSD
 {
 public:

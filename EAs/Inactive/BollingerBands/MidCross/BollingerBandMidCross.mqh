@@ -11,6 +11,7 @@
 #include <Wantanites\Framework\Objects\DataObjects\EA.mqh>
 #include <Wantanites\Framework\Helpers\EAHelper.mqh>
 #include <Wantanites\Framework\Constants\MagicNumbers.mqh>
+#include <Wantanites\Framework\Symbols\EURUSD.mqh>
 
 enum Mode
 {
@@ -27,8 +28,20 @@ public:
     List<string> *mEconomicEventTitles;
     List<string> *mEconomicEventSymbols;
 
+    double mMinOrderPips;
+    double mTakeProfitPips;
+    double mSurviveTargetPips;
+    double mLotsPerBalancePeriod;
+    double mLotsPerBalanceLotIncrement;
+
     bool mLoadedTodaysEvents;
     bool mCloseAllTickets;
+
+    double mFurthestEquityDrawDownPercent;
+    datetime mFurthestEquityDrawDownTime;
+
+    double mFurthestTotalEquityDrawDownPercent;
+    datetime mFurthestTotalEquityDrawDownTime;
 
 public:
     MidCross(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
@@ -72,10 +85,22 @@ MidCross::MidCross(int magicNumber, int setupType, int maxCurrentSetupTradesAtOn
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mMode = Mode::Profit;
-
     mEconomicEvents = new ObjectList<EconomicEvent>();
 
+    mMinOrderPips = 0.0;
+    mTakeProfitPips = 0.0;
+    mSurviveTargetPips = 0.0;
+    mLotsPerBalancePeriod = 0.0;
+    mLotsPerBalanceLotIncrement = 0.0;
+
     mLoadedTodaysEvents = false;
+    mCloseAllTickets = false;
+
+    mFurthestEquityDrawDownPercent = 0.0;
+    mFurthestEquityDrawDownTime = 0;
+
+    mFurthestTotalEquityDrawDownPercent = 0.0;
+    mFurthestTotalEquityDrawDownTime = 0;
 
     EAHelper::FindSetPreviousAndCurrentSetupTickets<MidCross>(this);
     EAHelper::SetPreviousSetupTicketsOpenData<MidCross, SingleTimeFrameEntryTradeRecord>(this);
@@ -84,6 +109,9 @@ MidCross::MidCross(int magicNumber, int setupType, int maxCurrentSetupTradesAtOn
 MidCross::~MidCross()
 {
     delete mEconomicEvents;
+
+    Print("Magic Number: ", MagicNumber(), ", Furthest Equity DD Percent: ", mFurthestEquityDrawDownPercent, " at ", TimeToStr(mFurthestEquityDrawDownTime));
+    Print("Magic Number: ", MagicNumber(), ", Furthest Total Equity DD Percent: ", mFurthestTotalEquityDrawDownPercent, " at ", TimeToStr(mFurthestTotalEquityDrawDownTime));
 }
 
 void MidCross::PreRun()
@@ -100,7 +128,7 @@ void MidCross::PreRun()
 
 bool MidCross::AllowedToTrade()
 {
-    return EAHelper::BelowSpread<MidCross>(this) && EAHelper::WithinTradingSession<MidCross>(this);
+    return (EAHelper::BelowSpread<MidCross>(this) && EAHelper::WithinTradingSession<MidCross>(this)) || mPreviousSetupTickets.Size() > 0;
 }
 
 void MidCross::CheckSetSetup()
@@ -133,20 +161,24 @@ void MidCross::CheckSetSetup()
             mHasSetup = true;
         }
     }
-    else
+    else if (mMode == Mode::Survive && mPreviousSetupTickets.Size() > 0)
     {
-        if (SetupType() == OP_BUY && CurrentTick().Bid() < LowerBand(0))
+        if (SetupType() == OP_BUY &&
+            iLow(mEntrySymbol, mEntryTimeFrame, 1) < LowerBand(1) &&
+            CurrentTick().Bid() > iHigh(mEntrySymbol, mEntryTimeFrame, 1))
         {
             double distanceFromLastOrder = mPreviousSetupTickets[mPreviousSetupTickets.Size() - 1].OpenPrice() - CurrentTick().Bid();
-            if (distanceFromLastOrder > OrderHelper::PipsToRange(mMinOrderDistance))
+            if (distanceFromLastOrder > OrderHelper::PipsToRange(mMinOrderPips))
             {
                 mHasSetup = true;
             }
         }
-        else if (SetupType() == OP_SELL && CurrentTick().Bid() > UpperBand(0))
+        else if (SetupType() == OP_SELL &&
+                 iHigh(mEntrySymbol, mEntryTimeFrame, 1) > UpperBand(1) &&
+                 CurrentTick().Bid() < iLow(mEntrySymbol, mEntryTimeFrame, 1))
         {
             double distanceFromLastOrder = CurrentTick().Bid() - mPreviousSetupTickets[mPreviousSetupTickets.Size() - 1].OpenPrice();
-            if (distanceFromLastOrder > OrderHelper::PipsToRange(mMinOrderDistance))
+            if (distanceFromLastOrder > OrderHelper::PipsToRange(mMinOrderPips))
             {
                 mHasSetup = true;
             }
@@ -168,6 +200,12 @@ void MidCross::CheckInvalidateSetup()
         {
             InvalidateSetup(false);
         }
+    }
+
+    if (mCloseAllTickets && mPreviousSetupTickets.Size() == 0)
+    {
+        mCloseAllTickets = false;
+        InvalidateSetup(false);
     }
 }
 
@@ -208,6 +246,7 @@ void MidCross::PlaceOrders()
         entry = CurrentTick().Bid();
     }
 
+    double lotSize = 0.0;
     if (mMode == Mode::Profit)
     {
         if (SetupType() == OP_BUY)
@@ -220,9 +259,33 @@ void MidCross::PlaceOrders()
             takeProfit = entry - OrderHelper::PipsToRange(mTakeProfitPips);
             // stopLoss = UpperBand(0);
         }
+
+        lotSize = mLotsPerBalanceLotIncrement * MathMax(1, MathFloor(AccountBalance() / mLotsPerBalancePeriod));
+    }
+    else if (mMode == Mode::Survive)
+    {
+        // for (int i = 0; i < mPreviousSetupTickets.Size(); i++)
+        // {
+        //     lotSize += mPreviousSetupTickets[i].Lots();
+        // }
+
+        double currentDrawdown = 0.0;
+        double currentLots = 0.0;
+        double lossesToCover = 0.0;
+        for (int i = 0; i < mPreviousSetupTickets.Size(); i++)
+        {
+            currentDrawdown += mPreviousSetupTickets[i].Profit();
+        }
+
+        Print("Current Drawdown: ", currentDrawdown, ", Current Lots: ", currentLots, ", Losses To Cover: ", lossesToCover);
+        double valuePerPipPerLot = EURUSD::PipValuePerLot();
+        double equityTarget = (AccountBalance() * 0.002) + MathAbs(lossesToCover);
+        double profitPerPip = equityTarget / mSurviveTargetPips;
+        lotSize = equityTarget / valuePerPipPerLot / mSurviveTargetPips;
+        Print("Value / Pip / Lot: ", valuePerPipPerLot, ", Pip Target: ", mSurviveTargetPips, ", Equity Target: ", equityTarget, ", Profit / Pip: ", profitPerPip, ", Lots: ", lotSize);
     }
 
-    EAHelper::PlaceMarketOrder<MidCross>(this, entry, stopLoss, 0.0, SetupType(), takeProfit);
+    EAHelper::PlaceMarketOrder<MidCross>(this, entry, stopLoss, lotSize, SetupType(), takeProfit);
     InvalidateSetup(false);
 }
 
@@ -230,7 +293,7 @@ void MidCross::PreManageTickets()
 {
     if (mMode == Mode::Survive)
     {
-        double equityPercentChange = EAHelper::GetTotalPreviousSetupTicketsEquityPercentChange<DonchianChannelGrid>(this, AccountBalance());
+        double equityPercentChange = EAHelper::GetTotalPreviousSetupTicketsEquityPercentChange<MidCross>(this, AccountBalance());
         if (equityPercentChange > mFurthestEquityDrawDownPercent)
         {
             mFurthestEquityDrawDownPercent = equityPercentChange;
@@ -247,7 +310,7 @@ void MidCross::PreManageTickets()
         if (equityPercentChange >= .2)
         {
             mCloseAllTickets = true;
-            mInvalidateWhenAllTicketsAreClosed = true;
+            // mInvalidateWhenAllTicketsAreClosed = true;
             return;
         }
     }
@@ -304,7 +367,7 @@ void MidCross::RecordError(int error, string additionalInformation = "")
 
 bool MidCross::ShouldReset()
 {
-    return !EAHelper::WithinTradingSession<MidCross>(this);
+    return !EAHelper::WithinTradingSession<MidCross>(this) && mPreviousSetupTickets.Size() == 0;
 }
 
 void MidCross::Reset()

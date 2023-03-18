@@ -32,9 +32,12 @@ private:
     string mPrevious;
 
 public:
+    EconomicEvent() {}
     EconomicEvent(EconomicEventRecord &record);
     EconomicEvent(EconomicEvent &e);
     ~EconomicEvent();
+
+    string DisplayName() { return "EconomicEvent"; }
 
     string Id() { return mId; }
     datetime Date() { return mDate; }
