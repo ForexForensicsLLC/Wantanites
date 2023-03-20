@@ -25,11 +25,11 @@ private:
     static string EventsDocument() { return "Events.Events.csv"; }
 
     static void ReadEvents(datetime utcStart, datetime utcEnd, datetime utcCurrent, ObjectList<EconomicEvent> *&economicEvents, List<string> *&titles,
-                           List<string> *&symbols, ImpactEnum impact, bool ignoreDuplicateTimes);
+                           List<string> *&symbols, List<int> *&impacts, bool ignoreDuplicateTimes);
 
 public:
     static void GetEventsBetween(datetime utcStart, datetime utcEnd, ObjectList<EconomicEvent> *&economicEvents, List<string> *&titles,
-                                 List<string> *&symbols, ImpactEnum impact, bool ignoreDuplicateTimes);
+                                 List<string> *&symbols, List<int> *&impacts, bool ignoreDuplicateTimes);
 };
 
 // returns a string in the format of yyyy/MM/dd
@@ -41,7 +41,7 @@ string EconomicCalendarHelper::EventPath(datetime date)
 }
 
 void EconomicCalendarHelper::ReadEvents(datetime utcStart, datetime utcEnd, datetime utcCurrent, ObjectList<EconomicEvent> *&economicEvents, List<string> *&titles,
-                                        List<string> *&symbols, ImpactEnum impact, bool ignoreDuplicateTimes)
+                                        List<string> *&symbols, List<int> *&impacts, bool ignoreDuplicateTimes)
 {
     CSVRecordWriter<EconomicEventRecord> *csvRecordWriter = new CSVRecordWriter<EconomicEventRecord>(Directory() + EventPath(utcCurrent), EventsDocument(), false);
     csvRecordWriter.SeekToStart();
@@ -71,7 +71,7 @@ void EconomicCalendarHelper::ReadEvents(datetime utcStart, datetime utcEnd, date
         }
 
         // Filter by Impact
-        if (impact != ImpactEnum::Unset && record.Impact != impact)
+        if (!impacts.IsEmpty() && !impacts.Contains(record.Impact))
         {
             continue;
         }
@@ -106,12 +106,12 @@ void EconomicCalendarHelper::ReadEvents(datetime utcStart, datetime utcEnd, date
 }
 
 void EconomicCalendarHelper::GetEventsBetween(datetime utcStart, datetime utcEnd, ObjectList<EconomicEvent> *&economicEvents, List<string> *&titles,
-                                              List<string> *&symbols, ImpactEnum impact = 0, bool ignoreDuplicateTimes = true)
+                                              List<string> *&symbols, List<int> *&impacts, bool ignoreDuplicateTimes = true)
 {
     datetime currentDate = utcStart;
     while (TimeDay(currentDate) < TimeDay(utcEnd))
     {
-        ReadEvents(utcStart, utcEnd, currentDate, economicEvents, titles, symbols, impact, ignoreDuplicateTimes);
+        ReadEvents(utcStart, utcEnd, currentDate, economicEvents, titles, symbols, impacts, ignoreDuplicateTimes);
         currentDate += (60 * 60 * 24); // add one day in seconds
     }
 }

@@ -15,9 +15,11 @@
 class PriceRange : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
-    int mCloseHour;
-    int mCloseMinute;
     double mPipsFromOpen;
+
+    bool mCloseAllTickets;
+    double mFurthestEquityDrawDownPercent;
+    datetime mFurthestEquityDrawDownTime;
 
 public:
     PriceRange(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
@@ -54,9 +56,11 @@ PriceRange::PriceRange(int magicNumber, int setupType, int maxCurrentSetupTrades
                        CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
-    mCloseHour = 0;
-    mCloseMinute = 0;
     mPipsFromOpen = 0.0;
+
+    mCloseAllTickets = false;
+    mFurthestEquityDrawDownPercent = 0.0;
+    mFurthestEquityDrawDownTime = 0;
 
     EAHelper::FindSetPreviousAndCurrentSetupTickets<PriceRange>(this);
     EAHelper::SetPreviousSetupTicketsOpenData<PriceRange, SingleTimeFrameEntryTradeRecord>(this);
@@ -64,6 +68,7 @@ PriceRange::PriceRange(int magicNumber, int setupType, int maxCurrentSetupTrades
 
 PriceRange::~PriceRange()
 {
+    Print("Magic Number: ", MagicNumber(), ", Furthest Equity DD Percent: ", mFurthestEquityDrawDownPercent, " at ", TimeToStr(mFurthestEquityDrawDownTime));
 }
 
 void PriceRange::PreRun()
@@ -105,26 +110,41 @@ bool PriceRange::Confirmation()
 
 void PriceRange::PlaceOrders()
 {
-    double entry = 0.0;
-    double stopLoss = 0.0;
+    double lotSize = .1;
 
-    if (SetupType() == OP_BUY)
+    double currentLots = 0;
+    for (int i = 0; i < mPreviousSetupTickets.Size(); i++)
     {
-        entry = CurrentTick().Ask() + OrderHelper::PipsToRange(mPipsFromOpen);
-        stopLoss = CurrentTick().Ask() - OrderHelper::PipsToRange(mStopLossPaddingPips);
-    }
-    else if (SetupType() == OP_SELL)
-    {
-        entry = CurrentTick().Bid() - OrderHelper::PipsToRange(mPipsFromOpen);
-        stopLoss = CurrentTick().Bid() + OrderHelper::PipsToRange(mStopLossPaddingPips);
+        currentLots += mPreviousSetupTickets[i].Lots();
     }
 
-    EAHelper::PlaceStopOrder<PriceRange>(this, entry, stopLoss);
+    // lotSize *= (MathFloor(mPreviousSetupTickets.Size() / 2) + 1);
+    lotSize += currentLots;
+
+    EAHelper::PlaceStopOrder<PriceRange>(this, CurrentTick().Bid() + OrderHelper::PipsToRange(mPipsFromOpen), 0.0, lotSize, true, 3, OP_BUY);
+    EAHelper::PlaceStopOrder<PriceRange>(this, CurrentTick().Bid() - OrderHelper::PipsToRange(mPipsFromOpen), 0.0, lotSize, true, 3, OP_SELL);
+
     InvalidateSetup(false);
 }
 
 void PriceRange::PreManageTickets()
 {
+    if (mCloseAllTickets)
+    {
+        return;
+    }
+
+    double equityPercentChange = EAHelper::GetTotalPreviousSetupTicketsEquityPercentChange<PriceRange>(this, AccountBalance());
+    if (equityPercentChange < mFurthestEquityDrawDownPercent)
+    {
+        mFurthestEquityDrawDownPercent = equityPercentChange;
+        mFurthestEquityDrawDownTime = TimeCurrent();
+    }
+
+    if (equityPercentChange >= .2)
+    {
+        mCloseAllTickets = true;
+    }
 }
 
 void PriceRange::ManageCurrentPendingSetupTicket(Ticket &ticket)
@@ -137,11 +157,15 @@ void PriceRange::ManageCurrentActiveSetupTicket(Ticket &ticket)
 
 bool PriceRange::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    return false;
+    return true;
 }
 
 void PriceRange::ManagePreviousSetupTicket(Ticket &ticket)
 {
+    if (mCloseAllTickets)
+    {
+        ticket.Close();
+    }
 }
 
 void PriceRange::CheckCurrentSetupTicket(Ticket &ticket)
@@ -178,5 +202,5 @@ bool PriceRange::ShouldReset()
 
 void PriceRange::Reset()
 {
-    EAHelper::CloseAllCurrentAndPreviousSetupTickets<PriceRange>(this);
+    mCloseAllTickets = false;
 }

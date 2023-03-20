@@ -113,7 +113,7 @@ public:
     static bool MostRecentCandleBrokeDateRange(TEA &ea);
 
     template <typename TEA>
-    static void GetEconomicEventsForDate(TEA &ea, datetime utcDate, List<string> *&titles, List<string> *&symbols, ImpactEnum impact, bool ignoreDuplicateTimes);
+    static void GetEconomicEventsForDate(TEA &ea, datetime utcDate, List<string> *&titles, List<string> *&symbols, List<int> *&impacts, bool ignoreDuplicateTimes);
     template <typename TEA>
     static bool CurrentCandleIsDuringEconomicEvent(TEA &ea);
 
@@ -1548,14 +1548,14 @@ static bool EAHelper::MostRecentCandleBrokeDateRange(TEA &ea)
 }
 
 template <typename TEA>
-static void EAHelper::GetEconomicEventsForDate(TEA &ea, datetime utcDate, List<string> *&titles, List<string> *&symbols, ImpactEnum impact = 0,
+static void EAHelper::GetEconomicEventsForDate(TEA &ea, datetime utcDate, List<string> *&titles, List<string> *&symbols, List<int> *&impacts,
                                                bool ignoreDuplicateTimes = true)
 {
     // strip away hour and minute
     datetime startTime = DateTimeHelper::DayMonthYearToDateTime(TimeDay(utcDate), TimeMonth(utcDate), TimeYear(utcDate));
     datetime endTime = startTime + (60 * 60 * 24);
 
-    EconomicCalendarHelper::GetEventsBetween(startTime, endTime, ea.mEconomicEvents, titles, symbols, impact, ignoreDuplicateTimes);
+    EconomicCalendarHelper::GetEventsBetween(startTime, endTime, ea.mEconomicEvents, titles, symbols, impacts, ignoreDuplicateTimes);
 }
 
 template <typename TEA>
@@ -2868,6 +2868,20 @@ void EAHelper::MoveStopLossToCoverCommissions(TEA &ea)
 template <typename TEA>
 static bool EAHelper::CloseIfPercentIntoStopLoss(TEA &ea, Ticket &ticket, double percentAsDecimal)
 {
+    bool stopLossIsMovedBreakEven;
+    int stopLossIsMovedToBreakEvenError = ticket.StopLossIsMovedToBreakEven(stopLossIsMovedBreakEven);
+    if (TerminalErrors::IsTerminalError(stopLossIsMovedToBreakEvenError))
+    {
+        ea.RecordError(stopLossIsMovedToBreakEvenError);
+        return false;
+    }
+
+    // this function will always close the ticket if our SL is at or further than our entry price
+    if (stopLossIsMovedBreakEven)
+    {
+        return false;
+    }
+
     int selectError = ticket.SelectIfOpen("Checking percent into stoplos");
     if (TerminalErrors::IsTerminalError(selectError))
     {

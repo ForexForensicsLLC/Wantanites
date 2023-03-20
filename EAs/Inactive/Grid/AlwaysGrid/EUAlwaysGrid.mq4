@@ -13,7 +13,7 @@
 #include <Wantanites/EAs/Inactive/Grid/AlwaysGrid/AlwaysGrid.mqh>
 
 string ForcedSymbol = "EURUSD";
-int ForcedTimeFrame = 60;
+int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
 double RiskPercent = 1;
@@ -29,7 +29,10 @@ CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWri
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-// TradingSession *TS;
+TradingSession *TS;
+
+List<string> *EventTitles;
+List<string> *EventSymbols;
 
 GridTracker *GTBuys;
 GridTracker *GTSells;
@@ -38,7 +41,7 @@ AlwaysGrid *MBGMBuys;
 AlwaysGrid *MBGMSells;
 
 double MaxOppositeLevels = 50;
-double LevelDistance = OrderHelper::PipsToRange(30);
+double LevelDistance = OrderHelper::PipsToRange(8);
 
 double StartingLotSize = 0.01;
 int IncreaseLotSizePeriod = 1;
@@ -47,11 +50,6 @@ double MaxEquityDrawDownPercent = -20;
 double MaxSpreadPips = 2;
 double StopLossPaddingPips = 0;
 
-int HourStart = 0;
-int MinuteStart = 0;
-int HourEnd = 23;
-int MinuteEnd = 59;
-
 int OnInit()
 {
     if (!EAHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
@@ -59,7 +57,14 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    // TS = new TradingSession();
+    TS = new TradingSession();
+    TS.AddHourMinuteSession(11, 0, 19, 0);
+
+    EventTitles = new List<string>();
+
+    EventSymbols = new List<string>();
+    EventSymbols.Add("USD");
+    EventSymbols.Add("EUR");
 
     GTBuys = new GridTracker("Buys", 1, MaxOppositeLevels, LevelDistance, LevelDistance);
     GTSells = new GridTracker("Sells", MaxOppositeLevels, 1, LevelDistance, LevelDistance);
@@ -67,26 +72,33 @@ int OnInit()
     MBGMBuys = new AlwaysGrid(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                               ExitWriter, ErrorWriter, GTBuys);
 
+    MBGMBuys.mEconomicEventTitles = EventTitles;
+    MBGMBuys.mEconomicEventSymbols = EventSymbols;
     MBGMBuys.mStartingLotSize = StartingLotSize;
     MBGMBuys.mIncreaseLotSizePeriod = IncreaseLotSizePeriod;
     MBGMBuys.mIncreaseLotSizeFactor = IncreaseLotSizeFactor;
     MBGMBuys.mMaxEquityDrawDownPercent = MaxEquityDrawDownPercent;
-    // MBGMBuys.AddTradingSession(TS);
+    MBGMBuys.AddTradingSession(TS);
 
     MBGMSells = new AlwaysGrid(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
                                ExitWriter, ErrorWriter, GTSells);
 
+    MBGMSells.mEconomicEventTitles = EventTitles;
+    MBGMSells.mEconomicEventSymbols = EventSymbols;
     MBGMSells.mStartingLotSize = StartingLotSize;
     MBGMSells.mIncreaseLotSizePeriod = IncreaseLotSizePeriod;
     MBGMSells.mIncreaseLotSizeFactor = IncreaseLotSizeFactor;
     MBGMSells.mMaxEquityDrawDownPercent = MaxEquityDrawDownPercent;
-    // MBGMSells.AddTradingSession(TS);
+    MBGMSells.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
+    delete EventTitles;
+    delete EventSymbols;
+
     delete GTBuys;
     delete GTSells;
 

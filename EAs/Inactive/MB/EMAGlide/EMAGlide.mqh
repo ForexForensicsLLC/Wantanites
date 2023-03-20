@@ -98,13 +98,6 @@ MBEMAGlide::~MBEMAGlide()
 
 void MBEMAGlide::PreRun()
 {
-    // if (mClearMBs && Hour() == mClearHour && Minute() == mClearMinute)
-    // {
-    //     mMBT.Clear();
-    //     mClearMBs = false;
-    //     mLastSetupMBNumber = EMPTY;
-    // }
-
     mMBT.DrawNMostRecentMBs(-1);
     mMBT.DrawZonesForNMostRecentMBs(-1);
 }
@@ -122,14 +115,19 @@ void MBEMAGlide::CheckSetSetup()
     }
 
     MBState *tempMBState;
-    if (!mMBT.GetNthMostRecentMB(tempMBState))
+    if (!mMBT.GetNthMostRecentMB(0, tempMBState))
+    {
+        return;
+    }
+
+    if (tempMBState.Number() == mLastSetupMBNumber)
     {
         return;
     }
 
     if (SetupType() == OP_BUY && tempMBState.Type() == OP_BUY)
     {
-        for (int i = 0; i < tempMBState.EndIndex(); i++)
+        for (int i = 0; i < tempMBState.StartIndex(); i++)
         {
             if (iLow(mEntrySymbol, mEntryTimeFrame, i) <= EMA(i))
             {
@@ -142,7 +140,7 @@ void MBEMAGlide::CheckSetSetup()
     }
     else if (SetupType() == OP_SELL && tempMBState.Type() == OP_SELL)
     {
-        for (int i = 0; i < tempMBState.EndIndex(); i++)
+        for (int i = 0; i < tempMBState.StartIndex(); i++)
         {
             if (iHigh(mEntrySymbol, mEntryTimeFrame, i) >= EMA(i))
             {
@@ -187,6 +185,8 @@ bool MBEMAGlide::Confirmation()
 
     int furthestIndex = EMPTY;
     double furthestPrice = 0.0;
+    double brokeCandleStart = 0.0;
+
     if (SetupType() == OP_BUY)
     {
         if (!mMBT.HasPendingBullishMB())
@@ -204,6 +204,8 @@ bool MBEMAGlide::Confirmation()
         {
             return false;
         }
+
+        brokeCandleStart = iLow(mEntrySymbol, mEntryTimeFrame, 1);
     }
     else if (SetupType() == OP_SELL)
     {
@@ -212,7 +214,7 @@ bool MBEMAGlide::Confirmation()
             return false;
         }
 
-        if (!MQLHelper::GetHighestHighBetween(mEntrySymbol, mEntryTimeFrame, tempMBState.EndIndex(), 2, false, furthestIndex))
+        if (!MQLHelper::GetHighestIndexBetween(mEntrySymbol, mEntryTimeFrame, tempMBState.EndIndex(), 2, false, furthestIndex))
         {
             return false;
         }
@@ -222,9 +224,12 @@ bool MBEMAGlide::Confirmation()
         {
             return false;
         }
+
+        brokeCandleStart = iHigh(mEntrySymbol, mEntryTimeFrame, 1);
     }
 
-    return EAHelper::PriceIsFurtherThanPercentIntoMB<MBEMAGlide>(this, mMBT, mFirstMBInSetupNumber, furthestPrice, .3) &&
+    return EAHelper::PriceIsFurtherThanPercentIntoMB<MBEMAGlide>(this, mMBT, mFirstMBInSetupNumber, furthestPrice, 0) &&
+           EAHelper::PriceIsFurtherThanPercentIntoMB<MBEMAGlide>(this, mMBT, mFirstMBInSetupNumber, brokeCandleStart, 0) &&
            CandleStickHelper::BrokeFurther(SetupType(), mEntrySymbol, mEntryTimeFrame, 1);
 }
 
@@ -239,15 +244,27 @@ void MBEMAGlide::PlaceOrders()
         return;
     }
 
+    double furthestPoint = 0.0;
+
     if (SetupType() == OP_BUY)
     {
         entry = CurrentTick().Ask();
-        stopLoss = MathMin(iLow(mEntrySymbol, mEntryTimeFrame, tempMBState.LowIndex()), entry - mMinStopLossDistance);
+        if (!MQLHelper::GetLowestLowBetween(mEntrySymbol, mEntryTimeFrame, tempMBState.EndIndex(), 0, false, furthestPoint))
+        {
+            return;
+        }
+
+        stopLoss = MathMin(furthestPoint, entry - mMinStopLossDistance);
     }
     else if (SetupType() == OP_SELL)
     {
         entry = CurrentTick().Bid();
-        stopLoss = MathMax(iHigh(mEntrySymbol, mEntryTimeFrame, tempMBState.HighIndex()), entry + mMinStopLossDistance);
+        if (!MQLHelper::GetHighestHighBetween(mEntrySymbol, mEntryTimeFrame, tempMBState.EndIndex(), 0, false, furthestPoint))
+        {
+            return;
+        }
+
+        stopLoss = MathMax(furthestPoint, entry + mMinStopLossDistance);
     }
 
     EAHelper::PlaceMarketOrder<MBEMAGlide>(this, entry, stopLoss);
@@ -268,7 +285,16 @@ void MBEMAGlide::ManageCurrentPendingSetupTicket(Ticket &ticket)
 
 void MBEMAGlide::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
-    EAHelper::MoveToBreakEvenAfterPips<MBEMAGlide>(this, ticket, mPipsToWaitBeforeBE, mBEAdditionalPips);
+    if (EAHelper::CloseIfPercentIntoStopLoss<MBEMAGlide>(this, ticket, 0.45))
+    {
+        return;
+    }
+
+    int entryIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, ticket.OpenTime());
+    if (entryIndex > 0)
+    {
+        EAHelper::MoveTicketToBreakEven<MBEMAGlide>(this, ticket, mBEAdditionalPips);
+    }
 }
 
 bool MBEMAGlide::MoveToPreviousSetupTickets(Ticket &ticket)
@@ -278,7 +304,12 @@ bool MBEMAGlide::MoveToPreviousSetupTickets(Ticket &ticket)
 
 void MBEMAGlide::ManagePreviousSetupTicket(Ticket &ticket)
 {
-    // EAHelper::CheckTrailStopLossEveryXPips<MBEMAGlide>(this, ticket, 5, 2.5);
+    if (EAHelper::CloseIfPercentIntoStopLoss<MBEMAGlide>(this, ticket, 0.45))
+    {
+        return;
+    }
+
+    // EAHelper::MoveToBreakEvenAfterPips<MBEMAGlide>(this, ticket, mPipsToWaitBeforeBE, mBEAdditionalPips);
 }
 
 void MBEMAGlide::CheckCurrentSetupTicket(Ticket &ticket)
@@ -320,8 +351,8 @@ void MBEMAGlide::Reset()
 {
     mStopTrading = false;
     mFirstMBTypeOfTheDay = EMPTY;
-    mFirstMBInSetupNumber = EMPTY;
 
     mClearMBs = true;
-    EAHelper::CloseAllCurrentAndPreviousSetupTickets<MBEMAGlide>(this);
+    InvalidateSetup(false);
+    // EAHelper::CloseAllCurrentAndPreviousSetupTickets<MBEMAGlide>(this);
 }

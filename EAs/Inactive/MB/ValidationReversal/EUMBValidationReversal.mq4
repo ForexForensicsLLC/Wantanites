@@ -10,7 +10,7 @@
 
 #include <Wantanites/Framework/Constants/MagicNumbers.mqh>
 #include <Wantanites/Framework/Constants/SymbolConstants.mqh>
-#include <Wantanites/EAs/Inactive/MB/EMAGlide/EMAGlide.mqh>
+#include <Wantanites/EAs/Inactive/MB/ValidationReversal/MBValidationReversal.mqh>
 
 string ForcedSymbol = "EURUSD";
 int ForcedTimeFrame = 5;
@@ -22,7 +22,7 @@ int MaxTradesPerDay = 5;
 
 string StrategyName = "MB/";
 string EAName = "EU/";
-string SetupTypeName = "MBEMAGlide/";
+string SetupTypeName = "ValidationReversal/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -31,6 +31,10 @@ CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWrite
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
 TradingSession *TS;
+
+List<string> *EconomicEventTitles;
+List<string> *EconomicEventSymbols;
+List<int> *EconomicEventImpacts;
 
 // -- MBTracker Inputs
 MBTracker *MBT;
@@ -43,17 +47,11 @@ bool OnlyZonesInMB = true;
 bool PrintErrors = false;
 bool CalculateOnTick = false;
 
-MBEMAGlide *CMMBBuys;
-MBEMAGlide *CMMBSells;
+MBValidationReversal *MBVRBuys;
+MBValidationReversal *MBVRSells;
 
-double MinWickLengthPips = 3;
-int ClearHour = 14;
-int ClearMinute = 45;
 double MaxSpreadPips = 3;
 double StopLossPaddingPips = 0;
-double MinStopLossPips = 10;
-double PipsToWaitBeforeBE = 10;
-double BEAdditionalPips = 0.5;
 
 int OnInit()
 {
@@ -63,46 +61,50 @@ int OnInit()
     }
 
     TS = new TradingSession();
-    TS.AddHourMinuteSession(3, 0, 19, 0);
+    TS.AddHourMinuteSession(3, 0, 11, 0);
+
+    EconomicEventTitles = new List<string>();
+
+    EconomicEventSymbols = new List<string>();
+    EconomicEventSymbols.Add("USD");
+    EconomicEventSymbols.Add("EUR");
+
+    EconomicEventImpacts = new List<int>();
+    EconomicEventImpacts.Add(ImpactEnum::HighImpact);
+    EconomicEventImpacts.Add(ImpactEnum::Holiday);
 
     MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors,
                         CalculateOnTick);
 
-    CMMBBuys = new MBEMAGlide(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                              ExitWriter, ErrorWriter, MBT);
+    MBVRBuys = new MBValidationReversal(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                        ExitWriter, ErrorWriter, MBT);
 
-    CMMBBuys.mMinWickLength = OrderHelper::PipsToRange(MinWickLengthPips);
-    CMMBBuys.mClearHour = ClearHour;
-    CMMBBuys.mClearMinute = ClearMinute;
-    CMMBBuys.mMinStopLossDistance = OrderHelper::PipsToRange(MinStopLossPips);
-    CMMBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    CMMBBuys.mBEAdditionalPips = BEAdditionalPips;
-    CMMBBuys.AddTradingSession(TS);
-    CMMBBuys.AddPartial(1, 100);
-    CMMBBuys.SetPartialCSVRecordWriter(PartialWriter);
+    MBVRBuys.mEconomicEventTitles = EconomicEventTitles;
+    MBVRBuys.mEconomicEventSymbols = EconomicEventSymbols;
+    MBVRBuys.mEconomicEventImpacts = EconomicEventImpacts;
+    MBVRBuys.AddTradingSession(TS);
 
-    CMMBSells = new MBEMAGlide(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                               ExitWriter, ErrorWriter, MBT);
+    MBVRSells = new MBValidationReversal(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                         ExitWriter, ErrorWriter, MBT);
 
-    CMMBSells.mMinWickLength = OrderHelper::PipsToRange(MinWickLengthPips);
-    CMMBSells.mClearHour = ClearHour;
-    CMMBSells.mClearMinute = ClearMinute;
-    CMMBSells.mMinStopLossDistance = OrderHelper::PipsToRange(MinStopLossPips);
-    CMMBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    CMMBSells.mBEAdditionalPips = BEAdditionalPips;
-    CMMBSells.AddTradingSession(TS);
-    CMMBSells.AddPartial(1, 100);
-    CMMBSells.SetPartialCSVRecordWriter(PartialWriter);
+    MBVRSells.mEconomicEventTitles = EconomicEventTitles;
+    MBVRSells.mEconomicEventSymbols = EconomicEventSymbols;
+    MBVRSells.mEconomicEventImpacts = EconomicEventImpacts;
+    MBVRSells.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
+    delete EconomicEventTitles;
+    delete EconomicEventSymbols;
+    delete EconomicEventImpacts;
+
     delete MBT;
 
-    delete CMMBBuys;
-    delete CMMBSells;
+    delete MBVRBuys;
+    delete MBVRSells;
 
     delete EntryWriter;
     delete PartialWriter;
@@ -112,6 +114,6 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    CMMBBuys.Run();
-    CMMBSells.Run();
+    MBVRBuys.Run();
+    // MBVRSells.Run();
 }
