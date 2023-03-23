@@ -27,6 +27,8 @@ private:
     datetime mRangeStartTime;
     datetime mRangeEndTime;
 
+    double mRangeHighSpreadOffset;
+
     bool mUpdateRangeStart;
     bool mUpdateRangeEnd;
 
@@ -44,7 +46,7 @@ private:
     void Reset();
 
 public:
-    TimeRangeBreakout(int rangeHourStartTime, int rangeMinuteStartTime, int rangeHourEndTime, int rangeMinuteEndTime);
+    TimeRangeBreakout(double rangeHighSpreadOffset, int rangeHourStartTime, int rangeMinuteStartTime, int rangeHourEndTime, int rangeMinuteEndTime);
     ~TimeRangeBreakout();
 
     datetime RangeStartTime() { return mRangeStartTime; }
@@ -60,7 +62,7 @@ public:
     void Draw();
 };
 
-TimeRangeBreakout::TimeRangeBreakout(int rangeHourStartTime, int rangeMinuteStartTime, int rangeHourEndTime, int rangeMinuteEndTime)
+TimeRangeBreakout::TimeRangeBreakout(double rangeHighSpreadOffset, int rangeHourStartTime, int rangeMinuteStartTime, int rangeHourEndTime, int rangeMinuteEndTime)
 {
     mObjectNamePrefix = "TimeRangeBreakout";
 
@@ -71,6 +73,8 @@ TimeRangeBreakout::TimeRangeBreakout(int rangeHourStartTime, int rangeMinuteStar
     mRangeMinuteStartTime = rangeMinuteStartTime;
     mRangeHourEndTime = rangeHourEndTime;
     mRangeMinuteEndTime = rangeMinuteEndTime;
+
+    mRangeHighSpreadOffset = rangeHighSpreadOffset;
 
     Reset();
     Update();
@@ -141,9 +145,10 @@ void TimeRangeBreakout::Calculate(int barIndex)
     datetime validTime = iTime(Symbol(), Period(), barIndex);
     if (validTime > mRangeStartTime && validTime < mRangeEndTime)
     {
-        if (iHigh(Symbol(), Period(), barIndex) > mRangeHigh || mRangeHigh == ConstantValues::EmptyDouble)
+        double pendingHigh = iHigh(Symbol(), Period(), barIndex) + mRangeHighSpreadOffset;
+        if (pendingHigh > mRangeHigh || mRangeHigh == ConstantValues::EmptyDouble)
         {
-            mRangeHigh = iHigh(Symbol(), Period(), barIndex);
+            mRangeHigh = pendingHigh;
             mUpdateRangeHigh = true;
         }
 
@@ -163,9 +168,10 @@ void TimeRangeBreakout::Calculate(int barIndex)
                 return;
             }
 
-            double thisValue = barIndex == 0 ? currentTick.bid : iClose(Symbol(), Period(), barIndex);
+            double thisValue = 0.0;
             if (mBrokeRangeHighTime <= 0)
             {
+                thisValue = barIndex == 0 ? currentTick.ask : iClose(Symbol(), Period(), barIndex);
                 if (iClose(Symbol(), Period(), barIndex + 1) < mRangeHigh && thisValue >= mRangeHigh)
                 {
                     mBrokeRangeHighTime = iTime(Symbol(), Period(), barIndex);
@@ -174,6 +180,7 @@ void TimeRangeBreakout::Calculate(int barIndex)
 
             if (mBrokeRangeLowTime <= 0)
             {
+                thisValue = barIndex == 0 ? currentTick.bid : iClose(Symbol(), Period(), barIndex);
                 if (iClose(Symbol(), Period(), barIndex + 1) > mRangeLow && thisValue <= mRangeLow)
                 {
                     mBrokeRangeLowTime = iTime(Symbol(), Period(), barIndex);

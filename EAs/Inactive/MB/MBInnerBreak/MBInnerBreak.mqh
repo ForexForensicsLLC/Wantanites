@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\EA\EA.mqh>
+#include <Wantanites\Framework\Objects\DataObjects\EA.mqh>
 #include <Wantanites\Framework\Helpers\EAHelper.mqh>
 #include <Wantanites\Framework\Constants\MagicNumbers.mqh>
 
@@ -46,23 +46,25 @@ public:
 
     virtual double RiskPercent() { return mRiskPercent; }
 
-    virtual void Run();
+    virtual void PreRun();
     virtual bool AllowedToTrade();
     virtual void CheckSetSetup();
     virtual void CheckInvalidateSetup();
     virtual void InvalidateSetup(bool deletePendingOrder, int error);
     virtual bool Confirmation();
     virtual void PlaceOrders();
-    virtual void ManageCurrentPendingSetupTicket();
-    virtual void ManageCurrentActiveSetupTicket();
+    virtual void PreManageTickets();
+    virtual void ManageCurrentPendingSetupTicket(Ticket &ticket);
+    virtual void ManageCurrentActiveSetupTicket(Ticket &ticket);
     virtual bool MoveToPreviousSetupTickets(Ticket &ticket);
-    virtual void ManagePreviousSetupTicket(int ticketIndex);
-    virtual void CheckCurrentSetupTicket();
-    virtual void CheckPreviousSetupTicket(int ticketIndex);
-    virtual void RecordTicketOpenData();
+    virtual void ManagePreviousSetupTicket(Ticket &ticket);
+    virtual void CheckCurrentSetupTicket(Ticket &ticket);
+    virtual void CheckPreviousSetupTicket(Ticket &ticket);
+    virtual void RecordTicketOpenData(Ticket &ticket);
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
+    virtual bool ShouldReset();
     virtual void Reset();
 };
 
@@ -104,10 +106,8 @@ MBInnerBreak::~MBInnerBreak()
 {
 }
 
-void MBInnerBreak::Run()
+void MBInnerBreak::PreRun()
 {
-    EAHelper::RunDrawMBT<MBInnerBreak>(this, mSetupMBT);
-    mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
 }
 
 bool MBInnerBreak::AllowedToTrade()
@@ -117,7 +117,7 @@ bool MBInnerBreak::AllowedToTrade()
 
 void MBInnerBreak::CheckSetSetup()
 {
-    if (EAHelper::CheckSetSingleMBSetup<MBInnerBreak>(this, mSetupMBT, mFirstMBInSetupNumber, mSetupType))
+    if (EAHelper::CheckSetSingleMBSetup<MBInnerBreak>(this, mSetupMBT, mFirstMBInSetupNumber, SetupType()))
     {
         mHasSetup = true;
     }
@@ -145,7 +145,7 @@ void MBInnerBreak::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_E
 
 bool MBInnerBreak::Confirmation()
 {
-    bool hasTicket = mCurrentSetupTicket.Number() != EMPTY;
+    bool hasTicket = !mCurrentSetupTickets.IsEmpty();
 
     if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
     {
@@ -172,7 +172,7 @@ bool MBInnerBreak::Confirmation()
     int dojiCandleIndex = EMPTY;
     int breakCandleIndex = EMPTY;
 
-    if (mSetupType == OP_BUY)
+    if (SetupType() == OP_BUY)
     {
         int currentBullishRetracementIndex = EMPTY;
         if (!mSetupMBT.CurrentBullishRetracementIndexIsValid(currentBullishRetracementIndex))
@@ -318,7 +318,7 @@ bool MBInnerBreak::Confirmation()
             return hasTicket;
         }
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
         int currentBearishRetracementIndex = EMPTY;
         if (!mSetupMBT.CurrentBearishRetracementIndexIsValid(currentBearishRetracementIndex))
@@ -475,7 +475,7 @@ void MBInnerBreak::PlaceOrders()
         return;
     }
 
-    if (mCurrentSetupTicket.Number() != EMPTY)
+    if (!mCurrentSetupTickets.IsEmpty())
     {
         return;
     }
@@ -502,7 +502,7 @@ void MBInnerBreak::PlaceOrders()
     double entry = 0.0;
     double stopLoss = 0.0;
 
-    if (mSetupType == OP_BUY)
+    if (SetupType() == OP_BUY)
     {
         int breakCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mBreakCandleTime);
         double lowest = -1.0;
@@ -514,7 +514,7 @@ void MBInnerBreak::PlaceOrders()
         entry = iHigh(mEntrySymbol, mEntryTimeFrame, 1) + OrderHelper::PipsToRange(mMaxSpreadPips + mEntryPaddingPips);
         stopLoss = MathMin(lowest - OrderHelper::PipsToRange(mStopLossPaddingPips), entry - OrderHelper::PipsToRange(mMinStopLossPips));
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
         int breakCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mBreakCandleTime);
         double highest = -1.0;
@@ -530,23 +530,22 @@ void MBInnerBreak::PlaceOrders()
 
     EAHelper::PlaceStopOrder<MBInnerBreak>(this, entry, stopLoss);
 
-    if (mCurrentSetupTicket.Number() != EMPTY)
+    if (!mCurrentSetupTickets.IsEmpty())
     {
         mLastEntryMB = mostRecentMB.Number();
         mEntryCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 1);
     }
 }
 
-void MBInnerBreak::ManageCurrentPendingSetupTicket()
+void MBInnerBreak::PreManageTickets()
+{
+}
+
+void MBInnerBreak::ManageCurrentPendingSetupTicket(Ticket &ticket)
 {
     int entryCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
 
-    if (mCurrentSetupTicket.Number() == EMPTY)
-    {
-        return;
-    }
-
-    if (mSetupType == OP_BUY && entryCandleIndex > 1)
+    if (SetupType() == OP_BUY && entryCandleIndex > 1)
     {
         if (iLow(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, entryCandleIndex))
         {
@@ -554,7 +553,7 @@ void MBInnerBreak::ManageCurrentPendingSetupTicket()
             InvalidateSetup(true);
         }
     }
-    else if (mSetupType == OP_SELL && entryCandleIndex > 1)
+    else if (SetupType() == OP_SELL && entryCandleIndex > 1)
     {
         if (iHigh(mEntrySymbol, mEntryTimeFrame, 1) > iHigh(mEntrySymbol, mEntryTimeFrame, entryCandleIndex))
         {
@@ -563,14 +562,9 @@ void MBInnerBreak::ManageCurrentPendingSetupTicket()
     }
 }
 
-void MBInnerBreak::ManageCurrentActiveSetupTicket()
+void MBInnerBreak::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
-    if (mCurrentSetupTicket.Number() == EMPTY)
-    {
-        return;
-    }
-
-    int selectError = mCurrentSetupTicket.SelectIfOpen("Stuff");
+    int selectError = ticket.SelectIfOpen("Stuff");
     if (TerminalErrors::IsTerminalError(selectError))
     {
         RecordError(selectError);
@@ -587,14 +581,14 @@ void MBInnerBreak::ManageCurrentActiveSetupTicket()
     int entryIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
     bool movedPips = false;
 
-    if (mSetupType == OP_BUY)
+    if (SetupType() == OP_BUY)
     {
         if (entryIndex > 5)
         {
             // close if we are still opening within our entry and get the chance to close at BE
             if (iOpen(mEntrySymbol, mEntryTimeFrame, 1) < iHigh(mEntrySymbol, mEntryTimeFrame, entryIndex) && currentTick.bid >= OrderOpenPrice())
             {
-                mCurrentSetupTicket.Close();
+                ticket.Close();
             }
         }
 
@@ -617,12 +611,12 @@ void MBInnerBreak::ManageCurrentActiveSetupTicket()
                         // managed to break back out, close at BE
                         if (currentTick.bid >= OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
                         {
-                            mCurrentSetupTicket.Close();
+                            ticket.Close();
                             return;
                         }
 
                         // pushed too far into SL, take the -0.5
-                        if (EAHelper::CloseIfPercentIntoStopLoss<MBInnerBreak>(this, mCurrentSetupTicket, 0.5))
+                        if (EAHelper::CloseIfPercentIntoStopLoss<MBInnerBreak>(this, ticket, 0.5))
                         {
                             return;
                         }
@@ -643,14 +637,14 @@ void MBInnerBreak::ManageCurrentActiveSetupTicket()
             if (mLastManagedBid > OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips) &&
                 currentTick.bid <= OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
             {
-                mCurrentSetupTicket.Close();
+                ticket.Close();
                 return;
             }
         }
 
         movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
         // early close
         if (entryIndex > 5)
@@ -658,7 +652,7 @@ void MBInnerBreak::ManageCurrentActiveSetupTicket()
             // close if we are still opening above our entry and we get the chance to close at BE
             if (iOpen(mEntrySymbol, mEntryTimeFrame, 1) > iLow(mEntrySymbol, mEntryTimeFrame, entryIndex) && currentTick.ask <= OrderOpenPrice())
             {
-                mCurrentSetupTicket.Close();
+                ticket.Close();
             }
         }
 
@@ -682,12 +676,12 @@ void MBInnerBreak::ManageCurrentActiveSetupTicket()
                         // managed to break back out, close at BE
                         if (currentTick.ask <= OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
                         {
-                            mCurrentSetupTicket.Close();
+                            ticket.Close();
                             return;
                         }
 
                         // pushed too far into SL, take the -0.5
-                        if (EAHelper::CloseIfPercentIntoStopLoss<MBInnerBreak>(this, mCurrentSetupTicket, 0.5))
+                        if (EAHelper::CloseIfPercentIntoStopLoss<MBInnerBreak>(this, ticket, 0.5))
                         {
                             return;
                         }
@@ -708,7 +702,7 @@ void MBInnerBreak::ManageCurrentActiveSetupTicket()
             if (mLastManagedAsk < OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips) &&
                 currentTick.ask >= OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
             {
-                mCurrentSetupTicket.Close();
+                ticket.Close();
                 return;
             }
         }
@@ -718,7 +712,7 @@ void MBInnerBreak::ManageCurrentActiveSetupTicket()
 
     if (movedPips)
     {
-        EAHelper::MoveToBreakEvenAsSoonAsPossible<MBInnerBreak>(this, mBEAdditionalPips);
+        EAHelper::MoveTicketToBreakEvenAsSoonAsPossible<MBInnerBreak>(this, ticket, mBEAdditionalPips);
     }
 
     mLastManagedAsk = currentTick.ask;
@@ -730,26 +724,22 @@ bool MBInnerBreak::MoveToPreviousSetupTickets(Ticket &ticket)
     return EAHelper::TicketStopLossIsMovedToBreakEven<MBInnerBreak>(this, ticket);
 }
 
-void MBInnerBreak::ManagePreviousSetupTicket(int ticketIndex)
+void MBInnerBreak::ManagePreviousSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckPartialTicket<MBInnerBreak>(this, mPreviousSetupTickets[ticketIndex]);
+    EAHelper::CheckPartialTicket<MBInnerBreak>(this, ticket);
 }
 
-void MBInnerBreak::CheckCurrentSetupTicket()
+void MBInnerBreak::CheckCurrentSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<MBInnerBreak>(this, mCurrentSetupTicket);
-    EAHelper::CheckCurrentSetupTicket<MBInnerBreak>(this);
 }
 
-void MBInnerBreak::CheckPreviousSetupTicket(int ticketIndex)
+void MBInnerBreak::CheckPreviousSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<MBInnerBreak>(this, mPreviousSetupTickets[ticketIndex]);
-    EAHelper::CheckPreviousSetupTicket<MBInnerBreak>(this, ticketIndex);
 }
 
-void MBInnerBreak::RecordTicketOpenData()
+void MBInnerBreak::RecordTicketOpenData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameEntryTradeRecord<MBInnerBreak>(this);
+    EAHelper::RecordSingleTimeFrameEntryTradeRecord<MBInnerBreak>(this, ticket);
 }
 
 void MBInnerBreak::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
@@ -765,6 +755,11 @@ void MBInnerBreak::RecordTicketCloseData(Ticket &ticket)
 void MBInnerBreak::RecordError(int error, string additionalInformation = "")
 {
     EAHelper::RecordSingleTimeFrameErrorRecord<MBInnerBreak>(this, error, additionalInformation);
+}
+
+bool MBInnerBreak::ShouldReset()
+{
+    return false;
 }
 
 void MBInnerBreak::Reset()

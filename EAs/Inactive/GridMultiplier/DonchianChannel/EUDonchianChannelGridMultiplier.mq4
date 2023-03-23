@@ -10,7 +10,7 @@
 
 #include <Wantanites/Framework/Constants/MagicNumbers.mqh>
 #include <Wantanites/Framework/Constants/SymbolConstants.mqh>
-#include <Wantanites/EAs/Inactive/GridMultiplier/DonchianChannel/DonchianChannelGrid.mqh>
+#include <Wantanites/EAs/Inactive/GridMultiplier/DonchianChannel/DonchianChannelGridMultiplier.mqh>
 
 string ForcedSymbol = "EURUSD";
 int ForcedTimeFrame = 1440;
@@ -44,8 +44,8 @@ double LevelDistance = OrderHelper::PipsToRange(50);
 // EA Parameters
 double TicketNumberInDrawDownToTriggerSurviveMode = 10;
 int SurviveLevelModulus = 5;
-double LotsPerBalancePeriod = 1000;
-double LotsPerBalanceLotIncrement = 0.1;
+double LotsPerBalancePeriod = 2500;
+double LotsPerBalanceLotIncrement = .1;
 double MaxSpreadPips = 2;
 double StopLossPaddingPips = 0;
 

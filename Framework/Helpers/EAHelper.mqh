@@ -257,7 +257,7 @@ public:
     template <typename TEA>
     static void CloseIfPriceCrossedTicketOpen(TEA &ea, int candlesAfterBeforeChecking);
     template <typename TEA>
-    static void MoveToBreakEvenAsSoonAsPossible(TEA &ea, double waitForAdditionalPips);
+    static void MoveTicketToBreakEvenAsSoonAsPossible(TEA &ea, Ticket &ticket, double waitForAdditionalPips);
     template <typename TEA>
     static void MoveStopLossToCoverCommissions(TEA &ea);
     template <typename TEA>
@@ -2763,17 +2763,17 @@ static void EAHelper::CloseIfPriceCrossedTicketOpen(TEA &ea, int candlesAfterBef
 }
 
 template <typename TEA>
-static void EAHelper::MoveToBreakEvenAsSoonAsPossible(TEA &ea, double waitForAdditionalPips = 0.0)
+static void EAHelper::MoveTicketToBreakEvenAsSoonAsPossible(TEA &ea, Ticket &ticket, double waitForAdditionalPips = 0.0)
 {
     ea.mLastState = EAStates::CHECKING_IF_MOVED_TO_BREAK_EVEN;
 
-    if (ea.mCurrentSetupTicket.Number() == EMPTY)
+    if (ticket.Number() == EMPTY)
     {
         return;
     }
 
     bool stopLossIsMovedToBreakEven = false;
-    int error = ea.mCurrentSetupTicket.StopLossIsMovedToBreakEven(stopLossIsMovedToBreakEven);
+    int error = ticket.StopLossIsMovedToBreakEven(stopLossIsMovedToBreakEven);
     if (TerminalErrors::IsTerminalError(error))
     {
         ea.RecordError(error);
@@ -2787,26 +2787,19 @@ static void EAHelper::MoveToBreakEvenAsSoonAsPossible(TEA &ea, double waitForAdd
 
     ea.mLastState = EAStates::MOVING_TO_BREAK_EVEN;
 
-    int selectError = ea.mCurrentSetupTicket.SelectIfOpen("Managing");
+    int selectError = ticket.SelectIfOpen("Managing");
     if (selectError != ERR_NO_ERROR)
     {
-        // ticket is closed, well record data on it soon
+        // ticket is closed, will record data on it soon
         return;
     }
 
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
-    {
-        ea.RecordError(GetLastError());
-        return;
-    }
-
-    bool furtherThanEntry = (OrderType() == OP_BUY && currentTick.bid > OrderOpenPrice() + OrderHelper::PipsToRange(waitForAdditionalPips)) ||
-                            (OrderType() == OP_SELL && currentTick.ask < OrderOpenPrice() - OrderHelper::PipsToRange(waitForAdditionalPips));
+    bool furtherThanEntry = (OrderType() == OP_BUY && ea.CurrentTick().Bid() > OrderOpenPrice() + OrderHelper::PipsToRange(waitForAdditionalPips)) ||
+                            (OrderType() == OP_SELL && ea.CurrentTick().Ask() < OrderOpenPrice() - OrderHelper::PipsToRange(waitForAdditionalPips));
 
     if (furtherThanEntry)
     {
-        int breakEvenError = OrderHelper::MoveTicketToBreakEven(ea.mCurrentSetupTicket, waitForAdditionalPips);
+        int breakEvenError = OrderHelper::MoveTicketToBreakEven(ticket, waitForAdditionalPips);
         if (TerminalErrors::IsTerminalError(breakEvenError))
         {
             ea.RecordError(breakEvenError);

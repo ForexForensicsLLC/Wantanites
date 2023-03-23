@@ -18,7 +18,12 @@ class TestNewsTimeRangeBreakout : public EA<SingleTimeFrameEntryTradeRecord, Emp
 {
 public:
     TimeRangeBreakout *mTRB;
+
     ObjectList<EconomicEvent> *mEconomicEvents;
+
+    List<string> *mEconomicEventTitles;
+    List<string> *mEconomicEventSymbols;
+    List<int> *mEconomicEventImpacts;
 
     bool mLoadedEventsForToday;
     bool mDuringNews;
@@ -87,7 +92,7 @@ void TestNewsTimeRangeBreakout::CheckSetSetup()
 {
     if (!mLoadedEventsForToday)
     {
-        EAHelper::GetEconomicEventsForDate<TestNewsTimeRangeBreakout>(this, TimeGMT(), "", ImpactEnum::HighImpact);
+        EAHelper::GetEconomicEventsForDate<TestNewsTimeRangeBreakout>(this, TimeGMT(), mEconomicEventTitles, mEconomicEventSymbols, mEconomicEventImpacts);
         mLoadedEventsForToday = true;
     }
 

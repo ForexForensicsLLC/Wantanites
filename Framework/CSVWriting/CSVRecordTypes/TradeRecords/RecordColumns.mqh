@@ -227,11 +227,12 @@ string RecordColumns::PercentChange(string columnIndex)
         return RowNumber;
     }
 
+    // (final - inital) / initial
     return StringFormat("=(%s%d - %s%d) / %s%d",
                         columnIndex,
                         RowNumber,
                         columnIndex,
                         RowNumber - 1,
                         columnIndex,
-                        RowNumber);
+                        RowNumber - 1);
 }

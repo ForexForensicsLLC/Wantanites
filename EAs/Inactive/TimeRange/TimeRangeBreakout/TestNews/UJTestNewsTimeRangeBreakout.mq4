@@ -31,6 +31,10 @@ CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<S
 
 TradingSession *TS;
 
+List<string> *EconomicEventTitles;
+List<string> *EconomicEventSymbols;
+List<int> *EconomicEventImpacts;
+
 TimeRangeBreakout *TRB;
 TestNewsTimeRangeBreakout *TRBBuys;
 TestNewsTimeRangeBreakout *TRBSells;
@@ -49,13 +53,30 @@ int OnInit()
     TS = new TradingSession();
     TS.AddHourMinuteSession(2, 0, 23, 0);
 
-    TRB = new TimeRangeBreakout(0, 0, 2, 0);
+    EconomicEventTitles = new List<string>();
+
+    EconomicEventSymbols = new List<string>();
+    // EconomicEventSymbols.Add("USD");
+    // EconomicEventSymbols.Add("JPY");
+
+    EconomicEventImpacts = new List<int>();
+    EconomicEventImpacts.Add(ImpactEnum::HighImpact);
+
+    TRB = new TimeRangeBreakout(OrderHelper::PipsToRange(3), 0, 0, 2, 0);
     TRBBuys = new TestNewsTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                             RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
+
+    TRBBuys.mEconomicEventTitles = EconomicEventTitles;
+    TRBBuys.mEconomicEventSymbols = EconomicEventSymbols;
+    TRBBuys.mEconomicEventImpacts = EconomicEventImpacts;
     TRBBuys.AddTradingSession(TS);
 
     TRBSells = new TestNewsTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
                                              MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
+
+    TRBSells.mEconomicEventTitles = EconomicEventTitles;
+    TRBSells.mEconomicEventSymbols = EconomicEventSymbols;
+    TRBSells.mEconomicEventImpacts = EconomicEventImpacts;
     TRBSells.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
@@ -64,6 +85,10 @@ int OnInit()
 void OnDeinit(const int reason)
 {
     delete TRB;
+
+    delete EconomicEventTitles;
+    delete EconomicEventSymbols;
+    delete EconomicEventImpacts;
 
     delete TRBBuys;
     delete TRBSells;

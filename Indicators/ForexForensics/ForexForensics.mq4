@@ -1,32 +1,24 @@
 //+------------------------------------------------------------------+
-//|                                                  MBIndicator.mq4 |
+//|                                           ForexForensics.mq4 |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2022, MetaQuotes Software Corp."
-#property link      "https://www.mql5.com"
-#property version   "1.00"
+#property link "https://www.mql5.com"
+#property version "1.00"
 #property strict
 #property indicator_chart_window
 
-input int MBsToTrack = 200;
-input int MaxZonesInMB = 5;
-input int AllowZoneMitigation = false;
-
-#include <Wantanites\InProgress\MBTracker.mqh>
-
-MBTracker* MBT;
+// EA that is always within its trading session and in the setup function just checks for new tickets and add thems
+// the rest of the framework should handle closing
+ForexForensics *FF;
 
 int OnInit()
 {
-   MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowZoneMitigation, true); 
-   
-   return(INIT_SUCCEEDED);
-}
+    FF = new FF();
+    // other usual EA params
 
-void OnDeinit(const int reason)
-{
-   delete MBT;
+    return (INIT_SUCCEEDED);
 }
 
 int OnCalculate(const int rates_total,
@@ -40,11 +32,6 @@ int OnCalculate(const int rates_total,
                 const long &volume[],
                 const int &spread[])
 {
-  MBT.DrawNMostRecentMBs(-1);
-  MBT.DrawZonesForNMostRecentMBs(-1);
-  
-  return rates_total;
+    FF.Run();
+    return (rates_total);
 }
-
-
-
