@@ -38,6 +38,7 @@ public:
     double EntryPrice;
     double EntrySlippage;
     double OriginalStopLoss;
+    bool DuringNews;
     string EntryImage;
     string HigherTimeFrameEntryImage;
     string LowerTimeFrameEntryImage;
@@ -81,6 +82,7 @@ RecordColumns::RecordColumns()
     EntryPrice = ConstantValues::EmptyDouble;
     EntrySlippage = ConstantValues::EmptyDouble;
     OriginalStopLoss = ConstantValues::EmptyDouble;
+    DuringNews = false;
     EntryImage = ConstantValues::UnsetString;
     HigherTimeFrameEntryImage = ConstantValues::UnsetString;
     LowerTimeFrameEntryImage = ConstantValues::UnsetString;

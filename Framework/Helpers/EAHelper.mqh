@@ -115,7 +115,7 @@ public:
     template <typename TEA>
     static void GetEconomicEventsForDate(TEA &ea, datetime utcDate, List<string> *&titles, List<string> *&symbols, List<int> *&impacts, bool ignoreDuplicateTimes);
     template <typename TEA>
-    static bool CurrentCandleIsDuringEconomicEvent(TEA &ea);
+    static bool CandleIsDuringEconomicEvent(TEA &ea, int candleIndex);
 
     // =========================================================================
     // Check Invalidate Setup
@@ -295,7 +295,7 @@ private:
 
 public:
     template <typename TEA>
-    static void RecordDefaultEntryTradeRecord(TEA &ea);
+    static void RecordDefaultEntryTradeRecord(TEA &ea, Ticket &ticket);
     template <typename TEA>
     static void RecordDefaultExitTradeRecord(TEA &ea, Ticket &ticket, int entryTimeFrame);
 
@@ -325,6 +325,11 @@ public:
     static void RecordSingleTimeFrameErrorRecord(TEA &ea, int error, string additionalInformation);
     template <typename TEA>
     static void RecordMultiTimeFrameErrorRecord(TEA &ea, int error, string additionalInformation, int lowerTimeFrame, int highTimeFrame);
+
+    template <typename TEA>
+    static void RecordForexForensicsEntryTradeRecord(TEA &ea, Ticket &ticket);
+    template <typename TEA>
+    static void RecordForexForensicsExitTradeRecord(TEA &ea, Ticket &ticket, int entryTimeFrame);
 
     template <typename TEA>
     static void CheckUpdateHowFarPriceRanFromOpen(TEA &ea, Ticket &ticket);
@@ -572,7 +577,7 @@ static void EAHelper::Run(TEA &ea)
                 if (!wasActivated && !ea.Confirmation())
                 {
                     ea.mCurrentSetupTickets[i].Close();
-                    ea.mCurrentSetupTickets.RemoveWhere<TTicketNumberLocator, int>(Ticket::HasTicketNumber, ea.mCurrentSetupTickets[i].Number());
+                    ea.mCurrentSetupTickets.RemoveWhere<TTicketNumberLocator, int>(Ticket::EqualsTicketNumber, ea.mCurrentSetupTickets[i].Number());
                 }
             }
         }
@@ -600,7 +605,7 @@ static void EAHelper::ManageCurrentSetupTicket(TEA &ea)
             Ticket *ticket = new Ticket(ea.mCurrentSetupTickets[i]);
 
             ea.mPreviousSetupTickets.Add(ticket);
-            ea.mCurrentSetupTickets.RemoveWhere<TTicketNumberLocator, int>(Ticket::HasTicketNumber, ticket.Number());
+            ea.mCurrentSetupTickets.RemoveWhere<TTicketNumberLocator, int>(Ticket::EqualsTicketNumber, ticket.Number());
 
             // no longer a current ticket, can continue
             continue;
@@ -1559,13 +1564,14 @@ static void EAHelper::GetEconomicEventsForDate(TEA &ea, datetime utcDate, List<s
 }
 
 template <typename TEA>
-static bool EAHelper::CurrentCandleIsDuringEconomicEvent(TEA &ea)
+static bool EAHelper::CandleIsDuringEconomicEvent(TEA &ea, int candleIndex = 0)
 {
     // iTime looks like it always returns the exact bar time but it doesn't hurt to make sure
-    datetime currentBarTime = iTime(ea.mEntrySymbol, ea.mEntryTimeFrame, 0);
+    datetime currentBarTime = iTime(ea.mEntrySymbol, ea.mEntryTimeFrame, candleIndex);
     int secondsPerCandle = ea.mEntryTimeFrame * 60;
     datetime exactBarTime = currentBarTime - (currentBarTime % secondsPerCandle); // get exact bar time
 
+    Print("Magic Number: ", ea.MagicNumber(), ", Events: ", ea.mEconomicEvents.Size(), ", Candle Index: ", candleIndex);
     for (int i = 0; i < ea.mEconomicEvents.Size(); i++)
     {
         if (MathAbs(ea.mEconomicEvents[i].Date() - exactBarTime) <= secondsPerCandle)
@@ -3015,7 +3021,7 @@ bool EAHelper::CheckCurrentSetupTicket(TEA &ea, Ticket &ticket)
             ea.RecordTicketCloseData(ticket);
         }
 
-        ea.mCurrentSetupTickets.RemoveWhere<TTicketNumberLocator, int>(Ticket::HasTicketNumber, ticket.Number());
+        ea.mCurrentSetupTickets.RemoveWhere<TTicketNumberLocator, int>(Ticket::EqualsTicketNumber, ticket.Number());
         return true;
     }
 
@@ -3042,7 +3048,7 @@ static bool EAHelper::CheckPreviousSetupTicket(TEA &ea, Ticket &ticket)
         }
 
         ea.RecordTicketCloseData(ticket);
-        ea.mPreviousSetupTickets.RemoveWhere<TTicketNumberLocator, int>(Ticket::HasTicketNumber, ticket.Number());
+        ea.mPreviousSetupTickets.RemoveWhere<TTicketNumberLocator, int>(Ticket::EqualsTicketNumber, ticket.Number());
 
         return true;
     }
@@ -3118,6 +3124,13 @@ static void EAHelper::SetDefaultCloseTradeData(TEA &ea, TRecord &record, Ticket 
 {
     ea.mLastState = EAStates::RECORDING_ORDER_CLOSE_DATA;
 
+    int error = ticket.SelectIfClosed("Recording Data");
+    if (error != ERR_NO_ERROR)
+    {
+        ea.RecordError(error);
+        return;
+    }
+
     record.MagicNumber = ea.MagicNumber();
     record.TicketNumber = ticket.Number();
 
@@ -3133,9 +3146,27 @@ static void EAHelper::SetDefaultCloseTradeData(TEA &ea, TRecord &record, Ticket 
     record.ExitTime = OrderCloseTime();
     record.ExitPrice = OrderClosePrice();
 
-    if (OrderStopLoss() > 0.0)
+    if (!ticket.WasManuallyClosed() && OrderStopLoss() > 0.0)
     {
-        record.StopLossExitSlippage = MathAbs(OrderStopLoss() - OrderClosePrice());
+        bool closedBySL = true;
+        if (OrderTakeProfit() > 0.0)
+        {
+            // we either closed from the TP or SL. We'll decide which one by seeing which one we are closer to
+            closedBySL = MathAbs(OrderClosePrice() - OrderStopLoss()) < MathAbs(OrderClosePrice() - OrderTakeProfit());
+        }
+
+        if (closedBySL)
+        {
+            record.StopLossExitSlippage = OrderStopLoss() - OrderClosePrice();
+        }
+        else
+        {
+            record.StopLossExitSlippage = 0.0;
+        }
+    }
+    else
+    {
+        record.StopLossExitSlippage = 0.0;
     }
 
     if (ticket.DistanceRanFromOpen() > -1.0)
@@ -3145,10 +3176,10 @@ static void EAHelper::SetDefaultCloseTradeData(TEA &ea, TRecord &record, Ticket 
 }
 
 template <typename TEA>
-static void EAHelper::RecordDefaultEntryTradeRecord(TEA &ea)
+static void EAHelper::RecordDefaultEntryTradeRecord(TEA &ea, Ticket &ticket)
 {
     DefaultEntryTradeRecord *record = new DefaultEntryTradeRecord();
-    SetDefaultEntryTradeData<TEA, DefaultEntryTradeRecord>(ea, record);
+    SetDefaultEntryTradeData<TEA, DefaultEntryTradeRecord>(ea, record, ticket);
 
     ea.mEntryCSVRecordWriter.WriteRecord(record);
     delete record;
@@ -3379,6 +3410,32 @@ static void EAHelper::RecordMultiTimeFrameErrorRecord(TEA &ea, int error, string
     record.HigherTimeFrameErrorImage = higherTimeFrameImage;
 
     ea.mErrorCSVRecordWriter.WriteRecord(record);
+    delete record;
+}
+
+template <typename TEA>
+static void EAHelper::RecordForexForensicsEntryTradeRecord(TEA &ea, Ticket &ticket)
+{
+    ForexForensicsEntryTradeRecord *record = new ForexForensicsEntryTradeRecord();
+    SetDefaultEntryTradeData<TEA, ForexForensicsEntryTradeRecord>(ea, record, ticket);
+
+    ticket.SelectIfOpen("Getting Magic Number");
+
+    // override the magic number with whatever one the ticket was placed with
+    record.MagicNumber = OrderMagicNumber();
+    record.DuringNews = CandleIsDuringEconomicEvent<TEA>(ea, iBarShift(ea.mEntrySymbol, ea.mEntryTimeFrame, ticket.OpenTime()));
+
+    ea.mEntryCSVRecordWriter.WriteRecord(record);
+    delete record;
+}
+
+template <typename TEA>
+static void EAHelper::RecordForexForensicsExitTradeRecord(TEA &ea, Ticket &ticket, int entryTimeFrame)
+{
+    ForexForensicsExitTradeRecord *record = new ForexForensicsExitTradeRecord();
+    SetDefaultCloseTradeData<TEA, ForexForensicsExitTradeRecord>(ea, record, ticket, entryTimeFrame);
+
+    ea.mExitCSVRecordWriter.WriteRecord(record);
     delete record;
 }
 

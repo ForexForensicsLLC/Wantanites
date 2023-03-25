@@ -12,7 +12,7 @@
 
 // --- EA Inputs ---
 string ForcedSymbol = "EU";
-int ForcedTimeFrame = 1;
+int ForcedTimeFrame = 5;
 
 double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
@@ -38,10 +38,10 @@ double StopLossPaddingPips = 5;
 double PipsToWaitBeforeBE = 1000;
 double BEAdditionalPips = 50;
 double MaxPipsFromGreenLips = 1200;
-double MinBlueRedAlligatorGap = 4;
-double MinRedGreenAlligatorGap = 20;
+double MinBlueRedAlligatorGap = .00015;
+double MinRedGreenAlligatorGap = .00015;
 double MinWickLength = 0;
-double CloseRR = 3;
+double CloseRR = 2;
 
 int OnInit()
 {
@@ -50,7 +50,8 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    TS = new TradingSession(11, 0, 23, 0);
+    TS = new TradingSession();
+    TS.AddHourMinuteSession(11, 0, 23, 0);
 
     CALBuys = new CrossAlligatorLips(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
                                      ErrorWriter);

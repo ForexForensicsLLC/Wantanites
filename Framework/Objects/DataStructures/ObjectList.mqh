@@ -147,3 +147,18 @@ void ObjectList::RemoveWhere(U locator, V value)
         }
     }
 }
+
+template <typename T>
+template <typename U, typename V>
+bool ObjectList::Contains(U locator, V value)
+{
+    for (int i = 0; i < Size(); i++)
+    {
+        if (locator(this[i], value))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}

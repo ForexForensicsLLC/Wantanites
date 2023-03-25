@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\EA\EA.mqh>
+#include <Wantanites\Framework\Objects\DataObjects\EA.mqh>
 #include <Wantanites\Framework\Helpers\EAHelper.mqh>
 #include <Wantanites\Framework\Constants\MagicNumbers.mqh>
 
@@ -59,42 +59,20 @@ public:
 };
 CrossAlligatorLips::CrossAlligatorLips(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                                        CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                                       CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT)
+                                       CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter,
          exitCSVRecordWriter, errorCSVRecordWriter)
 {
-    mSetupMBT = setupMBT;
-    mFirstMBInSetupNumber = EMPTY;
-
-    mFixedStopLossPips = 0.0;
     mPipsToWaitBeforeBE = 0.0;
-    mMaxStopLossPips = 0.0;
     mBEAdditionalPips = 0.0;
 
-    mMinBreakPips = 0.0;
     mMaxPipsFromGreenLips = 0.0;
     mMinBlueRedAlligatorGap = 0.0;
     mMinRedGreenAlligatorGap = 0.0;
     mMinWickLength = 0.0;
 
-    mTradedToday = false;
-
-    mBarCount = 0;
-    mLastDay = 0;
-    mLastYear = 0;
-
-    mEntrySymbol = Symbol();
-    mEntryTimeFrame = Period();
-
-    mEntryPrice = 0.0;
-    mSetupCandleTime = 0;
-    mEntryCandleTime = 0;
-
     // TODO: Change Back
     mLargestAccountBalance = 100000;
-
-    ArrayResize(mStrategyMagicNumbers, 1);
-    mStrategyMagicNumbers[0] = MagicNumber();
 
     EAHelper::FindSetPreviousAndCurrentSetupTickets<CrossAlligatorLips>(this);
     EAHelper::UpdatePreviousSetupTicketsRRAcquried<CrossAlligatorLips, PartialTradeRecord>(this);
@@ -166,6 +144,11 @@ void CrossAlligatorLips::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
+    if (!mHasSetup)
+    {
+        return;
+    }
+
     double redGreenGap = MathAbs(GreenLips(0) - RedTeeth(0));
     if (redGreenGap < mMinRedGreenAlligatorGap)
     {
@@ -188,16 +171,16 @@ bool CrossAlligatorLips::Confirmation()
 {
     if (iBars(mEntrySymbol, mEntryTimeFrame) <= BarCount())
     {
-        return;
+        return false;
     }
 
     if (SetupType() == OP_BUY)
     {
-        return iClose(mEntrySymbol, mEntryTimeFrame, 1) < GreenLips(1);
+        return iClose(mEntrySymbol, mEntryTimeFrame, 2) > GreenLips(2) && iClose(mEntrySymbol, mEntryTimeFrame, 1) < GreenLips(1);
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
-        return iClose(mEntrySymbol, mEntryTimeFrame, 1) > GreenLips(1);
+        return iClose(mEntrySymbol, mEntryTimeFrame, 2) < GreenLips(2) && iClose(mEntrySymbol, mEntryTimeFrame, 1) > GreenLips(1);
     }
 
     return false;
@@ -207,12 +190,13 @@ void CrossAlligatorLips::PlaceOrders()
 {
     double entry = 0.0;
     double stopLoss = 0.0;
-    if (mSetupType == OP_BUY)
+
+    if (SetupType() == OP_BUY)
     {
         entry = CurrentTick().Ask();
         stopLoss = entry - OrderHelper::PipsToRange(mStopLossPaddingPips);
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
         entry = CurrentTick().Bid();
         stopLoss = entry + OrderHelper::PipsToRange(mStopLossPaddingPips);
@@ -232,7 +216,7 @@ void CrossAlligatorLips::ManageCurrentPendingSetupTicket(Ticket &ticket)
 void CrossAlligatorLips::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
     int entryIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, ticket.OpenTime());
-    if (entrIndex >= 2)
+    if (entryIndex >= 2)
     {
         if (SetupType() == OP_BUY && iClose(mEntrySymbol, mEntryTimeFrame, 1) > ticket.OpenPrice())
         {

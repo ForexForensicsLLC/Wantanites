@@ -62,7 +62,7 @@ int OnInit()
     EconomicEventImpacts = new List<int>();
     EconomicEventImpacts.Add(ImpactEnum::HighImpact);
 
-    TRB = new TimeRangeBreakout(OrderHelper::PipsToRange(3), 0, 0, 2, 0);
+    TRB = new TimeRangeBreakout(0, 0, 2, 0);
     TRBBuys = new TestNewsTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
                                             RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
 
@@ -102,4 +102,6 @@ void OnTick()
 {
     TRBBuys.Run();
     TRBSells.Run();
+
+    double val = iCustom(Symbol(), Period(), "ForexForensics", 0, 0);
 }

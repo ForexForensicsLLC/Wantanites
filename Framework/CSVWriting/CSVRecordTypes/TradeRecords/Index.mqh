@@ -12,11 +12,13 @@
 #include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\EntryTradeRecords\SingleTimeFrameEntryTradeRecord.mqh>
 #include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\EntryTradeRecords\MultiTimeFrameEntryTradeRecord.mqh>
 #include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\EntryTradeRecords\MBEntryTradeRecord.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\EntryTradeRecords\ForexForensicsEntryTradeRecord.mqh>
 
 #include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\ExitTradeRecords\DefaultExitTradeRecord.mqh>
 #include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\ExitTradeRecords\SingleTimeFrameExitTradeRecord.mqh>
 #include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\ExitTradeRecords\MultiTimeFrameExitTradeRecord.mqh>
 #include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\ExitTradeRecords\EntryCandleExitTradeRecord.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\ExitTradeRecords\ForexForensicsExitTradeRecord.mqh>
 
 #include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\PartialTradeRecords\EmptyPartialTradeRecord.mqh>
 #include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\PartialTradeRecords\PartialTradeRecord.mqh>
