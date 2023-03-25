@@ -55,6 +55,8 @@ public:
     string HigherTimeFrameExitImage;
     string LowerTimeFrameExitImage;
 
+    double FurthestEquityDrawdownPercent;
+
     double TotalMovePips();
     double PotentialRR();
     double RRSecured();
@@ -98,6 +100,8 @@ RecordColumns::RecordColumns()
     ExitImage = ConstantValues::UnsetString;
     HigherTimeFrameExitImage = ConstantValues::UnsetString;
     LowerTimeFrameExitImage = ConstantValues::UnsetString;
+
+    FurthestEquityDrawdownPercent = ConstantValues::EmptyDouble;
 }
 
 RecordColumns::~RecordColumns()

@@ -270,7 +270,7 @@ public:
     static bool CloseTicketIfPastTime(TEA &ea, Ticket &ticket, int hour, int minute, bool fallbackCloseAtNewDay);
 
     template <typename TEA>
-    static double GetTotalPreviousSetupTicketsEquityPercentChange(TEA &ea, double startingEquity);
+    static double GetTotalTicketsEquityPercentChange(TEA &ea, double startingEquity, ObjectList<Ticket> &tickets);
 
     // =========================================================================
     // Checking Tickets
@@ -2927,12 +2927,12 @@ static bool EAHelper::CloseTicketIfPastTime(TEA &ea, Ticket &ticket, int hour, i
 }
 
 template <typename TEA>
-static double EAHelper::GetTotalPreviousSetupTicketsEquityPercentChange(TEA &ea, double startingEquity)
+static double EAHelper::GetTotalTicketsEquityPercentChange(TEA &ea, double startingEquity, ObjectList<Ticket> &tickets)
 {
     double profits = 0.0;
-    for (int i = 0; i < ea.mPreviousSetupTickets.Size(); i++)
+    for (int i = 0; i < tickets.Size(); i++)
     {
-        int selectError = ea.mPreviousSetupTickets[i].SelectIfOpen("Getting Profit");
+        int selectError = tickets[i].SelectIfOpen("Getting Profit");
         if (TerminalErrors::IsTerminalError(selectError))
         {
             ea.RecordError(selectError);
@@ -3435,6 +3435,7 @@ static void EAHelper::RecordForexForensicsExitTradeRecord(TEA &ea, Ticket &ticke
     ForexForensicsExitTradeRecord *record = new ForexForensicsExitTradeRecord();
     SetDefaultCloseTradeData<TEA, ForexForensicsExitTradeRecord>(ea, record, ticket, entryTimeFrame);
 
+    record.FurthestEquityDrawdownPercent = ea.mFurthestEquityDrawdownPercent;
     ea.mExitCSVRecordWriter.WriteRecord(record);
     delete record;
 }

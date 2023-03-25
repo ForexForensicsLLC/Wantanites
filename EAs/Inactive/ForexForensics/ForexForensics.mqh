@@ -24,6 +24,8 @@ public:
     bool mLoadedEventsForToday;
     bool mDuringNews;
 
+    double mFurthestEquityDrawdownPercent;
+
 public:
     ForexForensics(CSVRecordWriter<ForexForensicsEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<ForexForensicsExitTradeRecord> *&exitCSVRecordWriter,
                    CSVRecordWriter<DefaultErrorRecord> *&errorCSVRecordWriter);
@@ -61,6 +63,8 @@ ForexForensics::ForexForensics(CSVRecordWriter<ForexForensicsEntryTradeRecord> *
 
     mLoadedEventsForToday = false;
     mDuringNews = false;
+
+    mFurthestEquityDrawdownPercent = 0.0;
 }
 
 ForexForensics::~ForexForensics()
@@ -72,11 +76,16 @@ void ForexForensics::PreRun()
 {
     if (!mLoadedEventsForToday)
     {
-        Print("Loading Events for ", TimeGMT());
         EAHelper::GetEconomicEventsForDate<ForexForensics>(this, TimeGMT(), mEconomicEventTitles, mEconomicEventSymbols, mEconomicEventImpacts);
 
         mLoadedEventsForToday = true;
         mWasReset = false;
+    }
+
+    double equityChange = EAHelper::GetTotalTicketsEquityPercentChange<ForexForensics>(this, AccountBalance(), mCurrentSetupTickets) / 100;
+    if (equityChange < mFurthestEquityDrawdownPercent)
+    {
+        mFurthestEquityDrawdownPercent = equityChange;
     }
 
     if (OrdersTotal() > mCurrentSetupTickets.Size())
@@ -85,7 +94,7 @@ void ForexForensics::PreRun()
         {
             if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
             {
-                Print("Failed to select order at position ", i);
+                RecordError(GetLastError());
                 continue;
             }
 
@@ -182,7 +191,6 @@ bool ForexForensics::ShouldReset()
 
 void ForexForensics::Reset()
 {
-    Print("Resetting");
     mLoadedEventsForToday = false;
     mEconomicEvents.Clear();
 }

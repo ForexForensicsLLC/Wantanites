@@ -30,7 +30,8 @@ void ForexForensicsExitTradeRecord::WriteHeaders(int fileHandle, bool writeDelim
     FileHelper::WriteString(fileHandle, "Exit Time");
     FileHelper::WriteString(fileHandle, "Account Balance After");
     FileHelper::WriteString(fileHandle, "Exit Price");
-    FileHelper::WriteString(fileHandle, "RR Secured", writeDelimiter);
+    FileHelper::WriteString(fileHandle, "RR Secured");
+    FileHelper::WriteString(fileHandle, "Furthest Equity Drawdown", writeDelimiter);
 }
 
 void ForexForensicsExitTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = false)
@@ -38,7 +39,8 @@ void ForexForensicsExitTradeRecord::WriteRecord(int fileHandle, bool writeDelimi
     FileHelper::WriteDateTime(fileHandle, ExitTime);
     FileHelper::WriteDouble(fileHandle, AccountBalanceAfter, 2);
     FileHelper::WriteDouble(fileHandle, ExitPrice, Digits);
-    FileHelper::WriteDouble(fileHandle, RRSecured(), 2, writeDelimiter);
+    FileHelper::WriteDouble(fileHandle, RRSecured(), 2);
+    FileHelper::WriteDouble(fileHandle, FurthestEquityDrawdownPercent, 3, writeDelimiter);
 }
 
 void ForexForensicsExitTradeRecord::ReadRow(int fileHandle)
@@ -47,4 +49,5 @@ void ForexForensicsExitTradeRecord::ReadRow(int fileHandle)
     AccountBalanceAfter = StrToDouble(FileReadString(fileHandle));
     ExitPrice = StrToDouble(FileReadString(fileHandle));
     mRRSecured = StrToDouble(FileReadString(fileHandle));
+    FurthestEquityDrawdownPercent = StrToDouble(FileReadString(fileHandle));
 }
