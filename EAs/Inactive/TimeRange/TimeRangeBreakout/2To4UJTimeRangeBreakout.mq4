@@ -10,7 +10,7 @@
 
 #include <Wantanites/Framework/Constants/MagicNumbers.mqh>
 #include <Wantanites/Framework/Constants/SymbolConstants.mqh>
-#include <Wantanites/EAs/Inactive/TimeRange/TimeRangeBreakout/TestNews/TestNewsTimeRangeBreakout.mqh>
+#include <Wantanites/EAs/Inactive/TimeRange/TimeRangeBreakout/StartOfDayTimeRangeBreakout.mqh>
 
 string ForcedSymbol = "USDJPY";
 int ForcedTimeFrame = 5;
@@ -22,7 +22,7 @@ int MaxTradesPerDay = 5;
 
 string StrategyName = "TimeRangeBreakout/";
 string EAName = "UJ/";
-string SetupTypeName = "TestNewsContinuation/";
+string SetupTypeName = "Continuation/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -31,17 +31,14 @@ CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<S
 
 TradingSession *TS;
 
-List<string> *EconomicEventTitles;
-List<string> *EconomicEventSymbols;
-List<int> *EconomicEventImpacts;
-
 TimeRangeBreakout *TRB;
-TestNewsTimeRangeBreakout *TRBBuys;
-TestNewsTimeRangeBreakout *TRBSells;
+StartOfDayTimeRangeBreakout *TRBBuys;
+StartOfDayTimeRangeBreakout *TRBSells;
 
 // UJ
 double MaxSpreadPips = 3;
 double StopLossPaddingPips = 0;
+double MaxSlippage = 3;
 
 int OnInit()
 {
@@ -53,30 +50,13 @@ int OnInit()
     TS = new TradingSession();
     TS.AddHourMinuteSession(4, 0, 23, 0);
 
-    EconomicEventTitles = new List<string>();
-
-    EconomicEventSymbols = new List<string>();
-    // EconomicEventSymbols.Add("USD");
-    EconomicEventSymbols.Add("JPY");
-
-    EconomicEventImpacts = new List<int>();
-    EconomicEventImpacts.Add(ImpactEnum::HighImpact);
-
     TRB = new TimeRangeBreakout(2, 0, 4, 0);
-    TRBBuys = new TestNewsTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
-                                            RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
-
-    TRBBuys.mEconomicEventTitles = EconomicEventTitles;
-    TRBBuys.mEconomicEventSymbols = EconomicEventSymbols;
-    TRBBuys.mEconomicEventImpacts = EconomicEventImpacts;
+    TRBBuys = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                              RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
     TRBBuys.AddTradingSession(TS);
 
-    TRBSells = new TestNewsTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
-                                             MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
-
-    TRBSells.mEconomicEventTitles = EconomicEventTitles;
-    TRBSells.mEconomicEventSymbols = EconomicEventSymbols;
-    TRBSells.mEconomicEventImpacts = EconomicEventImpacts;
+    TRBSells = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
+                                               MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
     TRBSells.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
@@ -85,10 +65,6 @@ int OnInit()
 void OnDeinit(const int reason)
 {
     delete TRB;
-
-    delete EconomicEventTitles;
-    delete EconomicEventSymbols;
-    delete EconomicEventImpacts;
 
     delete TRBBuys;
     delete TRBSells;
@@ -102,6 +78,4 @@ void OnTick()
 {
     TRBBuys.Run();
     TRBSells.Run();
-
-    double val = iCustom(Symbol(), Period(), "ForexForensics", 0, 0);
 }

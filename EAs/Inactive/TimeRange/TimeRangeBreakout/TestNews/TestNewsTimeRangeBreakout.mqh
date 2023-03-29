@@ -98,7 +98,7 @@ void TestNewsTimeRangeBreakout::CheckSetSetup()
 
     if (EAHelper::MostRecentCandleBrokeTimeRange<TestNewsTimeRangeBreakout>(this))
     {
-        mDuringNews = EAHelper::CurrentCandleIsDuringEconomicEvent<TestNewsTimeRangeBreakout>(this);
+        mDuringNews = EAHelper::CandleIsDuringEconomicEvent<TestNewsTimeRangeBreakout>(this);
         mHasSetup = true;
     }
 }
