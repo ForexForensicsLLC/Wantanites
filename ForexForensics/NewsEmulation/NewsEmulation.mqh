@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                    ForexForensics.mqh |
+//|                                                    NewsEmulation.mqh |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -12,7 +12,7 @@
 #include <Wantanites\Framework\Helpers\EAHelper.mqh>
 #include <Wantanites\Framework\Constants\MagicNumbers.mqh>
 
-class ForexForensics : public EA<ForexForensicsEntryTradeRecord, EmptyPartialTradeRecord, ForexForensicsExitTradeRecord, DefaultErrorRecord>
+class NewsEmulation : public EA<ForexForensicsEntryTradeRecord, EmptyPartialTradeRecord, ForexForensicsExitTradeRecord, DefaultErrorRecord>
 {
 public:
     ObjectList<EconomicEvent> *mEconomicEvents;
@@ -27,9 +27,9 @@ public:
     double mFurthestEquityDrawdownPercent;
 
 public:
-    ForexForensics(CSVRecordWriter<ForexForensicsEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<ForexForensicsExitTradeRecord> *&exitCSVRecordWriter,
-                   CSVRecordWriter<DefaultErrorRecord> *&errorCSVRecordWriter);
-    ~ForexForensics();
+    NewsEmulation(CSVRecordWriter<ForexForensicsEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<ForexForensicsExitTradeRecord> *&exitCSVRecordWriter,
+                  CSVRecordWriter<DefaultErrorRecord> *&errorCSVRecordWriter);
+    ~NewsEmulation();
 
     virtual double RiskPercent() { return mRiskPercent; }
 
@@ -55,8 +55,8 @@ public:
     virtual void Reset();
 };
 
-ForexForensics::ForexForensics(CSVRecordWriter<ForexForensicsEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<ForexForensicsExitTradeRecord> *&exitCSVRecordWriter,
-                               CSVRecordWriter<DefaultErrorRecord> *&errorCSVRecordWriter)
+NewsEmulation::NewsEmulation(CSVRecordWriter<ForexForensicsEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<ForexForensicsExitTradeRecord> *&exitCSVRecordWriter,
+                             CSVRecordWriter<DefaultErrorRecord> *&errorCSVRecordWriter)
     : EA(-99, -1, -1, -1, -1, -1, -1, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mEconomicEvents = new ObjectList<EconomicEvent>();
@@ -67,22 +67,22 @@ ForexForensics::ForexForensics(CSVRecordWriter<ForexForensicsEntryTradeRecord> *
     mFurthestEquityDrawdownPercent = 0.0;
 }
 
-ForexForensics::~ForexForensics()
+NewsEmulation::~NewsEmulation()
 {
     delete mEconomicEvents;
 }
 
-void ForexForensics::PreRun()
+void NewsEmulation::PreRun()
 {
     if (!mLoadedEventsForToday)
     {
-        EAHelper::GetEconomicEventsForDate<ForexForensics>(this, TimeGMT(), mEconomicEventTitles, mEconomicEventSymbols, mEconomicEventImpacts);
+        EAHelper::GetEconomicEventsForDate<NewsEmulation>(this, TimeGMT(), mEconomicEventTitles, mEconomicEventSymbols, mEconomicEventImpacts);
 
         mLoadedEventsForToday = true;
         mWasReset = false;
     }
 
-    double equityChange = EAHelper::GetTotalTicketsEquityPercentChange<ForexForensics>(this, AccountBalance(), mCurrentSetupTickets) / 100;
+    double equityChange = EAHelper::GetTotalTicketsEquityPercentChange<NewsEmulation>(this, AccountBalance(), mCurrentSetupTickets) / 100;
     if (equityChange < mFurthestEquityDrawdownPercent)
     {
         mFurthestEquityDrawdownPercent = equityChange;
@@ -108,88 +108,88 @@ void ForexForensics::PreRun()
     }
 }
 
-bool ForexForensics::AllowedToTrade()
+bool NewsEmulation::AllowedToTrade()
 {
     return false;
 }
 
-void ForexForensics::CheckSetSetup()
+void NewsEmulation::CheckSetSetup()
 {
 }
 
-void ForexForensics::CheckInvalidateSetup()
+void NewsEmulation::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void ForexForensics::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void NewsEmulation::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
-    EAHelper::InvalidateSetup<ForexForensics>(this, deletePendingOrder, mStopTrading, error);
+    EAHelper::InvalidateSetup<NewsEmulation>(this, deletePendingOrder, mStopTrading, error);
 }
 
-bool ForexForensics::Confirmation()
+bool NewsEmulation::Confirmation()
 {
     return true;
 }
 
-void ForexForensics::PlaceOrders()
+void NewsEmulation::PlaceOrders()
 {
 }
 
-void ForexForensics::ManageCurrentPendingSetupTicket(Ticket &ticket)
+void NewsEmulation::ManageCurrentPendingSetupTicket(Ticket &ticket)
 {
 }
 
-void ForexForensics::ManageCurrentActiveSetupTicket(Ticket &ticket)
+void NewsEmulation::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
 }
 
-void ForexForensics::PreManageTickets()
+void NewsEmulation::PreManageTickets()
 {
 }
 
-bool ForexForensics::MoveToPreviousSetupTickets(Ticket &ticket)
+bool NewsEmulation::MoveToPreviousSetupTickets(Ticket &ticket)
 {
     return false;
 }
 
-void ForexForensics::ManagePreviousSetupTicket(Ticket &ticket)
+void NewsEmulation::ManagePreviousSetupTicket(Ticket &ticket)
 {
 }
 
-void ForexForensics::CheckCurrentSetupTicket(Ticket &ticket)
+void NewsEmulation::CheckCurrentSetupTicket(Ticket &ticket)
 {
 }
 
-void ForexForensics::CheckPreviousSetupTicket(Ticket &ticket)
+void NewsEmulation::CheckPreviousSetupTicket(Ticket &ticket)
 {
 }
 
-void ForexForensics::RecordTicketOpenData(Ticket &ticket)
+void NewsEmulation::RecordTicketOpenData(Ticket &ticket)
 {
-    EAHelper::RecordForexForensicsEntryTradeRecord<ForexForensics>(this, ticket);
+    EAHelper::RecordForexForensicsEntryTradeRecord<NewsEmulation>(this, ticket);
 }
 
-void ForexForensics::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
+void NewsEmulation::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
 }
 
-void ForexForensics::RecordTicketCloseData(Ticket &ticket)
+void NewsEmulation::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordForexForensicsExitTradeRecord<ForexForensics>(this, ticket, mEntryTimeFrame);
+    EAHelper::RecordForexForensicsExitTradeRecord<NewsEmulation>(this, ticket, mEntryTimeFrame);
 }
 
-void ForexForensics::RecordError(int error, string additionalInformation = "")
+void NewsEmulation::RecordError(int error, string additionalInformation = "")
 {
-    EAHelper::RecordDefaultErrorRecord<ForexForensics>(this, error, additionalInformation);
+    EAHelper::RecordDefaultErrorRecord<NewsEmulation>(this, error, additionalInformation);
 }
 
-bool ForexForensics::ShouldReset()
+bool NewsEmulation::ShouldReset()
 {
     return Day() != LastDay();
 }
 
-void ForexForensics::Reset()
+void NewsEmulation::Reset()
 {
     mLoadedEventsForToday = false;
     mEconomicEvents.Clear();

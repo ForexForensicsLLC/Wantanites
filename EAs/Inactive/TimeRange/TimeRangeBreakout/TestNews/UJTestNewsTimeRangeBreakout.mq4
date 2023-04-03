@@ -56,7 +56,7 @@ int OnInit()
     EconomicEventTitles = new List<string>();
 
     EconomicEventSymbols = new List<string>();
-    // EconomicEventSymbols.Add("USD");
+    EconomicEventSymbols.Add("USD");
     EconomicEventSymbols.Add("JPY");
 
     EconomicEventImpacts = new List<int>();
@@ -103,5 +103,5 @@ void OnTick()
     TRBBuys.Run();
     TRBSells.Run();
 
-    double val = iCustom(Symbol(), Period(), "ForexForensics", 0, 0);
+    // double val = iCustom(Symbol(), Period(), "ForexForensics", 0, 0);
 }

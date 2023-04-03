@@ -113,7 +113,7 @@ public:
     static bool MostRecentCandleBrokeDateRange(TEA &ea);
 
     template <typename TEA>
-    static void GetEconomicEventsForDate(TEA &ea, datetime utcDate, List<string> *&titles, List<string> *&symbols, List<int> *&impacts, bool ignoreDuplicateTimes);
+    static void GetEconomicEventsForDate(TEA &ea, string calendar, datetime utcDate, List<string> *&titles, List<string> *&symbols, List<int> *&impacts, bool ignoreDuplicateTimes);
     template <typename TEA>
     static bool CandleIsDuringEconomicEvent(TEA &ea, int candleIndex);
 
@@ -1553,14 +1553,14 @@ static bool EAHelper::MostRecentCandleBrokeDateRange(TEA &ea)
 }
 
 template <typename TEA>
-static void EAHelper::GetEconomicEventsForDate(TEA &ea, datetime utcDate, List<string> *&titles, List<string> *&symbols, List<int> *&impacts,
+static void EAHelper::GetEconomicEventsForDate(TEA &ea, string calendar, datetime utcDate, List<string> *&titles, List<string> *&symbols, List<int> *&impacts,
                                                bool ignoreDuplicateTimes = true)
 {
     // strip away hour and minute
     datetime startTime = DateTimeHelper::DayMonthYearToDateTime(TimeDay(utcDate), TimeMonth(utcDate), TimeYear(utcDate));
     datetime endTime = startTime + (60 * 60 * 24);
 
-    EconomicCalendarHelper::GetEventsBetween(startTime, endTime, ea.mEconomicEvents, titles, symbols, impacts, ignoreDuplicateTimes);
+    EconomicCalendarHelper::GetEventsBetween(calendar, startTime, endTime, ea.mEconomicEvents, titles, symbols, impacts, ignoreDuplicateTimes);
 }
 
 template <typename TEA>
@@ -1571,7 +1571,6 @@ static bool EAHelper::CandleIsDuringEconomicEvent(TEA &ea, int candleIndex = 0)
     int secondsPerCandle = ea.mEntryTimeFrame * 60;
     datetime exactBarTime = currentBarTime - (currentBarTime % secondsPerCandle); // get exact bar time
 
-    Print("Magic Number: ", ea.MagicNumber(), ", Events: ", ea.mEconomicEvents.Size(), ", Candle Index: ", candleIndex);
     for (int i = 0; i < ea.mEconomicEvents.Size(); i++)
     {
         if (MathAbs(ea.mEconomicEvents[i].Date() - exactBarTime) <= secondsPerCandle)

@@ -92,8 +92,13 @@ void TestNewsTimeRangeBreakout::CheckSetSetup()
 {
     if (!mLoadedEventsForToday)
     {
-        EAHelper::GetEconomicEventsForDate<TestNewsTimeRangeBreakout>(this, TimeGMT(), mEconomicEventTitles, mEconomicEventSymbols, mEconomicEventImpacts);
+        EAHelper::GetEconomicEventsForDate<TestNewsTimeRangeBreakout>(this, "JustEvents", TimeGMT(), mEconomicEventTitles, mEconomicEventSymbols, mEconomicEventImpacts);
         mLoadedEventsForToday = true;
+
+        for (int i = 0; i < mEconomicEvents.Size(); i++)
+        {
+            Print("Event. Time: ", mEconomicEvents[i].Date(), ", Title: ", mEconomicEvents[i].Title());
+        }
     }
 
     if (EAHelper::MostRecentCandleBrokeTimeRange<TestNewsTimeRangeBreakout>(this))

@@ -9,38 +9,30 @@
 #property strict
 #property indicator_chart_window
 
-#include <Wantanites\EAs\Inactive\ForexForensics\ForexForensics.mqh>
-
-// EA that is always within its trading session and in the setup function just checks for new tickets and add thems
-// the rest of the framework should handle closing
+#include <Wantanites\ForexForensics\InDepthAnalysis\InDepthAnalysis.mqh>
 
 List<string> *EconomicEventTitles;
 List<string> *EconomicEventSymbols;
 List<int> *EconomicEventImpacts;
 
-string Directory = "ForexForensics/Test/";
+string Directory = "ForexForensics/InDepthAnalysis/";
 
 CSVRecordWriter<ForexForensicsEntryTradeRecord> *EntryWriter = new CSVRecordWriter<ForexForensicsEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
 CSVRecordWriter<ForexForensicsExitTradeRecord> *ExitWriter = new CSVRecordWriter<ForexForensicsExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<DefaultErrorRecord> *ErrorWriter = new CSVRecordWriter<DefaultErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-ForexForensics *FF;
+InDepthAnalysis *IDA;
 
 int OnInit()
 {
     EconomicEventTitles = new List<string>();
-
     EconomicEventSymbols = new List<string>();
-    // EconomicEventSymbols.Add("USD");
-    // EconomicEventSymbols.Add("JPY");
-
     EconomicEventImpacts = new List<int>();
-    EconomicEventImpacts.Add(ImpactEnum::HighImpact);
 
-    FF = new ForexForensics(EntryWriter, ExitWriter, ErrorWriter);
-    FF.mEconomicEventTitles = EconomicEventTitles;
-    FF.mEconomicEventSymbols = EconomicEventSymbols;
-    FF.mEconomicEventImpacts = EconomicEventImpacts;
+    IDA = new InDepthAnalysis(EntryWriter, ExitWriter, ErrorWriter);
+    IDA.mEconomicEventTitles = EconomicEventTitles;
+    IDA.mEconomicEventSymbols = EconomicEventSymbols;
+    IDA.mEconomicEventImpacts = EconomicEventImpacts;
 
     return (INIT_SUCCEEDED);
 }
@@ -55,7 +47,7 @@ void OnDeinit(const int reason)
     delete ExitWriter;
     delete ErrorWriter;
 
-    delete FF;
+    delete IDA;
 }
 
 int OnCalculate(const int rates_total,
@@ -69,6 +61,6 @@ int OnCalculate(const int rates_total,
                 const long &volume[],
                 const int &spread[])
 {
-    FF.Run();
+    IDA.Run();
     return (rates_total);
 }
