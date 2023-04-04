@@ -100,8 +100,30 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
+    string validationString = "IRy0yIdGKe6CuExg221l";
+    iCustom(Symbol(), Period(), "SmartMoney", "", 0, 0, false, false, false, false, "", -1, -1, "", validationString, 0, 0);
+
+    int i = 0;
+    string encodedString = "";
+    while (i < Bars)
+    {
+        string s = "s";
+        StringSetChar(s, 0, ushort(iCustom(Symbol(), Period(), "SmartMoney", "", 0, 0, false, false, false, false, "", -1, -1, "", validationString, 0, i)));
+    }
+
+    char encodedValue[];
+    StringToCharArray(encodedString, encodedValue);
+
+    string decodedValue = "";
+    if (HashUtility::Decode(encodedValue, decodedValue) > 0)
+    {
+        if (decodedValue != validationString)
+        {
+            Print("Not Licensed Version of SmartMoney Indicator");
+            return;
+        }
+    }
+
     TRBBuys.Run();
     TRBSells.Run();
-
-    // double val = iCustom(Symbol(), Period(), "ForexForensics", 0, 0);
 }

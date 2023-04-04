@@ -22,11 +22,16 @@
 
 #include <Wantanites\Framework\Objects\Indicators\MB\LiquidationSetupTracker.mqh>
 
+#include <Wantanites\Framework\Extensions\String.mqh>
+
 class EAHelper
 {
 public:
     // Initialize
     static bool CheckSymbolAndTimeFrame(string expectedSymbol, int expectedTimeFrame);
+
+    static bool HasForexForensicsLicense();
+    static bool HasSmartMoneyLicense();
 
     // =========================================================================
     // Set Active Ticket
@@ -371,6 +376,40 @@ static bool EAHelper::CheckSymbolAndTimeFrame(string expectedSymbol, int expecte
     }
 
     return true;
+}
+
+static bool EAHelper::HasForexForensicsLicense()
+{
+}
+
+static bool EAHelper::HasSmartMoneyLicense()
+{
+    string validationString = String::Random(20);
+    iCustom(Symbol(), Period(), "SmartMoney", "", 0, 0, false, false, false, false, "", -1, -1, "", validationString, 0, 0);
+
+    int i = 0;
+    string encodedString = "";
+    while (i < Bars)
+    {
+        string s = "s";
+        StringSetChar(s, 0, ushort(iCustom(Symbol(), Period(), "SmartMoney", "", 0, 0, false, false, false, false, "", -1, -1, "", validationString, 0, i)));
+    }
+
+    char encodedValue[];
+    StringToCharArray(encodedString, encodedValue);
+
+    string decodedValue = "";
+    if (HashUtility::Decode(encodedValue, decodedValue) > 0)
+    {
+        if (decodedValue == validationString)
+        {
+            Print("Not Licensed Version of SmartMoney Indicator");
+            return true;
+        }
+    }
+
+    Print("Not Licensed Version of SmartMoney Indicator");
+    return false;
 }
 /*
 
