@@ -11,11 +11,10 @@
 #property indicator_chart_window
 #property indicator_buffers 1 // Number of buffers
 
-#include <Wantanices\Framework\Objects\DataStructures\ObjectList.mqh>
 #include <Wantanites\Framework\Objects\Indicators\MB\MBTracker.mqh>
-#include <Wantanites\Framework\Helpers\HashUtility.mqh>
+#include <Wantanites\Framework\Utilities\LicensingUtility.mqh>
 
-inptu string SmartMoneySettings = "----------------";
+input string SmartMoneySettings = "----------------";
 input int StructureBoxesToTrack = 10;
 input int MaxZonesInStructure = 5;
 input bool AllowMitigatedZones = false;
@@ -27,8 +26,8 @@ input string ClearAtTimeEachDay = "-------------";
 input string ClearHour = EMPTY;
 input string ClearMinute = EMPTY;
 
-input string DoNotChange = "------------";
-input string LicenseCheck = "";
+input string Licensing = "------------";
+input string LicenseKey = "";
 
 MBTracker *MBT;
 
@@ -42,23 +41,15 @@ int OnInit()
     SetIndexBuffer(0, Buffer1);
     SetIndexStyle(0, DRAW_NONE);
 
-    char hashResult[];
-    int succeeded = HashUtility::Encode(LicenseCheck, hashResult);
-    if (succeeded)
-    {
-        string resultAsString = CharArrayToString(hashResult);
-        ArrayResize(Buffer1, ArraySize(hashResult));
-        for (int i = 0; i < ArraySize(hashResult); i++)
-        {
-            Buffer1[i] = StringGetChar(resultAsString, i);
-        }
-    }
+    LicensingUtility::CreateLicensingObjects(LicenseObjects::SmartMoney, LicenseKey);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
+    ObjectsDeleteAll(ChartID(), LicenseObjects::SmartMoney);
+
     delete MBT;
 }
 
@@ -83,11 +74,13 @@ int OnCalculate(const int rates_total,
         datetime barTime = iTime(Symbol(), Period(), i);
         if (ClearHour != EMPTY && ClearMinute != EMPTY && TimeHour(barTime) == ClearHour && TimeMinute(barTime) == ClearMinute)
         {
-            MBT.ClearMBs();
+            MBT.Clear();
         }
 
         MBT.DrawNMostRecentMBs(-1);
         MBT.DrawZonesForNMostRecentMBs(-1);
+
+        i--;
     }
 
     return (rates_total);

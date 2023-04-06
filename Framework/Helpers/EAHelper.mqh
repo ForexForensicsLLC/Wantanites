@@ -24,6 +24,8 @@
 
 #include <Wantanites\Framework\Extensions\String.mqh>
 
+#include <Wantanites\Framework\Utilities\LicensingUtility.mqh>
+
 class EAHelper
 {
 public:
@@ -380,36 +382,24 @@ static bool EAHelper::CheckSymbolAndTimeFrame(string expectedSymbol, int expecte
 
 static bool EAHelper::HasForexForensicsLicense()
 {
+    string licenseKey = String::Random(20);
+
+    // need to call it twice for some reason or else the Licensing Objects can't be found by the EA
+    iCustom(Symbol(), Period(), "ForexForensicsLicense", licenseKey, 0, 0);
+    iCustom(Symbol(), Period(), "ForexForensicsLicense", licenseKey, 0, 0);
+
+    return LicensingUtility::HasLicensingObjects(LicenseObjects::ForexForensics, licenseKey);
 }
 
 static bool EAHelper::HasSmartMoneyLicense()
 {
-    string validationString = String::Random(20);
-    iCustom(Symbol(), Period(), "SmartMoney", "", 0, 0, false, false, false, false, "", -1, -1, "", validationString, 0, 0);
+    string licenseKey = String::Random(20);
 
-    int i = 0;
-    string encodedString = "";
-    while (i < Bars)
-    {
-        string s = "s";
-        StringSetChar(s, 0, ushort(iCustom(Symbol(), Period(), "SmartMoney", "", 0, 0, false, false, false, false, "", -1, -1, "", validationString, 0, i)));
-    }
+    // need to call it twice for some reason or else the Licensing Objects can't be found by the EA
+    iCustom(Symbol(), Period(), "SmartMoney", "", 1, 1, false, false, false, false, "", -1, -1, "", licenseKey, 0, 0);
+    iCustom(Symbol(), Period(), "SmartMoney", "", 1, 1, false, false, false, false, "", -1, -1, "", licenseKey, 0, 0);
 
-    char encodedValue[];
-    StringToCharArray(encodedString, encodedValue);
-
-    string decodedValue = "";
-    if (HashUtility::Decode(encodedValue, decodedValue) > 0)
-    {
-        if (decodedValue == validationString)
-        {
-            Print("Not Licensed Version of SmartMoney Indicator");
-            return true;
-        }
-    }
-
-    Print("Not Licensed Version of SmartMoney Indicator");
-    return false;
+    return LicensingUtility::HasLicensingObjects(LicenseObjects::SmartMoney, licenseKey);
 }
 /*
 
