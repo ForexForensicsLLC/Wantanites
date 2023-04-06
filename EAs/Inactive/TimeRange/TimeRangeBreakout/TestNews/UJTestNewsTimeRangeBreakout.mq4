@@ -8,6 +8,9 @@
 #property version "1.00"
 #property strict
 
+#include <Wantanites/ForexForensics/Licensing/SmartMoney/SmartMoneyLicense.mqh>
+#include <Wantanites/ForexForensics/Licensing/ForexForensics/ForexForensicsLicense.mqh>
+
 #include <Wantanites/Framework/Constants/MagicNumbers.mqh>
 #include <Wantanites/Framework/Constants/SymbolConstants.mqh>
 #include <Wantanites/EAs/Inactive/TimeRange/TimeRangeBreakout/TestNews/TestNewsTimeRangeBreakout.mqh>
@@ -24,6 +27,10 @@ string StrategyName = "TimeRangeBreakout/";
 string EAName = "UJ/";
 string SetupTypeName = "TestNewsContinuation/";
 string Directory = StrategyName + EAName + SetupTypeName;
+
+ObjectList<License> *Licenses;
+ForexForensicsLicense *FFL;
+SmartMoneyLicense *SML;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
@@ -47,15 +54,17 @@ input int Value = 0;
 
 int OnInit()
 {
-    if (!EAHelper::HasSmartMoneyLicense())
-    {
-        return INIT_FAILED;
-    }
-
     if (!EAHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
     {
         return INIT_PARAMETERS_INCORRECT;
     }
+
+    Licenses = new ObjectList<License>();
+    FFL = new ForexForensicsLicense();
+    SML = new SmartMoneyLicense();
+
+    Licenses.Add(FFL);
+    Licenses.Add(SML);
 
     TS = new TradingSession();
     TS.AddHourMinuteSession(4, 0, 23, 0);
@@ -105,8 +114,16 @@ void OnDeinit(const int reason)
     delete ErrorWriter;
 }
 
+bool HasLicense = false;
 void OnTick()
 {
-    TRBBuys.Run();
-    TRBSells.Run();
+    if (HasLicense)
+    {
+        TRBBuys.Run();
+        TRBSells.Run();
+    }
+    else
+    {
+        HasLicense = EAHelper::HasLicense(Licenses);
+    }
 }

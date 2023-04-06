@@ -701,7 +701,8 @@ MBTracker::MBTracker(string symbol, int timeFrame, int mbsToTrack, int maxZonesI
 
     ArrayResize(mMBs, mbsToTrack);
 
-    Update();
+    // don't update right away since we don't want to do any calculations in OnInit() functions, only OnTick()
+    // Update();
 }
 
 MBTracker::~MBTracker()

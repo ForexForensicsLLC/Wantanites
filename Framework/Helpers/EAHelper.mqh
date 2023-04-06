@@ -24,7 +24,7 @@
 
 #include <Wantanites\Framework\Extensions\String.mqh>
 
-#include <Wantanites\Framework\Utilities\LicensingUtility.mqh>
+#include <Wantanites\Framework\Objects\DataObjects\License.mqh>
 
 class EAHelper
 {
@@ -32,7 +32,9 @@ public:
     // Initialize
     static bool CheckSymbolAndTimeFrame(string expectedSymbol, int expectedTimeFrame);
 
-    static bool HasForexForensicsLicense();
+    static bool HasLicenses(ObjectList<License> *&licenses);
+
+    static bool HasForexForensicsLicense(bool firstRun);
     static bool HasSmartMoneyLicense();
 
     // =========================================================================
@@ -380,15 +382,47 @@ static bool EAHelper::CheckSymbolAndTimeFrame(string expectedSymbol, int expecte
     return true;
 }
 
+static bool EAHelper::HasLicenses(ObjectList<License> *&licenses)
+{
+    bool hasLicenses = false;
+    bool reachedMaxFailedAttempts = false;
+    string error = "";
+
+    for (int i = 0; i < licenses.Size(); i++)
+    {
+        hasLicense = licenses[i].CheckLicense(reachedMaxFailedAttempts, error);
+        if (reachedMaxFailedAttempts)
+        {
+            Print(error);
+            ExpertRemove();
+        }
+    }
+
+    for (int i = 0; i < licenses.Size(); i++)
+    {
+        if (!licenses[i].WasValidated())
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 static bool EAHelper::HasForexForensicsLicense()
 {
-    string licenseKey = String::Random(20);
+    static string licenseKey = "";
+    static bool firstRun = true;
 
-    // need to call it twice for some reason or else the Licensing Objects can't be found by the EA
-    iCustom(Symbol(), Period(), "ForexForensicsLicense", licenseKey, 0, 0);
-    iCustom(Symbol(), Period(), "ForexForensicsLicense", licenseKey, 0, 0);
+    if (firstRun)
+    {
+        licenseKey = String::Random(20);
+        iCustom(Symbol(), Period(), "ForexForensicsLicense", licenseKey, 0, 0);
 
-    return LicensingUtility::HasLicensingObjects(LicenseObjects::ForexForensics, licenseKey);
+        firstRun = false;
+    }
+
+    return License::HasLicensingObjects(LicenseObjects::ForexForensics, licenseKey);
 }
 
 static bool EAHelper::HasSmartMoneyLicense()
@@ -399,7 +433,7 @@ static bool EAHelper::HasSmartMoneyLicense()
     iCustom(Symbol(), Period(), "SmartMoney", "", 1, 1, false, false, false, false, "", -1, -1, "", licenseKey, 0, 0);
     iCustom(Symbol(), Period(), "SmartMoney", "", 1, 1, false, false, false, false, "", -1, -1, "", licenseKey, 0, 0);
 
-    return LicensingUtility::HasLicensingObjects(LicenseObjects::SmartMoney, licenseKey);
+    return License::HasLicensingObjects(LicenseObjects::SmartMoney, licenseKey);
 }
 /*
 

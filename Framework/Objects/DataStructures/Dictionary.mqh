@@ -28,7 +28,7 @@ public:
     U GetValue(int index) { return mValues[index]; }
 
     // adds an item to the end of the list
-    virtual void Add(T key, U value);
+    virtual bool Add(T key, U value);
 
     // adds an item to the front of the list and pushes everything else back
     virtual void Push(T key, U value);
@@ -87,15 +87,17 @@ Dictionary::~Dictionary()
 }
 
 template <typename T, typename U>
-void Dictionary::Add(T key, U value)
+bool Dictionary::Add(T key, U value)
 {
     if (mKeys.Contains(key))
     {
-        return;
+        return false;
     }
 
     mKeys.Add(key);
     mValues.Add(value);
+
+    return true;
 }
 
 template <typename T, typename U>

@@ -12,7 +12,7 @@
 #property indicator_buffers 1 // Number of buffers
 
 #include <Wantanites\Framework\Objects\Indicators\MB\MBTracker.mqh>
-#include <Wantanites\Framework\Utilities\LicensingUtility.mqh>
+#include <Wantanites\Framework\Utilities\License.mqh>
 
 input string SmartMoneySettings = "----------------";
 input int StructureBoxesToTrack = 10;
@@ -41,7 +41,7 @@ int OnInit()
     SetIndexBuffer(0, Buffer1);
     SetIndexStyle(0, DRAW_NONE);
 
-    LicensingUtility::CreateLicensingObjects(LicenseObjects::SmartMoney, LicenseKey);
+    License::CreateLicensingObjects(LicenseObjects::SmartMoney, LicenseKey);
 
     return (INIT_SUCCEEDED);
 }
