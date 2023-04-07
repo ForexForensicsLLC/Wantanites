@@ -1,32 +1,29 @@
 //+------------------------------------------------------------------+
-//|                                                  MBIndicator.mq4 |
+//|                                           ForexForensics.mq4 |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2022, MetaQuotes Software Corp."
-#property link      "https://www.mql5.com"
-#property version   "1.00"
+#property link "https://www.mql5.com"
+#property version "1.00"
 #property strict
+
 #property indicator_chart_window
+#property indicator_buffers 0
 
-input int MBsToTrack = 200;
-input int MaxZonesInMB = 5;
-input int AllowZoneMitigation = false;
+#include <Wantanites\Framework\Objects\Licenses\License.mqh>
 
-#include <Wantanites\InProgress\MBTracker.mqh>
-
-MBTracker* MBT;
+input string LicenseKey = "";
 
 int OnInit()
 {
-   MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowZoneMitigation, true); 
-   
-   return(INIT_SUCCEEDED);
+    License::CreateLicensingObjects(LicenseObjects::ForexForensics, LicenseKey);
+    return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-   delete MBT;
+    ObjectsDeleteAll(ChartID(), LicenseObjects::ForexForensics);
 }
 
 int OnCalculate(const int rates_total,
@@ -40,11 +37,5 @@ int OnCalculate(const int rates_total,
                 const long &volume[],
                 const int &spread[])
 {
-  MBT.DrawNMostRecentMBs(-1);
-  MBT.DrawZonesForNMostRecentMBs(-1);
-  
-  return rates_total;
+    return (rates_total);
 }
-
-
-

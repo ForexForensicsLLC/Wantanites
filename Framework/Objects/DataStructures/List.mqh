@@ -26,8 +26,13 @@ public:
     // adds an item to the front of the list and pushes everything else back
     void Push(T item);
 
+    // adds an item to a specific index of the list and pushes everything else back
+    void Insert(int index, T item);
+
     // returns the number of elements in the list
     int Size() { return ArraySize(mItems); }
+
+    bool IsEmpty() { return Size() == 0; }
 
     // returns true if the item is in the list
     bool Contains(T item);
@@ -71,6 +76,35 @@ void List::Push(T item)
 
     ArrayResize(mItems, Size() + 1);
     ArrayCopy(mItems, tempItems);
+}
+
+template <typename T>
+void List::Insert(int index, T item)
+{
+    if (index > Size())
+    {
+        Print("Index ", IntegerToString(index), " does not exist. Size: ", Size());
+        return;
+    }
+
+    if (Size() == 0 || index == Size())
+    {
+        Add(item);
+        return;
+    }
+
+    int itemsToCopy = Size() - index - 1;
+
+    T tempItems[];
+    ArrayResize(tempItems, itemsToCopy);
+
+    ArrayCopy(tempItems, mItems, 0, index + 1, itemsToCopy);
+
+    ArrayResize(mItems, Size() + 1);
+    Print("Index: ", index, ", Size: ", Size());
+    mItems[index] = item;
+
+    ArrayCopy(mItems, tempItems, index + 1, 0, itemsToCopy);
 }
 
 template <typename T>

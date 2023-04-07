@@ -39,6 +39,8 @@ private:
     double mDistanceRanFromOpen;
     bool mStopLossIsMovedToBreakEven;
 
+    bool mWasManuallyClosed;
+
     int SelectTicket(string action, bool fallbackSearchOpen);
 
 public:
@@ -46,6 +48,8 @@ public:
     Ticket(int ticket);
     Ticket(Ticket &ticket);
     ~Ticket();
+
+    string DisplayName() { return "Ticket"; }
 
     ObjectList<Partial> *mPartials;
 
@@ -72,6 +76,7 @@ public:
     double Lots();
     void Lots(double lots) { mLots = lots; }
 
+    double TakeProfit();
     double Profit();
 
     double RRAcquired() { return mRRAcquired; }
@@ -96,10 +101,12 @@ public:
     int IsClosed(bool &closed);
     int WasClosedSinceLastCheck(string checker, bool &closed);
 
+    bool WasManuallyClosed() { return mWasManuallyClosed; }
+
     int Close();
     void SetPartials(List<double> &partialRRs, List<double> &partialPercents);
 
-    static bool HasTicketNumber(Ticket &ticket, int ticketNumber);
+    static bool EqualsTicketNumber(Ticket &ticket, int ticketNumber);
 };
 
 Ticket::Ticket()
@@ -568,6 +575,7 @@ int Ticket::Close()
         }
     }
 
+    mWasManuallyClosed = true;
     return ERR_NO_ERROR;
 }
 
@@ -608,7 +616,7 @@ void Ticket::SetPartials(List<double> &partialRRs, List<double> &partialPercents
     }
 }
 
-static bool Ticket::HasTicketNumber(Ticket &ticket, int number)
+static bool Ticket::EqualsTicketNumber(Ticket &ticket, int number)
 {
     return ticket.Number() == number;
 }

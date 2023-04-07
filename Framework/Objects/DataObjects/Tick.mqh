@@ -25,6 +25,9 @@ private:
 public:
     Tick();
     ~Tick();
+
+    string DisplayName() { return "Tick"; }
+
     void operator=(MqlTick &mqlTick) { mTick = mqlTick; }
 
     void SetStatus(TickStatus status) { mStatus = status; }

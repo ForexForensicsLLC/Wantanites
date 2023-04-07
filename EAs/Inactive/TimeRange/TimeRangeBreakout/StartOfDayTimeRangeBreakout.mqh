@@ -145,6 +145,11 @@ void StartOfDayTimeRangeBreakout::ManagePreviousSetupTicket(Ticket &ticket)
 
 void StartOfDayTimeRangeBreakout::CheckCurrentSetupTicket(Ticket &ticket)
 {
+    // Make sure we are only ever losing how much we intend to risk, even if we entered at a worse price due to slippage
+    if ((AccountEquity() - AccountBalance()) / AccountBalance() * 100 <= -RiskPercent())
+    {
+        ticket.Close();
+    }
 }
 
 void StartOfDayTimeRangeBreakout::CheckPreviousSetupTicket(Ticket &ticket)

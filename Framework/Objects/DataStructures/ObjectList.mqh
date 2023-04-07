@@ -80,6 +80,12 @@ T *ObjectList::GetItemPointer(T &obj)
 template <typename T>
 T *ObjectList::operator[](int index)
 {
+    if (index < 0 || index >= Size())
+    {
+        T *obj = new T();
+        Print("ObjectList<", obj.DisplayName(), "> Index ", IntegerToString(index), " out of range for Size ", IntegerToString(Size()));
+    }
+
     return GetPointer(mItems[index]);
 }
 
@@ -140,4 +146,19 @@ void ObjectList::RemoveWhere(U locator, V value)
             Remove(i);
         }
     }
+}
+
+template <typename T>
+template <typename U, typename V>
+bool ObjectList::Contains(U locator, V value)
+{
+    for (int i = 0; i < Size(); i++)
+    {
+        if (locator(this[i], value))
+        {
+            return true;
+        }
+    }
+
+    return false;
 }

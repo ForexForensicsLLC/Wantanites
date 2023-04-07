@@ -10,9 +10,10 @@
 
 #include <Wantanites/Framework/Constants/MagicNumbers.mqh>
 #include <Wantanites/Framework/Constants/SymbolConstants.mqh>
-#include <Wantanites/EAs/Inactive/TimeRange/TimeRangeBreakout/StartOfDayTimeRangeBreakout.mqh>
+#include <Wantanites/EAs/Inactive/PriceRange/Hedge/PriceRangeHedge.mqh>
+#include <Wantanites/Framework/Helpers/MailHelper.mqh>
 
-string ForcedSymbol = "USDJPY";
+string ForcedSymbol = "XAUUSD";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
@@ -20,24 +21,23 @@ double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-string StrategyName = "TimeRangeBreakout/";
-string EAName = "UJ/";
-string SetupTypeName = "Continuation/";
+string StrategyName = "PriceRange/";
+string EAName = "XAU/";
+string SetupTypeName = "Hedge/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
+PriceRange *PRBuys;
+PriceRange *PRSells;
+
 TradingSession *TS;
 
-TimeRangeBreakout *TRB;
-StartOfDayTimeRangeBreakout *TRBBuys;
-StartOfDayTimeRangeBreakout *TRBSells;
-
-// UJ
-double MaxSpreadPips = 3;
-double StopLossPaddingPips = 0;
+double PipsFromOpen = 30;
+double MaxSpreadPips = 5;
+double StopLossPaddingPips = -20;
 
 int OnInit()
 {
@@ -47,34 +47,39 @@ int OnInit()
     }
 
     TS = new TradingSession();
-    TS.AddHourMinuteSession(2, 0, 23, 0);
+    TS.AddHourMinuteSession(11, 0, 23, 0);
 
-    TRB = new TimeRangeBreakout(0, 0, 2, 0);
-    TRBBuys = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
-                                              RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
-    TRBBuys.AddTradingSession(TS);
+    PRBuys = new PriceRange(-1, EMPTY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
+                            EntryWriter, ExitWriter, ErrorWriter);
 
-    TRBSells = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
-                                               MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
-    TRBSells.AddTradingSession(TS);
+    PRBuys.mPipsFromOpen = PipsFromOpen;
+    PRBuys.AddTradingSession(TS);
+
+    // PRSells = new PriceRange(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
+    //                          EntryWriter, ExitWriter, ErrorWriter);
+
+    // PRSells.mCloseHour = CloseHour;
+    // PRSells.mCloseMinute = CloseMinute;
+    // PRSells.mPipsFromOpen = PipsFromOpen;
+    // PRSells.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete TRB;
-
-    delete TRBBuys;
-    delete TRBSells;
+    delete PRBuys;
+    // delete PRSells;
 
     delete EntryWriter;
     delete ExitWriter;
     delete ErrorWriter;
+
+    MailHelper::SendEADeinitEmail(Directory, reason);
 }
 
 void OnTick()
 {
-    TRBBuys.Run();
-    TRBSells.Run();
+    PRBuys.Run();
+    // PRSells.Run();
 }

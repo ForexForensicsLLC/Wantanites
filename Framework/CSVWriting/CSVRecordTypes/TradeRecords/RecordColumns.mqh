@@ -38,6 +38,7 @@ public:
     double EntryPrice;
     double EntrySlippage;
     double OriginalStopLoss;
+    bool DuringNews;
     string EntryImage;
     string HigherTimeFrameEntryImage;
     string LowerTimeFrameEntryImage;
@@ -53,6 +54,8 @@ public:
     string ExitImage;
     string HigherTimeFrameExitImage;
     string LowerTimeFrameExitImage;
+
+    double FurthestEquityDrawdownPercent;
 
     double TotalMovePips();
     double PotentialRR();
@@ -81,6 +84,7 @@ RecordColumns::RecordColumns()
     EntryPrice = ConstantValues::EmptyDouble;
     EntrySlippage = ConstantValues::EmptyDouble;
     OriginalStopLoss = ConstantValues::EmptyDouble;
+    DuringNews = false;
     EntryImage = ConstantValues::UnsetString;
     HigherTimeFrameEntryImage = ConstantValues::UnsetString;
     LowerTimeFrameEntryImage = ConstantValues::UnsetString;
@@ -96,6 +100,8 @@ RecordColumns::RecordColumns()
     ExitImage = ConstantValues::UnsetString;
     HigherTimeFrameExitImage = ConstantValues::UnsetString;
     LowerTimeFrameExitImage = ConstantValues::UnsetString;
+
+    FurthestEquityDrawdownPercent = ConstantValues::EmptyDouble;
 }
 
 RecordColumns::~RecordColumns()
@@ -227,11 +233,12 @@ string RecordColumns::PercentChange(string columnIndex)
         return RowNumber;
     }
 
+    // (final - inital) / initial
     return StringFormat("=(%s%d - %s%d) / %s%d",
                         columnIndex,
                         RowNumber,
                         columnIndex,
                         RowNumber - 1,
                         columnIndex,
-                        RowNumber);
+                        RowNumber - 1);
 }

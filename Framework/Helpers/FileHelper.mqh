@@ -24,6 +24,8 @@ public:
     static void WriteInteger(int fileHandle, int value, bool writeDelimiter);
     static void WriteDouble(int fileHandle, double value, int precision, bool writeDelimiter);
     static void WriteDateTime(int fileHandle, datetime value, bool writeDelimiter);
+
+    static bool ReadBool(int fileHandle);
 };
 
 template <typename T>
@@ -88,4 +90,15 @@ static void FileHelper::WriteDateTime(int fileHandle, datetime value, bool write
     {
         SendFailedFileWriteEmail<datetime>("DateTime", value);
     }
+}
+
+static bool FileHelper::ReadBool(int fileHandle)
+{
+    string boolAsString = FileReadString(fileHandle);
+    if (!StringToLower(boolAsString))
+    {
+        return false;
+    }
+
+    return boolAsString == "true";
 }

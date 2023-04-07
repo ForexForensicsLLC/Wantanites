@@ -8,26 +8,13 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\EA\EA.mqh>
+#include <Wantanites\Framework\Objects\DataObjects\EA.mqh>
 #include <Wantanites\Framework\Helpers\EAHelper.mqh>
 #include <Wantanites\Framework\Constants\MagicNumbers.mqh>
 
 class OppositeCandle : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
-    double mEntryPaddingPips;
-    double mMinStopLossPips;
-    double mPipsToWaitBeforeBE;
-    double mBEAdditionalPips;
-
-    datetime mEntryCandleTime;
-    int mBarCount;
-
-    int mEntryTimeFrame;
-    string mEntrySymbol;
-
-    int mLastEntryMB;
-
 public:
     OppositeCandle(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                    CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
@@ -40,23 +27,25 @@ public:
 
     virtual double RiskPercent() { return mRiskPercent; }
 
-    virtual void Run();
+    virtual void PreRun();
     virtual bool AllowedToTrade();
     virtual void CheckSetSetup();
     virtual void CheckInvalidateSetup();
     virtual void InvalidateSetup(bool deletePendingOrder, int error);
     virtual bool Confirmation();
     virtual void PlaceOrders();
-    virtual void ManageCurrentPendingSetupTicket();
-    virtual void ManageCurrentActiveSetupTicket();
+    virtual void PreManageTickets();
+    virtual void ManageCurrentPendingSetupTicket(Ticket &ticket);
+    virtual void ManageCurrentActiveSetupTicket(Ticket &ticket);
     virtual bool MoveToPreviousSetupTickets(Ticket &ticket);
-    virtual void ManagePreviousSetupTicket(int ticketIndex);
-    virtual void CheckCurrentSetupTicket();
-    virtual void CheckPreviousSetupTicket(int ticketIndex);
-    virtual void RecordTicketOpenData();
+    virtual void ManagePreviousSetupTicket(Ticket &ticket);
+    virtual void CheckCurrentSetupTicket(Ticket &ticket);
+    virtual void CheckPreviousSetupTicket(Ticket &ticket);
+    virtual void RecordTicketOpenData(Ticket &ticket);
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
     virtual void RecordError(int error, string additionalInformation);
+    virtual bool ShouldReset();
     virtual void Reset();
 };
 
@@ -65,21 +54,6 @@ OppositeCandle::OppositeCandle(int magicNumber, int setupType, int maxCurrentSet
                                CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
-    mBarCount = 0;
-    mEntryCandleTime = 0;
-
-    mEntryPaddingPips = 0.0;
-    mMinStopLossPips = 0.0;
-    mPipsToWaitBeforeBE = 0.0;
-    mBEAdditionalPips = 0.0;
-
-    mLastEntryMB = EMPTY;
-
-    mEntrySymbol = Symbol();
-    mEntryTimeFrame = Period();
-
-    mLargestAccountBalance = 100000;
-
     EAHelper::FindSetPreviousAndCurrentSetupTickets<OppositeCandle>(this);
     EAHelper::UpdatePreviousSetupTicketsRRAcquried<OppositeCandle, PartialTradeRecord>(this);
     EAHelper::SetPreviousSetupTicketsOpenData<OppositeCandle, SingleTimeFrameEntryTradeRecord>(this);
@@ -89,10 +63,8 @@ OppositeCandle::~OppositeCandle()
 {
 }
 
-void OppositeCandle::Run()
+void OppositeCandle::PreRun()
 {
-    EAHelper::Run<OppositeCandle>(this);
-    mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
 }
 
 bool OppositeCandle::AllowedToTrade()
@@ -102,22 +74,24 @@ bool OppositeCandle::AllowedToTrade()
 
 void OppositeCandle::CheckSetSetup()
 {
-    if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
+    if (iBars(mEntrySymbol, mEntryTimeFrame) <= BarCount())
     {
         return;
     }
 
-    if (mSetupType == OP_BUY)
+    if (SetupType() == OP_BUY)
     {
         if (iClose(mEntrySymbol, mEntryTimeFrame, 2) < LowerBand(2) &&
+            CandleStickHelper::PercentChange(mEntrySymbol, mEntryTimeFrame, 2) < -0.15 &&
             CandleStickHelper::IsBullish(mEntrySymbol, mEntryTimeFrame, 1))
         {
             mHasSetup = true;
         }
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
         if (iClose(mEntrySymbol, mEntryTimeFrame, 2) > UpperBand(2) &&
+            CandleStickHelper::PercentChange(mEntrySymbol, mEntryTimeFrame, 2) > 0.15 &&
             CandleStickHelper::IsBearish(mEntrySymbol, mEntryTimeFrame, 1))
         {
             mHasSetup = true;
@@ -142,29 +116,17 @@ bool OppositeCandle::Confirmation()
 
 void OppositeCandle::PlaceOrders()
 {
-    if (mCurrentSetupTicket.Number() != EMPTY)
-    {
-        return;
-    }
-
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
-    {
-        RecordError(GetLastError());
-        return;
-    }
-
     double entry = 0.0;
     double stopLoss = 0.0;
 
-    if (mSetupType == OP_BUY)
+    if (SetupType() == OP_BUY)
     {
-        entry = currentTick.ask;
+        entry = CurrentTick().Ask();
         stopLoss = MathMin(iLow(mEntrySymbol, mEntryTimeFrame, 1), iLow(mEntrySymbol, mEntryTimeFrame, 2));
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
-        entry = currentTick.bid;
+        entry = CurrentTick().Bid();
         stopLoss = MathMax(iHigh(mEntrySymbol, mEntryTimeFrame, 1), iHigh(mEntrySymbol, mEntryTimeFrame, 2));
     }
 
@@ -172,31 +134,28 @@ void OppositeCandle::PlaceOrders()
     mStopTrading = true;
 }
 
-void OppositeCandle::ManageCurrentPendingSetupTicket()
+void OppositeCandle::PreManageTickets()
 {
 }
 
-void OppositeCandle::ManageCurrentActiveSetupTicket()
+void OppositeCandle::ManageCurrentPendingSetupTicket(Ticket &ticket)
 {
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
-    {
-        RecordError(GetLastError());
-        return;
-    }
+}
 
-    if (mSetupType == OP_BUY)
+void OppositeCandle::ManageCurrentActiveSetupTicket(Ticket &ticket)
+{
+    if (SetupType() == OP_BUY)
     {
-        if (currentTick.bid > UpperBand(0))
+        if (CurrentTick().Bid() > UpperBand(0))
         {
-            mCurrentSetupTicket.Close();
+            ticket.Close();
         }
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
-        if (currentTick.ask < LowerBand(0))
+        if (CurrentTick().Ask() < LowerBand(0))
         {
-            mCurrentSetupTicket.Close();
+            ticket.Close();
         }
     }
 }
@@ -206,25 +165,22 @@ bool OppositeCandle::MoveToPreviousSetupTickets(Ticket &ticket)
     return false;
 }
 
-void OppositeCandle::ManagePreviousSetupTicket(int ticketIndex)
+void OppositeCandle::ManagePreviousSetupTicket(Ticket &ticket)
 {
 }
 
-void OppositeCandle::CheckCurrentSetupTicket()
+void OppositeCandle::CheckCurrentSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<OppositeCandle>(this, mCurrentSetupTicket);
-    EAHelper::CheckCurrentSetupTicket<OppositeCandle>(this);
+    EAHelper::CheckPartialTicket<OppositeCandle>(this, ticket);
 }
 
-void OppositeCandle::CheckPreviousSetupTicket(int ticketIndex)
+void OppositeCandle::CheckPreviousSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<OppositeCandle>(this, mPreviousSetupTickets[ticketIndex]);
-    EAHelper::CheckPreviousSetupTicket<OppositeCandle>(this, ticketIndex);
 }
 
-void OppositeCandle::RecordTicketOpenData()
+void OppositeCandle::RecordTicketOpenData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameEntryTradeRecord<OppositeCandle>(this);
+    EAHelper::RecordSingleTimeFrameEntryTradeRecord<OppositeCandle>(this, ticket);
 }
 
 void OppositeCandle::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
@@ -240,6 +196,11 @@ void OppositeCandle::RecordTicketCloseData(Ticket &ticket)
 void OppositeCandle::RecordError(int error, string additionalInformation = "")
 {
     EAHelper::RecordSingleTimeFrameErrorRecord<OppositeCandle>(this, error, additionalInformation);
+}
+
+bool OppositeCandle::ShouldReset()
+{
+    return !EAHelper::WithinTradingSession<OppositeCandle>(this);
 }
 
 void OppositeCandle::Reset()

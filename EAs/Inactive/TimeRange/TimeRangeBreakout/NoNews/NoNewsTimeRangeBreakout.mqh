@@ -84,7 +84,7 @@ void NoNewsTimeRangeBreakout::CheckSetSetup()
 {
     if (!mLoadedEventsForToday)
     {
-        EAHelper::GetEconomicEventsForDate<NoNewsTimeRangeBreakout>(this, TimeGMT(), "JPY", ImpactEnum::HighImpact);
+        EAHelper::GetEconomicEventsForDate<NoNewsTimeRangeBreakout>(this, TimeGMT(), "", ImpactEnum::HighImpact);
         mLoadedEventsForToday = true;
     }
 

@@ -10,9 +10,10 @@
 
 #include <Wantanites/Framework/Constants/MagicNumbers.mqh>
 #include <Wantanites/Framework/Constants/SymbolConstants.mqh>
-#include <Wantanites/EAs/Inactive/News/EnterBefore/PriceRange/EnterBeforeNewsPriceRange.mqh>
+#include <Wantanites/EAs/Inactive/PriceRange/CloseAtTime/CloseAtTimePriceRange.mqh>
+#include <Wantanites/Framework/Helpers/MailHelper.mqh>
 
-string ForcedSymbol = "NAS100";
+string ForcedSymbol = "XAUUSD";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
@@ -20,26 +21,26 @@ double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-string StrategyName = "News/";
-string EAName = "UJ/";
-string SetupTypeName = "EnterBeforePriceRange/";
+string StrategyName = "PriceRange/";
+string EAName = "XAU/";
+string SetupTypeName = "CloseAtTime/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
+PriceRange *PRBuys;
+PriceRange *PRSells;
+
 TradingSession *TS;
 
-EnterBeforeNewsPriceRange *EBNHBuys;
-EnterBeforeNewsPriceRange *EBNHSells;
+double PipsFromOpen = 50;
+double MaxSpreadPips = 5;
+double StopLossPaddingPips = -20;
 
-// NAS
-double MaxSpreadPips = 3;
-double StopLossPaddingPips = 25;
-double EntryPipsFromOrderTrigger = 25;
-double PipsToWaitBeforeBE = 5;
-double BEAdditionalPips = 1;
+int CloseHour = 23;
+int CloseMinute = 0;
 
 int OnInit()
 {
@@ -49,39 +50,41 @@ int OnInit()
     }
 
     TS = new TradingSession();
-    TS.AddHourMinuteSession(14, 00, 22, 0);
+    TS.AddHourMinuteSession(11, 0, 23, 0);
 
-    EBNHBuys = new EnterBeforeNewsPriceRange(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
-                                             RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
+    PRBuys = new PriceRange(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
+                            EntryWriter, ExitWriter, ErrorWriter);
 
-    EBNHBuys.mEntryPipsFromOrderTrigger = EntryPipsFromOrderTrigger;
-    EBNHBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    EBNHBuys.mBEAdditionalPips = BEAdditionalPips;
-    EBNHBuys.AddTradingSession(TS);
+    PRBuys.mCloseHour = CloseHour;
+    PRBuys.mCloseMinute = CloseMinute;
+    PRBuys.mPipsFromOpen = PipsFromOpen;
+    PRBuys.AddTradingSession(TS);
 
-    EBNHSells = new EnterBeforeNewsPriceRange(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
-                                              MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
+    PRSells = new PriceRange(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent,
+                             EntryWriter, ExitWriter, ErrorWriter);
 
-    EBNHSells.mEntryPipsFromOrderTrigger = EntryPipsFromOrderTrigger;
-    EBNHSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    EBNHSells.mBEAdditionalPips = BEAdditionalPips;
-    EBNHSells.AddTradingSession(TS);
+    PRSells.mCloseHour = CloseHour;
+    PRSells.mCloseMinute = CloseMinute;
+    PRSells.mPipsFromOpen = PipsFromOpen;
+    PRSells.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete EBNHBuys;
-    delete EBNHSells;
+    delete PRBuys;
+    delete PRSells;
 
     delete EntryWriter;
     delete ExitWriter;
     delete ErrorWriter;
+
+    MailHelper::SendEADeinitEmail(Directory, reason);
 }
 
 void OnTick()
 {
-    EBNHBuys.Run();
-    EBNHSells.Run();
+    PRBuys.Run();
+    PRSells.Run();
 }

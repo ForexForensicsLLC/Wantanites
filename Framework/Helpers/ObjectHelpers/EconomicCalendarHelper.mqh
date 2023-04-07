@@ -13,6 +13,7 @@
 #include <Wantanites\Framework\CSVWriting\CSVRecordWriter.mqh>
 #include <Wantanites\Framework\CSVWriting\CSVRecordTypes\ObjectRecords\EconomicEventRecord.mqh>
 
+#include <Wantanites\Framework\Objects\DataStructures\List.mqh>
 #include <Wantanites\Framework\Objects\DataStructures\ObjectList.mqh>
 #include <Wantanites\Framework\Objects\DataObjects\EconomicEvent.mqh>
 
@@ -23,25 +24,26 @@ private:
     static string EventPath(datetime date);
     static string EventsDocument() { return "Events.Events.csv"; }
 
-    static void ReadEvents(datetime utcStart, datetime utcEnd, datetime utcCurrent, ObjectList<EconomicEvent> *&economicEvents, string symbol, ImpactEnum impact,
-                           bool ignoreDuplicateTimes);
+    static void ReadEvents(string calendar, datetime utcStart, datetime utcEnd, datetime utcCurrent, ObjectList<EconomicEvent> *&economicEvents, List<string> *&titles,
+                           List<string> *&symbols, List<int> *&impacts, bool ignoreDuplicateTimes);
 
 public:
-    static void GetEventsBetween(datetime utcStart, datetime utcEnd, ObjectList<EconomicEvent> *&economicEvents, string symbol, ImpactEnum impact, bool ignoreDuplicateTimes);
+    static void GetEventsBetween(string calendar, datetime utcStart, datetime utcEnd, ObjectList<EconomicEvent> *&economicEvents, List<string> *&titles,
+                                 List<string> *&symbols, List<int> *&impacts, bool ignoreDuplicateTimes);
 };
 
-// returns a string in the format of yyyy/MM/dd
+// returns a string in the format of /yyyy/MM/dd
 string EconomicCalendarHelper::EventPath(datetime date)
 {
-    return IntegerToString(TimeYear(date)) + "/" +
+    return "/" + IntegerToString(TimeYear(date)) + "/" +
            DateTimeHelper::FormatAsTwoDigits(TimeMonth(date)) + "/" +
            DateTimeHelper::FormatAsTwoDigits(TimeDay(date)) + "/";
 }
 
-void EconomicCalendarHelper::ReadEvents(datetime utcStart, datetime utcEnd, datetime utcCurrent, ObjectList<EconomicEvent> *&economicEvents, string symbol,
-                                        ImpactEnum impact, bool ignoreDuplicateTimes)
+void EconomicCalendarHelper::ReadEvents(string calendar, datetime utcStart, datetime utcEnd, datetime utcCurrent, ObjectList<EconomicEvent> *&economicEvents,
+                                        List<string> *&titles, List<string> *&symbols, List<int> *&impacts, bool ignoreDuplicateTimes)
 {
-    CSVRecordWriter<EconomicEventRecord> *csvRecordWriter = new CSVRecordWriter<EconomicEventRecord>(Directory() + EventPath(utcCurrent), EventsDocument());
+    CSVRecordWriter<EconomicEventRecord> *csvRecordWriter = new CSVRecordWriter<EconomicEventRecord>(Directory() + calendar + EventPath(utcCurrent), EventsDocument(), false);
     csvRecordWriter.SeekToStart();
 
     EconomicEventRecord *record = new EconomicEventRecord();
@@ -56,20 +58,26 @@ void EconomicCalendarHelper::ReadEvents(datetime utcStart, datetime utcEnd, date
             continue;
         }
 
+        // Filter by Title
+        if (!titles.IsEmpty() && !titles.Contains(record.Title))
+        {
+            continue;
+        }
+
         // Filter by Symbol
-        if (symbol != "" && record.Symbol != symbol)
+        if (!symbols.IsEmpty() && !symbols.Contains(record.Symbol))
         {
             continue;
         }
 
         // Filter by Impact
-        if (impact != ImpactEnum::Unset && record.Impact != impact)
+        if (!impacts.IsEmpty() && !impacts.Contains(record.Impact))
         {
             continue;
         }
 
-        // offset the date since mql4 time is utc+2
-        DateTimeHelper::AddMQL4TimeOffsetToUTCTime(record.Date);
+        // mql time is always in UTC+2 time
+        record.Date = DateTimeHelper::UTCToMQLTime(record.Date);
 
         if (ignoreDuplicateTimes)
         {
@@ -97,13 +105,13 @@ void EconomicCalendarHelper::ReadEvents(datetime utcStart, datetime utcEnd, date
     delete csvRecordWriter;
 }
 
-void EconomicCalendarHelper::GetEventsBetween(datetime utcStart, datetime utcEnd, ObjectList<EconomicEvent> *&economicEvents, string symbol = "", ImpactEnum impact = 0,
-                                              bool ignoreDuplicateTimes = true)
+void EconomicCalendarHelper::GetEventsBetween(string calendar, datetime utcStart, datetime utcEnd, ObjectList<EconomicEvent> *&economicEvents, List<string> *&titles,
+                                              List<string> *&symbols, List<int> *&impacts, bool ignoreDuplicateTimes = true)
 {
     datetime currentDate = utcStart;
     while (TimeDay(currentDate) < TimeDay(utcEnd))
     {
-        ReadEvents(utcStart, utcEnd, currentDate, economicEvents, symbol, impact, ignoreDuplicateTimes);
+        ReadEvents(calendar, utcStart, utcEnd, currentDate, economicEvents, titles, symbols, impacts, ignoreDuplicateTimes);
         currentDate += (60 * 60 * 24); // add one day in seconds
     }
 }

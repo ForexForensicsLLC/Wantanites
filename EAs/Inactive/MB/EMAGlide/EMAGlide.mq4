@@ -8,29 +8,21 @@
 #property version "1.00"
 #property strict
 
+#include <Wantanites/Framework/Constants/MagicNumbers.mqh>
 #include <Wantanites/Framework/Constants/SymbolConstants.mqh>
-#include <Wantanites/EAs/Inactive/EMAGlide/EMAGlide.mqh>
+#include <Wantanites/EAs/Inactive/MB/EMAGlide/EMAGlide.mqh>
 
-int SetupTimeFrame = 15;
+string ForcedSymbol = "EURUSD";
+int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
-double RiskPercent = 0.01;
+double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-// -- MBTracker Inputs
-int MBsToTrack = 10;
-int MaxZonesInMB = 5;
-bool AllowMitigatedZones = false;
-bool AllowZonesAfterMBValidation = true;
-bool AllowWickBreaks = true;
-bool OnlyZonesInMB = true;
-bool PrintErrors = false;
-bool CalculateOnTick = false;
-
-string StrategyName = "EMAGlide/";
-string EAName = "Dow/";
-string SetupTypeName = "";
+string StrategyName = "MB/";
+string EAName = "EU/";
+string SetupTypeName = "MBEMAGlide/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -38,59 +30,79 @@ CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<Partial
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-MBTracker *SetupMBT;
+TradingSession *TS;
 
-EMAGlide *EMAGBuys;
-EMAGlide *EMAGSells;
+// -- MBTracker Inputs
+MBTracker *MBT;
+int MBsToTrack = 10;
+int MaxZonesInMB = 1;
+bool AllowMitigatedZones = false;
+bool AllowZonesAfterMBValidation = true;
+bool AllowWickBreaks = true;
+bool OnlyZonesInMB = true;
+bool PrintErrors = false;
+bool CalculateOnTick = false;
 
-double MaxSpreadPips = SymbolConstants::DowSpreadPips;
-double EntryPaddingPips = 20;
-double MinStopLossPips = 350;
-double StopLossPaddingPips = 50;
-double PipsToWaitBeforeBE = 600;
-double BEAdditionalPips = SymbolConstants::DowSlippagePips;
-double CloseRR = 1000;
+MBEMAGlide *CMMBBuys;
+MBEMAGlide *CMMBSells;
+
+double MinWickLengthPips = 3;
+int ClearHour = 14;
+int ClearMinute = 45;
+double MaxSpreadPips = 3;
+double StopLossPaddingPips = 0;
+double MinStopLossPips = 10;
+double PipsToWaitBeforeBE = 10;
+double BEAdditionalPips = 0.5;
 
 int OnInit()
 {
-    SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
+    if (!EAHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
+    {
+        return INIT_PARAMETERS_INCORRECT;
+    }
 
-    EMAGBuys = new EMAGlide(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                            ExitWriter, ErrorWriter, SetupMBT);
+    TS = new TradingSession();
+    TS.AddHourMinuteSession(3, 0, 19, 0);
 
-    EMAGBuys.SetPartialCSVRecordWriter(PartialWriter);
-    EMAGBuys.AddPartial(CloseRR, 100);
+    MBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors,
+                        CalculateOnTick);
 
-    EMAGBuys.mSetupTimeFrame = SetupTimeFrame;
-    EMAGBuys.mEntryPaddingPips = EntryPaddingPips;
-    EMAGBuys.mMinStopLossPips = MinStopLossPips;
-    EMAGBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    EMAGBuys.mBEAdditionalPips = BEAdditionalPips;
+    CMMBBuys = new MBEMAGlide(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                              ExitWriter, ErrorWriter, MBT);
 
-    EMAGBuys.AddTradingSession(16, 30, 23, 0);
+    CMMBBuys.mMinWickLength = OrderHelper::PipsToRange(MinWickLengthPips);
+    CMMBBuys.mClearHour = ClearHour;
+    CMMBBuys.mClearMinute = ClearMinute;
+    CMMBBuys.mMinStopLossDistance = OrderHelper::PipsToRange(MinStopLossPips);
+    CMMBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    CMMBBuys.mBEAdditionalPips = BEAdditionalPips;
+    CMMBBuys.AddTradingSession(TS);
+    CMMBBuys.AddPartial(1, 100);
+    CMMBBuys.SetPartialCSVRecordWriter(PartialWriter);
 
-    EMAGSells = new EMAGlide(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                             ExitWriter, ErrorWriter, SetupMBT);
-    EMAGSells.SetPartialCSVRecordWriter(PartialWriter);
-    EMAGSells.AddPartial(CloseRR, 100);
+    CMMBSells = new MBEMAGlide(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                               ExitWriter, ErrorWriter, MBT);
 
-    EMAGSells.mSetupTimeFrame = SetupTimeFrame;
-    EMAGSells.mEntryPaddingPips = EntryPaddingPips;
-    EMAGSells.mMinStopLossPips = MinStopLossPips;
-    EMAGSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    EMAGSells.mBEAdditionalPips = BEAdditionalPips;
-
-    EMAGSells.AddTradingSession(16, 30, 23, 0);
+    CMMBSells.mMinWickLength = OrderHelper::PipsToRange(MinWickLengthPips);
+    CMMBSells.mClearHour = ClearHour;
+    CMMBSells.mClearMinute = ClearMinute;
+    CMMBSells.mMinStopLossDistance = OrderHelper::PipsToRange(MinStopLossPips);
+    CMMBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    CMMBSells.mBEAdditionalPips = BEAdditionalPips;
+    CMMBSells.AddTradingSession(TS);
+    CMMBSells.AddPartial(1, 100);
+    CMMBSells.SetPartialCSVRecordWriter(PartialWriter);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete SetupMBT;
+    delete MBT;
 
-    delete EMAGBuys;
-    delete EMAGSells;
+    delete CMMBBuys;
+    delete CMMBSells;
 
     delete EntryWriter;
     delete PartialWriter;
@@ -100,6 +112,6 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    EMAGBuys.Run();
-    EMAGSells.Run();
+    CMMBBuys.Run();
+    CMMBSells.Run();
 }

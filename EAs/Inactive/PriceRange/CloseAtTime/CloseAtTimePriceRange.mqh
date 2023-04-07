@@ -129,22 +129,10 @@ void PriceRange::PreManageTickets()
 
 void PriceRange::ManageCurrentPendingSetupTicket(Ticket &ticket)
 {
-    if (iBars(mEntrySymbol, mEntryTimeFrame) <= BarCount())
-    {
-        return;
-    }
-
-    EAHelper::CloseTicketIfPastTime<PriceRange>(this, ticket, mCloseHour, mCloseMinute);
 }
 
 void PriceRange::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
-    if (iBars(mEntrySymbol, mEntryTimeFrame) <= BarCount())
-    {
-        return;
-    }
-
-    EAHelper::CloseTicketIfPastTime<PriceRange>(this, ticket, mCloseHour, mCloseMinute);
 }
 
 bool PriceRange::MoveToPreviousSetupTickets(Ticket &ticket)
@@ -190,4 +178,5 @@ bool PriceRange::ShouldReset()
 
 void PriceRange::Reset()
 {
+    EAHelper::CloseAllCurrentAndPreviousSetupTickets<PriceRange>(this);
 }

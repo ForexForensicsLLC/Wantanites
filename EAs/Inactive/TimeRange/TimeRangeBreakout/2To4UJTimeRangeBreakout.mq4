@@ -10,9 +10,9 @@
 
 #include <Wantanites/Framework/Constants/MagicNumbers.mqh>
 #include <Wantanites/Framework/Constants/SymbolConstants.mqh>
-#include <Wantanites/EAs/Inactive/BollingerBands/OppositeCandle/OppositeCandle.mqh>
+#include <Wantanites/EAs/Inactive/TimeRange/TimeRangeBreakout/StartOfDayTimeRangeBreakout.mqh>
 
-string ForcedSymbol = "EURUSD";
+string ForcedSymbol = "USDJPY";
 int ForcedTimeFrame = 5;
 
 // --- EA Inputs ---
@@ -20,23 +20,25 @@ double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-string StrategyName = "BollingerBands/";
-string EAName = "GC/";
-string SetupTypeName = "OppositeCandle/";
+string StrategyName = "TimeRangeBreakout/";
+string EAName = "UJ/";
+string SetupTypeName = "Continuation/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
-CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>(Directory + "Partials/", "Partials.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-OppositeCandle *OOBuys;
-OppositeCandle *OOSells;
+TradingSession *TS;
 
-// EU
+TimeRangeBreakout *TRB;
+StartOfDayTimeRangeBreakout *TRBBuys;
+StartOfDayTimeRangeBreakout *TRBSells;
+
+// UJ
 double MaxSpreadPips = 3;
-double MinStopLossPips = 100;
-double StopLossPaddingPips = 0.0;
+double StopLossPaddingPips = 0;
+double MaxSlippage = 3;
 
 int OnInit()
 {
@@ -45,38 +47,35 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    OOBuys = new OppositeCandle(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                ExitWriter, ErrorWriter);
+    TS = new TradingSession();
+    TS.AddHourMinuteSession(4, 0, 23, 0);
 
-    OOBuys.mMinStopLossPips = MinStopLossPips;
+    TRB = new TimeRangeBreakout(2, 0, 4, 0);
+    TRBBuys = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
+                                              RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
+    TRBBuys.AddTradingSession(TS);
 
-    OOBuys.SetPartialCSVRecordWriter(PartialWriter);
-    OOBuys.AddTradingSession(16, 30, 19, 0);
-
-    OOSells = new OppositeCandle(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                 ExitWriter, ErrorWriter);
-
-    OOSells.mMinStopLossPips = MinStopLossPips;
-
-    OOSells.SetPartialCSVRecordWriter(PartialWriter);
-    OOSells.AddTradingSession(16, 30, 19, 0);
+    TRBSells = new StartOfDayTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
+                                               MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
+    TRBSells.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete OOBuys;
-    delete OOSells;
+    delete TRB;
+
+    delete TRBBuys;
+    delete TRBSells;
 
     delete EntryWriter;
-    delete PartialWriter;
     delete ExitWriter;
     delete ErrorWriter;
 }
 
 void OnTick()
 {
-    OOBuys.Run();
-    OOSells.Run();
+    TRBBuys.Run();
+    TRBSells.Run();
 }

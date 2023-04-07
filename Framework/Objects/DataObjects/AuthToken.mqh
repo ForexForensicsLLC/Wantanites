@@ -20,6 +20,8 @@ public:
     AuthToken(string token, string type, int secondsExpiresIn);
     ~AuthToken();
 
+    string DisplayName() { return "AuthToken"; }
+
     void SetNewToken(string token, string type, int secondsExpiresIn);
 
     string Token() { return mToken; }

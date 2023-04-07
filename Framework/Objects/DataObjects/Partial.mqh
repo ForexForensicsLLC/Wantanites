@@ -23,6 +23,8 @@ public:
     Partial(Partial &partial);
     ~Partial();
 
+    string DisplayName() { return "Partial"; }
+
     double PercentAsDecimal() { return mPercent / 100; }
     static bool FindPartialByRR(Partial &partial, double rr);
 };

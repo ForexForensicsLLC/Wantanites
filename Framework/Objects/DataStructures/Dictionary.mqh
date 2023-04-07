@@ -13,7 +13,7 @@
 template <typename T, typename U>
 class Dictionary
 {
-private:
+protected:
     List<T> *mKeys;
     List<U> *mValues;
 
@@ -28,10 +28,10 @@ public:
     U GetValue(int index) { return mValues[index]; }
 
     // adds an item to the end of the list
-    void Add(T key, U value);
+    virtual bool Add(T key, U value);
 
     // adds an item to the front of the list and pushes everything else back
-    void Push(T key, U value);
+    virtual void Push(T key, U value);
 
     // returns the number of elements in the list
     int Size() { return mKeys.Size(); }
@@ -87,15 +87,17 @@ Dictionary::~Dictionary()
 }
 
 template <typename T, typename U>
-void Dictionary::Add(T key, U value)
+bool Dictionary::Add(T key, U value)
 {
     if (mKeys.Contains(key))
     {
-        return;
+        return false;
     }
 
     mKeys.Add(key);
     mValues.Add(value);
+
+    return true;
 }
 
 template <typename T, typename U>

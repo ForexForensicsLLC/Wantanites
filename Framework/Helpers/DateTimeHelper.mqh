@@ -11,8 +11,7 @@
 class DateTimeHelper
 {
 public:
-    // all mql4 charts are displayed in UTC+2 time =(
-    static int MqlUtcOffset() { return 2; }
+    static int MQLUTCOffset();
 
     static datetime HourMinuteToDateTime(int hour, int minute, int day);
     static datetime DayMonthYearToDateTime(int day, int month, int year);
@@ -22,8 +21,20 @@ public:
 
     static string FormatAsTwoDigits(int value);
 
-    static void AddMQL4TimeOffsetToUTCTime(datetime &date);
+    static datetime UTCToMQLTime(datetime utcTime);
+    static datetime MQLTimeToUTC(datetime mqlTime);
 };
+
+int DateTimeHelper::MQLUTCOffset()
+{
+    // all mql4 charts are displayed in UTC+2 non DST time
+    if (TimeDaylightSavings() != 0)
+    {
+        return 3;
+    }
+
+    return 2;
+}
 
 datetime DateTimeHelper::HourMinuteToDateTime(int hour, int minute, int day)
 {
@@ -71,7 +82,12 @@ string DateTimeHelper::FormatAsTwoDigits(int value)
     return "";
 }
 
-void DateTimeHelper::AddMQL4TimeOffsetToUTCTime(datetime &utcDateTime)
+datetime DateTimeHelper::UTCToMQLTime(datetime utcDateTime)
 {
-    utcDateTime += (60 * 60 * MqlUtcOffset());
+    return utcDateTime += (60 * 60 * MQLUTCOffset());
+}
+
+datetime DateTimeHelper::MQLTimeToUTC(datetime mqlDateTime)
+{
+    return mqlDateTime -= (60 * 60 * MQLUTCOffset());
 }

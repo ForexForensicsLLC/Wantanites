@@ -47,6 +47,8 @@ public:
     TradingSession(TradingSession &ts);
     ~TradingSession();
 
+    string DisplayName() { return "TradingSession"; }
+
     void AddMonthDaySession(int monthStart, int dayStart, int exclusiveMonthEnd, int exclusiveDayEnd);
     void AddHourMinuteSession(int hourStart, int minuteStart, int exclusiveHourEnd, int exclusiveMinuteEnd);
 

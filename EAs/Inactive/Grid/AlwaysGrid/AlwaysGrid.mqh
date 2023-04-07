@@ -18,6 +18,10 @@
 class AlwaysGrid : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
+    ObjectList<EconomicEvent> *mEconomicEvents;
+    List<string> *mEconomicEventTitles;
+    List<string> *mEconomicEventSymbols;
+
     GridTracker *mGT;
     Dictionary<int, int> *mLevelsWithTickets;
 
@@ -26,6 +30,7 @@ public:
     double mIncreaseLotSizeFactor;
     double mMaxEquityDrawDownPercent;
 
+    bool mLoadedTodaysEvents;
     bool mFirstTrade;
     double mStartingEquity;
     int mPreviousAchievedLevel;
@@ -70,6 +75,8 @@ AlwaysGrid::AlwaysGrid(int magicNumber, int setupType, int maxCurrentSetupTrades
                        CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, GridTracker *&gt)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
+    mEconomicEvents = new ObjectList<EconomicEvent>();
+
     mGT = gt;
     mLevelsWithTickets = new Dictionary<int, int>();
 
@@ -78,6 +85,7 @@ AlwaysGrid::AlwaysGrid(int magicNumber, int setupType, int maxCurrentSetupTrades
     mIncreaseLotSizeFactor = 0.0;
     mMaxEquityDrawDownPercent = 0.0;
 
+    mLoadedTodaysEvents = false;
     mFirstTrade = true;
     mStartingEquity = 0;
     mPreviousAchievedLevel = 1000;
@@ -104,18 +112,43 @@ void AlwaysGrid::PreRun()
 
 bool AlwaysGrid::AllowedToTrade()
 {
-    return EAHelper::BelowSpread<AlwaysGrid>(this);
+    return (EAHelper::BelowSpread<AlwaysGrid>(this) && EAHelper::WithinTradingSession<AlwaysGrid>(this)) || mPreviousSetupTickets.Size() > 0;
 }
 
 void AlwaysGrid::CheckSetSetup()
 {
-    mGT.UpdateBasePrice(CurrentTick().Bid());
-    mHasSetup = true;
+    if (iBars(mEntrySymbol, mEntryTimeFrame) <= BarCount())
+    {
+        return;
+    }
+
+    if (!mLoadedTodaysEvents)
+    {
+        EAHelper::GetEconomicEventsForDate<AlwaysGrid>(this, TimeGMT(), mEconomicEventTitles, mEconomicEventSymbols, ImpactEnum::HighImpact);
+        mLoadedTodaysEvents = true;
+    }
+
+    if (!mEconomicEvents.IsEmpty())
+    {
+        mStopTrading = true;
+        return;
+    }
+
+    if (Hour() == mTradingSessions[0].HourStart() && Minute() == mTradingSessions[0].MinuteStart())
+    {
+        mGT.UpdateBasePrice(CurrentTick().Bid());
+        mHasSetup = true;
+    }
 }
 
 void AlwaysGrid::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
+
+    if (Day() != LastDay())
+    {
+        mLoadedTodaysEvents = false;
+    }
 
     if (mCloseAllTickets && mPreviousSetupTickets.Size() == 0)
     {
@@ -125,7 +158,6 @@ void AlwaysGrid::CheckInvalidateSetup()
 
 void AlwaysGrid::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
 {
-    Print("Invalidate Setup");
     EAHelper::InvalidateSetup<AlwaysGrid>(this, deletePendingOrder, mStopTrading, error);
 
     mFirstTrade = true;
@@ -250,19 +282,6 @@ void AlwaysGrid::ManagePreviousSetupTicket(Ticket &ticket)
 {
     if (mCloseAllTickets)
     {
-        // if (SetupType() == OP_BUY && CurrentTick().Bid() > ticket.OpenPrice())
-        // {
-        //     double tp = CurrentTick().Ask() + MarketInfo(mEntrySymbol, MODE_SPREAD);
-        //     OrderModify(ticket.Number(), ticket.OpenPrice(), ticket.OriginalStopLoss(), tp, 0, clrNONE);
-        // }
-        // else if (SetupType() == OP_SELL)
-        // {
-        //     double tp = CurrentTick().Bid() - MarketInfo(mEntrySymbol, MODE_SPREAD);
-        //     OrderModify(ticket.Number(), ticket.OpenPrice(), ticket.OriginalStopLoss(), tp, 0, clrNONE);
-        // }
-        // else
-        // {
-        // }
         ticket.Close();
     }
 }
