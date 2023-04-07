@@ -65,11 +65,8 @@ int OnCalculate(const int rates_total,
                 const int &spread[])
 {
     int i = Bars - IndicatorCounted() - 1;
-
-    // new bar / each bar
     while (i > 0)
     {
-        // change to TimeHour(iTime());
         datetime barTime = iTime(Symbol(), Period(), i);
         if (ClearHour != EMPTY && ClearMinute != EMPTY && TimeHour(barTime) == ClearHour && TimeMinute(barTime) == ClearMinute)
         {
