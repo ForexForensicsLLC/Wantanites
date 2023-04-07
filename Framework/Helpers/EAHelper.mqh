@@ -24,7 +24,7 @@
 
 #include <Wantanites\Framework\Extensions\String.mqh>
 
-#include <Wantanites\Framework\Objects\DataObjects\License.mqh>
+#include <Wantanites\Framework\Utilities\LicenseManager.mqh>
 
 class EAHelper
 {
@@ -32,10 +32,7 @@ public:
     // Initialize
     static bool CheckSymbolAndTimeFrame(string expectedSymbol, int expectedTimeFrame);
 
-    static bool HasLicenses(ObjectList<License> *&licenses);
-
-    static bool HasForexForensicsLicense(bool firstRun);
-    static bool HasSmartMoneyLicense();
+    static bool HasLicenses(LicenseManager *&lm);
 
     // =========================================================================
     // Set Active Ticket
@@ -382,58 +379,16 @@ static bool EAHelper::CheckSymbolAndTimeFrame(string expectedSymbol, int expecte
     return true;
 }
 
-static bool EAHelper::HasLicenses(ObjectList<License> *&licenses)
+static bool EAHelper::HasLicenses(LicenseManager *&lm)
 {
-    bool hasLicenses = false;
-    bool reachedMaxFailedAttempts = false;
-    string error = "";
-
-    for (int i = 0; i < licenses.Size(); i++)
+    bool allFinished = false;
+    bool hasLicenses = lm.HasAllLicenses(allFinished);
+    if (!hasLicenses && allFinished)
     {
-        hasLicense = licenses[i].CheckLicense(reachedMaxFailedAttempts, error);
-        if (reachedMaxFailedAttempts)
-        {
-            Print(error);
-            ExpertRemove();
-        }
+        ExpertRemove();
     }
 
-    for (int i = 0; i < licenses.Size(); i++)
-    {
-        if (!licenses[i].WasValidated())
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-static bool EAHelper::HasForexForensicsLicense()
-{
-    static string licenseKey = "";
-    static bool firstRun = true;
-
-    if (firstRun)
-    {
-        licenseKey = String::Random(20);
-        iCustom(Symbol(), Period(), "ForexForensicsLicense", licenseKey, 0, 0);
-
-        firstRun = false;
-    }
-
-    return License::HasLicensingObjects(LicenseObjects::ForexForensics, licenseKey);
-}
-
-static bool EAHelper::HasSmartMoneyLicense()
-{
-    string licenseKey = String::Random(20);
-
-    // need to call it twice for some reason or else the Licensing Objects can't be found by the EA
-    iCustom(Symbol(), Period(), "SmartMoney", "", 1, 1, false, false, false, false, "", -1, -1, "", licenseKey, 0, 0);
-    iCustom(Symbol(), Period(), "SmartMoney", "", 1, 1, false, false, false, false, "", -1, -1, "", licenseKey, 0, 0);
-
-    return License::HasLicensingObjects(LicenseObjects::SmartMoney, licenseKey);
+    return hasLicenses;
 }
 /*
 

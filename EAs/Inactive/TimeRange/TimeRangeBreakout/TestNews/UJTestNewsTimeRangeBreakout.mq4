@@ -8,9 +8,6 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites/ForexForensics/Licensing/SmartMoney/SmartMoneyLicense.mqh>
-#include <Wantanites/ForexForensics/Licensing/ForexForensics/ForexForensicsLicense.mqh>
-
 #include <Wantanites/Framework/Constants/MagicNumbers.mqh>
 #include <Wantanites/Framework/Constants/SymbolConstants.mqh>
 #include <Wantanites/EAs/Inactive/TimeRange/TimeRangeBreakout/TestNews/TestNewsTimeRangeBreakout.mqh>
@@ -28,9 +25,7 @@ string EAName = "UJ/";
 string SetupTypeName = "TestNewsContinuation/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
-ObjectList<License> *Licenses;
-ForexForensicsLicense *FFL;
-SmartMoneyLicense *SML;
+LicenseManager *LM;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
@@ -59,12 +54,8 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    Licenses = new ObjectList<License>();
-    FFL = new ForexForensicsLicense();
-    SML = new SmartMoneyLicense();
-
-    Licenses.Add(FFL);
-    Licenses.Add(SML);
+    LM = new LicenseManager();
+    LM.AddLicense(Licenses::SmartMoney);
 
     TS = new TradingSession();
     TS.AddHourMinuteSession(4, 0, 23, 0);
@@ -100,6 +91,8 @@ int OnInit()
 
 void OnDeinit(const int reason)
 {
+    delete LM;
+
     delete TRB;
 
     delete EconomicEventTitles;
@@ -115,15 +108,26 @@ void OnDeinit(const int reason)
 }
 
 bool HasLicense = false;
+datetime LastValidatedTime = 0;
 void OnTick()
 {
     if (HasLicense)
     {
+        if (TimeCurrent() - LastValidatedTime > (60 * 60 * 24))
+        {
+            HasLicense = false;
+            LastValidatedTime = 0;
+        }
+
         TRBBuys.Run();
         TRBSells.Run();
     }
     else
     {
-        HasLicense = EAHelper::HasLicense(Licenses);
+        HasLicense = EAHelper::HasLicenses(LM);
+        if (HasLicense)
+        {
+            LastValidatedTime = TimeCurrent();
+        }
     }
 }

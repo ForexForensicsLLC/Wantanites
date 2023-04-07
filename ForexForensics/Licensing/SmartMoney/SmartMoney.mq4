@@ -12,7 +12,7 @@
 #property indicator_buffers 1 // Number of buffers
 
 #include <Wantanites\Framework\Objects\Indicators\MB\MBTracker.mqh>
-#include <Wantanites\Framework\Utilities\License.mqh>
+#include <Wantanites\Framework\Objects\Licenses\License.mqh>
 
 input string SmartMoneySettings = "----------------";
 input int StructureBoxesToTrack = 10;
@@ -49,7 +49,6 @@ int OnInit()
 void OnDeinit(const int reason)
 {
     ObjectsDeleteAll(ChartID(), LicenseObjects::SmartMoney);
-
     delete MBT;
 }
 

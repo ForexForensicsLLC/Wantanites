@@ -8,13 +8,15 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Objects\DataObjects\License.mqh>
+#include <Wantanites\Framework\Objects\Licenses\License.mqh>
 
 class SmartMoneyLicense : public License
 {
 public:
     SmartMoneyLicense();
     ~SmartMoneyLicense();
+
+    string Name() { return "SmartMoney"; }
 };
 
 SmartMoneyLicense::SmartMoneyLicense()

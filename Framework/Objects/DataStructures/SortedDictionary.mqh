@@ -20,7 +20,7 @@ public:
     ~SortedDictionary();
 
     // adds an item to the end of the list
-    virtual void Add(T key, U value);
+    virtual bool Add(T key, U value);
 
     // adds an item to the front of the list and pushes everything else back
     virtual void Push(T key, U value);
@@ -42,11 +42,11 @@ SortedDictionary::~SortedDictionary()
 }
 
 template <typename T, typename U>
-void SortedDictionary::Add(T key, U value)
+bool SortedDictionary::Add(T key, U value)
 {
     if (mKeys.Contains(key))
     {
-        return;
+        return false;
     }
 
     int index = 0;
@@ -57,6 +57,8 @@ void SortedDictionary::Add(T key, U value)
 
     mKeys.Insert(index, key);
     mValues.Insert(index, value);
+
+    return true;
 }
 
 template <typename T, typename U>

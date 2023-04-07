@@ -8,13 +8,15 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Objects\DataObjects\License.mqh>
+#include <Wantanites\Framework\Objects\Licenses\License.mqh>
 
 class ForexForensicsLicense : public License
 {
 public:
     ForexForensicsLicense();
     ~ForexForensicsLicense();
+
+    string Name() { return "ForexForensics"; }
 };
 
 ForexForensicsLicense::ForexForensicsLicense()
@@ -22,7 +24,7 @@ ForexForensicsLicense::ForexForensicsLicense()
     mLicenseObjectNamePrefix = LicenseObjects::ForexForensics;
     mLicenseKey = String::Random(20);
 
-    iCustom(Symbol(), Period(), "ForexForensicsLicense", licenseKey, 0, 0);
+    iCustom(Symbol(), Period(), "ForexForensicsLicense", mLicenseKey, 0, 0);
 }
 
 ForexForensicsLicense::~ForexForensicsLicense()

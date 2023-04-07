@@ -24,30 +24,31 @@ class License
 private:
     int MaxFailedAttempts() { return 5; }
 
-    bool mWasValidated;
-    string mLicenseObjectNamePrefix;
-    string mLicenseKey;
+    LicenseStatus mStatus;
 
     int mFailedLicenseAttempts;
-
     string mLastError;
 
 protected:
+    string mLicenseObjectNamePrefix;
+    string mLicenseKey;
+
     bool HasLicensingObjects();
 
 public:
     License();
     ~License();
 
-    bool WasValidated() { return mWasValidated; }
+    virtual string Name() = NULL;
+    LicenseStatus Status() { return mStatus; }
 
     static void CreateLicensingObjects(string objectNamePrefix, string valueToEncode);
-    bool CheckLicense(bool &reachedMaxFailedAttempts, string &error);
+    bool CheckLicense();
 };
 
 License::License()
 {
-    mHasLicense = false;
+    mStatus = LicenseStatus::Pending;
     mFailedLicenseAttempts = 0;
     mLastError = "";
 }
@@ -76,7 +77,7 @@ void License::CreateLicensingObjects(string objectNamePrefix, string valueToEnco
 
             if (!ObjectCreate(ChartID(), objName, OBJ_VLINE, 0, TimeCurrent(), 0))
             {
-                mLastError = "Failed to create Licensing Object. Error: " + IntegerToString(GetLastError());
+                Print("Failed to create Licensing Object. Error: " + IntegerToString(GetLastError()));
             }
 
             ObjectSetInteger(ChartID(), objName, OBJPROP_TIMEFRAMES, OBJ_NO_PERIODS);
@@ -84,7 +85,7 @@ void License::CreateLicensingObjects(string objectNamePrefix, string valueToEnco
     }
     else
     {
-        mLastError = "Unable to create Licensing Key. Error: " + IntegerToString(GetLastError());
+        Print("Unable to create Licensing Key. Error: " + IntegerToString(GetLastError()));
     }
 }
 
@@ -127,7 +128,6 @@ bool License::HasLicensingObjects()
     {
         if (decodedValue == mLicenseKey)
         {
-            mWasValidated = true;
             return true;
         }
         else
@@ -145,13 +145,25 @@ bool License::HasLicensingObjects()
     return false;
 }
 
-bool License::CheckLicense(bool &reachedMaxFailedAttempts, string &error)
+bool License::CheckLicense()
 {
+    if (mStatus != LicenseStatus::Pending)
+    {
+        return mStatus == LicenseStatus::Validated;
+    }
+
     bool hasLicensing = HasLicensingObjects();
     if (!hasLicensing && mFailedLicenseAttempts >= MaxFailedAttempts())
     {
-        reachedMaxFailedAttempts = true;
-        error = mLastError;
+        mStatus = LicenseStatus::Failed;
+        Print("Error for License: ", Name(), ". Error: ", mLastError);
+
+        return false;
+    }
+
+    if (hasLicensing)
+    {
+        mStatus = LicenseStatus::Validated;
     }
 
     return hasLicensing;
