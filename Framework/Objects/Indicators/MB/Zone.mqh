@@ -15,7 +15,7 @@ class Zone : public ZoneState
 public:
     // --- Constructor / Destructor ---
     Zone(string symbol, int timeFrame, int mbNumber, int zoneNumber, int type, string description, datetime startDateTime,
-         double entryPrice, datetime endDateTime, double exitPrice, int entryOffset, bool allowWickBreaks);
+         double entryPrice, datetime endDateTime, double exitPrice, int entryOffset, CandlePart brokenBy);
     ~Zone();
 
     // --- Setters ---
@@ -26,7 +26,7 @@ public:
 };
 
 Zone::Zone(string symbol, int timeFrame, int mbNumber, int zoneNumber, int type, string description, datetime startDateTime,
-           double entryPrice, datetime endDateTime, double exitPrice, int entryOffset, bool allowWickBreaks)
+           double entryPrice, datetime endDateTime, double exitPrice, int entryOffset, CandlePart brokenBy)
 {
     mSymbol = symbol;
     mTimeFrame = timeFrame;
@@ -46,7 +46,7 @@ Zone::Zone(string symbol, int timeFrame, int mbNumber, int zoneNumber, int type,
 
     mEntryOffset = entryOffset;
 
-    mAllowWickBreaks = allowWickBreaks;
+    mBrokenBy = brokenBy;
     mDrawn = false;
     mWasRetrieved = false;
 

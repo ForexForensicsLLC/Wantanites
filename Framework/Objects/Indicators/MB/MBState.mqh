@@ -27,6 +27,7 @@ protected:
 
     int mNumber;
     int mType;
+    CandlePart mBrokenBy;
 
     datetime mStartDateTime;
     datetime mEndDateTime;
@@ -46,8 +47,10 @@ protected:
     int mMaxZones;
     int mZoneCount;
     int mUnretrievedZoneCount;
-    bool mAllowZoneWickBreaks;
-    bool mOnlyZonesInMB;
+    CandlePart mZonesBrokenBy;
+    ZonePartInMB mRequiredZonePartInMB;
+    bool mAllowMitigatedZones;
+    bool mAllowOverlappingZones;
 
     string mName;
 
@@ -80,11 +83,9 @@ public:
     int ZoneCount() { return mZoneCount; }
     int UnretrievedZoneCount() { return mUnretrievedZoneCount; }
 
+    bool CandleBrokeMB(int barIndex);
     bool StartIsBrokenFromBarIndex(int barIndex);
     bool GlobalStartIsBroken();
-
-    // bool EndIsBrokenFromBarIndex(int barIndex);
-    // bool GlobalEndIsBroken();
 
     bool GetUnretrievedZones(ZoneState *&zoneStates[]);
     bool GetClosestValidZone(ZoneState *&zoneState);
@@ -98,8 +99,8 @@ public:
     // --------- Display Methods ---------
     string ToString();
     string ToSingleLineString();
-    void Draw(bool printErrors);
-    void DrawZones(bool printErrors);
+    void Draw();
+    void DrawZones();
 };
 
 int MBState::Width()
@@ -152,45 +153,81 @@ double MBState::PercentOfMBPrice(double percent)
     return 0.0;
 }
 
+bool MBState::CandleBrokeMB(int barIndex)
+{
+    if (mType == OP_BUY)
+    {
+        double low;
+        if (mBrokenBy == CandlePart::Body)
+        {
+            low = CandleStickHelper::LowestBodyPart(mSymbol, mTimeFrame, barIndex);
+        }
+        else if (mBrokenBy == CandlePart::Wick)
+        {
+            low = iLow(mSymbol, mTimeFrame, barIndex);
+        }
+
+        return low < iLow(mSymbol, mTimeFrame, LowIndex());
+    }
+    else if (mType == OP_SELL)
+    {
+        double high;
+        if (mBrokenBy == CandlePart::Body)
+        {
+            high = CandleStickHelper::HighestBodyPart(mSymbol, mTimeFrame, barIndex);
+        }
+        else if (mBrokenBy == CandlePart::Wick)
+        {
+            high = iHigh(mSymbol, mTimeFrame, barIndex);
+        }
+
+        return high > iHigh(mSymbol, mTimeFrame, HighIndex());
+    }
+
+    return false;
+}
+
 bool MBState::StartIsBrokenFromBarIndex(int barIndex)
 {
     if (mType == OP_BUY)
     {
-        // This is for wick breaks
-        // double low;
-        // if (!MQLHelper::GetLowestLowBetween(mSymbol, mTimeFrame, LowIndex(), barIndex, false, low))
-        // {
-        //     return false;
-        // }
-
-        // return low < iLow(mSymbol, mTimeFrame, LowIndex());
-
-        double lowestBody;
-        if (!MQLHelper::GetLowestBodyBetween(mSymbol, mTimeFrame, LowIndex(), barIndex, false, lowestBody))
+        double low;
+        if (mBrokenBy == CandlePart::Body)
         {
-            return false;
+            if (!MQLHelper::GetLowestBodyBetween(mSymbol, mTimeFrame, LowIndex(), barIndex, false, low))
+            {
+                return false;
+            }
+        }
+        else if (mBrokenBy == CandlePart::Wick)
+        {
+            if (!MQLHelper::GetLowestLowBetween(mSymbol, mTimeFrame, LowIndex(), barIndex, false, low))
+            {
+                return false;
+            }
         }
 
-        return lowestBody < iLow(mSymbol, mTimeFrame, LowIndex());
+        return low < iLow(mSymbol, mTimeFrame, LowIndex());
     }
     else if (mType == OP_SELL)
     {
-        // This is for wick breaks
-        // double high;
-        // if (!MQLHelper::GetHighestHighBetween(mSymbol, mTimeFrame, HighIndex(), barIndex, false, high))
-        // {
-        //     return false;
-        // }
-
-        // return high > iHigh(mSymbol, mTimeFrame, HighIndex());
-
-        double highestBody;
-        if (!MQLHelper::GetHighestBodyBetween(mSymbol, mTimeFrame, HighIndex(), barIndex, false, highestBody))
+        double high;
+        if (mBrokenBy == CandlePart::Body)
         {
-            return false;
+            if (!MQLHelper::GetHighestBodyBetween(mSymbol, mTimeFrame, HighIndex(), barIndex, false, high))
+            {
+                return false;
+            }
+        }
+        else if (mBrokenBy == CandlePart::Wick)
+        {
+            if (!MQLHelper::GetHighestHighBetween(mSymbol, mTimeFrame, HighIndex(), barIndex, false, high))
+            {
+                return false;
+            }
         }
 
-        return highestBody > iHigh(mSymbol, mTimeFrame, HighIndex());
+        return high > iHigh(mSymbol, mTimeFrame, HighIndex());
     }
 
     return false;
@@ -482,7 +519,7 @@ string MBState::ToSingleLineString()
     return mbString;
 }
 // Draws the current MB if it hasn't been drawn before
-void MBState::Draw(bool printErrors)
+void MBState::Draw()
 {
     if (mDrawn)
     {
@@ -497,11 +534,7 @@ void MBState::Draw(bool printErrors)
                       mEndDateTime,                            // End
                       iLow(mSymbol, mTimeFrame, LowIndex())))  // Low
     {
-        if (printErrors)
-        {
-            Print("MB Object Creation Failed: ", GetLastError());
-        }
-
+        Print("MB Object Creation Failed: ", GetLastError());
         return;
     }
 
@@ -515,7 +548,7 @@ void MBState::Draw(bool printErrors)
     mDrawn = true;
 }
 
-void MBState::DrawZones(bool printErrors)
+void MBState::DrawZones()
 {
     for (int i = mMaxZones - 1; i >= 0; i--)
     {
@@ -524,6 +557,6 @@ void MBState::DrawZones(bool printErrors)
             break;
         }
 
-        mZones[i].Draw(printErrors);
+        mZones[i].Draw();
     }
 }

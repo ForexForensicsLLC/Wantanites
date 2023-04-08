@@ -16,16 +16,19 @@ class MBTracker
 {
 private:
     // --- Operation Variables ---
+    bool mCalculateOnTick; // Needs to be true when on the 1 second chart or else we'll miss values
     int mTimeFrame;
     string mSymbol;
     int mPrevCalculated;
     datetime mFirstBarTime;
     bool mInitialLoad;
-    bool mPrintErrors;     // used to prevent printing errors on obj creation. Should be used on 1 second chart to save resources
-    bool mCalculateOnTick; // Needs to be true when on the 1 second chart or else we'll miss values
 
     // --- MB Counting / Tracking---
     int mMBsToTrack;
+    int mMinMBWidth;
+    CandlePart mMBsValidatedBy;
+    CandlePart mMBsBrokenBy;
+
     int mCurrentMBs; // Used for tracking when to start cleaning up MBs
     int mMBsCreated; // Used for MBNumber
 
@@ -40,10 +43,10 @@ private:
 
     // --- Zone Counting / Tracking---
     int mMaxZonesInMB;
-    bool mAllowZoneMitigation;
-    bool mAllowZonesAfterMBValidation;
-    bool mAllowZoneWickBreaks;
-    bool mOnlyZonesInMB;
+    CandlePart mZonesBrokenBy;
+    ZonePartInMB mRequiredZonePartInMB;
+    bool mAllowMitigatedZones;
+    bool mAllowOverlappingZones;
 
     MB *mMBs[];
 
@@ -52,6 +55,7 @@ private:
     int MostRecentMBIndex() { return mMBsToTrack - mCurrentMBs; }
 
     // --- MB Creation Methods ---
+    bool PendingMBIsValidated(int type, int barIndex);
     void CheckMostRecentMBIsBroken(int barIndex);
     void CalculateMB(int barIndex);
     bool IsEngulfingCandle(int mbType, int index);
@@ -74,8 +78,8 @@ public:
     bool HasPendingBearishMB() { return mPendingBearishMB; }
 
     // --- Constructors / Destructors ---
-    MBTracker(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool allowZoneWickBreaks,
-              bool onlyZonesInMB, bool printErrors, bool calculateOnTick);
+    MBTracker(bool calculatedOnTick, string symbol, int timeFrame, int mbsToTrack, int minCandlesInMB, CandlePart mbsValidatedBy, CandlePart mbsBrokenBy, int maxZonesInMB,
+              CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB, bool allowMitigatedZones, bool allowOverlappingZones);
     ~MBTracker();
 
     // --- Maintenance Methods ---
@@ -194,10 +198,9 @@ void MBTracker::Update()
 
 void MBTracker::CheckMostRecentMBIsBroken(int barIndex)
 {
-    if (mMBs[MostRecentMBIndex()].Type() == OP_BUY)
+    if (mMBs[MostRecentMBIndex()].CandleBrokeMB(barIndex))
     {
-        // first check to make sure we didn't break our previous MB
-        if (CandleStickHelper::LowestBodyPart(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].LowIndex()))
+        if (mMBs[MostRecentMBIndex()].Type() == OP_BUY)
         {
             int highestIndex;
             if (!MQLHelper::GetHighest(mSymbol, mTimeFrame, MODE_HIGH, mMBs[MostRecentMBIndex()].EndIndex() - barIndex, barIndex, true, highestIndex))
@@ -208,12 +211,7 @@ void MBTracker::CheckMostRecentMBIsBroken(int barIndex)
             CreateMB(OP_SELL, mMBs[MostRecentMBIndex()].LowIndex(), barIndex, highestIndex, mMBs[MostRecentMBIndex()].LowIndex());
             ResetTracking();
         }
-    }
-    // prev mb was bearish
-    else if (mMBs[MostRecentMBIndex()].Type() == OP_SELL)
-    {
-        // first check to make sure we didn't break our previous mb
-        if (CandleStickHelper::HighestBodyPart(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].HighIndex()))
+        else if (mMBs[MostRecentMBIndex()].Type() == OP_SELL)
         {
             int lowestIndex = 0;
             if (!MQLHelper::GetLowest(mSymbol, mTimeFrame, MODE_LOW, mMBs[MostRecentMBIndex()].EndIndex() - barIndex, barIndex, true, lowestIndex))
@@ -227,6 +225,40 @@ void MBTracker::CheckMostRecentMBIsBroken(int barIndex)
     }
 }
 
+bool MBTracker::PendingMBIsValidated(int type, int barIndex)
+{
+    if (type == OP_BUY)
+    {
+        double high = 0.0;
+        if (mMBsValidatedBy == CandlePart::Body)
+        {
+            high = CandleStickHelper::HighestBodyPart(mSymbol, mTimeFrame, barIndex);
+        }
+        else if (mMBsValidatedBy == CandlePart::Wick)
+        {
+            high = iHigh(mSymbol, mTimeFrame, barIndex);
+        }
+
+        return high > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex);
+    }
+    else if (type == OP_SELL)
+    {
+        double low = 0.0;
+        if (mMBsValidatedBy == CandlePart::Body)
+        {
+            low = CandleStickHelper::LowestBodyPart(mSymbol, mTimeFrame, barIndex);
+        }
+        else if (mMBsValidatedBy == CandlePart::Wick)
+        {
+            low = iLow(mSymbol, mTimeFrame, barIndex);
+        }
+
+        return low < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex);
+    }
+
+    return false;
+}
+
 void MBTracker::CalculateMB(int barIndex)
 {
     if (CheckPointer(mMBs[mMBsToTrack - 1]) == POINTER_INVALID)
@@ -238,14 +270,14 @@ void MBTracker::CalculateMB(int barIndex)
         CheckSetPendingMB(barIndex, OP_SELL);
 
         // validated Bullish MB
-        if (mPendingBullishMB && CandleStickHelper::HighestBodyPart(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex))
+        if (mPendingBullishMB && PendingMBIsValidated(OP_BUY, barIndex))
         {
             CreateMB(OP_BUY, mCurrentBullishRetracementIndex, barIndex, mCurrentBullishRetracementIndex, mPendingBullishMBLowIndex);
             ResetTracking();
             return;
         }
         // validated Bearish MB
-        else if (mPendingBearishMB && CandleStickHelper::LowestBodyPart(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex))
+        else if (mPendingBearishMB && PendingMBIsValidated(OP_SELL, barIndex))
         {
             CreateMB(OP_SELL, mCurrentBearishRetracementIndex, barIndex, mPendingBearishMBHighIndex, mCurrentBearishRetracementIndex);
             ResetTracking();
@@ -264,7 +296,7 @@ void MBTracker::CalculateMB(int barIndex)
         if (mPendingBullishMB)
         {
             // new bullish mb has been validated
-            if (CandleStickHelper::HighestBodyPart(mSymbol, mTimeFrame, barIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex))
+            if (PendingMBIsValidated(OP_BUY, barIndex))
             {
                 // only create the mb if it is longer than 1 candle
                 int bullishRetracementIndex = -1;
@@ -277,9 +309,9 @@ void MBTracker::CalculateMB(int barIndex)
             }
         }
         // only allow the most recent MB to have zones after it has been validated if there is no pending MB
-        else if (mAllowZonesAfterMBValidation || true)
+        else
         {
-            mMBs[MostRecentMBIndex()].CheckAddZonesAfterMBValidation(barIndex, mAllowZoneMitigation);
+            mMBs[MostRecentMBIndex()].CheckAddZonesAfterMBValidation(barIndex);
         }
     }
     // prev mb was bearish
@@ -294,7 +326,7 @@ void MBTracker::CalculateMB(int barIndex)
         if (mPendingBearishMB)
         {
             // new bearish mb has been validated
-            if (CandleStickHelper::LowestBodyPart(mSymbol, mTimeFrame, barIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex))
+            if (PendingMBIsValidated(OP_SELL, barIndex))
             {
                 int bearishRetracementIndex = -1;
                 if (CurrentBearishRetracementIndexIsValid(bearishRetracementIndex, barIndex))
@@ -306,9 +338,9 @@ void MBTracker::CalculateMB(int barIndex)
             }
         }
         // only allow the most recent MB to have zones after it has been validated if there is no pending MB
-        else if (mAllowZonesAfterMBValidation)
+        else
         {
-            mMBs[MostRecentMBIndex()].CheckAddZonesAfterMBValidation(barIndex, mAllowZoneMitigation);
+            mMBs[MostRecentMBIndex()].CheckAddZonesAfterMBValidation(barIndex);
         }
     }
 }
@@ -600,16 +632,18 @@ void MBTracker::CreateMB(int mbType, int startIndex, int endIndex, int highIndex
         delete mMBs[mMBsToTrack - 1];
         ArrayCopy(mMBs, mMBs, 1, 0, mMBsToTrack - 1);
 
-        MB *mb = new MB(mSymbol, mTimeFrame, mMBsCreated, mbType, iTime(mSymbol, mTimeFrame, startIndex), iTime(mSymbol, mTimeFrame, endIndex),
-                        iTime(mSymbol, mTimeFrame, highIndex), iTime(mSymbol, mTimeFrame, lowIndex), mMaxZonesInMB, mAllowZoneWickBreaks, mOnlyZonesInMB);
-        mb.CheckAddZones(mAllowZoneMitigation);
+        MB *mb = new MB(mSymbol, mTimeFrame, mMBsCreated, mbType, mMBsBrokenBy, iTime(mSymbol, mTimeFrame, startIndex), iTime(mSymbol, mTimeFrame, endIndex),
+                        iTime(mSymbol, mTimeFrame, highIndex), iTime(mSymbol, mTimeFrame, lowIndex), mMaxZonesInMB, mZonesBrokenBy, mRequiredZonePartInMB,
+                        mAllowMitigatedZones, mAllowOverlappingZones);
+        mb.CheckAddZones();
         mMBs[0] = mb;
     }
     else
     {
-        MB *mb = new MB(mSymbol, mTimeFrame, mMBsCreated, mbType, iTime(mSymbol, mTimeFrame, startIndex), iTime(mSymbol, mTimeFrame, endIndex),
-                        iTime(mSymbol, mTimeFrame, highIndex), iTime(mSymbol, mTimeFrame, lowIndex), mMaxZonesInMB, mAllowZoneWickBreaks, mOnlyZonesInMB);
-        mb.CheckAddZones(mAllowZoneMitigation);
+        MB *mb = new MB(mSymbol, mTimeFrame, mMBsCreated, mbType, mMBsBrokenBy, iTime(mSymbol, mTimeFrame, startIndex), iTime(mSymbol, mTimeFrame, endIndex),
+                        iTime(mSymbol, mTimeFrame, highIndex), iTime(mSymbol, mTimeFrame, lowIndex), mMaxZonesInMB, mZonesBrokenBy, mRequiredZonePartInMB,
+                        mAllowMitigatedZones, mAllowOverlappingZones);
+        mb.CheckAddZones();
         mMBs[(mMBsToTrack - 1) - mCurrentMBs] = mb;
 
         mCurrentMBs += 1;
@@ -677,25 +711,28 @@ bool MBTracker::InternalNthMostRecentMBIsOpposite(int nthMB)
 // ##############################################################
 
 // -------------- Constructors / Destructors --------------------
-MBTracker::MBTracker(string symbol, int timeFrame, int mbsToTrack, int maxZonesInMB, bool allowZoneMitigation, bool allowZonesAfterMBValidation, bool allowZoneWickBreaks,
-                     bool onlyZonesInMB, bool printErrors, bool calculateOnTick)
+MBTracker::MBTracker(bool calculateOnTick, string symbol, int timeFrame, int mbsToTrack, int minMBWidth, CandlePart mbsValidatedBy, CandlePart mbsBrokenBy, int maxZonesInMB,
+                     CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB, bool allowMitigatedZones, bool allowOverlappingZones)
 {
+    mCalculateOnTick = calculateOnTick;
     mSymbol = symbol;
     mTimeFrame = timeFrame;
     mPrevCalculated = 0;
     mFirstBarTime = 0;
     mInitialLoad = true;
-    mPrintErrors = printErrors;
-    mCalculateOnTick = calculateOnTick;
 
     mMBsToTrack = mbsToTrack;
-    mMaxZonesInMB = maxZonesInMB;
-    mMBsCreated = 0;
-    mAllowZoneMitigation = allowZoneMitigation;
-    mAllowZonesAfterMBValidation = allowZonesAfterMBValidation;
-    mAllowZoneWickBreaks = allowZoneWickBreaks;
-    mOnlyZonesInMB = onlyZonesInMB;
+    mMinMBWidth = minMBWidth;
+    mMBsValidatedBy = mbsValidatedBy;
+    mMBsBrokenBy = mbsBrokenBy;
 
+    mMaxZonesInMB = maxZonesInMB;
+    mZonesBrokenBy = zonesBrokenBy;
+    mRequiredZonePartInMB = requiredZonePartInMB;
+    mAllowMitigatedZones = allowMitigatedZones;
+    mAllowOverlappingZones = allowOverlappingZones;
+
+    mMBsCreated = 0;
     mCurrentBullishRetracementIndex = -1;
     mCurrentBearishRetracementIndex = -1;
 
@@ -722,11 +759,11 @@ void MBTracker::UpdateIndexes(int barIndex)
     mPendingBullishMBLowIndex = mPendingBullishMBLowIndex > -1 ? mPendingBullishMBLowIndex + barIndex : -1;
     mPendingBearishMBHighIndex = mPendingBearishMBHighIndex > -1 ? mPendingBearishMBHighIndex + barIndex : -1;
 }
-// ---------------- Computer Properties -----------------------
+// ---------------- Computed Properties -----------------------
 bool MBTracker::CurrentBullishRetracementIndexIsValid(out int &currentBullishRetracementIndex, int barIndex = 0)
 {
     // Has to be more than 1 candle
-    if ((mCurrentBullishRetracementIndex - barIndex) < 2)
+    if ((mCurrentBullishRetracementIndex - barIndex) < mMinMBWidth)
     {
         return false;
     }
@@ -738,7 +775,7 @@ bool MBTracker::CurrentBullishRetracementIndexIsValid(out int &currentBullishRet
 bool MBTracker::CurrentBearishRetracementIndexIsValid(out int &currentBearishRetracementIndex, int barIndex = 0)
 {
     // has to be more than 1 candle
-    if ((mCurrentBearishRetracementIndex - barIndex) < 2)
+    if ((mCurrentBearishRetracementIndex - barIndex) < mMinMBWidth)
     {
         return false;
     }
@@ -1113,7 +1150,7 @@ void MBTracker::DrawNMostRecentMBs(int n)
 
     for (int i = MostRecentMBIndex(); i < MostRecentMBIndex() + n; i++)
     {
-        mMBs[i].Draw(mPrintErrors);
+        mMBs[i].Draw();
     }
 }
 
@@ -1217,7 +1254,7 @@ void MBTracker::DrawZonesForNMostRecentMBs(int nMBs)
 
     for (int i = MostRecentMBIndex(); i < MostRecentMBIndex() + nMBs; i++)
     {
-        mMBs[i].DrawZones(mPrintErrors);
+        mMBs[i].DrawZones();
     }
 }
 

@@ -8,7 +8,10 @@
 #property version "1.00"
 #property strict
 
+#include <Wantanites\Framework\Objects\Indicators\MB\Types.mqh>
 #include <Wantanites\Framework\Helpers\MQLHelper.mqh>
+#include <Wantanites\Framework\Helpers\CandleStickHelper.mqh>
+
 class ZoneState
 {
 protected:
@@ -30,7 +33,8 @@ protected:
 
     int mEntryOffset;
 
-    bool mAllowWickBreaks;
+    CandlePart mBrokenBy;
+    // bool mAllowWickBreaks;
     bool mWasRetrieved;
     bool mDrawn;
     string mName;
@@ -66,25 +70,16 @@ public:
     double mLowestConfirmationMBLowWithin;
     double mHighestConfirmationMBHighWithin;
 
-    // Tested
     bool IsHolding(int barIndex);
-
-    // Tested
     bool IsHoldingFromStart();
-
-    // Tested
     bool IsBroken();
-
-    // Tested
     bool BelowDemandZone(int barIndex);
-
-    // Tested
     bool AboveSupplyZone(int barIndex);
 
     // --- Display Methods ---
     string ToString();
     string ToSingleLineString();
-    void Draw(bool printErrors);
+    void Draw();
 };
 
 double ZoneState::Height()
@@ -128,16 +123,17 @@ bool ZoneState::CandleIsInZone(int index)
 /// @brief This will return true if you are caclculating on every tick and a wick breaks below the zone
 bool ZoneState::BelowDemandZone(int barIndex)
 {
-    return (mAllowWickBreaks && MathMin(iOpen(mSymbol, mTimeFrame, barIndex), iClose(mSymbol, mTimeFrame, barIndex)) < mExitPrice) ||
-           (!mAllowWickBreaks && iLow(mSymbol, mTimeFrame, barIndex) < mExitPrice);
+    return (mBrokenBy == CandlePart::Body && CandleStickHelper::LowestBodyPart(mSymbol, mTimeFrame, barIndex) < mExitPrice) ||
+           (mBrokenBy == CandlePart::Wick && iLow(mSymbol, mTimeFrame, barIndex) < mExitPrice);
 }
 
 /// @brief This will return true if you are caclculating on every tick and a wick breaks above the zone
 bool ZoneState::AboveSupplyZone(int barIndex)
 {
-    return (mAllowWickBreaks && MathMax(iOpen(mSymbol, mTimeFrame, barIndex), iClose(mSymbol, mTimeFrame, barIndex)) > mExitPrice) ||
-           (!mAllowWickBreaks && iHigh(mSymbol, mTimeFrame, barIndex) > mExitPrice);
+    return (mBrokenBy == CandlePart::Body && CandleStickHelper::HighestBodyPart(mSymbol, mTimeFrame, barIndex) > mExitPrice) ||
+           (mBrokenBy == CandlePart::Wick && iHigh(mSymbol, mTimeFrame, barIndex) > mExitPrice);
 }
+
 // ----------------- Computed Properties ----------------------
 // checks if price is or was  in the zone from the barIndex, and the zone hasn't been broken
 bool ZoneState::IsHolding(int barIndex)
@@ -177,14 +173,14 @@ bool ZoneState::IsBroken()
     double price = 0.0;
     if (mType == OP_BUY)
     {
-        if (mAllowWickBreaks)
+        if (mBrokenBy == CandlePart::Body)
         {
             if (!MQLHelper::GetLowestBodyBetween(Symbol(), TimeFrame(), StartIndex(), 0, false, price))
             {
                 return false;
             }
         }
-        else
+        else if (mBrokenBy == CandlePart::Wick)
         {
             if (!MQLHelper::GetLowestLowBetween(Symbol(), TimeFrame(), StartIndex(), 0, false, price))
             {
@@ -196,14 +192,14 @@ bool ZoneState::IsBroken()
     }
     else if (mType == OP_SELL)
     {
-        if (mAllowWickBreaks)
+        if (mBrokenBy == CandlePart::Body)
         {
             if (!MQLHelper::GetHighestBodyBetween(Symbol(), TimeFrame(), StartIndex(), 0, false, price))
             {
                 return false;
             }
         }
-        else
+        else if (mBrokenBy == CandlePart::Wick)
         {
             if (!MQLHelper::GetHighestHighBetween(Symbol(), TimeFrame(), StartIndex(), 0, false, price))
             {
@@ -244,7 +240,7 @@ string ZoneState::ToSingleLineString()
            " Highest After: " + DoubleToString(highestAfter, _Digits);
 }
 // Draws the zone on the chart if it hasn't been drawn before
-void ZoneState::Draw(bool printErrors)
+void ZoneState::Draw()
 {
     if (mDrawn)
     {
@@ -259,11 +255,7 @@ void ZoneState::Draw(bool printErrors)
                       mEndDateTime,   // End
                       mExitPrice))    // Exit
     {
-        if (printErrors)
-        {
-            Print("Zone Object Creation Failed: ", GetLastError());
-        }
-
+        Print("Zone Object Creation Failed: ", GetLastError());
         return;
     }
 

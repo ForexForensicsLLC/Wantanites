@@ -28,6 +28,7 @@ private:
     void Draw();
 
 public:
+    PipsChanged();
     PipsChanged(string symbol, int timeFrame, int maPeriod, color plotClr);
     PipsChanged(PipsChanged &pc);
     ~PipsChanged();
