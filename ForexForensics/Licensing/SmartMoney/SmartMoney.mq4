@@ -23,6 +23,7 @@ input CandlePart StructureValidatedBy = CandlePart::Body;
 input CandlePart StructureBrokenBy = CandlePart::Body;
 input string ZoneSettings = "--------------";
 input int MaxZonesInStructure = 5;
+input bool AllowZonesAfterStructureValidation = false;
 input CandlePart ZonesBrokenBy = CandlePart::Body;
 input ZonePartInMB RequiredZonePartInStructure = ZonePartInMB::Whole;
 input bool AllowMitigatedZones = false;
@@ -35,7 +36,7 @@ MBTracker *MBT;
 
 int OnInit()
 {
-    MBT = new MBTracker(false, Symbol(), Period(), StructureBoxesToTrack, MinCandlesInStructure, StructureValidatedBy, StructureBrokenBy, MaxZonesInStructure, ZonesBrokenBy,
+    MBT = new MBTracker(false, Symbol(), Period(), StructureBoxesToTrack, MinCandlesInStructure, StructureValidatedBy, StructureBrokenBy, MaxZonesInStructure, AllowZonesAfterStructureValidation, ZonesBrokenBy,
                         RequiredZonePartInStructure, AllowMitigatedZones, AllowOverlappingZones);
 
     License::CreateLicensingObjects(LicenseObjects::SmartMoney, LicenseKey);

@@ -12,6 +12,8 @@
 #include <Wantanites\Framework\Objects\Indicators\MB\MB.mqh>
 #include <Wantanites\Framework\Helpers\CandleStickHelper.mqh>
 
+#include <Wantanites\Framework\Objects\DataStructures\ObjectList.mqh>
+
 class MBTracker
 {
 private:
@@ -43,12 +45,14 @@ private:
 
     // --- Zone Counting / Tracking---
     int mMaxZonesInMB;
+    bool mAllowZonesAfterMBValidation;
     CandlePart mZonesBrokenBy;
     ZonePartInMB mRequiredZonePartInMB;
     bool mAllowMitigatedZones;
     bool mAllowOverlappingZones;
 
     MB *mMBs[];
+    ObjectList<Zone> *mPendingZones;
 
     // --- Tracking Methods ---
     void Update();
@@ -79,7 +83,7 @@ public:
 
     // --- Constructors / Destructors ---
     MBTracker(bool calculatedOnTick, string symbol, int timeFrame, int mbsToTrack, int minCandlesInMB, CandlePart mbsValidatedBy, CandlePart mbsBrokenBy, int maxZonesInMB,
-              CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB, bool allowMitigatedZones, bool allowOverlappingZones);
+              bool allowZonesAfterMBValidation, CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB, bool allowMitigatedZones, bool allowOverlappingZones);
     ~MBTracker();
 
     // --- Maintenance Methods ---
@@ -309,7 +313,7 @@ void MBTracker::CalculateMB(int barIndex)
             }
         }
         // only allow the most recent MB to have zones after it has been validated if there is no pending MB
-        else
+        else if (mAllowZonesAfterMBValidation)
         {
             mMBs[MostRecentMBIndex()].CheckAddZonesAfterMBValidation(barIndex);
         }
@@ -338,7 +342,7 @@ void MBTracker::CalculateMB(int barIndex)
             }
         }
         // only allow the most recent MB to have zones after it has been validated if there is no pending MB
-        else
+        else if (mAllowZonesAfterMBValidation)
         {
             mMBs[MostRecentMBIndex()].CheckAddZonesAfterMBValidation(barIndex);
         }
@@ -712,7 +716,7 @@ bool MBTracker::InternalNthMostRecentMBIsOpposite(int nthMB)
 
 // -------------- Constructors / Destructors --------------------
 MBTracker::MBTracker(bool calculateOnTick, string symbol, int timeFrame, int mbsToTrack, int minMBWidth, CandlePart mbsValidatedBy, CandlePart mbsBrokenBy, int maxZonesInMB,
-                     CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB, bool allowMitigatedZones, bool allowOverlappingZones)
+                     bool allowZonesAfterMBValidation, CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB, bool allowMitigatedZones, bool allowOverlappingZones)
 {
     mCalculateOnTick = calculateOnTick;
     mSymbol = symbol;
@@ -727,6 +731,7 @@ MBTracker::MBTracker(bool calculateOnTick, string symbol, int timeFrame, int mbs
     mMBsBrokenBy = mbsBrokenBy;
 
     mMaxZonesInMB = maxZonesInMB;
+    mAllowZonesAfterMBValidation = allowZonesAfterMBValidation;
     mZonesBrokenBy = zonesBrokenBy;
     mRequiredZonePartInMB = requiredZonePartInMB;
     mAllowMitigatedZones = allowMitigatedZones;
