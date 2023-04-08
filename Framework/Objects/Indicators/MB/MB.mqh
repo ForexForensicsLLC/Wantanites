@@ -232,10 +232,6 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool calculat
                         endIndex = startIndex - 1;
                     }
 
-                    if (mNumber == 394)
-                    {
-                        Print("Adding zone. Entry: ", imbalanceEntry, ", Exti: ", imbalanceExit);
-                    }
                     AddZone(description, startIndex, imbalanceEntry, endIndex, imbalanceExit, entryOffset);
                 }
             }
@@ -439,10 +435,7 @@ bool MB::IsDuplicateZone(double imbalanceEntry, double imbalanceExit)
         int zoneIndex = mMaxZones - j;
         if (CheckPointer(mZones[zoneIndex]) != POINTER_INVALID)
         {
-            // Add one to this to prevent consecutive zones from forming
-            if (startIndex + 1 >= mZones[zoneIndex].StartIndex() ||
-                (type == OP_BUY && imbalanceExit < mZones[zoneIndex].EntryPrice()) ||
-                (type == OP_SELL && imbalanceExit > mZones[zoneIndex].EntryPrice()))
+            if (imbalanceEntry == mZones[zoneIndex].EntryPrice() && imbalanceExit == mZones[zoneIndex].ExitPrice())
             {
                 return true;
             }

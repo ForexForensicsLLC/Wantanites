@@ -14,17 +14,18 @@
 #include <Wantanites\Framework\Objects\Indicators\MB\MBTracker.mqh>
 #include <Wantanites\Framework\Objects\Licenses\License.mqh>
 
-input string SmartMoneySettings = "----------------";
+string ButtonName = "ResetButton";
+
+input string StructureSettings = "----------------";
 input int StructureBoxesToTrack = 10;
 input int MinCandlesInStructure = 3;
 input CandlePart StructureValidatedBy = CandlePart::Body;
 input CandlePart StructureBrokenBy = CandlePart::Body;
+input string ZoneSettings = "--------------";
 input int MaxZonesInStructure = 5;
 input CandlePart ZonesBrokenBy = CandlePart::Body;
+input ZonePartInMB RequiredZonePartInStructure = ZonePartInMB::Whole;
 input bool AllowMitigatedZones = false;
-input ZonePart RequiredZonePartInStructure = ZonePartInMB::Whole;
-
-// implementing
 input bool AllowOverlappingZones = false;
 
 input string Licensing = "------------";
@@ -34,8 +35,8 @@ MBTracker *MBT;
 
 int OnInit()
 {
-    MBT = new MBTracker(Symbol(), Period(), StructureBoxesToTrack, MinCandlesInStructure, StructureValidatedBy, StructureBrokenBy, MaxZonesInStructure, ZonesBrokenBy,
-                        AllowMitigatedZones, REquiredZonePartInStructure, false);
+    MBT = new MBTracker(false, Symbol(), Period(), StructureBoxesToTrack, MinCandlesInStructure, StructureValidatedBy, StructureBrokenBy, MaxZonesInStructure, ZonesBrokenBy,
+                        RequiredZonePartInStructure, AllowMitigatedZones, AllowOverlappingZones);
 
     License::CreateLicensingObjects(LicenseObjects::SmartMoney, LicenseKey);
 
@@ -47,6 +48,7 @@ int OnInit()
 void OnDeinit(const int reason)
 {
     ObjectsDeleteAll(ChartID(), LicenseObjects::SmartMoney);
+    ObjectsDeleteAll(ChartID(), ButtonName);
     delete MBT;
 }
 
@@ -68,20 +70,19 @@ int OnCalculate(const int rates_total,
     return (rates_total);
 }
 
-string ButtonName = "ResetButton";
 void CreateResetButton()
 {
-    ObjectCreate(0, buttonName, OBJ_BUTTON, 0, 100, 100);
-    ObjectSetInteger(0, buttonName, OBJPROP_COLOR, clrWhite);
-    ObjectSetInteger(0, buttonName, OBJPROP_BGCOLOR, clrGray);
-    ObjectSetInteger(0, buttonName, OBJPROP_XDISTANCE, 100);
-    ObjectSetInteger(0, buttonName, OBJPROP_YDISTANCE, 100);
-    ObjectSetInteger(0, buttonName, OBJPROP_XSIZE, 200);
-    ObjectSetInteger(0, buttonName, OBJPROP_YSIZE, 50);
-    ObjectSetString(0, buttonName, OBJPROP_FONT, "Arial");
-    ObjectSetString(0, buttonName, OBJPROP_TEXT, "Reset");
-    ObjectSetInteger(0, buttonName, OBJPROP_FONTSIZE, 10);
-    ObjectSetInteger(0, buttonName, OBJPROP_SELECTABLE, 0);
+    ObjectCreate(0, ButtonName, OBJ_BUTTON, 0, 100, 100);
+    ObjectSetInteger(0, ButtonName, OBJPROP_COLOR, clrWhite);
+    ObjectSetInteger(0, ButtonName, OBJPROP_BGCOLOR, clrGray);
+    ObjectSetInteger(0, ButtonName, OBJPROP_XDISTANCE, 25);
+    ObjectSetInteger(0, ButtonName, OBJPROP_YDISTANCE, 25);
+    ObjectSetInteger(0, ButtonName, OBJPROP_XSIZE, 100);
+    ObjectSetInteger(0, ButtonName, OBJPROP_YSIZE, 50);
+    ObjectSetString(0, ButtonName, OBJPROP_FONT, "Arial");
+    ObjectSetString(0, ButtonName, OBJPROP_TEXT, "Reset");
+    ObjectSetInteger(0, ButtonName, OBJPROP_FONTSIZE, 10);
+    ObjectSetInteger(0, ButtonName, OBJPROP_SELECTABLE, 1);
 }
 
 void OnChartEvent(const int id,
@@ -97,4 +98,16 @@ void OnChartEvent(const int id,
             ChartRedraw();
         }
     }
+
+    // if (id == CHARTEVENT_OBJECT_DRAG)
+    // {
+    //     if (sparam == ButtonName)
+    //     {
+    //         int buttonX = (int)ObjectGet(ButtonName, OBJPROP_XDISTANCE);
+    //         int buttonY = (int)ObjectGet(ButtonName, OBJPROP_YDISTANCE);
+
+    //         ObjectSet(ButtonName, OBJPROP_XDISTANCE, buttonX - 90);
+    //         ObjectSet(ButtonName, OBJPROP_YDISTANCE, buttonY);
+    //     }
+    // }
 }
