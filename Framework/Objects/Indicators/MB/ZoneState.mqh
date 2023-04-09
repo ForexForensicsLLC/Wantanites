@@ -15,6 +15,7 @@
 class ZoneState
 {
 protected:
+    bool mIsPending;
     string mSymbol;
     int mTimeFrame;
 
@@ -34,13 +35,12 @@ protected:
     int mEntryOffset;
 
     CandlePart mBrokenBy;
-    // bool mAllowWickBreaks;
-    bool mWasRetrieved;
     bool mDrawn;
     string mName;
 
 public:
     // --- Getters ---
+    string DisplayName() { return "Zone"; }
     string Symbol() { return mSymbol; }
     int TimeFrame() { return mTimeFrame; }
 
@@ -56,7 +56,6 @@ public:
     double ExitPrice() { return mExitPrice; }
 
     int EntryOffset() { return mEntryOffset; }
-    bool WasRetrieved() { return mWasRetrieved; }
 
     double Height();
     double PercentOfZonePrice(double percent);
@@ -262,9 +261,14 @@ void ZoneState::Draw()
     ObjectSetInteger(0, mName, OBJPROP_COLOR, clr);
     ObjectSetInteger(0, mName, OBJPROP_WIDTH, 1);
     ObjectSetInteger(0, mName, OBJPROP_BACK, false);
-    ObjectSetInteger(0, mName, OBJPROP_FILL, true);
+    ObjectSetInteger(0, mName, OBJPROP_FILL, !mIsPending);
     ObjectSetInteger(0, mName, OBJPROP_SELECTED, false);
     ObjectSetInteger(0, mName, OBJPROP_SELECTABLE, false);
+
+    if (mIsPending)
+    {
+        ObjectSetInteger(ChartID(), mName, OBJPROP_STYLE, STYLE_DOT);
+    }
 
     mDrawn = true;
 }

@@ -8,6 +8,7 @@
 #property version "1.00"
 #property strict
 
+#include <Wantanites\Framework\Objects\DataStructures\ObjectList.mqh>
 #include <Wantanites\Framework\Objects\Indicators\MB\Zone.mqh>
 #include <Wantanites\Framework\Helpers\MQLHelper.mqh>
 
@@ -24,6 +25,7 @@ class MBState
 protected:
     string mSymbol;
     int mTimeFrame;
+    bool mIsPending;
 
     int mNumber;
     int mType;
@@ -43,10 +45,10 @@ protected:
 
     bool mDrawn;
 
-    Zone *mZones[];
+    // Zone *mZones[];
+    ObjectList<Zone> *mZones;
     int mMaxZones;
     int mZoneCount;
-    int mUnretrievedZoneCount;
     CandlePart mZonesBrokenBy;
     ZonePartInMB mRequiredZonePartInMB;
     bool mAllowMitigatedZones;
@@ -60,6 +62,7 @@ public:
     // ------------- Getters --------------
     string Symbol() { return mSymbol; }
     int TimeFrame() { return mTimeFrame; }
+    bool IsPending() { return mIsPending; }
     int Number() { return mNumber; }
     int Type() { return mType; }
 
@@ -81,13 +84,11 @@ public:
     Status mPushedFurtherIntoSetupZone;
 
     int ZoneCount() { return mZoneCount; }
-    int UnretrievedZoneCount() { return mUnretrievedZoneCount; }
 
     bool CandleBrokeMB(int barIndex);
     bool StartIsBrokenFromBarIndex(int barIndex);
     bool GlobalStartIsBroken();
 
-    bool GetUnretrievedZones(ZoneState *&zoneStates[]);
     bool GetClosestValidZone(ZoneState *&zoneState);
     bool ClosestValidZoneIsHolding(int barIndex);
 
@@ -99,8 +100,8 @@ public:
     // --------- Display Methods ---------
     string ToString();
     string ToSingleLineString();
-    void Draw();
-    void DrawZones();
+    virtual void Draw();
+    virtual void DrawZones();
 };
 
 int MBState::Width()
@@ -244,43 +245,22 @@ bool MBState::GlobalStartIsBroken()
     return mGlobalStartIsBroken;
 }
 
-bool MBState::GetUnretrievedZones(ZoneState *&zoneStates[])
-{
-    ArrayResize(zoneStates, 0);
-
-    bool retrievedZones = false;
-    for (int i = mMaxZones - 1; i >= 0; i--)
-    {
-        if (CheckPointer(mZones[i]) == POINTER_INVALID)
-        {
-            break;
-        }
-
-        if (!mZones[i].WasRetrieved())
-        {
-            ArrayResize(zoneStates, ArraySize(zoneStates) + 1);
-
-            mZones[i].WasRetrieved(true);
-            zoneStates[i] = mZones[i];
-
-            retrievedZones = true;
-        }
-    }
-
-    mUnretrievedZoneCount = 0;
-    return retrievedZones;
-}
-
 bool MBState::GetShallowestZone(ZoneState *&zoneState)
 {
-    for (int i = 0; i <= mMaxZones - 1; i++)
-    {
-        if (CheckPointer(mZones[i]) == POINTER_INVALID)
-        {
-            continue;
-        }
+    // for (int i = 0; i <= mMaxZones - 1; i++)
+    // {
+    //     if (CheckPointer(mZones[i]) == POINTER_INVALID)
+    //     {
+    //         continue;
+    //     }
 
-        zoneState = mZones[i];
+    //     zoneState = mZones[i];
+    //     return true;
+    // }
+
+    if (mZones.Size() > 0)
+    {
+        zoneState = mZones[0];
         return true;
     }
 
@@ -289,9 +269,18 @@ bool MBState::GetShallowestZone(ZoneState *&zoneState)
 
 bool MBState::GetClosestValidZone(ZoneState *&zoneState)
 {
-    for (int i = 0; i <= mMaxZones - 1; i++)
+    // for (int i = 0; i <= mMaxZones - 1; i++)
+    // {
+    //     if (CheckPointer(mZones[i]) != POINTER_INVALID && !mZones[i].IsBroken())
+    //     {
+    //         zoneState = mZones[i];
+    //         return true;
+    //     }
+    // }
+
+    for (int i = 0; i < mZones.Size(); i++)
     {
-        if (CheckPointer(mZones[i]) != POINTER_INVALID && !mZones[i].IsBroken())
+        if (!mZones[i].IsBroken())
         {
             zoneState = mZones[i];
             return true;
@@ -303,13 +292,22 @@ bool MBState::GetClosestValidZone(ZoneState *&zoneState)
 
 bool MBState::GetDeepestHoldingZone(ZoneState *&zoneState)
 {
-    for (int i = mMaxZones - 1; i >= 0; i--)
-    {
-        if (CheckPointer(mZones[i]) == POINTER_INVALID)
-        {
-            break;
-        }
+    // for (int i = mMaxZones - 1; i >= 0; i--)
+    // {
+    //     if (CheckPointer(mZones[i]) == POINTER_INVALID)
+    //     {
+    //         break;
+    //     }
 
+    //     if (mZones[i].IsHoldingFromStart())
+    //     {
+    //         zoneState = mZones[i];
+    //         return true;
+    //     }
+    // }
+
+    for (int i = 0; i < mZones.Size(); i++)
+    {
         if (mZones[i].IsHoldingFromStart())
         {
             zoneState = mZones[i];
@@ -505,15 +503,20 @@ string MBState::ToSingleLineString()
                       " High: " + IntegerToString(HighIndex()) +
                       " Low: " + IntegerToString(LowIndex());
 
-    for (int i = 1; i <= ZoneCount(); i++)
-    {
-        int index = mMaxZones - i;
-        if (CheckPointer(mZones[index]) == POINTER_INVALID)
-        {
-            break;
-        }
+    // for (int i = 1; i <= ZoneCount(); i++)
+    // {
+    //     int index = mMaxZones - i;
+    //     if (CheckPointer(mZones[index]) == POINTER_INVALID)
+    //     {
+    //         break;
+    //     }
 
-        mbString += mZones[index].ToSingleLineString();
+    //     mbString += mZones[index].ToSingleLineString();
+    // }
+
+    for (int i = 0; i < mZones.Size(); i++)
+    {
+        mbString += mZones[i].ToSingleLineString();
     }
 
     return mbString;
@@ -545,18 +548,20 @@ void MBState::Draw()
     ObjectSetInteger(ChartID(), mName, OBJPROP_SELECTED, false);
     ObjectSetInteger(ChartID(), mName, OBJPROP_SELECTABLE, false);
 
+    if (mIsPending)
+    {
+        // Line styling only works when the width is set to 1 or 0
+        ObjectSetInteger(ChartID(), mName, OBJPROP_WIDTH, 1);
+        ObjectSetInteger(ChartID(), mName, OBJPROP_STYLE, STYLE_DOT);
+    }
+
     mDrawn = true;
 }
 
 void MBState::DrawZones()
 {
-    for (int i = mMaxZones - 1; i >= 0; i--)
+    for (int i = 0; i < mZones.Size(); i++)
     {
-        if (CheckPointer(mZones[i]) == POINTER_INVALID)
-        {
-            break;
-        }
-
         mZones[i].Draw();
     }
 }

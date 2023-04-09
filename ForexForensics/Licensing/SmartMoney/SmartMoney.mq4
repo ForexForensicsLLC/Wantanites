@@ -14,13 +14,14 @@
 #include <Wantanites\Framework\Objects\Indicators\MB\MBTracker.mqh>
 #include <Wantanites\Framework\Objects\Licenses\License.mqh>
 
-string ButtonName = "ResetButton";
+string ButtonName = "ClearButton";
 
 input string StructureSettings = "----------------";
 input int StructureBoxesToTrack = 10;
 input int MinCandlesInStructure = 3;
 input CandlePart StructureValidatedBy = CandlePart::Body;
 input CandlePart StructureBrokenBy = CandlePart::Body;
+
 input string ZoneSettings = "--------------";
 input int MaxZonesInStructure = 5;
 input bool AllowZonesAfterStructureValidation = false;
@@ -81,7 +82,7 @@ void CreateResetButton()
     ObjectSetInteger(0, ButtonName, OBJPROP_XSIZE, 100);
     ObjectSetInteger(0, ButtonName, OBJPROP_YSIZE, 50);
     ObjectSetString(0, ButtonName, OBJPROP_FONT, "Arial");
-    ObjectSetString(0, ButtonName, OBJPROP_TEXT, "Reset");
+    ObjectSetString(0, ButtonName, OBJPROP_TEXT, "Clear");
     ObjectSetInteger(0, ButtonName, OBJPROP_FONTSIZE, 10);
     ObjectSetInteger(0, ButtonName, OBJPROP_SELECTABLE, 1);
 }
@@ -99,16 +100,4 @@ void OnChartEvent(const int id,
             ChartRedraw();
         }
     }
-
-    // if (id == CHARTEVENT_OBJECT_DRAG)
-    // {
-    //     if (sparam == ButtonName)
-    //     {
-    //         int buttonX = (int)ObjectGet(ButtonName, OBJPROP_XDISTANCE);
-    //         int buttonY = (int)ObjectGet(ButtonName, OBJPROP_YDISTANCE);
-
-    //         ObjectSet(ButtonName, OBJPROP_XDISTANCE, buttonX - 90);
-    //         ObjectSet(ButtonName, OBJPROP_YDISTANCE, buttonY);
-    //     }
-    // }
 }

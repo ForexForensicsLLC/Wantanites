@@ -22,29 +22,23 @@ private:
 
 public:
     // --- Constructors / Destructors ----------
-    MB(string symbol, int timeFrame, int number, int type, CandlePart brokenBy, datetime startDateTime, datetime endDateTime, datetime highDateTime, datetime lowDateTime,
-       int maxZones, CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB, bool allowMitigatedZones, bool allowOverlappingZones);
+    MB(bool isPending, string symbol, int timeFrame, int number, int type, CandlePart brokenBy, datetime startDateTime, datetime endDateTime, datetime highDateTime,
+       datetime lowDateTime, int maxZones, CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB, bool allowMitigatedZones, bool allowOverlappingZones);
     ~MB();
 
-    // --- Maintenance Methods ---
-    void UpdateIndexes(int barIndex);
+    void StartTime(datetime time) { mStartDateTime = time; }
+    void EndTime(datetime time) { mEndDateTime = time; }
+    void HighTime(datetime time) { mHighDateTime = time; }
+    void LowTime(datetime time) { mLowDateTime = time; }
 
     // ---- Adding Zones -------------
+    void CheckPendingZones(int barIndex);
     void CheckAddZones();
     void CheckAddZonesAfterMBValidation(int barIndex);
     void AddZone(string description, int startIndex, double entryPrice, int endIndex, double exitPrice, int entryOffset);
+
+    void UpdateDrawnObject();
 };
-/*
-
-              _            _                        _   _               _
-   _ __  _ __(_)_   ____ _| |_ ___   _ __ ___   ___| |_| |__   ___   __| |___
-  | '_ \| '__| \ \ / / _` | __/ _ \ | '_ ` _ \ / _ \ __| '_ \ / _ \ / _` / __|
-  | |_) | |  | |\ V / (_| | ||  __/ | | | | | |  __/ |_| | | | (_) | (_| \__ \
-  | .__/|_|  |_| \_/ \__,_|\__\___| |_| |_| |_|\___|\__|_| |_|\___/ \__,_|___/
-  |_|
-
-*/
-// ------------- Helper Methods ---------------
 // Checks for zones with imbalances after and adds them if they are not already added
 // GOES LEFT TO RIGHT
 void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool calculatingOnCurrentCandle)
@@ -430,15 +424,23 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool calculat
 
 bool MB::IsDuplicateZone(double imbalanceEntry, double imbalanceExit)
 {
-    for (int j = 1; j <= mMaxZones; j++)
+    // for (int j = 1; j <= mMaxZones; j++)
+    // {
+    //     int zoneIndex = mMaxZones - j;
+    //     if (CheckPointer(mZones[zoneIndex]) != POINTER_INVALID)
+    //     {
+    //         if (imbalanceEntry == mZones[zoneIndex].EntryPrice() && imbalanceExit == mZones[zoneIndex].ExitPrice())
+    //         {
+    //             return true;
+    //         }
+    //     }
+    // }
+
+    for (int i = 0; i < mZones.Size(); i++)
     {
-        int zoneIndex = mMaxZones - j;
-        if (CheckPointer(mZones[zoneIndex]) != POINTER_INVALID)
+        if (imbalanceEntry == mZones[i].EntryPrice() && imbalanceExit == mZones[i].ExitPrice())
         {
-            if (imbalanceEntry == mZones[zoneIndex].EntryPrice() && imbalanceExit == mZones[zoneIndex].ExitPrice())
-            {
-                return true;
-            }
+            return true;
         }
     }
 
@@ -489,18 +491,29 @@ bool MB::PendingSupplyZoneWasMitigated(int startIndex, int endingIndex, int entr
 
 bool MB::PendingZoneIsOverlappingOtherZone(int type, int startIndex, double imbalanceExit)
 {
-    for (int j = 1; j <= mMaxZones; j++)
+    // for (int j = 1; j <= mMaxZones; j++)
+    // {
+    //     int zoneIndex = mMaxZones - j;
+    //     if (CheckPointer(mZones[zoneIndex]) != POINTER_INVALID)
+    //     {
+    //         // Add one to this to prevent consecutive zones from forming
+    //         if (startIndex + 1 >= mZones[zoneIndex].StartIndex() ||
+    //             (type == OP_BUY && imbalanceExit < mZones[zoneIndex].EntryPrice()) ||
+    //             (type == OP_SELL && imbalanceExit > mZones[zoneIndex].EntryPrice()))
+    //         {
+    //             return true;
+    //         }
+    //     }
+    // }
+
+    for (int i = 0; i < mZones.Size(); i++)
     {
-        int zoneIndex = mMaxZones - j;
-        if (CheckPointer(mZones[zoneIndex]) != POINTER_INVALID)
+        // Add one to this to prevent consecutive zones from forming
+        if (startIndex + 1 >= mZones[i].StartIndex() ||
+            (type == OP_BUY && imbalanceExit < mZones[i].EntryPrice()) ||
+            (type == OP_SELL && imbalanceExit > mZones[i].EntryPrice()))
         {
-            // Add one to this to prevent consecutive zones from forming
-            if (startIndex + 1 >= mZones[zoneIndex].StartIndex() ||
-                (type == OP_BUY && imbalanceExit < mZones[zoneIndex].EntryPrice()) ||
-                (type == OP_SELL && imbalanceExit > mZones[zoneIndex].EntryPrice()))
-            {
-                return true;
-            }
+            return true;
         }
     }
 
@@ -517,9 +530,10 @@ bool MB::PendingZoneIsOverlappingOtherZone(int type, int startIndex, double imba
 
 */
 // --------- Constructor / Destructor --------
-MB::MB(string symbol, int timeFrame, int number, int type, CandlePart brokenBy, datetime startDateTime, datetime endDateTime, datetime highDateTime, datetime lowDateTime,
-       int maxZones, CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB, bool allowMitigatedZones, bool allowOverlappingZones)
+MB::MB(bool isPending, string symbol, int timeFrame, int number, int type, CandlePart brokenBy, datetime startDateTime, datetime endDateTime, datetime highDateTime,
+       datetime lowDateTime, int maxZones, CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB, bool allowMitigatedZones, bool allowOverlappingZones)
 {
+    mIsPending = isPending;
     mSymbol = symbol;
     mTimeFrame = timeFrame;
 
@@ -544,18 +558,18 @@ MB::MB(string symbol, int timeFrame, int number, int type, CandlePart brokenBy, 
 
     mMaxZones = maxZones;
     mZoneCount = 0;
-    mUnretrievedZoneCount = 0;
     mZonesBrokenBy = zonesBrokenBy;
     mRequiredZonePartInMB = requiredZonePartInMB;
     mAllowMitigatedZones = allowMitigatedZones;
     mAllowOverlappingZones = allowOverlappingZones;
 
-    mName = "MB: " + IntegerToString(timeFrame) + "_" + IntegerToString(number);
+    mName = "MB" + IntegerToString(type) + ": " + IntegerToString(timeFrame) + "_" + IntegerToString(number);
     mDrawn = false;
 
     mHasImpulseValidation = Status::NOT_CHECKED;
 
-    ArrayResize(mZones, maxZones);
+    // ArrayResize(mZones, maxZones);
+    mZones = new ObjectList<Zone>();
 }
 
 MB::~MB()
@@ -563,18 +577,37 @@ MB::~MB()
     ObjectsDeleteAll(ChartID(), mName, 0, OBJ_RECTANGLE);
     ObjectsDeleteAll(ChartID(), mName + "imp");
 
-    for (int i = mMaxZones - 1; i >= 0; i--)
-    {
-        if (CheckPointer(mZones[i]) == POINTER_INVALID)
-        {
-            break;
-        }
+    // for (int i = mMaxZones - 1; i >= 0; i--)
+    // {
+    //     if (CheckPointer(mZones[i]) == POINTER_INVALID)
+    //     {
+    //         break;
+    //     }
 
-        delete mZones[i];
-    }
+    //     delete mZones[i];
+    // }
+    delete mZones;
 }
 // --------------- Adding Zones -------------------
 // Checks for zones that are within the MB
+void MB::CheckPendingZones(int barIndex)
+{
+    for (int i = 0; i < mZones.Size(); i++)
+    {
+        // remvoe broken zones
+        if (mZones[i].IsBroken())
+        {
+            mZones.Remove(i);
+        }
+        // update non-broken zones
+        else
+        {
+            mZones[i].EndTime(iTime(mSymbol, mTimeFrame, barIndex));
+            mZones[i].UpdateDrawnObject();
+        }
+    }
+}
+
 void MB::CheckAddZones()
 {
     int startIndex = mType == OP_BUY ? LowIndex() : HighIndex();
@@ -596,12 +629,29 @@ void MB::AddZone(string description, int startIndex, double entryPrice, int endI
     {
         // So Zone Numbers Match the order they are placed in the array, from back to front with the furthest in the back
         int zoneNumber = mMaxZones - mZoneCount - 1;
-        Zone *zone = new Zone(mSymbol, mTimeFrame, mNumber, zoneNumber, mType, description, iTime(mSymbol, mTimeFrame, startIndex), entryPrice,
+        Zone *zone = new Zone(mIsPending, mSymbol, mTimeFrame, mNumber, zoneNumber, mType, description, iTime(mSymbol, mTimeFrame, startIndex), entryPrice,
                               iTime(mSymbol, mTimeFrame, endIndex), exitPrice, entryOffset, mZonesBrokenBy);
 
-        mZones[zoneNumber] = zone;
+        // mZones[zoneNumber] = zone;
+        mZones.Push(zone);
 
         mZoneCount += 1;
-        mUnretrievedZoneCount += 1;
+    }
+}
+
+void MB::UpdateDrawnObject()
+{
+    if (!mDrawn)
+    {
+        Draw();
+    }
+    else
+    {
+        ObjectSet(mName, OBJPROP_TIME1, mStartDateTime);
+        ObjectSet(mName, OBJPROP_PRICE1, iHigh(mSymbol, mTimeFrame, HighIndex()));
+        ObjectSet(mName, OBJPROP_TIME2, mEndDateTime);
+        ObjectSet(mName, OBJPROP_PRICE2, iLow(mSymbol, mTimeFrame, LowIndex()));
+
+        ChartRedraw();
     }
 }
