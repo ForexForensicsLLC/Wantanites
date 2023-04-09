@@ -45,10 +45,8 @@ protected:
 
     bool mDrawn;
 
-    // Zone *mZones[];
     ObjectList<Zone> *mZones;
     int mMaxZones;
-    int mZoneCount;
     CandlePart mZonesBrokenBy;
     ZonePartInMB mRequiredZonePartInMB;
     bool mAllowMitigatedZones;
@@ -83,7 +81,7 @@ public:
     Status mInsideSetupZone;
     Status mPushedFurtherIntoSetupZone;
 
-    int ZoneCount() { return mZoneCount; }
+    int ZoneCount() { return mZones.Size(); }
 
     bool CandleBrokeMB(int barIndex);
     bool StartIsBrokenFromBarIndex(int barIndex);

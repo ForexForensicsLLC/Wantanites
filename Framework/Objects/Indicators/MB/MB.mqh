@@ -557,7 +557,6 @@ MB::MB(bool isPending, string symbol, int timeFrame, int number, int type, Candl
     mPushedFurtherIntoSetupZone = Status::NOT_CHECKED;
 
     mMaxZones = maxZones;
-    mZoneCount = 0;
     mZonesBrokenBy = zonesBrokenBy;
     mRequiredZonePartInMB = requiredZonePartInMB;
     mAllowMitigatedZones = allowMitigatedZones;
@@ -597,6 +596,7 @@ void MB::CheckPendingZones(int barIndex)
         // remvoe broken zones
         if (mZones[i].IsBroken())
         {
+            Print("Removing zone: ", i, ", for MB: ", mName);
             mZones.Remove(i);
         }
         // update non-broken zones
@@ -625,17 +625,19 @@ void MB::CheckAddZonesAfterMBValidation(int barIndex)
 // Add zones
 void MB::AddZone(string description, int startIndex, double entryPrice, int endIndex, double exitPrice, int entryOffset)
 {
-    if (mZoneCount < mMaxZones)
+    if (mZones.Size() < mMaxZones)
     {
         // So Zone Numbers Match the order they are placed in the array, from back to front with the furthest in the back
-        int zoneNumber = mMaxZones - mZoneCount - 1;
+        int zoneNumber = mMaxZones - mZones.Size() - 1;
         Zone *zone = new Zone(mIsPending, mSymbol, mTimeFrame, mNumber, zoneNumber, mType, description, iTime(mSymbol, mTimeFrame, startIndex), entryPrice,
                               iTime(mSymbol, mTimeFrame, endIndex), exitPrice, entryOffset, mZonesBrokenBy);
 
-        // mZones[zoneNumber] = zone;
-        mZones.Push(zone);
+        if (mIsPending)
+        {
+            Print("Adding Zone: ", mName, ", Zone Number: ", zoneNumber);
+        }
 
-        mZoneCount += 1;
+        mZones.Push(zone);
     }
 }
 
