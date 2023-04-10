@@ -10,7 +10,6 @@
 
 #include <Wantanites\Framework\Objects\DataStructures\ObjectList.mqh>
 #include <Wantanites\Framework\Objects\Indicators\MB\Zone.mqh>
-#include <Wantanites\Framework\Helpers\MQLHelper.mqh>
 
 enum Status
 {
@@ -24,7 +23,7 @@ class MBState
 {
 protected:
     string mSymbol;
-    int mTimeFrame;
+    ENUM_TIMEFRAMES mTimeFrame;
     bool mIsPending;
 
     int mNumber;
@@ -59,7 +58,7 @@ protected:
 public:
     // ------------- Getters --------------
     string Symbol() { return mSymbol; }
-    int TimeFrame() { return mTimeFrame; }
+    ENUM_TIMEFRAMES TimeFrame() { return mTimeFrame; }
     bool IsPending() { return mIsPending; }
     int Number() { return mNumber; }
     int Type() { return mType; }
@@ -116,7 +115,7 @@ double MBState::Height()
 {
     if (mHeight == 0.0)
     {
-        mHeight = NormalizeDouble(iHigh(Symbol(), TimeFrame(), HighIndex()) - iLow(Symbol(), TimeFrame(), LowIndex()), Digits);
+        mHeight = NormalizeDouble(iHigh(Symbol(), TimeFrame(), HighIndex()) - iLow(Symbol(), TimeFrame(), LowIndex()), Digits());
     }
 
     return mHeight;
@@ -307,7 +306,7 @@ bool MBState::HasImpulseValidation()
                 if (percentChange > (minPercentChange / 100))
                 {
                     mHasImpulseValidation = Status::IS_TRUE;
-                    ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, Ask);
+                    ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
                     ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
                 }
                 else
@@ -327,7 +326,7 @@ bool MBState::HasImpulseValidation()
                     if (percentChange > (minPercentChange / 100))
                     {
                         mHasImpulseValidation = Status::IS_TRUE;
-                        ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, Ask);
+                        ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
                         ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
                     }
                     else
@@ -346,7 +345,7 @@ bool MBState::HasImpulseValidation()
                         if (percentChange > (minPercentChange / 100))
                         {
                             mHasImpulseValidation = Status::IS_TRUE;
-                            ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, Ask);
+                            ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
                             ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
                         }
                         else
@@ -370,7 +369,7 @@ bool MBState::HasImpulseValidation()
                 if (percentChange > (minPercentChange / 100))
                 {
                     mHasImpulseValidation = Status::IS_TRUE;
-                    ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, Ask);
+                    ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
                     ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
                 }
                 else
@@ -390,7 +389,7 @@ bool MBState::HasImpulseValidation()
                     if (percentChange > (minPercentChange / 100))
                     {
                         mHasImpulseValidation = Status::IS_TRUE;
-                        ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, Ask);
+                        ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
                         ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
                     }
                     else
@@ -409,7 +408,7 @@ bool MBState::HasImpulseValidation()
                         if (percentChange > (minPercentChange / 100))
                         {
                             mHasImpulseValidation = Status::IS_TRUE;
-                            ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, Ask);
+                            ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
                             ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
                         }
                         else

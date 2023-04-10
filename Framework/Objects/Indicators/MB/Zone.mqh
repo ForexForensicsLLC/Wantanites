@@ -15,7 +15,7 @@ class Zone : public ZoneState
 public:
     Zone();           // only used for default constructor in ObjectList
     Zone(Zone &zone); // only here for copy constructor in ObjectList
-    Zone(bool isPending, string symbol, int timeFrame, int mbNumber, int zoneNumber, int type, string description, datetime startDateTime,
+    Zone(bool isPending, string symbol, ENUM_TIMEFRAMES timeFrame, int mbNumber, int zoneNumber, int type, string description, datetime startDateTime,
          double entryPrice, datetime endDateTime, double exitPrice, int entryOffset, CandlePart brokenBy, color zoneColor);
     ~Zone();
 
@@ -27,7 +27,7 @@ Zone::Zone() {}
 
 Zone::Zone(Zone &zone) {}
 
-Zone::Zone(bool isPending, string symbol, int timeFrame, int mbNumber, int zoneNumber, int type, string description, datetime startDateTime,
+Zone::Zone(bool isPending, string symbol, ENUM_TIMEFRAMES timeFrame, int mbNumber, int zoneNumber, int type, string description, datetime startDateTime,
            double entryPrice, datetime endDateTime, double exitPrice, int entryOffset, CandlePart brokenBy, color zoneColor)
 {
     mIsPending = isPending;
@@ -73,10 +73,10 @@ void Zone::UpdateDrawnObject()
     }
     else
     {
-        ObjectSet(mName, OBJPROP_TIME1, mStartDateTime);
-        ObjectSet(mName, OBJPROP_PRICE1, mEntryPrice);
-        ObjectSet(mName, OBJPROP_TIME2, mEndDateTime);
-        ObjectSet(mName, OBJPROP_PRICE2, mExitPrice);
+        ObjectSetInteger(ChartID(), mName, OBJPROP_TIME, 0, mStartDateTime);
+        ObjectSetDouble(ChartID(), mName, OBJPROP_PRICE, 0, mEntryPrice);
+        ObjectSetInteger(ChartID(), mName, OBJPROP_TIME, 1, mEndDateTime);
+        ObjectSetDouble(ChartID(), mName, OBJPROP_PRICE, 1, mExitPrice);
 
         ChartRedraw();
     }

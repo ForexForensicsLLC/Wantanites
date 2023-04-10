@@ -22,7 +22,7 @@ private:
 
 public:
     // --- Constructors / Destructors ----------
-    MB(bool isPending, string symbol, int timeFrame, int number, int type, CandlePart brokenBy, datetime startDateTime, datetime endDateTime, datetime highDateTime,
+    MB(bool isPending, string symbol, ENUM_TIMEFRAMES timeFrame, int number, int type, CandlePart brokenBy, datetime startDateTime, datetime endDateTime, datetime highDateTime,
        datetime lowDateTime, int maxZones, CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB, bool allowMitigatedZones, bool allowOverlappingZones, color mbColor,
        color zoneColor);
     ~MB();
@@ -504,7 +504,7 @@ bool MB::PendingZoneIsOverlappingOtherZone(int type, int startIndex, double imba
 
 */
 // --------- Constructor / Destructor --------
-MB::MB(bool isPending, string symbol, int timeFrame, int number, int type, CandlePart brokenBy, datetime startDateTime, datetime endDateTime, datetime highDateTime,
+MB::MB(bool isPending, string symbol, ENUM_TIMEFRAMES timeFrame, int number, int type, CandlePart brokenBy, datetime startDateTime, datetime endDateTime, datetime highDateTime,
        datetime lowDateTime, int maxZones, CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB, bool allowMitigatedZones, bool allowOverlappingZones, color mbColor,
        color zoneColor)
 {
@@ -618,10 +618,10 @@ void MB::UpdateDrawnObject()
     }
     else
     {
-        ObjectSet(mName, OBJPROP_TIME1, mStartDateTime);
-        ObjectSet(mName, OBJPROP_PRICE1, iHigh(mSymbol, mTimeFrame, HighIndex()));
-        ObjectSet(mName, OBJPROP_TIME2, mEndDateTime);
-        ObjectSet(mName, OBJPROP_PRICE2, iLow(mSymbol, mTimeFrame, LowIndex()));
+        ObjectSetInteger(ChartID(), mName, OBJPROP_TIME, 0, mStartDateTime);
+        ObjectSetDouble(ChartID(), mName, OBJPROP_PRICE, 0, iHigh(mSymbol, mTimeFrame, HighIndex()));
+        ObjectSetInteger(ChartID(), mName, OBJPROP_TIME, 1, mEndDateTime);
+        ObjectSetDouble(ChartID(), mName, OBJPROP_PRICE, 1, iLow(mSymbol, mTimeFrame, LowIndex()));
 
         ChartRedraw();
     }

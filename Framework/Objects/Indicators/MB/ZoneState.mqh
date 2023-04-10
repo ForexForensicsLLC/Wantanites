@@ -9,7 +9,7 @@
 #property strict
 
 #include <Wantanites\Framework\Objects\Indicators\MB\Types.mqh>
-#include <Wantanites\Framework\Helpers\MQLHelper.mqh>
+#include <Wantanites\Framework\MQLVersionSpecific\Helpers\MQLHelper\MQLHelper.mqh>
 #include <Wantanites\Framework\Helpers\CandleStickHelper.mqh>
 
 class ZoneState
@@ -17,7 +17,7 @@ class ZoneState
 protected:
     bool mIsPending;
     string mSymbol;
-    int mTimeFrame;
+    ENUM_TIMEFRAMES mTimeFrame;
 
     int mMBNumber;
     int mNumber;
@@ -43,7 +43,7 @@ public:
     // --- Getters ---
     string DisplayName() { return "Zone"; }
     string Symbol() { return mSymbol; }
-    int TimeFrame() { return mTimeFrame; }
+    ENUM_TIMEFRAMES TimeFrame() { return mTimeFrame; }
 
     int Number() { return mNumber; }
     int MBNumber() { return mMBNumber; }
@@ -86,7 +86,7 @@ double ZoneState::Height()
 {
     if (mHeight == 0.0)
     {
-        mHeight = NormalizeDouble(MathAbs(EntryPrice() - ExitPrice()), Digits);
+        mHeight = NormalizeDouble(MathAbs(EntryPrice() - ExitPrice()), Digits());
     }
 
     return mHeight;

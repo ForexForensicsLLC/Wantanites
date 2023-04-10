@@ -11,6 +11,7 @@
 #property indicator_chart_window
 #property indicator_buffers 0
 
+#include <Wantanites\Framework\MQLVersionSpecific\Defines\MQL4Constants.mqh>
 #include <Wantanites\Framework\Objects\Indicators\MB\MBTracker.mqh>
 #include <Wantanites\Framework\Objects\Licenses\License.mqh>
 
@@ -69,21 +70,13 @@ void OnDeinit(const int reason)
     delete MBT;
 }
 
-int MBsCreated = 0;
 int OnCalculate(const int rates_total,
                 const int prev_calculated,
-                const datetime &time[],
-                const double &open[],
-                const double &high[],
-                const double &low[],
-                const double &close[],
-                const long &tick_volume[],
-                const long &volume[],
-                const int &spread[])
-{
-    MBT.DrawNMostRecentMBs(-1);
-    MBT.DrawZonesForNMostRecentMBs(-1);
+                const int begin,
+                const double &price[])
 
+{
+    MBT.Draw();
     return (rates_total);
 }
 

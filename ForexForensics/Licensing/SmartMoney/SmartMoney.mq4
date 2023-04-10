@@ -50,7 +50,7 @@ MBTracker *MBT;
 
 int OnInit()
 {
-    MBT = new MBTracker(false, Symbol(), Period(), StructureBoxesToTrack, MinCandlesInStructure, StructureValidatedBy, StructureBrokenBy, ShowPendingStructure,
+    MBT = new MBTracker(false, Symbol(), (ENUM_TIMEFRAMES)Period(), StructureBoxesToTrack, MinCandlesInStructure, StructureValidatedBy, StructureBrokenBy, ShowPendingStructure,
                         MaxZonesInStructure, AllowZonesAfterStructureValidation, ZonesBrokenBy, RequiredZonePartInStructure, AllowMitigatedZones, AllowOverlappingZones,
                         ShowPendingZones, PendingZonesBrokenBy, AllowPendingMitigatedZones, AllowPendingOverlappingZones, BullishStructure, BearishStructure, DemandZone,
                         SupplyZone, PendingDemandZone, PendingSupplyZone);
@@ -69,7 +69,6 @@ void OnDeinit(const int reason)
     delete MBT;
 }
 
-int MBsCreated = 0;
 int OnCalculate(const int rates_total,
                 const int prev_calculated,
                 const datetime &time[],
@@ -81,9 +80,7 @@ int OnCalculate(const int rates_total,
                 const long &volume[],
                 const int &spread[])
 {
-    MBT.DrawNMostRecentMBs(-1);
-    MBT.DrawZonesForNMostRecentMBs(-1);
-
+    MBT.Draw();
     return (rates_total);
 }
 

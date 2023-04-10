@@ -22,7 +22,7 @@
 
 #include <Wantanites\Framework\Objects\Indicators\MB\LiquidationSetupTracker.mqh>
 
-#include <Wantanites\Framework\Extensions\String.mqh>
+#include <Wantanites\Framework\MQLVersionSpecific\Extensions\String\String.mqh>
 
 #include <Wantanites\Framework\Utilities\LicenseManager.mqh>
 

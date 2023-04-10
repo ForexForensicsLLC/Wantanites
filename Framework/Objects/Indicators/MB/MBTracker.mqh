@@ -19,7 +19,7 @@ class MBTracker
 private:
     // --- Operation Variables ---
     bool mCalculateOnTick; // Needs to be true when on the 1 second chart or else we'll miss values
-    int mTimeFrame;
+    ENUM_TIMEFRAMES mTimeFrame;
     string mSymbol;
     int mPrevCalculated;
     datetime mFirstBarTime;
@@ -91,14 +91,14 @@ private:
 public:
     //  --- Getters ---
     string Symbol() { return mSymbol; }
-    int TimeFrame() { return mTimeFrame; }
+    ENUM_TIMEFRAMES TimeFrame() { return mTimeFrame; }
     int CurrentMBs() { return mCurrentMBs; }
     int MBsCreated() { return mMBsCreated; }
     bool HasPendingBullishMB() { return mHasPendingBullishMB; }
     bool HasPendingBearishMB() { return mHasPendingBearishMB; }
 
     // --- Constructors / Destructors ---
-    MBTracker(bool calculatedOnTick, string symbol, int timeFrame, int mbsToTrack, int minCandlesInMB, CandlePart mbsValidatedBy, CandlePart mbsBrokenBy,
+    MBTracker(bool calculatedOnTick, string symbol, ENUM_TIMEFRAMES timeFrame, int mbsToTrack, int minCandlesInMB, CandlePart mbsValidatedBy, CandlePart mbsBrokenBy,
               bool showPendingMBs, int maxZonesInMB, bool allowZonesAfterMBValidation, CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB,
               bool allowMitigatedZones, bool allowOverlappingZones, bool showPendingZones, CandlePart pendingZonesBrokenBy, bool allowPendingMitigatedZones,
               bool allowPendingOverlappingZones, color bullishMBColor, color bearishMBColor, color demandZoneColor, color supplyZoneColor, color pendingDemandZoneColor,
@@ -138,6 +138,8 @@ public:
 
     string ToString(int mbsToPrint);
     string ToSingleLineString(int mbsToPrint);
+
+    void Draw();
 
     // --- MB Display Methods ---
     void PrintNMostRecentMBs(int nMBs);
@@ -898,7 +900,7 @@ bool MBTracker::InternalNthMostRecentMBIsOpposite(int nthMB)
 // ##############################################################
 
 // -------------- Constructors / Destructors --------------------
-MBTracker::MBTracker(bool calculateOnTick, string symbol, int timeFrame, int mbsToTrack, int minCandlesInMB, CandlePart mbsValidatedBy, CandlePart mbsBrokenBy,
+MBTracker::MBTracker(bool calculateOnTick, string symbol, ENUM_TIMEFRAMES timeFrame, int mbsToTrack, int minCandlesInMB, CandlePart mbsValidatedBy, CandlePart mbsBrokenBy,
                      bool showPendingMBs, int maxZonesInMB, bool allowZonesAfterMBValidation, CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB,
                      bool allowMitigatedZones, bool allowOverlappingZones, bool showPendingZones, CandlePart pendingZonesBrokenBy, bool allowPendingMitigatedZones,
                      bool allowPendingOverlappingZones, color bullishMBColor = clrLimeGreen, color bearishMBColor = clrRed, color demandZoneColor = clrGold,
@@ -1331,6 +1333,14 @@ string MBTracker::ToSingleLineString(int mbsToPrint = 3)
 }
 
 // ---------------- MB Display Methods --------------
+void MBTracker::Draw()
+{
+    Update();
+
+    DrawNMostRecentMBs(-1);
+    DrawZonesForNMostRecentMBs(-1);
+}
+
 void MBTracker::PrintNMostRecentMBs(int n)
 {
     Update();
