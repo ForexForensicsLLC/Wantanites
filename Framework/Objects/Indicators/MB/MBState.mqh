@@ -41,7 +41,6 @@ protected:
     double mHeightToWidthRatio;
 
     bool mGlobalStartIsBroken;
-    // bool mGlobalEndIsBroken;
 
     bool mDrawn;
     color mMBColor;
@@ -246,17 +245,6 @@ bool MBState::GlobalStartIsBroken()
 
 bool MBState::GetShallowestZone(ZoneState *&zoneState)
 {
-    // for (int i = 0; i <= mMaxZones - 1; i++)
-    // {
-    //     if (CheckPointer(mZones[i]) == POINTER_INVALID)
-    //     {
-    //         continue;
-    //     }
-
-    //     zoneState = mZones[i];
-    //     return true;
-    // }
-
     if (mZones.Size() > 0)
     {
         zoneState = mZones[0];
@@ -268,15 +256,6 @@ bool MBState::GetShallowestZone(ZoneState *&zoneState)
 
 bool MBState::GetClosestValidZone(ZoneState *&zoneState)
 {
-    // for (int i = 0; i <= mMaxZones - 1; i++)
-    // {
-    //     if (CheckPointer(mZones[i]) != POINTER_INVALID && !mZones[i].IsBroken())
-    //     {
-    //         zoneState = mZones[i];
-    //         return true;
-    //     }
-    // }
-
     for (int i = 0; i < mZones.Size(); i++)
     {
         if (!mZones[i].IsBroken())
@@ -291,20 +270,6 @@ bool MBState::GetClosestValidZone(ZoneState *&zoneState)
 
 bool MBState::GetDeepestHoldingZone(ZoneState *&zoneState)
 {
-    // for (int i = mMaxZones - 1; i >= 0; i--)
-    // {
-    //     if (CheckPointer(mZones[i]) == POINTER_INVALID)
-    //     {
-    //         break;
-    //     }
-
-    //     if (mZones[i].IsHoldingFromStart())
-    //     {
-    //         zoneState = mZones[i];
-    //         return true;
-    //     }
-    // }
-
     for (int i = 0; i < mZones.Size(); i++)
     {
         if (mZones[i].IsHoldingFromStart())
@@ -501,17 +466,6 @@ string MBState::ToSingleLineString()
                       " End: " + IntegerToString(EndIndex()) +
                       " High: " + IntegerToString(HighIndex()) +
                       " Low: " + IntegerToString(LowIndex());
-
-    // for (int i = 1; i <= ZoneCount(); i++)
-    // {
-    //     int index = mMaxZones - i;
-    //     if (CheckPointer(mZones[index]) == POINTER_INVALID)
-    //     {
-    //         break;
-    //     }
-
-    //     mbString += mZones[index].ToSingleLineString();
-    // }
 
     for (int i = 0; i < mZones.Size(); i++)
     {
