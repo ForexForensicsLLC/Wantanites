@@ -37,6 +37,7 @@ protected:
     CandlePart mBrokenBy;
     bool mDrawn;
     string mName;
+    color mZoneColor;
 
 public:
     // --- Getters ---
@@ -246,8 +247,6 @@ void ZoneState::Draw()
         return;
     }
 
-    color clr = mType == OP_BUY ? clrGold : clrMediumVioletRed;
-
     if (!ObjectCreate(0, mName, OBJ_RECTANGLE, 0,
                       mStartDateTime, // Start
                       mEntryPrice,    // Entry
@@ -258,7 +257,7 @@ void ZoneState::Draw()
         return;
     }
 
-    ObjectSetInteger(0, mName, OBJPROP_COLOR, clr);
+    ObjectSetInteger(0, mName, OBJPROP_COLOR, mZoneColor);
     ObjectSetInteger(0, mName, OBJPROP_WIDTH, 1);
     ObjectSetInteger(0, mName, OBJPROP_BACK, false);
     ObjectSetInteger(0, mName, OBJPROP_FILL, !mIsPending);

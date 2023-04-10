@@ -16,7 +16,7 @@ public:
     Zone();           // only used for default constructor in ObjectList
     Zone(Zone &zone); // only here for copy constructor in ObjectList
     Zone(bool isPending, string symbol, int timeFrame, int mbNumber, int zoneNumber, int type, string description, datetime startDateTime,
-         double entryPrice, datetime endDateTime, double exitPrice, int entryOffset, CandlePart brokenBy);
+         double entryPrice, datetime endDateTime, double exitPrice, int entryOffset, CandlePart brokenBy, color zoneColor);
     ~Zone();
 
     void EndTime(datetime time) { mEndDateTime = time; }
@@ -28,7 +28,7 @@ Zone::Zone() {}
 Zone::Zone(Zone &zone) {}
 
 Zone::Zone(bool isPending, string symbol, int timeFrame, int mbNumber, int zoneNumber, int type, string description, datetime startDateTime,
-           double entryPrice, datetime endDateTime, double exitPrice, int entryOffset, CandlePart brokenBy)
+           double entryPrice, datetime endDateTime, double exitPrice, int entryOffset, CandlePart brokenBy, color zoneColor)
 {
     mIsPending = isPending;
     mSymbol = symbol;
@@ -51,6 +51,7 @@ Zone::Zone(bool isPending, string symbol, int timeFrame, int mbNumber, int zoneN
 
     mBrokenBy = brokenBy;
     mDrawn = false;
+    mZoneColor = zoneColor;
 
     mFurthestPointWasSet = false;
     mLowestConfirmationMBLowWithin = 0.0;

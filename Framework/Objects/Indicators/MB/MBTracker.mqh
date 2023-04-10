@@ -30,6 +30,7 @@ private:
     int mMinMBWidth;
     CandlePart mMBsValidatedBy;
     CandlePart mMBsBrokenBy;
+    bool mShowPendingMBs;
 
     int mCurrentMBs; // Used for tracking when to start cleaning up MBs
     int mMBsCreated; // Used for MBNumber
@@ -50,6 +51,19 @@ private:
     ZonePartInMB mRequiredZonePartInMB;
     bool mAllowMitigatedZones;
     bool mAllowOverlappingZones;
+
+    bool mShowPendingZones;
+    CandlePart mPendingZonesBrokenBy;
+    bool mAllowPendingMitigatedZones;
+    bool mAllowPendingOverlappingZones;
+
+    // --- Colors ---
+    color mBullishMBColor;
+    color mBearishMBColor;
+    color mDemandZoneColor;
+    color mSupplyZoneColor;
+    color mPendingDemandZoneColor;
+    color mPendingSupplyZoneColor;
 
     MB *mMBs[];
     MB *mPendingBullishMB;
@@ -84,8 +98,11 @@ public:
     bool HasPendingBearishMB() { return mHasPendingBearishMB; }
 
     // --- Constructors / Destructors ---
-    MBTracker(bool calculatedOnTick, string symbol, int timeFrame, int mbsToTrack, int minCandlesInMB, CandlePart mbsValidatedBy, CandlePart mbsBrokenBy, int maxZonesInMB,
-              bool allowZonesAfterMBValidation, CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB, bool allowMitigatedZones, bool allowOverlappingZones);
+    MBTracker(bool calculatedOnTick, string symbol, int timeFrame, int mbsToTrack, int minCandlesInMB, CandlePart mbsValidatedBy, CandlePart mbsBrokenBy,
+              bool showPendingMBs, int maxZonesInMB, bool allowZonesAfterMBValidation, CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB,
+              bool allowMitigatedZones, bool allowOverlappingZones, bool showPendingZones, CandlePart pendingZonesBrokenBy, bool allowPendingMitigatedZones,
+              bool allowPendingOverlappingZones, color bullishMBColor, color bearishMBColor, color demandZoneColor, color supplyZoneColor, color pendingDemandZoneColor,
+              color pendingSupplyZoneColor);
     ~MBTracker();
 
     // --- Maintenance Methods ---
@@ -310,7 +327,7 @@ void MBTracker::CalculateMB(int barIndex)
 
                 ResetTracking();
             }
-            else
+            else if (mShowPendingMBs)
             {
                 UpdatePendingMB(OP_BUY, barIndex, true);
             }
@@ -321,7 +338,10 @@ void MBTracker::CalculateMB(int barIndex)
             mMBs[MostRecentMBIndex()].CheckAddZonesAfterMBValidation(barIndex);
         }
 
-        UpdatePendingMB(OP_SELL, barIndex, false);
+        if (mShowPendingMBs)
+        {
+            UpdatePendingMB(OP_SELL, barIndex, false);
+        }
     }
     // prev mb was bearish
     else if (mMBs[MostRecentMBIndex()].Type() == OP_SELL)
@@ -345,7 +365,7 @@ void MBTracker::CalculateMB(int barIndex)
 
                 ResetTracking();
             }
-            else
+            else if (mShowPendingMBs)
             {
                 UpdatePendingMB(OP_SELL, barIndex, true);
             }
@@ -356,7 +376,10 @@ void MBTracker::CalculateMB(int barIndex)
             mMBs[MostRecentMBIndex()].CheckAddZonesAfterMBValidation(barIndex);
         }
 
-        UpdatePendingMB(OP_BUY, barIndex, false);
+        if (mShowPendingMBs)
+        {
+            UpdatePendingMB(OP_BUY, barIndex, false);
+        }
     }
 }
 
@@ -645,6 +668,20 @@ void MBTracker::CreateMB(int mbType, int startIndex, int endIndex, int highIndex
     delete mPendingBullishMB;
     delete mPendingBearishMB;
 
+    color mbColor;
+    color zoneColor;
+
+    if (mbType == OP_BUY)
+    {
+        mbColor = mBullishMBColor;
+        zoneColor = mDemandZoneColor;
+    }
+    else if (mbType == OP_SELL)
+    {
+        mbColor = mBearishMBColor;
+        zoneColor = mSupplyZoneColor;
+    }
+
     if (mCurrentMBs == mMBsToTrack)
     {
         delete mMBs[mMBsToTrack - 1];
@@ -652,7 +689,7 @@ void MBTracker::CreateMB(int mbType, int startIndex, int endIndex, int highIndex
 
         MB *mb = new MB(false, mSymbol, mTimeFrame, mMBsCreated, mbType, mMBsBrokenBy, iTime(mSymbol, mTimeFrame, startIndex), iTime(mSymbol, mTimeFrame, endIndex),
                         iTime(mSymbol, mTimeFrame, highIndex), iTime(mSymbol, mTimeFrame, lowIndex), mMaxZonesInMB, mZonesBrokenBy, mRequiredZonePartInMB,
-                        mAllowMitigatedZones, mAllowOverlappingZones);
+                        mAllowMitigatedZones, mAllowOverlappingZones, mbColor, zoneColor);
         mb.CheckAddZones();
         mMBs[0] = mb;
     }
@@ -660,7 +697,7 @@ void MBTracker::CreateMB(int mbType, int startIndex, int endIndex, int highIndex
     {
         MB *mb = new MB(false, mSymbol, mTimeFrame, mMBsCreated, mbType, mMBsBrokenBy, iTime(mSymbol, mTimeFrame, startIndex), iTime(mSymbol, mTimeFrame, endIndex),
                         iTime(mSymbol, mTimeFrame, highIndex), iTime(mSymbol, mTimeFrame, lowIndex), mMaxZonesInMB, mZonesBrokenBy, mRequiredZonePartInMB,
-                        mAllowMitigatedZones, mAllowOverlappingZones);
+                        mAllowMitigatedZones, mAllowOverlappingZones, mbColor, zoneColor);
         mb.CheckAddZones();
         mMBs[(mMBsToTrack - 1) - mCurrentMBs] = mb;
 
@@ -684,8 +721,8 @@ void MBTracker::UpdatePendingMB(int type, int barIndex, bool matchesMostRecentMB
                 {
                     mPendingBullishMB = new MB(true, mSymbol, mTimeFrame, mMBsCreated, OP_BUY, mMBsBrokenBy, iTime(mSymbol, mTimeFrame, bullishRetracementIndex),
                                                iTime(mSymbol, mTimeFrame, barIndex), iTime(mSymbol, mTimeFrame, bullishRetracementIndex),
-                                               iTime(mSymbol, mTimeFrame, mPendingBullishMBLowIndex), mMaxZonesInMB, mZonesBrokenBy, mRequiredZonePartInMB, false,
-                                               mAllowOverlappingZones);
+                                               iTime(mSymbol, mTimeFrame, mPendingBullishMBLowIndex), mMaxZonesInMB, mPendingZonesBrokenBy, mRequiredZonePartInMB,
+                                               mAllowPendingMitigatedZones, mAllowPendingOverlappingZones, mBullishMBColor, mPendingDemandZoneColor);
                 }
                 // already have a pending mb, just need to update it
                 else
@@ -711,8 +748,8 @@ void MBTracker::UpdatePendingMB(int type, int barIndex, bool matchesMostRecentMB
 
                 mPendingBullishMB = new MB(true, mSymbol, mTimeFrame, mMBsCreated, OP_BUY, mMBsBrokenBy, iTime(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].HighIndex()),
                                            iTime(mSymbol, mTimeFrame, barIndex), iTime(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].HighIndex()),
-                                           iTime(mSymbol, mTimeFrame, lowestIndex), mMaxZonesInMB, mZonesBrokenBy, mRequiredZonePartInMB, false,
-                                           mAllowOverlappingZones);
+                                           iTime(mSymbol, mTimeFrame, lowestIndex), mMaxZonesInMB, mPendingZonesBrokenBy, mRequiredZonePartInMB, mAllowPendingMitigatedZones,
+                                           mAllowPendingOverlappingZones, mBullishMBColor, mPendingDemandZoneColor);
             }
             // already have a pending mb, just need to update it
             else
@@ -727,8 +764,12 @@ void MBTracker::UpdatePendingMB(int type, int barIndex, bool matchesMostRecentMB
         if (CheckPointer(mPendingBullishMB) == POINTER_DYNAMIC)
         {
             mPendingBullishMB.UpdateDrawnObject();
-            mPendingBullishMB.CheckPendingZones(barIndex);
-            mPendingBullishMB.CheckAddZones();
+
+            if (mShowPendingZones)
+            {
+                mPendingBullishMB.CheckPendingZones(barIndex);
+                mPendingBullishMB.CheckAddZones();
+            }
         }
     }
     else if (type == OP_SELL)
@@ -743,8 +784,8 @@ void MBTracker::UpdatePendingMB(int type, int barIndex, bool matchesMostRecentMB
                 {
                     mPendingBearishMB = new MB(true, mSymbol, mTimeFrame, mMBsCreated, OP_SELL, mMBsBrokenBy, iTime(mSymbol, mTimeFrame, bearishRetracementIndex),
                                                iTime(mSymbol, mTimeFrame, barIndex), iTime(mSymbol, mTimeFrame, mPendingBearishMBHighIndex),
-                                               iTime(mSymbol, mTimeFrame, bearishRetracementIndex), mMaxZonesInMB, mZonesBrokenBy, mRequiredZonePartInMB, false,
-                                               mAllowOverlappingZones);
+                                               iTime(mSymbol, mTimeFrame, bearishRetracementIndex), mMaxZonesInMB, mPendingZonesBrokenBy, mRequiredZonePartInMB,
+                                               mAllowPendingMitigatedZones, mAllowPendingOverlappingZones, mBearishMBColor, mPendingSupplyZoneColor);
                 }
                 // already have a pending mb, just need to update it
                 else
@@ -769,7 +810,8 @@ void MBTracker::UpdatePendingMB(int type, int barIndex, bool matchesMostRecentMB
             {
                 mPendingBearishMB = new MB(true, mSymbol, mTimeFrame, mMBsCreated, OP_SELL, mMBsBrokenBy, iTime(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].LowIndex()),
                                            iTime(mSymbol, mTimeFrame, barIndex), highestIndex, iTime(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].LowIndex()),
-                                           mMaxZonesInMB, mZonesBrokenBy, mRequiredZonePartInMB, false, mAllowOverlappingZones);
+                                           mMaxZonesInMB, mPendingZonesBrokenBy, mRequiredZonePartInMB, mAllowPendingMitigatedZones, mAllowPendingOverlappingZones,
+                                           mBearishMBColor, mPendingSupplyZoneColor);
             }
             // already have a pending mb, just need to update it
             else
@@ -784,8 +826,12 @@ void MBTracker::UpdatePendingMB(int type, int barIndex, bool matchesMostRecentMB
         if (CheckPointer(mPendingBearishMB) == POINTER_DYNAMIC)
         {
             mPendingBearishMB.UpdateDrawnObject();
-            mPendingBearishMB.CheckPendingZones(barIndex);
-            mPendingBearishMB.CheckAddZones();
+
+            if (mShowPendingZones)
+            {
+                mPendingBearishMB.CheckPendingZones(barIndex);
+                mPendingBearishMB.CheckAddZones();
+            }
         }
     }
 }
@@ -852,8 +898,11 @@ bool MBTracker::InternalNthMostRecentMBIsOpposite(int nthMB)
 // ##############################################################
 
 // -------------- Constructors / Destructors --------------------
-MBTracker::MBTracker(bool calculateOnTick, string symbol, int timeFrame, int mbsToTrack, int minMBWidth, CandlePart mbsValidatedBy, CandlePart mbsBrokenBy, int maxZonesInMB,
-                     bool allowZonesAfterMBValidation, CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB, bool allowMitigatedZones, bool allowOverlappingZones)
+MBTracker::MBTracker(bool calculateOnTick, string symbol, int timeFrame, int mbsToTrack, int minCandlesInMB, CandlePart mbsValidatedBy, CandlePart mbsBrokenBy,
+                     bool showPendingMBs, int maxZonesInMB, bool allowZonesAfterMBValidation, CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB,
+                     bool allowMitigatedZones, bool allowOverlappingZones, bool showPendingZones, CandlePart pendingZonesBrokenBy, bool allowPendingMitigatedZones,
+                     bool allowPendingOverlappingZones, color bullishMBColor = clrLimeGreen, color bearishMBColor = clrRed, color demandZoneColor = clrGold,
+                     color supplyZoneColor = clrMediumVioletRed, color pendingDemandZoneColor = clrYellow, color pendingSupplyZoneColor = clrAqua)
 {
     mCalculateOnTick = calculateOnTick;
     mSymbol = symbol;
@@ -863,9 +912,10 @@ MBTracker::MBTracker(bool calculateOnTick, string symbol, int timeFrame, int mbs
     mInitialLoad = true;
 
     mMBsToTrack = mbsToTrack;
-    mMinMBWidth = minMBWidth;
+    mMinMBWidth = minCandlesInMB;
     mMBsValidatedBy = mbsValidatedBy;
     mMBsBrokenBy = mbsBrokenBy;
+    mShowPendingMBs = showPendingMBs;
 
     mMaxZonesInMB = maxZonesInMB;
     mAllowZonesAfterMBValidation = allowZonesAfterMBValidation;
@@ -873,6 +923,18 @@ MBTracker::MBTracker(bool calculateOnTick, string symbol, int timeFrame, int mbs
     mRequiredZonePartInMB = requiredZonePartInMB;
     mAllowMitigatedZones = allowMitigatedZones;
     mAllowOverlappingZones = allowOverlappingZones;
+
+    mShowPendingZones = showPendingZones;
+    mPendingZonesBrokenBy = pendingZonesBrokenBy;
+    mAllowPendingMitigatedZones = allowPendingMitigatedZones;
+    mAllowPendingOverlappingZones = allowPendingOverlappingZones;
+
+    mBullishMBColor = bullishMBColor;
+    mBearishMBColor = bearishMBColor;
+    mDemandZoneColor = demandZoneColor;
+    mSupplyZoneColor = supplyZoneColor;
+    mPendingDemandZoneColor = pendingDemandZoneColor;
+    mPendingSupplyZoneColor = pendingSupplyZoneColor;
 
     mMBsCreated = 0;
     mCurrentBullishRetracementIndex = -1;

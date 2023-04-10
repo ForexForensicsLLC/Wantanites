@@ -44,6 +44,8 @@ protected:
     // bool mGlobalEndIsBroken;
 
     bool mDrawn;
+    color mMBColor;
+    color mZoneColor;
 
     ObjectList<Zone> *mZones;
     int mMaxZones;
@@ -53,7 +55,6 @@ protected:
     bool mAllowOverlappingZones;
 
     string mName;
-
     Status mHasImpulseValidation;
 
 public:
@@ -527,7 +528,6 @@ void MBState::Draw()
         return;
     }
 
-    color clr = mType == OP_BUY ? clrLimeGreen : clrRed;
     GetLastError();
     if (!ObjectCreate(ChartID(), mName, OBJ_RECTANGLE, 0,
                       mStartDateTime,                          // Start
@@ -539,7 +539,7 @@ void MBState::Draw()
         return;
     }
 
-    ObjectSetInteger(ChartID(), mName, OBJPROP_COLOR, clr);
+    ObjectSetInteger(ChartID(), mName, OBJPROP_COLOR, mMBColor);
     ObjectSetInteger(ChartID(), mName, OBJPROP_WIDTH, 2);
     ObjectSetInteger(ChartID(), mName, OBJPROP_BACK, false);
     ObjectSetInteger(ChartID(), mName, OBJPROP_FILL, false);
