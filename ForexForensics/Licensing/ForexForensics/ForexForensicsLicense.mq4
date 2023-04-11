@@ -17,7 +17,11 @@ input string LicenseKey = "";
 
 int OnInit()
 {
-    License::CreateLicensingObjects(LicenseObjects::ForexForensics, LicenseKey);
+    if (LicenseKey != "")
+    {
+        License::CreateLicensingObjects(LicenseObjects::ForexForensics, LicenseKey);
+    }
+
     return (INIT_SUCCEEDED);
 }
 

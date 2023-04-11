@@ -8,12 +8,16 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Helpers\MQLHelper.mqh>
+#include <Wantanites\Framework\Objects\Indicators\MB\Types.mqh>
+#include <Wantanites\Framework\MQLVersionSpecific\Helpers\MQLHelper\MQLHelper.mqh>
+#include <Wantanites\Framework\Helpers\CandleStickHelper.mqh>
+
 class ZoneState
 {
 protected:
+    bool mIsPending;
     string mSymbol;
-    int mTimeFrame;
+    ENUM_TIMEFRAMES mTimeFrame;
 
     int mMBNumber;
     int mNumber;
@@ -30,15 +34,16 @@ protected:
 
     int mEntryOffset;
 
-    bool mAllowWickBreaks;
-    bool mWasRetrieved;
+    CandlePart mBrokenBy;
     bool mDrawn;
     string mName;
+    color mZoneColor;
 
 public:
     // --- Getters ---
+    string DisplayName() { return "Zone"; }
     string Symbol() { return mSymbol; }
-    int TimeFrame() { return mTimeFrame; }
+    ENUM_TIMEFRAMES TimeFrame() { return mTimeFrame; }
 
     int Number() { return mNumber; }
     int MBNumber() { return mMBNumber; }
@@ -52,7 +57,6 @@ public:
     double ExitPrice() { return mExitPrice; }
 
     int EntryOffset() { return mEntryOffset; }
-    bool WasRetrieved() { return mWasRetrieved; }
 
     double Height();
     double PercentOfZonePrice(double percent);
@@ -66,32 +70,23 @@ public:
     double mLowestConfirmationMBLowWithin;
     double mHighestConfirmationMBHighWithin;
 
-    // Tested
     bool IsHolding(int barIndex);
-
-    // Tested
     bool IsHoldingFromStart();
-
-    // Tested
     bool IsBroken();
-
-    // Tested
     bool BelowDemandZone(int barIndex);
-
-    // Tested
     bool AboveSupplyZone(int barIndex);
 
     // --- Display Methods ---
     string ToString();
     string ToSingleLineString();
-    void Draw(bool printErrors);
+    void Draw();
 };
 
 double ZoneState::Height()
 {
     if (mHeight == 0.0)
     {
-        mHeight = NormalizeDouble(MathAbs(EntryPrice() - ExitPrice()), Digits);
+        mHeight = NormalizeDouble(MathAbs(EntryPrice() - ExitPrice()), Digits());
     }
 
     return mHeight;
@@ -128,16 +123,17 @@ bool ZoneState::CandleIsInZone(int index)
 /// @brief This will return true if you are caclculating on every tick and a wick breaks below the zone
 bool ZoneState::BelowDemandZone(int barIndex)
 {
-    return (mAllowWickBreaks && MathMin(iOpen(mSymbol, mTimeFrame, barIndex), iClose(mSymbol, mTimeFrame, barIndex)) < mExitPrice) ||
-           (!mAllowWickBreaks && iLow(mSymbol, mTimeFrame, barIndex) < mExitPrice);
+    return (mBrokenBy == CandlePart::Body && CandleStickHelper::LowestBodyPart(mSymbol, mTimeFrame, barIndex) < mExitPrice) ||
+           (mBrokenBy == CandlePart::Wick && iLow(mSymbol, mTimeFrame, barIndex) < mExitPrice);
 }
 
 /// @brief This will return true if you are caclculating on every tick and a wick breaks above the zone
 bool ZoneState::AboveSupplyZone(int barIndex)
 {
-    return (mAllowWickBreaks && MathMax(iOpen(mSymbol, mTimeFrame, barIndex), iClose(mSymbol, mTimeFrame, barIndex)) > mExitPrice) ||
-           (!mAllowWickBreaks && iHigh(mSymbol, mTimeFrame, barIndex) > mExitPrice);
+    return (mBrokenBy == CandlePart::Body && CandleStickHelper::HighestBodyPart(mSymbol, mTimeFrame, barIndex) > mExitPrice) ||
+           (mBrokenBy == CandlePart::Wick && iHigh(mSymbol, mTimeFrame, barIndex) > mExitPrice);
 }
+
 // ----------------- Computed Properties ----------------------
 // checks if price is or was  in the zone from the barIndex, and the zone hasn't been broken
 bool ZoneState::IsHolding(int barIndex)
@@ -177,14 +173,14 @@ bool ZoneState::IsBroken()
     double price = 0.0;
     if (mType == OP_BUY)
     {
-        if (mAllowWickBreaks)
+        if (mBrokenBy == CandlePart::Body)
         {
             if (!MQLHelper::GetLowestBodyBetween(Symbol(), TimeFrame(), StartIndex(), 0, false, price))
             {
                 return false;
             }
         }
-        else
+        else if (mBrokenBy == CandlePart::Wick)
         {
             if (!MQLHelper::GetLowestLowBetween(Symbol(), TimeFrame(), StartIndex(), 0, false, price))
             {
@@ -196,14 +192,14 @@ bool ZoneState::IsBroken()
     }
     else if (mType == OP_SELL)
     {
-        if (mAllowWickBreaks)
+        if (mBrokenBy == CandlePart::Body)
         {
             if (!MQLHelper::GetHighestBodyBetween(Symbol(), TimeFrame(), StartIndex(), 0, false, price))
             {
                 return false;
             }
         }
-        else
+        else if (mBrokenBy == CandlePart::Wick)
         {
             if (!MQLHelper::GetHighestHighBetween(Symbol(), TimeFrame(), StartIndex(), 0, false, price))
             {
@@ -244,35 +240,34 @@ string ZoneState::ToSingleLineString()
            " Highest After: " + DoubleToString(highestAfter, _Digits);
 }
 // Draws the zone on the chart if it hasn't been drawn before
-void ZoneState::Draw(bool printErrors)
+void ZoneState::Draw()
 {
     if (mDrawn)
     {
         return;
     }
 
-    color clr = mType == OP_BUY ? clrGold : clrMediumVioletRed;
-
-    if (!ObjectCreate(0, mName, OBJ_RECTANGLE, 0,
+    if (!ObjectCreate(ChartID(), mName, OBJ_RECTANGLE, 0,
                       mStartDateTime, // Start
                       mEntryPrice,    // Entry
                       mEndDateTime,   // End
                       mExitPrice))    // Exit
     {
-        if (printErrors)
-        {
-            Print("Zone Object Creation Failed: ", GetLastError());
-        }
-
+        Print("Zone Object Creation Failed: ", GetLastError());
         return;
     }
 
-    ObjectSetInteger(0, mName, OBJPROP_COLOR, clr);
-    ObjectSetInteger(0, mName, OBJPROP_WIDTH, 1);
-    ObjectSetInteger(0, mName, OBJPROP_BACK, false);
-    ObjectSetInteger(0, mName, OBJPROP_FILL, true);
-    ObjectSetInteger(0, mName, OBJPROP_SELECTED, false);
-    ObjectSetInteger(0, mName, OBJPROP_SELECTABLE, false);
+    ObjectSetInteger(ChartID(), mName, OBJPROP_COLOR, mZoneColor);
+    ObjectSetInteger(ChartID(), mName, OBJPROP_WIDTH, 1);
+    ObjectSetInteger(ChartID(), mName, OBJPROP_BACK, false);
+    ObjectSetInteger(ChartID(), mName, OBJPROP_FILL, !mIsPending);
+    ObjectSetInteger(ChartID(), mName, OBJPROP_SELECTED, false);
+    ObjectSetInteger(ChartID(), mName, OBJPROP_SELECTABLE, false);
+
+    if (mIsPending)
+    {
+        ObjectSetInteger(ChartID(), mName, OBJPROP_STYLE, STYLE_DOT);
+    }
 
     mDrawn = true;
 }

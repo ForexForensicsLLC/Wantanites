@@ -13,21 +13,24 @@
 class Zone : public ZoneState
 {
 public:
-    // --- Constructor / Destructor ---
-    Zone(string symbol, int timeFrame, int mbNumber, int zoneNumber, int type, string description, datetime startDateTime,
-         double entryPrice, datetime endDateTime, double exitPrice, int entryOffset, bool allowWickBreaks);
+    Zone();           // only used for default constructor in ObjectList
+    Zone(Zone &zone); // only here for copy constructor in ObjectList
+    Zone(bool isPending, string symbol, ENUM_TIMEFRAMES timeFrame, int mbNumber, int zoneNumber, int type, string description, datetime startDateTime,
+         double entryPrice, datetime endDateTime, double exitPrice, int entryOffset, CandlePart brokenBy, color zoneColor);
     ~Zone();
 
-    // --- Setters ---
-    void WasRetrieved(bool wasRetrieved) { mWasRetrieved = wasRetrieved; }
+    void EndTime(datetime time) { mEndDateTime = time; }
 
-    // --- Maintenance Methods ---
-    void UpdateIndexes(int barIndex);
+    void UpdateDrawnObject();
 };
+Zone::Zone() {}
 
-Zone::Zone(string symbol, int timeFrame, int mbNumber, int zoneNumber, int type, string description, datetime startDateTime,
-           double entryPrice, datetime endDateTime, double exitPrice, int entryOffset, bool allowWickBreaks)
+Zone::Zone(Zone &zone) {}
+
+Zone::Zone(bool isPending, string symbol, ENUM_TIMEFRAMES timeFrame, int mbNumber, int zoneNumber, int type, string description, datetime startDateTime,
+           double entryPrice, datetime endDateTime, double exitPrice, int entryOffset, CandlePart brokenBy, color zoneColor)
 {
+    mIsPending = isPending;
     mSymbol = symbol;
     mTimeFrame = timeFrame;
 
@@ -46,18 +49,35 @@ Zone::Zone(string symbol, int timeFrame, int mbNumber, int zoneNumber, int type,
 
     mEntryOffset = entryOffset;
 
-    mAllowWickBreaks = allowWickBreaks;
+    mBrokenBy = brokenBy;
     mDrawn = false;
-    mWasRetrieved = false;
+    mZoneColor = zoneColor;
 
     mFurthestPointWasSet = false;
     mLowestConfirmationMBLowWithin = 0.0;
     mHighestConfirmationMBHighWithin = 0.0;
 
-    mName = "Zone: " + IntegerToString(timeFrame) + "_" + IntegerToString(mNumber) + ", MB: " + IntegerToString(mMBNumber);
+    mName = "Zone" + IntegerToString(mType) + ": " + IntegerToString(timeFrame) + "_" + IntegerToString(mNumber) + ", MB: " + IntegerToString(mMBNumber);
 }
 
 Zone::~Zone()
 {
     ObjectsDeleteAll(ChartID(), mName, 0, OBJ_RECTANGLE);
+}
+
+void Zone::UpdateDrawnObject()
+{
+    if (!mDrawn)
+    {
+        Draw();
+    }
+    else
+    {
+        ObjectSetInteger(ChartID(), mName, OBJPROP_TIME, 0, mStartDateTime);
+        ObjectSetDouble(ChartID(), mName, OBJPROP_PRICE, 0, mEntryPrice);
+        ObjectSetInteger(ChartID(), mName, OBJPROP_TIME, 1, mEndDateTime);
+        ObjectSetDouble(ChartID(), mName, OBJPROP_PRICE, 1, mExitPrice);
+
+        ChartRedraw();
+    }
 }

@@ -36,6 +36,9 @@ public:
     // adds an item to the end of the lsit
     void Add(T *&item);
 
+    // Adds an itme to the start of the list and pushes everything back
+    void Push(T *&item);
+
     // removes an item from the list
     void Remove(int index);
 
@@ -101,6 +104,18 @@ void ObjectList::Add(T *&item)
 {
     ArrayResize(mItems, Size() + 1);
     mItems[Size() - 1] = item;
+}
+
+template <typename T>
+void ObjectList::Push(T *&item)
+{
+    T *tempList[];
+    ArrayResize(tempList, Size() + 1);
+
+    tempList[0] = item;
+    ArrayCopy(tempList, mItems, 1, 0);
+
+    this = tempList;
 }
 
 template <typename T>

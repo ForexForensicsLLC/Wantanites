@@ -93,9 +93,9 @@ bool License::HasLicensingObjects()
 {
     SortedDictionary<int, string> *encodedParts = new SortedDictionary<int, string>();
 
-    for (int i = 0; i < ObjectsTotal(); i++)
+    for (int i = 0; i < ObjectsTotal(ChartID()); i++)
     {
-        string objName = ObjectName(i);
+        string objName = ObjectName(ChartID(), i);
         if (StringFind(objName, mLicenseObjectNamePrefix) != -1)
         {
             int partNumber = IntegerToString(StringSubstr(objName, 3, 1));

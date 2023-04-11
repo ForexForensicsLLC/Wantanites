@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
+#include <Wantanites\Framework\Objects\DataStructures\ObjectList.mqh>
 #include <Wantanites\Framework\Objects\Indicators\MB\Zone.mqh>
-#include <Wantanites\Framework\Helpers\MQLHelper.mqh>
 
 enum Status
 {
@@ -23,10 +23,12 @@ class MBState
 {
 protected:
     string mSymbol;
-    int mTimeFrame;
+    ENUM_TIMEFRAMES mTimeFrame;
+    bool mIsPending;
 
     int mNumber;
     int mType;
+    CandlePart mBrokenBy;
 
     datetime mStartDateTime;
     datetime mEndDateTime;
@@ -38,25 +40,26 @@ protected:
     double mHeightToWidthRatio;
 
     bool mGlobalStartIsBroken;
-    // bool mGlobalEndIsBroken;
 
     bool mDrawn;
+    color mMBColor;
+    color mZoneColor;
 
-    Zone *mZones[];
+    ObjectList<Zone> *mZones;
     int mMaxZones;
-    int mZoneCount;
-    int mUnretrievedZoneCount;
-    bool mAllowZoneWickBreaks;
-    bool mOnlyZonesInMB;
+    CandlePart mZonesBrokenBy;
+    ZonePartInMB mRequiredZonePartInMB;
+    bool mAllowMitigatedZones;
+    bool mAllowOverlappingZones;
 
     string mName;
-
     Status mHasImpulseValidation;
 
 public:
     // ------------- Getters --------------
     string Symbol() { return mSymbol; }
-    int TimeFrame() { return mTimeFrame; }
+    ENUM_TIMEFRAMES TimeFrame() { return mTimeFrame; }
+    bool IsPending() { return mIsPending; }
     int Number() { return mNumber; }
     int Type() { return mType; }
 
@@ -77,16 +80,12 @@ public:
     Status mInsideSetupZone;
     Status mPushedFurtherIntoSetupZone;
 
-    int ZoneCount() { return mZoneCount; }
-    int UnretrievedZoneCount() { return mUnretrievedZoneCount; }
+    int ZoneCount() { return mZones.Size(); }
 
+    bool CandleBrokeMB(int barIndex);
     bool StartIsBrokenFromBarIndex(int barIndex);
     bool GlobalStartIsBroken();
 
-    // bool EndIsBrokenFromBarIndex(int barIndex);
-    // bool GlobalEndIsBroken();
-
-    bool GetUnretrievedZones(ZoneState *&zoneStates[]);
     bool GetClosestValidZone(ZoneState *&zoneState);
     bool ClosestValidZoneIsHolding(int barIndex);
 
@@ -98,8 +97,8 @@ public:
     // --------- Display Methods ---------
     string ToString();
     string ToSingleLineString();
-    void Draw(bool printErrors);
-    void DrawZones(bool printErrors);
+    virtual void Draw();
+    virtual void DrawZones();
 };
 
 int MBState::Width()
@@ -116,7 +115,7 @@ double MBState::Height()
 {
     if (mHeight == 0.0)
     {
-        mHeight = NormalizeDouble(iHigh(Symbol(), TimeFrame(), HighIndex()) - iLow(Symbol(), TimeFrame(), LowIndex()), Digits);
+        mHeight = NormalizeDouble(iHigh(Symbol(), TimeFrame(), HighIndex()) - iLow(Symbol(), TimeFrame(), LowIndex()), Digits());
     }
 
     return mHeight;
@@ -152,45 +151,81 @@ double MBState::PercentOfMBPrice(double percent)
     return 0.0;
 }
 
+bool MBState::CandleBrokeMB(int barIndex)
+{
+    if (mType == OP_BUY)
+    {
+        double low;
+        if (mBrokenBy == CandlePart::Body)
+        {
+            low = CandleStickHelper::LowestBodyPart(mSymbol, mTimeFrame, barIndex);
+        }
+        else if (mBrokenBy == CandlePart::Wick)
+        {
+            low = iLow(mSymbol, mTimeFrame, barIndex);
+        }
+
+        return low < iLow(mSymbol, mTimeFrame, LowIndex());
+    }
+    else if (mType == OP_SELL)
+    {
+        double high;
+        if (mBrokenBy == CandlePart::Body)
+        {
+            high = CandleStickHelper::HighestBodyPart(mSymbol, mTimeFrame, barIndex);
+        }
+        else if (mBrokenBy == CandlePart::Wick)
+        {
+            high = iHigh(mSymbol, mTimeFrame, barIndex);
+        }
+
+        return high > iHigh(mSymbol, mTimeFrame, HighIndex());
+    }
+
+    return false;
+}
+
 bool MBState::StartIsBrokenFromBarIndex(int barIndex)
 {
     if (mType == OP_BUY)
     {
-        // This is for wick breaks
-        // double low;
-        // if (!MQLHelper::GetLowestLowBetween(mSymbol, mTimeFrame, LowIndex(), barIndex, false, low))
-        // {
-        //     return false;
-        // }
-
-        // return low < iLow(mSymbol, mTimeFrame, LowIndex());
-
-        double lowestBody;
-        if (!MQLHelper::GetLowestBodyBetween(mSymbol, mTimeFrame, LowIndex(), barIndex, false, lowestBody))
+        double low;
+        if (mBrokenBy == CandlePart::Body)
         {
-            return false;
+            if (!MQLHelper::GetLowestBodyBetween(mSymbol, mTimeFrame, LowIndex(), barIndex, false, low))
+            {
+                return false;
+            }
+        }
+        else if (mBrokenBy == CandlePart::Wick)
+        {
+            if (!MQLHelper::GetLowestLowBetween(mSymbol, mTimeFrame, LowIndex(), barIndex, false, low))
+            {
+                return false;
+            }
         }
 
-        return lowestBody < iLow(mSymbol, mTimeFrame, LowIndex());
+        return low < iLow(mSymbol, mTimeFrame, LowIndex());
     }
     else if (mType == OP_SELL)
     {
-        // This is for wick breaks
-        // double high;
-        // if (!MQLHelper::GetHighestHighBetween(mSymbol, mTimeFrame, HighIndex(), barIndex, false, high))
-        // {
-        //     return false;
-        // }
-
-        // return high > iHigh(mSymbol, mTimeFrame, HighIndex());
-
-        double highestBody;
-        if (!MQLHelper::GetHighestBodyBetween(mSymbol, mTimeFrame, HighIndex(), barIndex, false, highestBody))
+        double high;
+        if (mBrokenBy == CandlePart::Body)
         {
-            return false;
+            if (!MQLHelper::GetHighestBodyBetween(mSymbol, mTimeFrame, HighIndex(), barIndex, false, high))
+            {
+                return false;
+            }
+        }
+        else if (mBrokenBy == CandlePart::Wick)
+        {
+            if (!MQLHelper::GetHighestHighBetween(mSymbol, mTimeFrame, HighIndex(), barIndex, false, high))
+            {
+                return false;
+            }
         }
 
-        return highestBody > iHigh(mSymbol, mTimeFrame, HighIndex());
+        return high > iHigh(mSymbol, mTimeFrame, HighIndex());
     }
 
     return false;
@@ -207,43 +242,11 @@ bool MBState::GlobalStartIsBroken()
     return mGlobalStartIsBroken;
 }
 
-bool MBState::GetUnretrievedZones(ZoneState *&zoneStates[])
-{
-    ArrayResize(zoneStates, 0);
-
-    bool retrievedZones = false;
-    for (int i = mMaxZones - 1; i >= 0; i--)
-    {
-        if (CheckPointer(mZones[i]) == POINTER_INVALID)
-        {
-            break;
-        }
-
-        if (!mZones[i].WasRetrieved())
-        {
-            ArrayResize(zoneStates, ArraySize(zoneStates) + 1);
-
-            mZones[i].WasRetrieved(true);
-            zoneStates[i] = mZones[i];
-
-            retrievedZones = true;
-        }
-    }
-
-    mUnretrievedZoneCount = 0;
-    return retrievedZones;
-}
-
 bool MBState::GetShallowestZone(ZoneState *&zoneState)
 {
-    for (int i = 0; i <= mMaxZones - 1; i++)
+    if (mZones.Size() > 0)
     {
-        if (CheckPointer(mZones[i]) == POINTER_INVALID)
-        {
-            continue;
-        }
-
-        zoneState = mZones[i];
+        zoneState = mZones[0];
         return true;
     }
 
@@ -252,9 +255,9 @@ bool MBState::GetShallowestZone(ZoneState *&zoneState)
 
 bool MBState::GetClosestValidZone(ZoneState *&zoneState)
 {
-    for (int i = 0; i <= mMaxZones - 1; i++)
+    for (int i = 0; i < mZones.Size(); i++)
     {
-        if (CheckPointer(mZones[i]) != POINTER_INVALID && !mZones[i].IsBroken())
+        if (!mZones[i].IsBroken())
         {
             zoneState = mZones[i];
             return true;
@@ -266,13 +269,8 @@ bool MBState::GetClosestValidZone(ZoneState *&zoneState)
 
 bool MBState::GetDeepestHoldingZone(ZoneState *&zoneState)
 {
-    for (int i = mMaxZones - 1; i >= 0; i--)
+    for (int i = 0; i < mZones.Size(); i++)
     {
-        if (CheckPointer(mZones[i]) == POINTER_INVALID)
-        {
-            break;
-        }
-
         if (mZones[i].IsHoldingFromStart())
         {
             zoneState = mZones[i];
@@ -308,7 +306,7 @@ bool MBState::HasImpulseValidation()
                 if (percentChange > (minPercentChange / 100))
                 {
                     mHasImpulseValidation = Status::IS_TRUE;
-                    ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, Ask);
+                    ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
                     ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
                 }
                 else
@@ -328,7 +326,7 @@ bool MBState::HasImpulseValidation()
                     if (percentChange > (minPercentChange / 100))
                     {
                         mHasImpulseValidation = Status::IS_TRUE;
-                        ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, Ask);
+                        ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
                         ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
                     }
                     else
@@ -347,7 +345,7 @@ bool MBState::HasImpulseValidation()
                         if (percentChange > (minPercentChange / 100))
                         {
                             mHasImpulseValidation = Status::IS_TRUE;
-                            ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, Ask);
+                            ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
                             ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
                         }
                         else
@@ -371,7 +369,7 @@ bool MBState::HasImpulseValidation()
                 if (percentChange > (minPercentChange / 100))
                 {
                     mHasImpulseValidation = Status::IS_TRUE;
-                    ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, Ask);
+                    ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
                     ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
                 }
                 else
@@ -391,7 +389,7 @@ bool MBState::HasImpulseValidation()
                     if (percentChange > (minPercentChange / 100))
                     {
                         mHasImpulseValidation = Status::IS_TRUE;
-                        ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, Ask);
+                        ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
                         ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
                     }
                     else
@@ -410,7 +408,7 @@ bool MBState::HasImpulseValidation()
                         if (percentChange > (minPercentChange / 100))
                         {
                             mHasImpulseValidation = Status::IS_TRUE;
-                            ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, Ask);
+                            ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
                             ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
                         }
                         else
@@ -468,28 +466,21 @@ string MBState::ToSingleLineString()
                       " High: " + IntegerToString(HighIndex()) +
                       " Low: " + IntegerToString(LowIndex());
 
-    for (int i = 1; i <= ZoneCount(); i++)
+    for (int i = 0; i < mZones.Size(); i++)
     {
-        int index = mMaxZones - i;
-        if (CheckPointer(mZones[index]) == POINTER_INVALID)
-        {
-            break;
-        }
-
-        mbString += mZones[index].ToSingleLineString();
+        mbString += mZones[i].ToSingleLineString();
     }
 
     return mbString;
 }
 // Draws the current MB if it hasn't been drawn before
-void MBState::Draw(bool printErrors)
+void MBState::Draw()
 {
     if (mDrawn)
     {
         return;
     }
 
-    color clr = mType == OP_BUY ? clrLimeGreen : clrRed;
     GetLastError();
     if (!ObjectCreate(ChartID(), mName, OBJ_RECTANGLE, 0,
                       mStartDateTime,                          // Start
@@ -497,33 +488,31 @@ void MBState::Draw(bool printErrors)
                       mEndDateTime,                            // End
                       iLow(mSymbol, mTimeFrame, LowIndex())))  // Low
     {
-        if (printErrors)
-        {
-            Print("MB Object Creation Failed: ", GetLastError());
-        }
-
+        Print("Structure Object Creation Failed: ", GetLastError());
         return;
     }
 
-    ObjectSetInteger(ChartID(), mName, OBJPROP_COLOR, clr);
+    ObjectSetInteger(ChartID(), mName, OBJPROP_COLOR, mMBColor);
     ObjectSetInteger(ChartID(), mName, OBJPROP_WIDTH, 2);
     ObjectSetInteger(ChartID(), mName, OBJPROP_BACK, false);
     ObjectSetInteger(ChartID(), mName, OBJPROP_FILL, false);
     ObjectSetInteger(ChartID(), mName, OBJPROP_SELECTED, false);
     ObjectSetInteger(ChartID(), mName, OBJPROP_SELECTABLE, false);
 
+    if (mIsPending)
+    {
+        // Line styling only works when the width is set to 1 or 0
+        ObjectSetInteger(ChartID(), mName, OBJPROP_WIDTH, 1);
+        ObjectSetInteger(ChartID(), mName, OBJPROP_STYLE, STYLE_DOT);
+    }
+
     mDrawn = true;
 }
 
-void MBState::DrawZones(bool printErrors)
+void MBState::DrawZones()
 {
-    for (int i = mMaxZones - 1; i >= 0; i--)
+    for (int i = 0; i < mZones.Size(); i++)
     {
-        if (CheckPointer(mZones[i]) == POINTER_INVALID)
-        {
-            break;
-        }
-
-        mZones[i].Draw(printErrors);
+        mZones[i].Draw();
     }
 }

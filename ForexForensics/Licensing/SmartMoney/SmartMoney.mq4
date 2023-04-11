@@ -9,39 +9,58 @@
 #property strict
 
 #property indicator_chart_window
-#property indicator_buffers 1 // Number of buffers
+#property indicator_buffers 0
 
 #include <Wantanites\Framework\Objects\Indicators\MB\MBTracker.mqh>
 #include <Wantanites\Framework\Objects\Licenses\License.mqh>
 
-input string SmartMoneySettings = "----------------";
+string ButtonName = "ClearButton";
+
+input string StructureSettings = "------- Structure ---------"; // -
 input int StructureBoxesToTrack = 10;
+input int MinCandlesInStructure = 3;
+input CandlePart StructureValidatedBy = CandlePart::Body;
+input CandlePart StructureBrokenBy = CandlePart::Body;
+input bool ShowPendingStructure = true;
+
+input string ZoneSettings = "------ Zones --------"; // -
 input int MaxZonesInStructure = 5;
+input bool AllowZonesAfterStructureValidation = false;
+input CandlePart ZonesBrokenBy = CandlePart::Body;
+input ZonePartInMB RequiredZonePartInStructure = ZonePartInMB::Whole;
 input bool AllowMitigatedZones = false;
-input bool AllowZonesAfterStructureValidation = true;
-input bool AllowZoneWickBreaks = true;
-input bool OnlyZonesInStructure = true;
+input bool AllowOverlappingZones = false; // AllowOverlappingZones (Requires AllowMitigatedZones=true)
+input bool ShowPendingZones = true;
+input CandlePart PendingZonesBrokenBy = CandlePart::Wick;
+input bool AllowPendingMitigatedZones = true;
+input bool AllowPendingOverlappingZones = false;
 
-input string ClearAtTimeEachDay = "-------------";
-input string ClearHour = EMPTY;
-input string ClearMinute = EMPTY;
+input string colors = "----- Colors -------"; // -
+input color BullishStructure = clrLimeGreen;
+input color BearishStructure = clrRed;
+input color DemandZone = clrGold;
+input color SupplyZone = clrMediumVioletRed;
+input color PendingDemandZone = clrYellow;
+input color PendingSupplyZone = clrAqua;
 
-input string Licensing = "------------";
+input string Licensing = "------ Licensing -------"; // -
 input string LicenseKey = "";
 
 MBTracker *MBT;
 
-double Buffer1[];
-
 int OnInit()
 {
-    MBT = new MBTracker(Symbol(), Period(), StructureBoxesToTrack, MaxZonesInStructure, AllowMitigatedZones, AllowZonesAfterStructureValidation, AllowZoneWickBreaks,
-                        OnlyZonesInStructure, false, true);
+    MBT = new MBTracker(false, Symbol(), (ENUM_TIMEFRAMES)Period(), StructureBoxesToTrack, MinCandlesInStructure, StructureValidatedBy, StructureBrokenBy, ShowPendingStructure,
+                        MaxZonesInStructure, AllowZonesAfterStructureValidation, ZonesBrokenBy, RequiredZonePartInStructure, AllowMitigatedZones, AllowOverlappingZones,
+                        ShowPendingZones, PendingZonesBrokenBy, AllowPendingMitigatedZones, AllowPendingOverlappingZones, BullishStructure, BearishStructure, DemandZone,
+                        SupplyZone, PendingDemandZone, PendingSupplyZone);
 
-    SetIndexBuffer(0, Buffer1);
-    SetIndexStyle(0, DRAW_NONE);
+    if (LicenseKey != "")
+    {
+        License::CreateLicensingObjects(LicenseObjects::SmartMoney, LicenseKey);
+    }
 
-    License::CreateLicensingObjects(LicenseObjects::SmartMoney, LicenseKey);
+    CreateResetButton();
 
     return (INIT_SUCCEEDED);
 }
@@ -49,10 +68,10 @@ int OnInit()
 void OnDeinit(const int reason)
 {
     ObjectsDeleteAll(ChartID(), LicenseObjects::SmartMoney);
+    ObjectsDeleteAll(ChartID(), ButtonName);
     delete MBT;
 }
 
-int MBsCreated = 0;
 int OnCalculate(const int rates_total,
                 const int prev_calculated,
                 const datetime &time[],
@@ -64,20 +83,36 @@ int OnCalculate(const int rates_total,
                 const long &volume[],
                 const int &spread[])
 {
-    int i = Bars - IndicatorCounted() - 1;
-    while (i > 0)
+    MBT.Draw();
+    return (rates_total);
+}
+
+void CreateResetButton()
+{
+    ObjectCreate(0, ButtonName, OBJ_BUTTON, 0, 100, 100);
+    ObjectSetInteger(0, ButtonName, OBJPROP_COLOR, clrWhite);
+    ObjectSetInteger(0, ButtonName, OBJPROP_BGCOLOR, clrGray);
+    ObjectSetInteger(0, ButtonName, OBJPROP_XDISTANCE, 25);
+    ObjectSetInteger(0, ButtonName, OBJPROP_YDISTANCE, 25);
+    ObjectSetInteger(0, ButtonName, OBJPROP_XSIZE, 100);
+    ObjectSetInteger(0, ButtonName, OBJPROP_YSIZE, 50);
+    ObjectSetString(0, ButtonName, OBJPROP_FONT, "Arial");
+    ObjectSetString(0, ButtonName, OBJPROP_TEXT, "Clear");
+    ObjectSetInteger(0, ButtonName, OBJPROP_FONTSIZE, 10);
+    ObjectSetInteger(0, ButtonName, OBJPROP_SELECTABLE, 1);
+}
+
+void OnChartEvent(const int id,
+                  const long &lparam,
+                  const double &dparam,
+                  const string &sparam)
+{
+    if (id == CHARTEVENT_OBJECT_CLICK)
     {
-        datetime barTime = iTime(Symbol(), Period(), i);
-        if (ClearHour != EMPTY && ClearMinute != EMPTY && TimeHour(barTime) == ClearHour && TimeMinute(barTime) == ClearMinute)
+        if (sparam == ButtonName)
         {
             MBT.Clear();
+            ChartRedraw();
         }
-
-        MBT.DrawNMostRecentMBs(-1);
-        MBT.DrawZonesForNMostRecentMBs(-1);
-
-        i--;
     }
-
-    return (rates_total);
 }

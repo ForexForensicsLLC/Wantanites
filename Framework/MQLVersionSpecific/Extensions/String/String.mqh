@@ -10,15 +10,27 @@
 
 #include <Wantanites\Framework\Objects\DataStructures\List.mqh>
 
+#ifdef __MQL4__
+#include <Wantanites\Framework\MQLVersionSpecific\Extensions\String\MQ4String.mqh>
+#endif
+#ifdef __MQL5__
+#include <Wantanites\Framework\MQLVersionSpecific\Extensions\String\MQ5String.mqh>
+#endif
+
 class String
 {
 public:
+    static string SetChar(string s, int position, ushort asciiValue);
     static string Random(int length);
-    static void SplitStringNumber(string numberString, int period, List<int> &numbers);
 
     static void ToCharArray(string value, uchar &charArray[]);
     static string FromCharArray(uchar &charArray[], int start, int count);
 };
+
+static string String::SetChar(string s, int position, ushort asciiValue)
+{
+    return VersionSpecificString::SetChar(s, position, asciiValue);
+}
 
 string String::Random(int length)
 {
@@ -28,35 +40,14 @@ string String::Random(int length)
     for (int i = 0; i < length; i++)
     {
         // random character between ASCII 49 - 122
-        int randomChar = MathRand() % 73 + 49;
+        ushort randomChar = MathRand() % 73 + 49;
         string s = "s";
-        s = StringSetChar(s, 0, randomChar);
+        s = SetChar(s, 0, randomChar);
 
         randomString += s;
     }
 
     return randomString;
-}
-
-void String::SplitStringNumber(string numberString, int period, List<int> &numbers)
-{
-    int length = StringLen(numberString);
-    if (length < period)
-    {
-        Print("String is less than period");
-        return;
-    }
-
-    string tempNumberString = numberString;
-    while (tempNumberString != "")
-    {
-        Print("Temp Number String: ", tempNumberString);
-        int number = StrToInteger(StringSubstr(tempNumberString, 0, 2));
-        Print("Number: ", number);
-        numbers.Add(number);
-
-        tempNumberString = StringSubstr(tempNumberString, 2, StringLen(tempNumberString));
-    }
 }
 
 void String::ToCharArray(string value, uchar &charArray[])

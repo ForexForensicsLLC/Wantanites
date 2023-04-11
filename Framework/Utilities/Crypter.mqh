@@ -8,14 +8,14 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Extensions\String.mqh>
+#include <Wantanites\Framework\MQLVersionSpecific\Extensions\String\String.mqh>
 
 class Crypter
 {
 private:
     static string Key() { return "b6Dqhs6jFX4nZgNnJ9VPaskldjfklji2"; }
 
-    static int HashMethod() { return CRYPT_AES256; }
+    static ENUM_CRYPT_METHOD HashMethod() { return CRYPT_AES256; }
 
 public:
     static bool Encrypt(string value, uchar &result[]);
