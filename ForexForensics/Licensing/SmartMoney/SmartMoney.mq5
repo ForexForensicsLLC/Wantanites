@@ -56,7 +56,10 @@ int OnInit()
                         ShowPendingZones, PendingZonesBrokenBy, AllowPendingMitigatedZones, AllowPendingOverlappingZones, BullishStructure, BearishStructure, DemandZone,
                         SupplyZone, PendingDemandZone, PendingSupplyZone);
 
-    License::CreateLicensingObjects(LicenseObjects::SmartMoney, LicenseKey);
+    if (LicenseKey != "")
+    {
+        License::CreateLicensingObjects(LicenseObjects::SmartMoney, LicenseKey);
+    }
 
     CreateResetButton();
 

@@ -247,7 +247,7 @@ void ZoneState::Draw()
         return;
     }
 
-    if (!ObjectCreate(0, mName, OBJ_RECTANGLE, 0,
+    if (!ObjectCreate(ChartID(), mName, OBJ_RECTANGLE, 0,
                       mStartDateTime, // Start
                       mEntryPrice,    // Entry
                       mEndDateTime,   // End
@@ -257,12 +257,12 @@ void ZoneState::Draw()
         return;
     }
 
-    ObjectSetInteger(0, mName, OBJPROP_COLOR, mZoneColor);
-    ObjectSetInteger(0, mName, OBJPROP_WIDTH, 1);
-    ObjectSetInteger(0, mName, OBJPROP_BACK, false);
-    ObjectSetInteger(0, mName, OBJPROP_FILL, !mIsPending);
-    ObjectSetInteger(0, mName, OBJPROP_SELECTED, false);
-    ObjectSetInteger(0, mName, OBJPROP_SELECTABLE, false);
+    ObjectSetInteger(ChartID(), mName, OBJPROP_COLOR, mZoneColor);
+    ObjectSetInteger(ChartID(), mName, OBJPROP_WIDTH, 1);
+    ObjectSetInteger(ChartID(), mName, OBJPROP_BACK, false);
+    ObjectSetInteger(ChartID(), mName, OBJPROP_FILL, !mIsPending);
+    ObjectSetInteger(ChartID(), mName, OBJPROP_SELECTED, false);
+    ObjectSetInteger(ChartID(), mName, OBJPROP_SELECTABLE, false);
 
     if (mIsPending)
     {

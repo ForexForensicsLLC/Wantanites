@@ -488,7 +488,7 @@ void MBState::Draw()
                       mEndDateTime,                            // End
                       iLow(mSymbol, mTimeFrame, LowIndex())))  // Low
     {
-        Print("MB Object Creation Failed: ", GetLastError());
+        Print("Structure Object Creation Failed: ", GetLastError());
         return;
     }
 
