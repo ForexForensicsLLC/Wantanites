@@ -28,45 +28,24 @@ public:
     // ==========================================================================
     // Calculating Orders
     // ==========================================================================
-    // Tested
     static double RangeToPips(double range);
-
-    // Tested
     static double PipsToRange(double pips);
 
-    // Tested
     static double GetLotSize(double stopLossPips, double riskPercent);
-
     static double CleanLotSize(double dirtyLotSize);
 
 private:
-    // Tested
-    // ResetsOutParam
     static int GetEntryPriceForStopOrderForPendingMBValidation(double spreadPips, int setupType, MBTracker *&mbt, out double &entryPrice);
-
-    // Tested
-    // ResetsOutParam
     static int GetStopLossForStopOrderForPendingMBValidation(double paddingPips, double spreadPips, int setupType, MBTracker *&mbt, out double &stopLoss);
-
-    // Tested
-    // ResetsOutParam
     static int GetEntryPriceForStopOrderForBreakOfMB(double spreadPips, int mbNumber, MBTracker *&mbt, out double &entryPrice);
-
-    // Tested
-    // ResetsOutParam
     static int GetStopLossForStopOrderForBreakOfMB(double paddingPips, double spreadPips, int mbNumber, MBTracker *&mbt, out double &stopLoss);
 
 public:
     // ==========================================================================
     // Checking Orders
     // ==========================================================================
-    // Tested
-    // ResetsOutParam
     static int CountOtherEAOrders(bool todayOnly, int &magicNumbers[], out int &orders);
-
-    // !Tested
     static int FindActiveTicketsByMagicNumber(bool todayOnly, int magicNumber, int &tickets[]);
-
     static int FindNewTicketAfterPartial(int magicNumber, double openPrice, datetime orderOpenTime, int &ticket);
 
     // =========================================================================
@@ -84,35 +63,23 @@ public:
     // ==========================================================================
 
     static int PlaceLimitOrder(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber, out int &ticket);
-
-    // !Tested
     // static bool PlaceLimitOrderWithSinglePartial(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, double partialOnePercent, int magicNumber);
 
     // ==========================================================================
     // Placing Stop Orders
     // ==========================================================================
-    // Tested
-    // ResetsOutParam
     static int PlaceStopOrder(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber, int &ticket);
-
     static int PlaceStopOrderForCandleBreak(double paddingPips, double spreadPips, double riskPercent, int magicNumber,
                                             int type, string symbol, int timeFrame, int entryCandleIndex, int stopLossCandleIndex, int &ticketNumber);
-
     static int PlaceStopOrderForTheLittleDipper(double paddingPips, double spreadPips, double riskPercent, int magicNumber, int type, string symbol, int timeFrame,
                                                 int &ticketNumber);
 
     // ==========================================================================
     // Placing Stop Orders on MBs
     // ==========================================================================
-    // Tested
-    // ResetsOutParam
     static int PlaceStopOrderForPendingMBValidation(double paddingPips, double spreadPips, double riskPercent, int magicNumber, int setupMBNumber,
                                                     MBTracker *&mbt, out int &ticket);
-
-    // Tested
-    // ResetsOutParam
     static int PlaceStopOrderForBreakOfMB(double paddingPips, double spreadPips, double riskPercent, int magicNumber, int mbNumber, MBTracker *&mbt, out int &ticket);
-
     static int PlaceStopOrderForPendingLiquidationSetupValidation(double paddingPips, double spreadPips, double riskPercent, int magicNumber, int liquidationMBNumber,
                                                                   MBTracker *&mbt, out int &ticket);
 
@@ -123,11 +90,8 @@ public:
     // static bool EditStopLoss(double newStopLoss, double newLots, int magicNumber);
 
     static int PartialTicket(int ticketNumber, double price, double lotsToPartial);
-
     static int MoveTicketToBreakEven(Ticket &ticket, double additionalPips);
-
     static int MoveToBreakEvenWithCandleFurtherThanEntry(string symbol, int timeFrame, bool waitForCandleClose, Ticket *&ticket);
-
     static int CheckEditStopLossForTheLittleDipper(double stopLossPaddingPips, double spreadPips, string symbol, int timeFrame, Ticket &ticket);
 
     // ==========================================================================
@@ -548,27 +512,27 @@ static int OrderHelper::FindNewTicketAfterPartial(int magicNumber, double openPr
                               |___/
 
 */
-static int OrderHelper::PlaceMarketOrder(int orderType, double lots, double entry, double stopLoss, double takeProfit, int magicNumber, int &ticket)
-{
-    if (orderType >= 2)
-    {
-        return TerminalErrors::WRONG_ORDER_TYPE;
-    }
+// static int OrderHelper::PlaceMarketOrder(int orderType, double lots, double entry, double stopLoss, double takeProfit, int magicNumber, int &ticket)
+// {
+//     if (orderType >= 2)
+//     {
+//         return TerminalErrors::WRONG_ORDER_TYPE;
+//     }
 
-    lots = CleanLotSize(lots);
+//     lots = CleanLotSize(lots);
 
-    int newTicket = OrderSend(Symbol(), orderType, lots, entry, 0, stopLoss, takeProfit, NULL, magicNumber, 0, clrNONE);
+//     int newTicket = OrderSend(Symbol(), orderType, lots, entry, 0, stopLoss, takeProfit, NULL, magicNumber, 0, clrNONE);
 
-    int error = ERR_NO_ERROR;
-    if (newTicket == EMPTY)
-    {
-        error = GetLastError();
-        SendFailedOrderEMail(1, orderType, entry, stopLoss, lots, magicNumber, error);
-    }
+//     int error = ERR_NO_ERROR;
+//     if (newTicket == EMPTY)
+//     {
+//         error = GetLastError();
+//         SendFailedOrderEMail(1, orderType, entry, stopLoss, lots, magicNumber, error);
+//     }
 
-    ticket = newTicket;
-    return error;
-}
+//     ticket = newTicket;
+//     return error;
+// }
 
 static int OrderHelper::PlaceMarketOrderForCandleSetup(double paddingPips, double spreadPips, double riskPercent, int magicNumber, int type,
                                                        string symbol, int timeFrame, int stopLossCandleIndex, int &ticketNumber)
@@ -654,48 +618,46 @@ static int OrderHelper::PlaceMarketOrderForMostRecentMB(double paddingPips, doub
                               |___/
 
 */
-int OrderHelper::PlaceLimitOrder(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber, out int &ticket)
-{
-    if (orderType != OP_BUYLIMIT && orderType != OP_SELLLIMIT)
-    {
-        return TerminalErrors::WRONG_ORDER_TYPE;
-    }
+// int OrderHelper::PlaceLimitOrder(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber, out int &ticket)
+// {
+//     if (orderType != OP_BUYLIMIT && orderType != OP_SELLLIMIT)
+//     {
+//         return TerminalErrors::WRONG_ORDER_TYPE;
+//     }
 
-    if (stopLoss > 0.0)
-    {
-        if ((orderType == OP_BUYLIMIT && stopLoss >= entryPrice) || (orderType == OP_SELLLIMIT && stopLoss <= entryPrice))
-        {
-            return TerminalErrors::STOPLOSS_PAST_ENTRY;
-        }
-    }
+//     if (stopLoss > 0.0)
+//     {
+//         if ((orderType == OP_BUYLIMIT && stopLoss >= entryPrice) || (orderType == OP_SELLLIMIT && stopLoss <= entryPrice))
+//         {
+//             return TerminalErrors::STOPLOSS_PAST_ENTRY;
+//         }
+//     }
 
-    MqlTick currentTick;
-    if (!SymbolInfoTick(_Symbol, currentTick))
-    {
-        return GetLastError();
-    }
+//     MqlTick currentTick;
+//     if (!SymbolInfoTick(_Symbol, currentTick))
+//     {
+//         return GetLastError();
+//     }
 
-    if ((orderType == OP_BUYLIMIT && entryPrice >= currentTick.ask) || (orderType == OP_SELLLIMIT && entryPrice <= currentTick.bid))
-    {
-        Print("Type: ", orderType, ", Entry: ", entryPrice, ", SL:", stopLoss, ", Ask: ", currentTick.ask, ", Bid: ", currentTick.bid);
-        return ExecutionErrors::ORDER_ENTRY_FURTHER_THEN_PRICE;
-    }
+//     if ((orderType == OP_BUYLIMIT && entryPrice >= currentTick.ask) || (orderType == OP_SELLLIMIT && entryPrice <= currentTick.bid))
+//     {
+//         return ExecutionErrors::ORDER_ENTRY_FURTHER_THEN_PRICE;
+//     }
 
-    lots = CleanLotSize(lots);
+//     lots = CleanLotSize(lots);
 
-    int error = ERR_NO_ERROR;
-    int ticketNumber = OrderSend(NULL, orderType, lots, entryPrice, 0, stopLoss, takeProfit, NULL, magicNumber, 0, clrNONE);
+//     int error = ERR_NO_ERROR;
+//     int ticketNumber = OrderSend(NULL, orderType, lots, entryPrice, 0, stopLoss, takeProfit, NULL, magicNumber, 0, clrNONE);
 
-    if (ticketNumber < 0)
-    {
-        error = GetLastError();
-        Print("Failed to place limit Order. Error: ", error, ", Type: ", orderType, ", Lots: ", lots, ", Entry: ", entryPrice, ", SL: ", stopLoss, ", TP: ", takeProfit);
-        SendFailedOrderEMail(1, orderType, entryPrice, stopLoss, lots, magicNumber, error);
-    }
+//     if (ticketNumber < 0)
+//     {
+//         error = GetLastError();
+//         SendFailedOrderEMail(1, orderType, entryPrice, stopLoss, lots, magicNumber, error);
+//     }
 
-    ticket = ticketNumber;
-    return error;
-}
+//     ticket = ticketNumber;
+//     return error;
+// }
 
 /*
 static bool OrderHelper::PlaceLimitOrderWithSinglePartial(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, double partialOnePercent, int magicNumber = 0)
@@ -735,48 +697,46 @@ static bool OrderHelper::PlaceLimitOrderWithSinglePartial(int orderType, double 
                               |___/                 |_|
 
 */
-int OrderHelper::PlaceStopOrder(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber, out int &ticket)
-{
-    if (orderType != OP_BUYSTOP && orderType != OP_SELLSTOP)
-    {
-        return TerminalErrors::WRONG_ORDER_TYPE;
-    }
+// int OrderHelper::PlaceStopOrder(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber, out int &ticket)
+// {
+//     if (orderType != OP_BUYSTOP && orderType != OP_SELLSTOP)
+//     {
+//         return TerminalErrors::WRONG_ORDER_TYPE;
+//     }
 
-    if (stopLoss > 0.0)
-    {
-        if ((orderType == OP_BUYSTOP && stopLoss >= entryPrice) || (orderType == OP_SELLSTOP && stopLoss <= entryPrice))
-        {
-            return TerminalErrors::STOPLOSS_PAST_ENTRY;
-        }
-    }
+//     if (stopLoss > 0.0)
+//     {
+//         if ((orderType == OP_BUYSTOP && stopLoss >= entryPrice) || (orderType == OP_SELLSTOP && stopLoss <= entryPrice))
+//         {
+//             return TerminalErrors::STOPLOSS_PAST_ENTRY;
+//         }
+//     }
 
-    MqlTick currentTick;
-    if (!SymbolInfoTick(_Symbol, currentTick))
-    {
-        return GetLastError();
-    }
+//     MqlTick currentTick;
+//     if (!SymbolInfoTick(_Symbol, currentTick))
+//     {
+//         return GetLastError();
+//     }
 
-    if ((orderType == OP_BUYSTOP && entryPrice <= currentTick.ask) || (orderType == OP_SELLSTOP && entryPrice >= currentTick.bid))
-    {
-        Print("Type: ", orderType, ", Entry: ", entryPrice, ", SL:", stopLoss, ", Ask: ", currentTick.ask, ", Bid: ", currentTick.bid);
-        return ExecutionErrors::ORDER_ENTRY_FURTHER_THEN_PRICE;
-    }
+//     if ((orderType == OP_BUYSTOP && entryPrice <= currentTick.ask) || (orderType == OP_SELLSTOP && entryPrice >= currentTick.bid))
+//     {
+//         return ExecutionErrors::ORDER_ENTRY_FURTHER_THEN_PRICE;
+//     }
 
-    lots = CleanLotSize(lots);
+//     lots = CleanLotSize(lots);
 
-    int error = ERR_NO_ERROR;
-    int ticketNumber = OrderSend(NULL, orderType, lots, entryPrice, 0, stopLoss, takeProfit, NULL, magicNumber, 0, clrNONE);
+//     int error = ERR_NO_ERROR;
+//     int ticketNumber = OrderSend(NULL, orderType, lots, entryPrice, 0, stopLoss, takeProfit, NULL, magicNumber, 0, clrNONE);
 
-    if (ticketNumber < 0)
-    {
-        error = GetLastError();
-        Print("Failed to place stop Order. Error: ", error, ", Type: ", orderType, ", Lots: ", lots, ", Entry: ", entryPrice, ", SL: ", stopLoss, ", TP: ", takeProfit);
-        SendFailedOrderEMail(1, orderType, entryPrice, stopLoss, lots, magicNumber, error);
-    }
+//     if (ticketNumber < 0)
+//     {
+//         error = GetLastError();
+//         SendFailedOrderEMail(1, orderType, entryPrice, stopLoss, lots, magicNumber, error);
+//     }
 
-    ticket = ticketNumber;
-    return error;
-}
+//     ticket = ticketNumber;
+//     return error;
+// }
 
 static int OrderHelper::PlaceStopOrderForCandleBreak(double paddingPips, double spreadPips, double riskPercent, int magicNumber,
                                                      int type, string symbol, int timeFrame, int entryCandleIndex, int stopLossCandleIndex, int &ticketNumber)

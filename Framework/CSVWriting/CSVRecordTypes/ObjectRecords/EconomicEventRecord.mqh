@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Helpers\DateTimeHelper.mqh>
+#include <Wantanites\Framework\MQLVersionSpecific\Helpers\DateTimeHelper\DateTimeHelper.mqh>
 #include <Wantanites\Framework\Helpers\FileHelper.mqh>
 
 class EconomicEventRecord

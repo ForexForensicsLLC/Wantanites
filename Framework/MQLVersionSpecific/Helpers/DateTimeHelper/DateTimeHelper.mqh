@@ -8,10 +8,26 @@
 #property version "1.00"
 #property strict
 
+#ifdef __MQL4__
+#include <Wantanites\Framework\MQLVersionSpecific\Helpers\DateTimeHelper\MQL4DateTimeHelper.mqh>
+#endif
+#ifdef __MQL5__
+#include <Wantanites\Framework\MQLVersionSpecific\Helpers\DateTimeHelper\MQL5DateTimeHelper.mqh>
+#endif
+
 class DateTimeHelper
 {
 public:
     static int MQLUTCOffset();
+
+    static MqlDateTime CurrentTime();
+    static int CurrentYear();
+    static int CurrentMonth();
+    static int CurrentDay();
+    static int CurrentHour();
+    static int CurrentMinute();
+    static int CurrentSecond();
+    static int CurrentDayOfWeek();
 
     static datetime HourMinuteToDateTime(int hour, int minute, int day);
     static datetime DayMonthYearToDateTime(int day, int month, int year);
@@ -36,9 +52,54 @@ int DateTimeHelper::MQLUTCOffset()
     return 2;
 }
 
+MqlDateTime DateTimeHelper::CurrentTime()
+{
+    MqlDateTime dt;
+    TimeCurrent(dt);
+
+    return dt;
+}
+
+int DateTimeHelper::CurrentYear()
+{
+    return SpecifcDateTimeHelperVersion::CurrentYear();
+}
+
+int DateTimeHelper::CurrentMonth()
+{
+    return SpecifcDateTimeHelperVersion::CurrentMonth();
+}
+
+int DateTimeHelper::CurrentDay()
+{
+    return SpecifcDateTimeHelperVersion::CurrentDay();
+}
+
+int DateTimeHelper::CurrentHour()
+{
+    return SpecifcDateTimeHelperVersion::CurrentHour();
+}
+
+int DateTimeHelper::CurrentMinute()
+{
+    return SpecifcDateTimeHelperVersion::CurrentMinute();
+}
+
+int DateTimeHelper::CurrentSecond()
+{
+    return SpecifcDateTimeHelperVersion::CurrentSecond();
+}
+
+int DateTimeHelper::CurrentDayOfWeek()
+{
+    return SpecifcDateTimeHelperVersion::CurrentDayOfWeek();
+}
+
 datetime DateTimeHelper::HourMinuteToDateTime(int hour, int minute, int day)
 {
-    string timeString = Year() + "." + Month() + "." + day + " " + IntegerToString(hour) + ":" + IntegerToString(minute);
+    MqlDateTime dt = CurrentTime();
+
+    string timeString = dt.year + "." + dt.mon + "." + day + " " + IntegerToString(hour) + ":" + IntegerToString(minute);
     return StringToTime(timeString);
 }
 

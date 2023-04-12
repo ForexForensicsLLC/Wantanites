@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Helpers\DateTimeHelper.mqh>
+#include <Wantanites\Framework\MQLVersionSpecific\Helpers\DateTimeHelper\DateTimeHelper.mqh>
 #include <Wantanites\Framework\Objects\DataStructures\List.mqh>
 
 enum DayOfWeekEnum
@@ -147,7 +147,7 @@ int TradingSession::StartIndex(string symbol, int timeFrame)
 
 bool TradingSession::CurrentlyWithinSession()
 {
-    if (mExcludedDays.Contains(DayOfWeek()))
+    if (mExcludedDays.Contains(DateTimeHelper::CurrentDayOfWeek()))
     {
         return false;
     }
@@ -168,17 +168,18 @@ bool TradingSession::WithinDayMonthYear()
         return true;
     }
 
-    datetime startTime = DateTimeHelper::DayMonthYearToDateTime(mDayStart, mMonthStart, Year());
+    int currentYear = DateTimeHelper::CurrentYear();
+    datetime startTime = DateTimeHelper::DayMonthYearToDateTime(mDayStart, mMonthStart, currentYear);
     datetime endTime = 0;
 
     bool rolloverYear = (mExclusiveMonthEnd < mMonthStart) || (mMonthStart == mExclusiveMonthEnd && mExclusiveDayEnd < mDayStart);
     if (rolloverYear)
     {
-        endTime = DateTimeHelper::DayMonthYearToDateTime(mExclusiveDayEnd, mExclusiveMonthEnd, Year() + 1);
+        endTime = DateTimeHelper::DayMonthYearToDateTime(mExclusiveDayEnd, mExclusiveMonthEnd, currentYear + 1);
     }
     else
     {
-        endTime = DateTimeHelper::DayMonthYearToDateTime(mExclusiveDayEnd, mExclusiveMonthEnd, Year());
+        endTime = DateTimeHelper::DayMonthYearToDateTime(mExclusiveDayEnd, mExclusiveMonthEnd, currentYear);
     }
 
     return TimeCurrent() >= startTime && TimeCurrent() < endTime;
@@ -192,8 +193,9 @@ bool TradingSession::WithinHourMinute()
         return true;
     }
 
-    datetime startTime = DateTimeHelper::HourMinuteToDateTime(mHourStart, mMinuteStart, Day());
-    datetime endTime = DateTimeHelper::HourMinuteToDateTime(mExclusiveHourEnd, mExclusiveMinuteEnd, Day());
+    int currentDay = DateTimeHelper::CurrentDay();
+    datetime startTime = DateTimeHelper::HourMinuteToDateTime(mHourStart, mMinuteStart, currentDay);
+    datetime endTime = DateTimeHelper::HourMinuteToDateTime(mExclusiveHourEnd, mExclusiveMinuteEnd, currentDay);
 
     bool rolloverDay = (mExclusiveHourEnd < mHourStart) || (mHourStart == mExclusiveHourEnd && mExclusiveMinuteEnd < mMinuteStart);
     if (rolloverDay)

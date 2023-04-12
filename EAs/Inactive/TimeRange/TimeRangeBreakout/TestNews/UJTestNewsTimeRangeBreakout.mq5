@@ -8,6 +8,7 @@
 #property version "1.00"
 #property strict
 
+#include <Wantanites/Framework/MQLVersionSpecific/Defines/MQL4Constants.mqh>
 #include <Wantanites/Framework/Constants/MagicNumbers.mqh>
 #include <Wantanites/Framework/Constants/SymbolConstants.mqh>
 #include <Wantanites/EAs/Inactive/TimeRange/TimeRangeBreakout/TestNews/TestNewsTimeRangeBreakout.mqh>
