@@ -15,27 +15,26 @@
 #include <Wantanites\Framework\MQLVersionSpecific\Utilities\TradeManager\MQL5TradeManager.mqh>
 #endif
 
-#include <Wantanites\Framework\Constants\OrderTypes.mqh>
-
 class TradeManager
 {
 private:
     VersionSpecificTradeManager *mTM;
 
+    bool StopLossPastEntry(OrderType orderType, double entryPrice, double stopLoss);
+
 public:
     TradeManager(ulong magicNumber, ulong slippage);
     ~TradeManager();
 
-    int Buy(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
-    int Sell(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
-    int BuyLimit(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
-    int SellLimit(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
-    int BuyStop(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
-    int SellStop(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
+    double CleanLotSize(double dirtyLotSize);
 
-    int OrderModify(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration);
-    int OrderDelete(int ticket);
-    int OrderClose(int ticket);
+    int PlaceMarketOrder(OrderType orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
+    int PlaceLimitOrder(OrderType orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
+    int PlaceStopOrder(OrderType orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
+
+    int ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration);
+    int DeleteOrder(int ticket);
+    int CloseOrder(int ticket, double lots, double price);
 };
 
 TradeManager::TradeManager(ulong magicNumber, ulong slippage)
@@ -45,42 +44,128 @@ TradeManager::TradeManager(ulong magicNumber, ulong slippage)
 
 TradeManager::~TradeManager() {}
 
-int TradeManager::Buy(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
+bool TradeManager::StopLossPastEntry(OrderType orderType, double entryPrice, double stopLoss)
 {
-    return mTM.Buy(lots, entryPrice, stopLoss, takeProfit, ticket);
-}
-int TradeManager::Sell(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
-{
-    return mTM.Sell(lots, entryPrice, stopLoss, takeProfit, ticket);
-}
-int TradeManager::BuyLimit(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
-{
-    return mTM.BuyLimit(lots, entryPrice, stopLoss, takeProfit, ticket);
-}
-int TradeManager::SellLimit(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
-{
-    return mTM.SellLimit(lots, entryPrice, stopLoss, takeProfit, ticket);
-}
-int TradeManager::BuyStop(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
-{
-    return mTM.BuyStop(lots, entryPrice, stopLoss, takeProfit, ticket);
-}
-int TradeManager::SellStop(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
-{
-    return mTM.SellStop(lots, entryPrice, stopLoss, takeProfit, ticket);
+    if ((orderType == OrderType::Buy || orderType == OrderType::BuyLimit || orderType == OrderType::BuyStop) && stopLoss >= entryPrice)
+    {
+        return true;
+    }
+
+    if ((orderType == OrderType::Sell || orderType == OrderType::SellLimit || orderType == OrderType::SellStop) && stopLoss <= entryPrice)
+    {
+        return true;
+    }
+
+    return false;
 }
 
-int TradeManager::OrderModify(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration)
+double TradeManager::CleanLotSize(double dirtyLotSize)
 {
-    return mTM.OrderModify(ticket, entryPrice, stopLoss, takeProfit, expiration);
+    double lotStep = MarketInfo(Symbol(), MODE_LOTSTEP);
+    double maxLotSize = MarketInfo(Symbol(), MODE_MAXLOT);
+    double minLotSize = MarketInfo(Symbol(), MODE_MINLOT);
+
+    // cut off extra decimal places
+    double cleanedLots = NormalizeDouble(dirtyLotSize, 2);
+
+    // make sure we are not larger than the max
+    cleanedLots = MathMin(cleanedLots, maxLotSize);
+    // make sure we are not lower than the min
+    cleanedLots = MathMax(cleanedLots, minLotSize);
+
+    return cleanedLots;
 }
 
-int TradeManager::OrderDelete(int ticket)
+int TradeManager::PlaceMarketOrder(OrderType orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
 {
-    return mTM.OrderDelete(ticket);
+    if (orderType != OrderType::Buy && orderType != OrderType::Sell)
+    {
+        return TerminalErrors::WRONG_ORDER_TYPE;
+    }
+
+    if (stopLoss > 0.0)
+    {
+        if (StopLossPastEntry(orderType, entryPrice, stopLoss))
+        {
+            return TerminalErrors::STOPLOSS_PAST_ENTRY;
+        }
+    }
+
+    lots = CleanLotSize(lots);
+    return mTM.PlaceMarketOrder(orderType, lots, entryPrice, stopLoss, takeProfit, ticket);
 }
 
-int TradeManager::OrderClose(int ticket)
+int TradeManager::PlaceLimitOrder(OrderType orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
 {
-    return mTM.OrderClose(ticet);
+    if (orderType != OrderType::BuyLimit && orderType != OrderType::SellLimit)
+    {
+        return TerminalErrors::WRONG_ORDER_TYPE;
+    }
+
+    if (stopLoss > 0.0)
+    {
+        if (StopLossPastEntry(orderType, entryPrice, stopLoss))
+        {
+            return TerminalErrors::STOPLOSS_PAST_ENTRY;
+        }
+    }
+
+    MqlTick currentTick;
+    if (!SymbolInfoTick(_Symbol, currentTick))
+    {
+        return GetLastError();
+    }
+
+    if ((orderType == OrderType::BuyLimit && entryPrice >= currentTick.ask) || (orderType == OrderType::SellLimit && entryPrice <= currentTick.bid))
+    {
+        return ExecutionErrors::ORDER_ENTRY_FURTHER_THEN_PRICE;
+    }
+
+    lots = CleanLotSize(lots);
+    return mTM.PlaceLimitOrder(orderType, lots, entryPrice, stopLoss, takeProfit, ticket);
+}
+
+int TradeManager::PlaceStopOrder(OrderType orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
+{
+    if (orderType != OrderType::BuyStop && orderType != OrderType::SellStop)
+    {
+        return TerminalErrors::WRONG_ORDER_TYPE;
+    }
+
+    if (stopLoss > 0.0)
+    {
+        if (StopLossPastEntry(orderType, entryPrice, stopLoss))
+        {
+            return TerminalErrors::STOPLOSS_PAST_ENTRY;
+        }
+    }
+
+    MqlTick currentTick;
+    if (!SymbolInfoTick(_Symbol, currentTick))
+    {
+        return GetLastError();
+    }
+
+    if ((orderType == OrderType::BuyStop && entryPrice <= currentTick.ask) || (orderType == OrderType::SellStop && entryPrice >= currentTick.bid))
+    {
+        return ExecutionErrors::ORDER_ENTRY_FURTHER_THEN_PRICE;
+    }
+
+    lots = CleanLotSize(lots);
+    return mTM.PlaceStopOrder(orderType, lots, entryPrice, stopLoss, takeProfit, ticket);
+}
+
+int TradeManager::ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration)
+{
+    return mTM.ModifyOrder(ticket, entryPrice, stopLoss, takeProfit, expiration);
+}
+
+int TradeManager::DeleteOrder(int ticket)
+{
+    return mTM.DeleteOrder(ticket);
+}
+
+int TradeManager::CloseOrder(int ticket, double lots, double price)
+{
+    return mTM.CloseOrder(ticket, lots, price);
 }

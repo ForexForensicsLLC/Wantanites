@@ -18,22 +18,13 @@ protected:
     // ==========================================================================
     // Error Handling
     // ==========================================================================
-    // !Tested
     static void SendFailedOrderEMail(int orderNumber, int orderType, double entryPrice, double stopLoss, double lots, int magicNumber, int error);
-
-    // !Tested
     static void SendMBFailedOrderEmail(int error, MBTracker *&mbt);
 
 public:
     // ==========================================================================
     // Calculating Orders
     // ==========================================================================
-    static double RangeToPips(double range);
-    static double PipsToRange(double pips);
-
-    static double GetLotSize(double stopLossPips, double riskPercent);
-    static double CleanLotSize(double dirtyLotSize);
-
 private:
     static int GetEntryPriceForStopOrderForPendingMBValidation(double spreadPips, int setupType, MBTracker *&mbt, out double &entryPrice);
     static int GetStopLossForStopOrderForPendingMBValidation(double paddingPips, double spreadPips, int setupType, MBTracker *&mbt, out double &stopLoss);
@@ -41,17 +32,9 @@ private:
     static int GetStopLossForStopOrderForBreakOfMB(double paddingPips, double spreadPips, int mbNumber, MBTracker *&mbt, out double &stopLoss);
 
 public:
-    // ==========================================================================
-    // Checking Orders
-    // ==========================================================================
-    static int CountOtherEAOrders(bool todayOnly, int &magicNumbers[], out int &orders);
-    static int FindActiveTicketsByMagicNumber(bool todayOnly, int magicNumber, int &tickets[]);
-    static int FindNewTicketAfterPartial(int magicNumber, double openPrice, datetime orderOpenTime, int &ticket);
-
     // =========================================================================
     // Placing Market Orders
     // =========================================================================
-    static int PlaceMarketOrder(int orderType, double lots, double entry, double stoploss, double takeProfit, int magicNumber, int &ticket);
     static int PlaceMarketOrderForCandleSetup(double paddingPips, double spreadPips, double riskPercent, int magicNumber, int type,
                                               string symbol, int timeFrame, int stopLossCandleIndex, int &ticketNumber);
 
@@ -59,16 +42,8 @@ public:
                                                int mbNumber, MBTracker *&mbt, int &ticketNumber);
 
     // ==========================================================================
-    // Placing Limit Orders
-    // ==========================================================================
-
-    static int PlaceLimitOrder(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber, out int &ticket);
-    // static bool PlaceLimitOrderWithSinglePartial(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, double partialOnePercent, int magicNumber);
-
-    // ==========================================================================
     // Placing Stop Orders
     // ==========================================================================
-    static int PlaceStopOrder(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber, int &ticket);
     static int PlaceStopOrderForCandleBreak(double paddingPips, double spreadPips, double riskPercent, int magicNumber,
                                             int type, string symbol, int timeFrame, int entryCandleIndex, int stopLossCandleIndex, int &ticketNumber);
     static int PlaceStopOrderForTheLittleDipper(double paddingPips, double spreadPips, double riskPercent, int magicNumber, int type, string symbol, int timeFrame,
@@ -86,62 +61,26 @@ public:
     // ==========================================================================
     // Editing Orders
     // ==========================================================================
-    // !Tested
-    // static bool EditStopLoss(double newStopLoss, double newLots, int magicNumber);
-
-    static int PartialTicket(int ticketNumber, double price, double lotsToPartial);
-    static int MoveTicketToBreakEven(Ticket &ticket, double additionalPips);
     static int MoveToBreakEvenWithCandleFurtherThanEntry(string symbol, int timeFrame, bool waitForCandleClose, Ticket *&ticket);
     static int CheckEditStopLossForTheLittleDipper(double stopLossPaddingPips, double spreadPips, string symbol, int timeFrame, Ticket &ticket);
 
     // ==========================================================================
     // Editing Orders For MB Stop Orders
     // ==========================================================================
-    // Tested
     static int CheckEditStopLossForStopOrderOnPendingMB(double paddingPips, double spreadPips, double riskPercent,
                                                         int setupMBNumber, MBTracker *&mbt, out Ticket *&ticket);
-
-    // !Tested
     static int CheckEditStopLossForStopOrderOnBreakOfMB(double paddingPips, double spreadPips, double riskPercent,
                                                         int mbNumber, MBTracker *&mbt, out Ticket *&ticket);
 
     static int CheckEditStopLossForLiquidationMBSetup(double paddingPips, double spreadPips, double riskPercent,
                                                       int liquidationMBNumber, MBTracker *&mbt, out Ticket *&ticket);
-    // ==========================================================================
-    // Canceling Pending Orders
-    // ==========================================================================
-    // !Tested
-    // static bool CancelAllPendingOrdersByMagicNumber(int magicNumber);
-
-    // ==========================================================================
-    // Moving To Break Even
-    // ==========================================================================
-    // !Tested
-    // static bool MoveAllOrdersToBreakEvenByMagicNumber(int magicNumber);
 
     // ==========================================================================
     // Moving To Break Even By MB
     // ==========================================================================
-    // Tested
     static int CheckTrailStopLossWithMBUpToBreakEven(double paddingPips, double spreadPips, int setUpMB, int setUpType, MBTracker *&mbt, Ticket *&ticket, out bool &succeeded);
 };
 
-static double OrderHelper::CleanLotSize(double dirtyLotSize)
-{
-    double lotStep = MarketInfo(Symbol(), MODE_LOTSTEP);
-    double maxLotSize = MarketInfo(Symbol(), MODE_MAXLOT);
-    double minLotSize = MarketInfo(Symbol(), MODE_MINLOT);
-
-    // cut off extra decimal places
-    double cleanedLots = NormalizeDouble(dirtyLotSize, 2);
-
-    // make sure we are not larger than the max
-    cleanedLots = MathMin(cleanedLots, maxLotSize);
-    // make sure we are not lower than the min
-    cleanedLots = MathMax(cleanedLots, minLotSize);
-
-    return cleanedLots;
-}
 /*
 
    _____                       _   _                 _ _ _
@@ -185,37 +124,6 @@ static void OrderHelper::SendMBFailedOrderEmail(int error, MBTracker *&mbt)
                                                |___/
 
 */
-static double OrderHelper::RangeToPips(double range)
-{
-    // do Digits - 1 for pips otherwise it would be in pippetts
-    return range * MathPow(10, Digits - 1);
-}
-static double OrderHelper::PipsToRange(double pips)
-{
-    // do Digits - 1 for pips otherwise it would be in pippetts
-    return pips / MathPow(10, Digits - 1);
-}
-static double OrderHelper::GetLotSize(double stopLossPips, double riskPercent)
-{
-    double pipValue = MarketInfo(Symbol(), MODE_TICKSIZE) * 10 * MarketInfo(Symbol(), MODE_LOTSIZE);
-
-    // since UJ starts with USD, it also involves the current price
-    // TODO: update this to catch any other pairs
-    if (StringFind(Symbol(), "JPY") != -1)
-    {
-        MqlTick currentTick;
-        if (!SymbolInfoTick(Symbol(), currentTick))
-        {
-            Print("Can't get tick during lot size calculation");
-            return 0.1;
-        }
-
-        pipValue = pipValue / currentTick.bid;
-    }
-
-    double lotSize = NormalizeDouble((AccountBalance() * riskPercent / 100) / (stopLossPips * pipValue), 2);
-    return MathMax(MarketInfo(Symbol(), MODE_MINLOT), lotSize);
-}
 
 /**
  * @brief Gets the entry price for a stop order that will trigger on the CONTINUTATION of the pending MB / Validation of MB
@@ -384,126 +292,6 @@ static int OrderHelper::GetStopLossForStopOrderForBreakOfMB(double paddingPips, 
 }
 /*
 
-    ____ _               _    _                ___          _
-   / ___| |__   ___  ___| | _(_)_ __   __ _   / _ \ _ __ __| | ___ _ __ ___
-  | |   | '_ \ / _ \/ __| |/ / | '_ \ / _` | | | | | '__/ _` |/ _ \ '__/ __|
-  | |___| | | |  __/ (__|   <| | | | | (_| | | |_| | | | (_| |  __/ |  \__ \
-   \____|_| |_|\___|\___|_|\_\_|_| |_|\__, |  \___/|_|  \__,_|\___|_|  |___/
-                                      |___/
-
-*/
-static int OrderHelper::CountOtherEAOrders(bool todayOnly, int &magicNumbers[], out int &orders)
-{
-    orders = 0;
-    for (int i = 0; i < OrdersTotal(); i++)
-    {
-        // only check current active tickets
-        if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
-        {
-            int error = GetLastError();
-            SendMail("Failed To Select Open Order By Position When Countint Other EA Orders",
-                     "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
-                         "Current Order Index: " + IntegerToString(i) + "\n" +
-                         IntegerToString(error));
-            return error;
-        }
-
-        for (int j = 0; j < ArraySize(magicNumbers); j++)
-        {
-            if (OrderMagicNumber() == magicNumbers[j])
-            {
-                datetime openDate = OrderOpenTime();
-                if (todayOnly && (TimeYear(openDate) != Year() || TimeMonth(openDate) != Month() || TimeDay(openDate) != Day()))
-                {
-                    continue;
-                }
-
-                orders += 1;
-            }
-        }
-    }
-
-    return ERR_NO_ERROR;
-}
-
-static int OrderHelper::FindActiveTicketsByMagicNumber(bool todayOnly, int magicNumber, int &tickets[])
-{
-    ArrayFree(tickets);
-    ArrayResize(tickets, 0);
-
-    for (int i = 0; i < OrdersTotal(); i++)
-    {
-        if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
-        {
-            int error = GetLastError();
-            SendMail("Failed To Select Open Order By Position When Finding Active Ticks",
-                     "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
-                         "Current Order Index: " + IntegerToString(i) + "\n" +
-                         IntegerToString(error));
-            return error;
-        }
-
-        if (OrderMagicNumber() == magicNumber && OrderType() < 2 && OrderCloseTime() == 0)
-        {
-            datetime openDate = OrderOpenTime();
-            if (todayOnly && (TimeYear(openDate) != Year() || TimeMonth(openDate) != Month() || TimeDay(openDate) != Day()))
-            {
-                continue;
-            }
-
-            ArrayResize(tickets, ArraySize(tickets) + 1);
-            tickets[ArraySize(tickets) - 1] = OrderTicket();
-        }
-    }
-
-    return ERR_NO_ERROR;
-}
-
-// TODO: Move into Ticket as a static function
-static int OrderHelper::FindNewTicketAfterPartial(int magicNumber, double openPrice, datetime orderOpenTime, int &ticket)
-{
-    int error = ERR_NO_ERROR;
-    for (int i = 0; i < OrdersTotal(); i++)
-    {
-        if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
-        {
-            error = GetLastError();
-            SendMail("Failed To Select Order",
-                     "Error: " + IntegerToString(error) + "\n" +
-                         "Position: " + IntegerToString(i) + "\n" +
-                         "Total Tickets: " + IntegerToString(OrdersTotal()));
-
-            continue;
-        }
-
-        if (OrderType() > 1)
-        {
-            continue;
-        }
-
-        if (OrderMagicNumber() != magicNumber)
-        {
-            continue;
-        }
-
-        if (NormalizeDouble(OrderOpenPrice(), Digits) != NormalizeDouble(openPrice, Digits))
-        {
-            continue;
-        }
-
-        if (NormalizeDouble(OrderOpenTime(), Digits) != NormalizeDouble(orderOpenTime, Digits))
-        {
-            continue;
-        }
-
-        ticket = OrderTicket();
-        break;
-    }
-
-    return error;
-}
-/*
-
    ____  _            _               __  __            _        _      ___          _
   |  _ \| | __ _  ___(_)_ __   __ _  |  \/  | __ _ _ __| | _____| |_   / _ \ _ __ __| | ___ _ __ ___
   | |_) | |/ _` |/ __| | '_ \ / _` | | |\/| |/ _` | '__| |/ / _ \ __| | | | | '__/ _` |/ _ \ '__/ __|
@@ -512,27 +300,6 @@ static int OrderHelper::FindNewTicketAfterPartial(int magicNumber, double openPr
                               |___/
 
 */
-// static int OrderHelper::PlaceMarketOrder(int orderType, double lots, double entry, double stopLoss, double takeProfit, int magicNumber, int &ticket)
-// {
-//     if (orderType >= 2)
-//     {
-//         return TerminalErrors::WRONG_ORDER_TYPE;
-//     }
-
-//     lots = CleanLotSize(lots);
-
-//     int newTicket = OrderSend(Symbol(), orderType, lots, entry, 0, stopLoss, takeProfit, NULL, magicNumber, 0, clrNONE);
-
-//     int error = ERR_NO_ERROR;
-//     if (newTicket == EMPTY)
-//     {
-//         error = GetLastError();
-//         SendFailedOrderEMail(1, orderType, entry, stopLoss, lots, magicNumber, error);
-//     }
-
-//     ticket = newTicket;
-//     return error;
-// }
 
 static int OrderHelper::PlaceMarketOrderForCandleSetup(double paddingPips, double spreadPips, double riskPercent, int magicNumber, int type,
                                                        string symbol, int timeFrame, int stopLossCandleIndex, int &ticketNumber)
@@ -610,133 +377,13 @@ static int OrderHelper::PlaceMarketOrderForMostRecentMB(double paddingPips, doub
 
 /*
 
-   ____  _            _               _     _           _ _      ___          _
-  |  _ \| | __ _  ___(_)_ __   __ _  | |   (_)_ __ ___ (_) |_   / _ \ _ __ __| | ___ _ __ ___
-  | |_) | |/ _` |/ __| | '_ \ / _` | | |   | | '_ ` _ \| | __| | | | | '__/ _` |/ _ \ '__/ __|
-  |  __/| | (_| | (__| | | | | (_| | | |___| | | | | | | | |_  | |_| | | | (_| |  __/ |  \__ \
-  |_|   |_|\__,_|\___|_|_| |_|\__, | |_____|_|_| |_| |_|_|\__|  \___/|_|  \__,_|\___|_|  |___/
-                              |___/
-
-*/
-// int OrderHelper::PlaceLimitOrder(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber, out int &ticket)
-// {
-//     if (orderType != OP_BUYLIMIT && orderType != OP_SELLLIMIT)
-//     {
-//         return TerminalErrors::WRONG_ORDER_TYPE;
-//     }
-
-//     if (stopLoss > 0.0)
-//     {
-//         if ((orderType == OP_BUYLIMIT && stopLoss >= entryPrice) || (orderType == OP_SELLLIMIT && stopLoss <= entryPrice))
-//         {
-//             return TerminalErrors::STOPLOSS_PAST_ENTRY;
-//         }
-//     }
-
-//     MqlTick currentTick;
-//     if (!SymbolInfoTick(_Symbol, currentTick))
-//     {
-//         return GetLastError();
-//     }
-
-//     if ((orderType == OP_BUYLIMIT && entryPrice >= currentTick.ask) || (orderType == OP_SELLLIMIT && entryPrice <= currentTick.bid))
-//     {
-//         return ExecutionErrors::ORDER_ENTRY_FURTHER_THEN_PRICE;
-//     }
-
-//     lots = CleanLotSize(lots);
-
-//     int error = ERR_NO_ERROR;
-//     int ticketNumber = OrderSend(NULL, orderType, lots, entryPrice, 0, stopLoss, takeProfit, NULL, magicNumber, 0, clrNONE);
-
-//     if (ticketNumber < 0)
-//     {
-//         error = GetLastError();
-//         SendFailedOrderEMail(1, orderType, entryPrice, stopLoss, lots, magicNumber, error);
-//     }
-
-//     ticket = ticketNumber;
-//     return error;
-// }
-
-/*
-static bool OrderHelper::PlaceLimitOrderWithSinglePartial(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, double partialOnePercent, int magicNumber = 0)
-{
-   bool allOrdersSucceeded = true;
-   if (orderType != OP_BUYLIMIT && orderType != OP_SELLLIMIT)
-   {
-      Print("Wrong Order Type: ", IntegerToString(orderType));
-      return false;
-   }
-
-   int firstOrderTicketNumber = OrderSend(NULL, orderType, NormalizeDouble(lots * (partialOnePercent / 100), 2), entryPrice, 0, stopLoss, takeProfit, NULL, magicNumber, 0, clrNONE);
-   int secondOrderTicketNumber = OrderSend(NULL, orderType, NormalizeDouble(lots * (1 - (partialOnePercent / 100)), 2), entryPrice, 0, stopLoss, NULL, NULL, magicNumber, 0, clrNONE);
-
-   if (firstOrderTicketNumber < 0)
-   {
-      SendFailedOrderEMail(1, orderType, entryPrice, stopLoss, NormalizeDouble(lots * (partialOnePercent / 100), 2), magicNumber);
-      allOrdersSucceeded = false;
-   }
-
-   if (secondOrderTicketNumber < 0)
-   {
-      SendFailedOrderEMail(2, orderType, entryPrice, stopLoss, NormalizeDouble(lots * (1 - (partialOnePercent / 100)), 2), magicNumber);
-      allOrdersSucceeded = false;
-   }
-
-   return allOrdersSucceeded;
-}
-*/
-/*
-
    ____  _            _               ____  _                 ___          _
   |  _ \| | __ _  ___(_)_ __   __ _  / ___|| |_ ___  _ __    / _ \ _ __ __| | ___ _ __ ___
   | |_) | |/ _` |/ __| | '_ \ / _` | \___ \| __/ _ \| '_ \  | | | | '__/ _` |/ _ \ '__/ __|
   |  __/| | (_| | (__| | | | | (_| |  ___) | || (_) | |_) | | |_| | | | (_| |  __/ |  \__ \
   |_|   |_|\__,_|\___|_|_| |_|\__, | |____/ \__\___/| .__/   \___/|_|  \__,_|\___|_|  |___/
                               |___/                 |_|
-
 */
-// int OrderHelper::PlaceStopOrder(int orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int magicNumber, out int &ticket)
-// {
-//     if (orderType != OP_BUYSTOP && orderType != OP_SELLSTOP)
-//     {
-//         return TerminalErrors::WRONG_ORDER_TYPE;
-//     }
-
-//     if (stopLoss > 0.0)
-//     {
-//         if ((orderType == OP_BUYSTOP && stopLoss >= entryPrice) || (orderType == OP_SELLSTOP && stopLoss <= entryPrice))
-//         {
-//             return TerminalErrors::STOPLOSS_PAST_ENTRY;
-//         }
-//     }
-
-//     MqlTick currentTick;
-//     if (!SymbolInfoTick(_Symbol, currentTick))
-//     {
-//         return GetLastError();
-//     }
-
-//     if ((orderType == OP_BUYSTOP && entryPrice <= currentTick.ask) || (orderType == OP_SELLSTOP && entryPrice >= currentTick.bid))
-//     {
-//         return ExecutionErrors::ORDER_ENTRY_FURTHER_THEN_PRICE;
-//     }
-
-//     lots = CleanLotSize(lots);
-
-//     int error = ERR_NO_ERROR;
-//     int ticketNumber = OrderSend(NULL, orderType, lots, entryPrice, 0, stopLoss, takeProfit, NULL, magicNumber, 0, clrNONE);
-
-//     if (ticketNumber < 0)
-//     {
-//         error = GetLastError();
-//         SendFailedOrderEMail(1, orderType, entryPrice, stopLoss, lots, magicNumber, error);
-//     }
-
-//     ticket = ticketNumber;
-//     return error;
-// }
 
 static int OrderHelper::PlaceStopOrderForCandleBreak(double paddingPips, double spreadPips, double riskPercent, int magicNumber,
                                                      int type, string symbol, int timeFrame, int entryCandleIndex, int stopLossCandleIndex, int &ticketNumber)
@@ -931,121 +578,6 @@ static int OrderHelper::PlaceStopOrderForPendingLiquidationSetupValidation(doubl
                             |___/
 
 */
-/*
-static bool OrderHelper::EditStopLoss(double newStopLoss, double newLots, int magicNumber)
-{
-   if (OrdersTotal() == 1)
-   {
-      if (!SelectOrderByPosition(0, "Editing Stop Loss"))
-      {
-         return false;
-      }
-
-      if (OrderStopLoss() != newStopLoss)
-      {
-         if (!CancelAllPendingOrdersByMagicNumber(magicNumber))
-         {
-            Print("Failed to delete order. Returning False");
-            return false;
-         }
-
-         int type = OrderType();
-         double entryPrice = OrderOpenPrice();
-         double takeProfit = OrderTakeProfit();
-         string comment = OrderComment();
-         datetime expireation = OrderExpiration();
-
-         Print("Re placing order with new stop loss");
-         if (OrderSend(Symbol(), type, newLots, entryPrice, 0, newStopLoss, takeProfit, comment, magicNumber, expireation, clrNONE) < 0)
-         {
-            SendFailedOrderEMail(1, type, entryPrice, newStopLoss, newLots, magicNumber);
-            return false;
-         }
-      }
-   }
-
-   return true;
-}
-*/
-static int OrderHelper::PartialTicket(int ticketNumber, double price, double lotsToPartial)
-{
-    GetLastError();
-    if (!OrderClose(ticketNumber, lotsToPartial, price, 0, clrNONE))
-    {
-        int error = GetLastError();
-        SendMail("Failed To Partial",
-                 "Time: " + TimeToString(TimeCurrent()) + "\n" +
-                     "Error: " + IntegerToString(error) + "\n" +
-                     "Ticket Number: " + IntegerToString(ticketNumber) + "\n" +
-                     "Price: " + DoubleToString(price, Digits) + "\n" +
-                     "Bid: " + DoubleToString(Bid, Digits) + "\n" +
-                     "Ask: " + DoubleToString(Ask, Digits) + "\n" +
-                     "Current Lots: " + DoubleToString(OrderLots(), 2) + "\n" +
-                     "New Lots: " + DoubleToString(lotsToPartial, 2));
-        return error;
-    }
-
-    return ERR_NO_ERROR;
-}
-
-static int OrderHelper::MoveTicketToBreakEven(Ticket &ticket, double additionalPips = 0.0)
-{
-    bool selectError = ticket.SelectIfOpen("Checking To Edit Stop Loss");
-    if (selectError != ERR_NO_ERROR)
-    {
-        return selectError;
-    }
-
-    int type = OrderType();
-    if (type >= 2)
-    {
-        return ERR_NO_ERROR;
-    }
-
-    double currentPrice;
-    MqlTick currentTick;
-    if (!SymbolInfoTick(_Symbol, currentTick))
-    {
-        return GetLastError();
-    }
-
-    double additionalRange = PipsToRange(additionalPips);
-    double newPrice = 0.0;
-    if (type == OP_BUY)
-    {
-        newPrice = OrderOpenPrice() + additionalRange;
-        if (newPrice > currentTick.bid)
-        {
-            return ExecutionErrors::ORDER_ENTRY_FURTHER_THEN_PRICE;
-        }
-    }
-    else if (type == OP_SELL)
-    {
-        newPrice = OrderOpenPrice() - additionalRange;
-        if (newPrice < currentTick.ask)
-        {
-            return ExecutionErrors::ORDER_ENTRY_FURTHER_THEN_PRICE;
-        }
-    }
-
-    int error = ERR_NO_ERROR;
-    if (!OrderModify(OrderTicket(), OrderOpenPrice(), newPrice, OrderTakeProfit(), OrderExpiration(), clrGreen))
-    {
-        error = GetLastError();
-        SendMail("Failed to move to break even",
-                 "Time: " + IntegerToString(Hour()) + ":" + IntegerToString(Minute()) + ":" + IntegerToString(Seconds()) + "\n" +
-                     "Magic Number: " + IntegerToString(OrderMagicNumber()) + "\n" +
-                     "Type: " + IntegerToString(OrderType()) + "\n" +
-                     "Ask: " + DoubleToString(Ask) + "\n" +
-                     "Bid: " + DoubleToString(Bid) + "\n" +
-                     "Entry: " + DoubleToString(OrderOpenPrice()) + "\n" +
-                     "Current Stop Loss: " + DoubleToString(OrderStopLoss()) + "\n" +
-                     "Error: " + IntegerToString(error));
-    }
-
-    return error;
-}
-
 static int OrderHelper::MoveToBreakEvenWithCandleFurtherThanEntry(string symbol, int timeFrame, bool waitForCandleClose, Ticket *&ticket)
 {
     bool selectError = ticket.SelectIfOpen("Checking To Edit Stop Loss");
@@ -1326,87 +858,6 @@ static int OrderHelper::CheckEditStopLossForLiquidationMBSetup(double paddingPip
     ticket.UpdateTicketNumber(newTicket);
     return ERR_NO_ERROR;
 }
-/*
-
-    ____                     _ _               ____                _ _                ___          _
-   / ___|__ _ _ __   ___ ___| (_)_ __   __ _  |  _ \ ___ _ __   __| (_)_ __   __ _   / _ \ _ __ __| | ___ _ __ ___
-  | |   / _` | '_ \ / __/ _ \ | | '_ \ / _` | | |_) / _ \ '_ \ / _` | | '_ \ / _` | | | | | '__/ _` |/ _ \ '__/ __|
-  | |__| (_| | | | | (_|  __/ | | | | | (_| | |  __/  __/ | | | (_| | | | | | (_| | | |_| | | | (_| |  __/ |  \__ \
-   \____\__,_|_| |_|\___\___|_|_|_| |_|\__, | |_|   \___|_| |_|\__,_|_|_| |_|\__, |  \___/|_|  \__,_|\___|_|  |___/
-                                       |___/                                 |___/
-
-*/
-/*
-static bool OrderHelper::CancelAllPendingOrdersByMagicNumber(int magicNumber)
-{
-   bool allCancelationsSucceeded = true;
-   for (int i = OrdersTotal() - 1; i >= 0; i--)
-   {
-      if (!SelectOrderByPosition(i, "Canceling"))
-      {
-         allCancelationsSucceeded = false;
-      }
-
-      if (OrderMagicNumber() == magicNumber && OrderType() > 1)
-      {
-         if (!OrderDelete(OrderTicket()))
-         {
-            SendMail("Failed To Delete Order",
-                     "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
-                         "Current Order: " + IntegerToString(i) + "\n" +
-                         "Current Ticket: " + IntegerToString(OrderTicket()) + "\n" +
-                         "Magic Number: " + IntegerToString(OrderMagicNumber()) + "\n" +
-                         IntegerToString(GetLastError()));
-
-            allCancelationsSucceeded = false;
-         }
-      }
-   }
-
-   return allCancelationsSucceeded;
-}
-*/
-/*
-
-   __  __            _               _____       ____                 _      _____
-  |  \/  | _____   _(_)_ __   __ _  |_   _|__   | __ ) _ __ ___  __ _| | __ | ____|_   _____ _ __
-  | |\/| |/ _ \ \ / / | '_ \ / _` |   | |/ _ \  |  _ \| '__/ _ \/ _` | |/ / |  _| \ \ / / _ \ '_ \
-  | |  | | (_) \ V /| | | | | (_| |   | | (_) | | |_) | | |  __/ (_| |   <  | |___ \ V /  __/ | | |
-  |_|  |_|\___/ \_/ |_|_| |_|\__, |   |_|\___/  |____/|_|  \___|\__,_|_|\_\ |_____| \_/ \___|_| |_|
-                             |___/
-
-*/
-/*
-static bool OrderHelper::MoveAllOrdersToBreakEvenByMagicNumber(int magicNumber)
-{
-   bool allOrdersMoved = true;
-   for (int i = OrdersTotal() - 1; i >= 0; i--)
-   {
-      if (!SelectOrderByPosition(i, "Moving To Break Even"))
-      {
-         allOrdersMoved = false;
-      }
-
-      // OP_BUY or OP_SELL
-      if (OrderType() < 2 && OrderMagicNumber() == magicNumber)
-      {
-         if (!OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice(), OrderTakeProfit(), OrderExpiration(), clrNONE))
-         {
-            SendMail("Failed To Move Order To Break Even",
-                     "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
-                         "Current Order: " + IntegerToString(i) + "\n" +
-                         "Open Price: " + DoubleToString(OrderOpenPrice()) + "\n" +
-                         "Stop Loss: " + DoubleToString(OrderStopLoss()) + "\n" +
-                         IntegerToString(GetLastError()));
-
-            allOrdersMoved = false;
-         }
-      }
-   }
-
-   return allOrdersMoved;
-}
-*/
 /*
 
    __  __            _               _____       ____                 _      _____                   ____          __  __ ____

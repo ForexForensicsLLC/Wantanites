@@ -44,7 +44,7 @@ void DefaultEntryTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = 
     FileHelper::WriteInteger(fileHandle, MagicNumber);
     FileHelper::WriteInteger(fileHandle, TicketNumber);
     FileHelper::WriteString(fileHandle, Symbol);
-    FileHelper::WriteString(fileHandle, OrderType);
+    FileHelper::WriteString(fileHandle, OrderDirection);
     FileHelper::WriteDouble(fileHandle, AccountBalanceBefore, 2);
     FileHelper::WriteDouble(fileHandle, Lots, 2);
     FileHelper::WriteDouble(fileHandle, EntryPrice, Digits);
@@ -58,7 +58,7 @@ void DefaultEntryTradeRecord::ReadRow(int fileHandle)
     MagicNumber = StrToInteger(FileReadString(fileHandle));
     TicketNumber = StrToInteger(FileReadString(fileHandle));
     Symbol = FileReadString(fileHandle);
-    OrderType = FileReadString(fileHandle);
+    OrderDirection = FileReadString(fileHandle);
     AccountBalanceBefore = StrToDouble(FileReadString(fileHandle));
     Lots = StrToDouble(FileReadString(fileHandle));
     EntryPrice = StrToDouble(FileReadString(fileHandle));

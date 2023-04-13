@@ -8,25 +8,31 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Objects\DataObjects\Tick.mqh>
-#include <Wantanites\Framework\Objects\DataStructures\List.mqh>
 #include <Wantanites\Framework\Constants\Index.mqh>
 #include <Wantanites\Framework\Constants\EAStates.mqh>
+#include <Wantanites\Framework\Objects\DataObjects\Tick.mqh>
 #include <Wantanites\Framework\CSVWriting\CSVRecordWriter.mqh>
+#include <Wantanites\Framework\Objects\DataStructures\List.mqh>
 #include <Wantanites\Framework\Objects\DataObjects\TradingSession.mqh>
+#include <Wantanites\Framework\MQLVersionSpecific\Utilities\TradeManager\TradeManager.mqh>
+
+#include <Wantanites\Framework\Helpers\EAHelpers\EAInitHelper.mqh>
+#include <Wantanites\Framework\Helpers\EAHelpers\EAOrderHelper.mqh>
 
 template <typename TEntryRecord, typename TPartialRecord, typename TExitRecord, typename TErrorRecord>
 class EA
 {
 private:
     int mMagicNumber;
-    int mSetupType;
+    SignalType mSetupType;
 
     Tick *mCurrentTick;
     int mBarCount;
     int mLastDay;
 
 public:
+    TradeManager *mTM;
+
     ObjectList<Ticket> *mCurrentSetupTickets;
     ObjectList<Ticket> *mPreviousSetupTickets;
     ObjectList<TradingSession> *mTradingSessions;
@@ -65,7 +71,7 @@ public:
     ~EA();
 
     int MagicNumber() { return mMagicNumber; }
-    int SetupType() { return mSetupType; }
+    SignalType SetupType() { return mSetupType; }
 
     Tick *CurrentTick() { return mCurrentTick; }
     int BarCount() { return mBarCount; }
@@ -90,7 +96,7 @@ public:
     virtual void RecordTicketOpenData(Ticket &ticket) = NULL;
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber) = NULL;
     virtual void RecordTicketCloseData(Ticket &ticket) = NULL;
-    virtual void RecordError(int error, string additionalInformation) = NULL;
+    virtual void RecordError(string methodName, int error, string additionalInformation) = NULL;
     virtual bool ShouldReset() = NULL;
     virtual void Reset() = NULL;
 
@@ -104,6 +110,8 @@ template <typename TEntryRecord, typename TPartialRecord, typename TExitRecord, 
 EA::EA(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
        CSVRecordWriter<TEntryRecord> *&entryCSVRecordWriter, CSVRecordWriter<TExitRecord> *&exitCSVRecordWriter, CSVRecordWriter<TErrorRecord> *&errorCSVRecordWriter)
 {
+    mTM = new TradeManager(magicNumber, 0);
+
     mMagicNumber = magicNumber;
     mSetupType = setupType;
     mStopTrading = false;
@@ -140,6 +148,8 @@ EA::EA(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxT
 template <typename TEntryRecord, typename TPartialRecord, typename TExitRecord, typename TErrorRecord>
 EA::~EA()
 {
+    delete mTM;
+
     delete mCurrentSetupTickets;
     delete mPreviousSetupTickets;
 

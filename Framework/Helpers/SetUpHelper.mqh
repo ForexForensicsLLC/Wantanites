@@ -18,19 +18,13 @@ public:
     // ==========================================================================
     // Range Broke Methods
     // ==========================================================================
-    // Tested
     static int BrokeDoubleMBPlusLiquidationSetupRangeEnd(int secondMBInSetup, int setupType, MBTracker *&mbt, out bool &isTrue);
 
     // ==========================================================================
     // MB Setup Methods
     // ==========================================================================
-    // Tested
     static int MostRecentMBPlusHoldingZone(int mostRecentMBNumber, MBTracker *&mbt, out bool &isTrue);
-
-    // Tested
     static int FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOneNumber, int mbTwoNumber, MBTracker *&mbt, out bool &isTrue);
-
-    // !Tested
     static int SameTypeSubsequentMB(int mbNumber, MBTracker *&mbt, out bool isTrue);
 
 private:
@@ -46,7 +40,6 @@ public:
     // ==========================================================================
     // Min ROC. From Time Stamp Setup Methods
     // ==========================================================================
-    // Tested
     static int BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker *&mbt, out bool &isTrue);
 
     static bool HammerCandleStickPattern(string symbol, int timeFrame, int startingCandle);

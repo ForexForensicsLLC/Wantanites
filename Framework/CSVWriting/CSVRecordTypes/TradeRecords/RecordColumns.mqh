@@ -29,9 +29,9 @@ public:
     int MagicNumber;
     int TicketNumber;
     string Symbol;
-    int EntryTimeFrame; // Needed for TotalMovePips() and PotentialRR()
+    ENUM_TIMEFRAMES EntryTimeFrame; // Needed for TotalMovePips() and PotentialRR()
 
-    string OrderType;
+    string OrderDirection;
     double AccountBalanceBefore;
     double Lots;
     datetime EntryTime;
@@ -75,9 +75,9 @@ RecordColumns::RecordColumns()
     MagicNumber = EMPTY;
     TicketNumber = EMPTY;
     Symbol = ConstantValues::UnsetString;
-    EntryTimeFrame = EMPTY;
+    EntryTimeFrame = Period();
 
-    OrderType = ConstantValues::UnsetString;
+    OrderDirection = ConstantValues::UnsetString;
     AccountBalanceBefore = ConstantValues::EmptyDouble;
     Lots = ConstantValues::EmptyDouble;
     EntryTime = 0;
@@ -113,7 +113,7 @@ double RecordColumns::TotalMovePips()
     if (mTotalMovePips == -1.0)
     {
         double furthestPoint;
-        if (OrderType == "Buy")
+        if (OrderDirection == "Buy")
         {
             int entryIndex = iBarShift(Symbol, EntryTimeFrame, EntryTime, true);
             if (entryIndex == EMPTY)
@@ -130,7 +130,7 @@ double RecordColumns::TotalMovePips()
 
             mTotalMovePips = NormalizeDouble(OrderHelper::RangeToPips((furthestPoint - EntryPrice)), 2);
         }
-        else if (OrderType == "Sell")
+        else if (OrderDirection == "Sell")
         {
             int entryIndex = iBarShift(Symbol, EntryTimeFrame, EntryTime, true);
             if (entryIndex == EMPTY)
@@ -163,11 +163,11 @@ double RecordColumns::PotentialRR()
         }
 
         double totalMovePips = TotalMovePips();
-        if (OrderType == "Buy")
+        if (OrderDirection == "Buy")
         {
             mPotentialRR = NormalizeDouble(totalMovePips / (OrderHelper::RangeToPips(EntryPrice - OriginalStopLoss)), 2);
         }
-        else if (OrderType == "Sell")
+        else if (OrderDirection == "Sell")
         {
             mPotentialRR = NormalizeDouble(totalMovePips / (OrderHelper::RangeToPips(OriginalStopLoss - EntryPrice)), 2);
         }
@@ -189,11 +189,11 @@ double RecordColumns::RRSecured()
         return -99;
     }
 
-    if (OrderType == "Buy")
+    if (OrderDirection == "Buy")
     {
         mRRSecured = (EntryPrice - ExitPrice) / (EntryPrice - OriginalStopLoss);
     }
-    else if (OrderType == "Sell")
+    else if (OrderDirection == "Sell")
     {
         mRRSecured = (ExitPrice - EntryPrice) / (OriginalStopLoss - EntryPrice);
     }

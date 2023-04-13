@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                      OrderTypes.mqh |
+//|                                                     VersionSpecificOrderInfoHelper.mqh |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -8,12 +8,8 @@
 #property version "1.00"
 #property strict
 
-enum OrderType
+class VersionSpecificOrderInfoHelper
 {
-    Buy,
-    Sell,
-    BuyLimit,
-    SellLimit,
-    BuyStop,
-    SellStop,
+public:
+    static int FindActiveTicketsByMagicNumber(bool todayOnly, int magicNumber, int &tickets[]);
 };

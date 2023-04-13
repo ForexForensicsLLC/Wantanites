@@ -62,37 +62,37 @@ MqlDateTime DateTimeHelper::CurrentTime()
 
 int DateTimeHelper::CurrentYear()
 {
-    return SpecifcDateTimeHelperVersion::CurrentYear();
+    return SpecificDateTimeHelperVersion::CurrentYear();
 }
 
 int DateTimeHelper::CurrentMonth()
 {
-    return SpecifcDateTimeHelperVersion::CurrentMonth();
+    return SpecificDateTimeHelperVersion::CurrentMonth();
 }
 
 int DateTimeHelper::CurrentDay()
 {
-    return SpecifcDateTimeHelperVersion::CurrentDay();
+    return SpecificDateTimeHelperVersion::CurrentDay();
 }
 
 int DateTimeHelper::CurrentHour()
 {
-    return SpecifcDateTimeHelperVersion::CurrentHour();
+    return SpecificDateTimeHelperVersion::CurrentHour();
 }
 
 int DateTimeHelper::CurrentMinute()
 {
-    return SpecifcDateTimeHelperVersion::CurrentMinute();
+    return SpecificDateTimeHelperVersion::CurrentMinute();
 }
 
 int DateTimeHelper::CurrentSecond()
 {
-    return SpecifcDateTimeHelperVersion::CurrentSecond();
+    return SpecificDateTimeHelperVersion::CurrentSecond();
 }
 
 int DateTimeHelper::CurrentDayOfWeek()
 {
-    return SpecifcDateTimeHelperVersion::CurrentDayOfWeek();
+    return SpecificDateTimeHelperVersion::CurrentDayOfWeek();
 }
 
 datetime DateTimeHelper::HourMinuteToDateTime(int hour, int minute, int day)

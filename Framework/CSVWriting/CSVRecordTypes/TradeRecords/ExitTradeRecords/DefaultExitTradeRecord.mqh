@@ -50,7 +50,7 @@ void DefaultExitTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = f
     FileHelper::WriteInteger(fileHandle, MagicNumber);
     FileHelper::WriteInteger(fileHandle, TicketNumber);
     FileHelper::WriteString(fileHandle, Symbol);
-    FileHelper::WriteString(fileHandle, OrderType);
+    FileHelper::WriteString(fileHandle, OrderDirection);
     FileHelper::WriteDouble(fileHandle, AccountBalanceAfter, 2);
     FileHelper::WriteDouble(fileHandle, EntryPrice, Digits);
     FileHelper::WriteDouble(fileHandle, OriginalStopLoss, Digits);
@@ -69,7 +69,7 @@ void DefaultExitTradeRecord::ReadRow(int fileHandle)
     MagicNumber = StrToInteger(FileReadString(fileHandle));
     TicketNumber = StrToInteger(FileReadString(fileHandle));
     Symbol = FileReadString(fileHandle);
-    OrderType = FileReadString(fileHandle);
+    OrderDirection = FileReadString(fileHandle);
     AccountBalanceAfter = StrToDouble(FileReadString(fileHandle));
     EntryPrice = StrToDouble(FileReadString(fileHandle));
     OriginalStopLoss = StrToDouble(FileReadString(fileHandle));
