@@ -72,6 +72,8 @@ void OnDeinit(const int reason)
     delete EntryWriter;
     delete ExitWriter;
     delete ErrorWriter;
+
+    MailHelper::SendEADeinitEmail("0To2TimeRangeBreakout", reason);
 }
 
 void OnTick()
