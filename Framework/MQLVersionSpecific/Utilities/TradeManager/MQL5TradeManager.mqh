@@ -29,8 +29,6 @@ public:
     int SellStop(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
 
     int OrderModify(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration);
-    int OrderDelete(int ticket);
-    int OrderClose(int ticket);
 };
 
 TradeManager::TradeManager(ulong magicNumber, ulong slippage)

@@ -114,6 +114,7 @@ void OnTick()
 {
     if (HasLicense)
     {
+        // reset license every day
         if (TimeCurrent() - LastValidatedTime > (60 * 60 * 24))
         {
             HasLicense = false;

@@ -72,6 +72,7 @@ public:
 
     int MagicNumber() { return mMagicNumber; }
     SignalType SetupType() { return mSetupType; }
+    double StopLossPaddingPips() { return mStopLossPaddingPips; }
 
     Tick *CurrentTick() { return mCurrentTick; }
     int BarCount() { return mBarCount; }

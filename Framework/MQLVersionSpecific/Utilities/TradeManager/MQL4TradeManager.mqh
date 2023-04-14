@@ -25,8 +25,6 @@ public:
     int PlaceStopOrder(OrderType orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
 
     int ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration);
-    int DeleteOrder(int ticket);
-    int CloseOrder(int ticket, double lots, double price);
 };
 
 VersionSpecificTradeManager::VersionSpecificTradeManager(ulong magicNumber, ulong slippage)
@@ -115,26 +113,6 @@ int VersionSpecificTradeManager::PlaceStopOrder(OrderType orderType, double lots
 int VersionSpecificTradeManager::ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration)
 {
     if (!OrderModify(ticket, entryPrice, stopLoss, takeProfit, "", clrNONE))
-    {
-        return GetLastError();
-    }
-
-    return ERR_NO_ERROR;
-}
-
-int VersionSpecificTradeManager::DeleteOrder(int ticket)
-{
-    if (!OrderDelete(ticket, clrNONE))
-    {
-        return GetLastError();
-    }
-
-    return ERR_NO_ERROR;
-}
-
-int VersionSpecificTradeManager::CloseOrder(int ticket, double lots, double price)
-{
-    if (!OrderClose(ticket, lots, price, mSlippage, clrNONE))
     {
         return GetLastError();
     }

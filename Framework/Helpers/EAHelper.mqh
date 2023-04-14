@@ -163,34 +163,10 @@ public:
     template <typename TEA>
     static bool CandleIsInZone(TEA &ea, MBTracker *mbt, int mbNumber, int candleIndex, bool furthest);
     // =========================================================================
-    // Manage All Tickets
-    // =========================================================================
-    template <typename TEA>
-    static void CloseAllPendingTickets(TEA &ea);
-    template <typename TEA>
-    static void CloseAllCurrentAndPreviousSetupTickets(TEA &ea);
-
-    // =========================================================================
-    // Manage Pending Ticket
-    // =========================================================================
-    template <typename TEA>
-    static void CheckEditStopLossForPendingMBValidation(TEA &ea, MBTracker *&mbt, int mbNumber);
-    template <typename TEA>
-    static void CheckEditStopLossForBreakOfMB(TEA &ea, MBTracker *&mbt, int mbNumber);
-    template <typename TEA>
-    static void CheckEditStopLossForLiquidationMBSetup(TEA &ea, MBTracker *&mbt, int liquidationMBNumber);
-    template <typename TEA>
-    static void CheckEditStopLossForTheLittleDipper(TEA &ea);
-
-    template <typename TEA>
-    static void CheckBrokePastCandle(TEA &ea, string symbol, int timeFrame, int type, datetime candleTime);
-    // =========================================================================
     // Manage Active Ticket
     // =========================================================================
     template <typename TEA>
     static void CheckTrailStopLossEveryXPips(TEA &ea, Ticket &ticket, double xPips, double trailBehindPips);
-    template <typename TEA>
-    static void CheckTrailStopLossWithMBs(TEA &ea, MBTracker *&mbt, int lastMBNumberInSetup);
     template <typename TEA>
     static void MoveToBreakEvenAfterPips(TEA &ea, Ticket &ticket, double pipsToWait, double additionalPips);
     template <typename TEA>
@@ -201,8 +177,6 @@ public:
     static void CheckPartialTicket(TEA &ea, Ticket &ticket);
     template <typename TEA>
     static void CloseIfPriceCrossedTicketOpen(TEA &ea, int candlesAfterBeforeChecking);
-    template <typename TEA>
-    static void MoveTicketToBreakEvenAsSoonAsPossible(TEA &ea, Ticket &ticket, double waitForAdditionalPips);
     template <typename TEA>
     static void MoveStopLossToCoverCommissions(TEA &ea);
     template <typename TEA>
@@ -1562,199 +1536,6 @@ static bool EAHelper::CandleIsInZone(TEA &ea, MBTracker *mbt, int mbNumber, int 
 }
 /*
 
-   __  __                                   _    _ _   _____ _      _        _
-  |  \/  | __ _ _ __   __ _  __ _  ___     / \  | | | |_   _(_) ___| | _____| |_ ___
-  | |\/| |/ _` | '_ \ / _` |/ _` |/ _ \   / _ \ | | |   | | | |/ __| |/ / _ \ __/ __|
-  | |  | | (_| | | | | (_| | (_| |  __/  / ___ \| | |   | | | | (__|   <  __/ |_\__ \
-  |_|  |_|\__,_|_| |_|\__,_|\__, |\___| /_/   \_\_|_|   |_| |_|\___|_|\_\___|\__|___/
-                            |___/
-
-*/
-template <typename TEA>
-static void EAHelper::CloseAllPendingTickets(TEA &ea)
-{
-    for (int i = ea.mCurrentSetupTickets.Size() - 1; i >= 0; i--)
-    {
-        bool active = false;
-        int error = ea.mCurrentSetupTickets[i].IsActive(active);
-        if (TerminalErrors::IsTerminalError(error))
-        {
-            ea.RecordError(__FUNCTION__, error);
-        }
-
-        if (!active)
-        {
-            ea.mCurrentSetupTickets[i].Close();
-        }
-    }
-
-    for (int i = ea.mPreviousSetupTickets.Size() - 1; i >= 0; i--)
-    {
-        bool active = false;
-        int error = ea.mPreviousSetupTickets[i].IsActive(active);
-        if (TerminalErrors::IsTerminalError(error))
-        {
-            ea.RecordError(__FUNCTION__, error);
-        }
-
-        if (!active)
-        {
-            ea.mPreviousSetupTickets[i].Close();
-        }
-    }
-}
-
-template <typename TEA>
-static void EAHelper::CloseAllCurrentAndPreviousSetupTickets(TEA &ea)
-{
-    for (int i = ea.mCurrentSetupTickets.Size() - 1; i >= 0; i--)
-    {
-        ea.mCurrentSetupTickets[i].Close();
-    }
-
-    for (int i = ea.mPreviousSetupTickets.Size() - 1; i >= 0; i--)
-    {
-        ea.mPreviousSetupTickets[i].Close();
-    }
-}
-/*
-
-   __  __                                ____                _ _               _____ _      _        _
-  |  \/  | __ _ _ __   __ _  __ _  ___  |  _ \ ___ _ __   __| (_)_ __   __ _  |_   _(_) ___| | _____| |_
-  | |\/| |/ _` | '_ \ / _` |/ _` |/ _ \ | |_) / _ \ '_ \ / _` | | '_ \ / _` |   | | | |/ __| |/ / _ \ __|
-  | |  | | (_| | | | | (_| | (_| |  __/ |  __/  __/ | | | (_| | | | | | (_| |   | | | | (__|   <  __/ |_
-  |_|  |_|\__,_|_| |_|\__,_|\__, |\___| |_|   \___|_| |_|\__,_|_|_| |_|\__, |   |_| |_|\___|_|\_\___|\__|
-                            |___/                                      |___/
-
-*/
-template <typename TEA>
-static void EAHelper::CheckEditStopLossForPendingMBValidation(TEA &ea, MBTracker *&mbt, int mbNumber)
-{
-    ea.mLastState = EAStates::ATTEMPTING_TO_MANAGE_ORDER;
-
-    // also check if the mb number exist. If we invalidate the setup before our stop order gets hit, we would throw an error below
-    // due to spread. Its safe to return since the MB was validated so the SL should be correct
-    if (ea.mCurrentSetupTicket.Number() == EMPTY || !mbt.MBExists(mbNumber))
-    {
-        return;
-    }
-
-    ea.mLastState = EAStates::CHECKING_TO_EDIT_STOP_LOSS;
-
-    int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnPendingMB(
-        ea.mStopLossPaddingPips, ea.mMaxSpreadPips, ea.mRiskPercent, mbNumber, mbt, ea.mCurrentSetupTicket);
-
-    if (TerminalErrors::IsTerminalError(editStopLossError))
-    {
-        ea.InvalidateSetup(true, editStopLossError);
-        return;
-    }
-}
-
-template <typename TEA>
-static void EAHelper::CheckEditStopLossForBreakOfMB(TEA &ea, MBTracker *&mbt, int mbNumber)
-{
-    ea.mLastState = EAStates::ATTEMPTING_TO_MANAGE_ORDER;
-
-    // also check if the mb number exist. If we invalidate the setup before our stop order gets hit, we would throw an error below
-    // due to spread. Its safe to return since the MB was validated so the SL should be correct
-    if (ea.mCurrentSetupTicket.Number() == EMPTY || !mbt.MBExists(mbNumber))
-    {
-        return;
-    }
-
-    ea.mLastState = EAStates::CHECKING_TO_EDIT_STOP_LOSS;
-
-    int editStopLossError = OrderHelper::CheckEditStopLossForStopOrderOnBreakOfMB(
-        ea.mStopLossPaddingPips, ea.mMaxSpreadPips, ea.mRiskPercent, mbNumber, mbt, ea.mCurrentSetupTicket);
-
-    if (TerminalErrors::IsTerminalError(editStopLossError))
-    {
-        ea.InvalidateSetup(true, editStopLossError);
-        return;
-    }
-}
-
-template <typename TEA>
-static void EAHelper::CheckEditStopLossForLiquidationMBSetup(TEA &ea, MBTracker *&mbt, int liquidationMBNumber)
-{
-    ea.mLastState = EAStates::ATTEMPTING_TO_MANAGE_ORDER;
-
-    // also check if the mb number exist. If we invalidate the setup before our stop order gets hit, we would throw an error below
-    // due to spread. Its safe to return since the MB was validated so the SL should be correct
-    if (ea.mCurrentSetupTicket.Number() == EMPTY || !mbt.MBExists(liquidationMBNumber))
-    {
-        return;
-    }
-
-    ea.mLastState = EAStates::CHECKING_TO_EDIT_STOP_LOSS;
-
-    int editStopLossError = OrderHelper::CheckEditStopLossForLiquidationMBSetup(
-        ea.mStopLossPaddingPips, ea.mMaxSpreadPips, ea.mRiskPercent, liquidationMBNumber, mbt, ea.mCurrentSetupTicket);
-
-    if (TerminalErrors::IsTerminalError(editStopLossError))
-    {
-        ea.InvalidateSetup(true, editStopLossError);
-        return;
-    }
-}
-
-template <typename TEA>
-static void EAHelper::CheckBrokePastCandle(TEA &ea, string symbol, int timeFrame, int type, datetime candleTime)
-{
-    if (ea.mCurrentSetupTicket.Number() == EMPTY)
-    {
-        return;
-    }
-
-    int candleIndex = iBarShift(symbol, timeFrame, candleTime);
-    if (type == OP_BUY)
-    {
-        double lowestLow;
-        if (!MQLHelper::GetLowestLowBetween(symbol, timeFrame, candleIndex, 0, false, lowestLow))
-        {
-            ea.RecordError(__FUNCTION__, ExecutionErrors::COULD_NOT_RETRIEVE_LOW);
-            return;
-        }
-
-        if (lowestLow < iLow(symbol, timeFrame, candleIndex))
-        {
-            ea.InvalidateSetup(true);
-        }
-    }
-    else if (type == OP_SELL)
-    {
-        double highestHigh;
-        if (!MQLHelper::GetHighestHighBetween(symbol, timeFrame, candleIndex, 0, false, highestHigh))
-        {
-            ea.RecordError(__FUNCTION__, ExecutionErrors::COULD_NOT_RETRIEVE_HIGH);
-            return;
-        }
-
-        if (highestHigh > iHigh(symbol, timeFrame, candleIndex))
-        {
-            ea.InvalidateSetup(true);
-        }
-    }
-}
-
-template <typename TEA>
-static void EAHelper::CheckEditStopLossForTheLittleDipper(TEA &ea)
-{
-    if (ea.mCurrentSetupTicket.Number() == EMPTY)
-    {
-        return;
-    }
-
-    int error = OrderHelper::CheckEditStopLossForTheLittleDipper(ea.mStopLossPaddingPips, ea.mMaxSpreadPips, ea.mEntrySymbol, ea.mEntryTimeFrame, ea.mCurrentSetupTicket);
-    if (error != ERR_NO_ERROR)
-    {
-        ea.RecordError(__FUNCTION__, error);
-    }
-}
-
-/*
-
    __  __                                   _        _   _             _____ _      _        _
   |  \/  | __ _ _ __   __ _  __ _  ___     / \   ___| |_(_)_   _____  |_   _(_) ___| | _____| |_
   | |\/| |/ _` | '_ \ / _` |/ _` |/ _ \   / _ \ / __| __| \ \ / / _ \   | | | |/ __| |/ / _ \ __|
@@ -1838,40 +1619,6 @@ static void EAHelper::CheckTrailStopLossEveryXPips(TEA &ea, Ticket &ticket, doub
                 }
             }
         }
-    }
-}
-template <typename TEA>
-static void EAHelper::CheckTrailStopLossWithMBs(TEA &ea, MBTracker *&mbt, int lastMBNumberInSetup)
-{
-    ea.mLastState = EAStates::ATTEMPTING_TO_MANAGE_ORDER;
-
-    if (ea.mCurrentSetupTicket.Number() == EMPTY)
-    {
-        return;
-    }
-
-    bool stopLossIsMovedBreakEven;
-    int error = ea.mCurrentSetupTicket.StopLossIsMovedToBreakEven(stopLossIsMovedBreakEven);
-    if (error != ERR_NO_ERROR)
-    {
-        ea.RecordError(__FUNCTION__, error);
-        return;
-    }
-
-    if (stopLossIsMovedBreakEven)
-    {
-        return;
-    }
-
-    ea.mLastState = EAStates::CHECKING_TO_TRAIL_STOP_LOSS;
-
-    bool succeeeded = false;
-    int trailError = OrderHelper::CheckTrailStopLossWithMBUpToBreakEven(
-        ea.mStopLossPaddingPips, ea.mMaxSpreadPips, lastMBNumberInSetup, ea.SetupType(), mbt, ea.mCurrentSetupTicket, succeeeded);
-
-    if (TerminalErrors::IsTerminalError(trailError))
-    {
-        ea.InvalidateSetup(false, trailError);
     }
 }
 
@@ -2185,51 +1932,6 @@ static void EAHelper::CloseIfPriceCrossedTicketOpen(TEA &ea, int candlesAfterBef
     else if (OrderType() == OP_SELL && currentTick.ask > OrderOpenPrice())
     {
         ea.mCurrentSetupTicket.Close();
-    }
-}
-
-template <typename TEA>
-static void EAHelper::MoveTicketToBreakEvenAsSoonAsPossible(TEA &ea, Ticket &ticket, double waitForAdditionalPips = 0.0)
-{
-    ea.mLastState = EAStates::CHECKING_IF_MOVED_TO_BREAK_EVEN;
-
-    if (ticket.Number() == EMPTY)
-    {
-        return;
-    }
-
-    bool stopLossIsMovedToBreakEven = false;
-    int error = ticket.StopLossIsMovedToBreakEven(stopLossIsMovedToBreakEven);
-    if (TerminalErrors::IsTerminalError(error))
-    {
-        ea.RecordError(__FUNCTION__, error);
-        return;
-    }
-
-    if (stopLossIsMovedToBreakEven)
-    {
-        return;
-    }
-
-    ea.mLastState = EAStates::MOVING_TO_BREAK_EVEN;
-
-    int selectError = ticket.SelectIfOpen("Managing");
-    if (selectError != ERR_NO_ERROR)
-    {
-        // ticket is closed, will record data on it soon
-        return;
-    }
-
-    bool furtherThanEntry = (OrderType() == OP_BUY && ea.CurrentTick().Bid() > OrderOpenPrice() + PipConverter::PipsToPoints(waitForAdditionalPips)) ||
-                            (OrderType() == OP_SELL && ea.CurrentTick().Ask() < OrderOpenPrice() - PipConverter::PipsToPoints(waitForAdditionalPips));
-
-    if (furtherThanEntry)
-    {
-        int breakEvenError = OrderHelper::MoveTicketToBreakEven(ticket, waitForAdditionalPips);
-        if (TerminalErrors::IsTerminalError(breakEvenError))
-        {
-            ea.RecordError(__FUNCTION__, breakEvenError);
-        }
     }
 }
 

@@ -33,8 +33,6 @@ public:
     int PlaceStopOrder(OrderType orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
 
     int ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration);
-    int DeleteOrder(int ticket);
-    int CloseOrder(int ticket, double lots, double price);
 };
 
 TradeManager::TradeManager(ulong magicNumber, ulong slippage)
@@ -158,14 +156,4 @@ int TradeManager::PlaceStopOrder(OrderType orderType, double lots, double entryP
 int TradeManager::ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration)
 {
     return mTM.ModifyOrder(ticket, entryPrice, stopLoss, takeProfit, expiration);
-}
-
-int TradeManager::DeleteOrder(int ticket)
-{
-    return mTM.DeleteOrder(ticket);
-}
-
-int TradeManager::CloseOrder(int ticket, double lots, double price)
-{
-    return mTM.CloseOrder(ticket, lots, price);
 }
