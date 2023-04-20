@@ -124,7 +124,7 @@ void EnterBeforeNewsHedge::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void EnterBeforeNewsHedge::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void EnterBeforeNewsHedge::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<EnterBeforeNewsHedge>(this, deletePendingOrder, mStopTrading, error);
 }

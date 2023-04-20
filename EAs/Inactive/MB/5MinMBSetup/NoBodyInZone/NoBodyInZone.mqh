@@ -174,7 +174,7 @@ void NoBodyInZone::CheckInvalidateSetup()
     }
 }
 
-void NoBodyInZone::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void NoBodyInZone::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<NoBodyInZone>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<NoBodyInZone>(this, false);

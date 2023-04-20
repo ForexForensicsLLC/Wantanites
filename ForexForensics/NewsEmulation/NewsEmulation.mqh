@@ -101,7 +101,7 @@ void NewsEmulation::PreRun()
             if (!mCurrentSetupTickets.Contains<TTicketNumberLocator, int>(Ticket::EqualsTicketNumber, OrderTicket()))
             {
                 Ticket *ticket = new Ticket(OrderTicket());
-                ticket.OriginalOpenPrice(ticket.OpenPrice());
+                ticket.OpenPrice(ticket.OpenPrice());
                 mCurrentSetupTickets.Add(ticket);
             }
         }
@@ -122,7 +122,7 @@ void NewsEmulation::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void NewsEmulation::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void NewsEmulation::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<NewsEmulation>(this, deletePendingOrder, mStopTrading, error);
 }

@@ -125,7 +125,7 @@ void GridHedge::CheckInvalidateSetup()
     }
 }
 
-void GridHedge::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void GridHedge::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<GridHedge>(this, deletePendingOrder, mStopTrading, error);
 

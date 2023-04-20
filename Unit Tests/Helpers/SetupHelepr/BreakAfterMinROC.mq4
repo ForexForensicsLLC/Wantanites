@@ -182,7 +182,7 @@ int NoMinROCIsTrueEqualsFalse(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &act
 
     delete tempMRFTS;
 
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -207,7 +207,7 @@ int NotOppositeMBIsTrueEqualsFalse(BoolUnitTest<DefaultUnitTestRecord> &ut, bool
 
     delete tempMRFTS;
 
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -262,7 +262,7 @@ int BullishSetupTrue(bool &actual)
     BullishSetupTrueUnitTest.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(BullishSetupTrueUnitTest.Directory());
 
     int error = SetupHelper::BreakAfterMinROC(tempMRFTS, MBT, actual);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -319,7 +319,7 @@ int BearishSetupTrue(bool &actual)
     BearishSetupTrueUnitTest.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(BearishSetupTrueUnitTest.Directory());
 
     int error = SetupHelper::BreakAfterMinROC(tempMRFTS, MBT, actual);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -376,7 +376,7 @@ int MinROCAfterBreakReturnsFalse(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &
     bool isTrue = true;
     int error = SetupHelper::BreakAfterMinROC(tempMRFTS, MBT, isTrue);
 
-    actual = !isTrue && error == ERR_NO_ERROR;
+    actual = !isTrue && error == Errors::NO_ERROR;
     reset = true;
     return Results::UNIT_TEST_RAN;
 }
@@ -405,7 +405,7 @@ int MBBreakIsAfterMinROC(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     bool isTrue = true;
     int error = SetupHelper::BreakAfterMinROC(tempMRFTS, MBT, isTrue);
 
-    if (error != ERR_NO_ERROR || !isTrue)
+    if (error != Errors::NO_ERROR || !isTrue)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }

@@ -179,7 +179,7 @@ void HalfOfImpulse::CheckInvalidateSetup()
     }
 }
 
-void HalfOfImpulse::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void HalfOfImpulse::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<HalfOfImpulse>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<HalfOfImpulse>(this, false);

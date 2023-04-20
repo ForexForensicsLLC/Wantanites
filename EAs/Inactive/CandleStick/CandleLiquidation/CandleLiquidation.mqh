@@ -110,7 +110,7 @@ void CandleLiquidation::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void CandleLiquidation::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void CandleLiquidation::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<CandleLiquidation>(this, deletePendingOrder, mStopTrading, error);
 }

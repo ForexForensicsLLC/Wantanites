@@ -217,7 +217,7 @@ void NeighborMBs::CheckInvalidateSetup()
     }
 }
 
-void NeighborMBs::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void NeighborMBs::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<NeighborMBs>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<NeighborMBs>(this, false);

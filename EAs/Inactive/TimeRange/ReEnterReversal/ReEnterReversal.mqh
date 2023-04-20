@@ -131,7 +131,7 @@ void ReEnterReversal::CheckInvalidateSetup()
     }
 }
 
-void ReEnterReversal::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void ReEnterReversal::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<ReEnterReversal>(this, deletePendingOrder, mStopTrading, error);
     mBrokeRangeCandleTime = 0;

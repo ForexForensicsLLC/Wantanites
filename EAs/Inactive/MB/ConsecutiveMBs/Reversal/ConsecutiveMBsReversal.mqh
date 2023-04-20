@@ -173,7 +173,7 @@ void CMBsReversal::CheckInvalidateSetup()
     }
 }
 
-void CMBsReversal::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void CMBsReversal::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<CMBsReversal>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<CMBsReversal>(this, false);

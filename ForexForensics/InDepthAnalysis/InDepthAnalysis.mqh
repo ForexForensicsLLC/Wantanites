@@ -101,7 +101,7 @@ void InDepthAnalysis::PreRun()
             if (!mCurrentSetupTickets.Contains<TTicketNumberLocator, int>(Ticket::EqualsTicketNumber, OrderTicket()))
             {
                 Ticket *ticket = new Ticket(OrderTicket());
-                ticket.OriginalOpenPrice(ticket.OpenPrice());
+                ticket.OpenPrice(ticket.OpenPrice());
                 mCurrentSetupTickets.Add(ticket);
             }
         }
@@ -122,7 +122,7 @@ void InDepthAnalysis::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void InDepthAnalysis::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void InDepthAnalysis::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<InDepthAnalysis>(this, deletePendingOrder, mStopTrading, error);
 }

@@ -86,7 +86,7 @@ void StartOfDayHedge::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void StartOfDayHedge::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void StartOfDayHedge::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<StartOfDayHedge>(this, deletePendingOrder, mStopTrading, error);
 }

@@ -67,4 +67,4 @@
 #define EMPTY -1
 
 // errors
-#define ERR_NO_ERROR 0
+#define Errors ::NO_ERROR 0

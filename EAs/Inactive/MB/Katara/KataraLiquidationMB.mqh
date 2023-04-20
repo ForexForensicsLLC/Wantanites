@@ -127,7 +127,7 @@ void KataraLiquidationMB::CheckSetSetup()
     {
         bool isTrue = false;
         int error = EAHelper::LiquidationMBZoneIsHolding<KataraLiquidationMB>(this, mSetupMBT, mFirstMBInSetupNumber, mSecondMBInSetupNumber, isTrue);
-        if (error != ERR_NO_ERROR)
+        if (error != Errors::NO_ERROR)
         {
             EAHelper::InvalidateSetup<KataraLiquidationMB>(this, true, false);
             EAHelper::ResetLiquidationMBSetup<KataraLiquidationMB>(this, false);
@@ -274,7 +274,7 @@ void KataraLiquidationMB::CheckInvalidateSetup()
     // mCheckInvalidateSetupMBsCreated = mConfirmationMBT.MBsCreated();
 }
 
-void KataraLiquidationMB::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void KataraLiquidationMB::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     // if (mInvalidateSetupMBsCreated < mConfirmationMBT.MBsCreated())
     // {
@@ -303,7 +303,7 @@ bool KataraLiquidationMB::Confirmation()
     // }
     bool hasConfirmation = false;
     int error = EAHelper::LiquidationMBZoneIsHolding<KataraLiquidationMB>(this, mConfirmationMBT, mFirstMBInConfirmationNumber, mSecondMBInConfirmationNumber, hasConfirmation);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         EAHelper::InvalidateSetup<KataraLiquidationMB>(this, true, false);
         EAHelper::ResetLiquidationMBConfirmation<KataraLiquidationMB>(this, false);

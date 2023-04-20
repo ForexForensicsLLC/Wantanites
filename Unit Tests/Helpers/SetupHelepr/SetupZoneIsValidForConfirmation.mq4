@@ -157,7 +157,7 @@ int AnyResult(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     bool isTrue = false;
     string additionalInformation;
     int error = SetupHelper::SetupZoneIsValidForConfirmation(tempMBState.Number(), 1, SetupMBT, ConfirmationMBT, isTrue, additionalInformation);
-    // if (error != ERR_NO_ERROR)
+    // if (error != Errors::NO_ERROR)
     // {
     //     return error;
     // }

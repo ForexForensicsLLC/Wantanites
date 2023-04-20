@@ -126,7 +126,7 @@ void KataraSingleMBDoji::CheckSetSetup()
     // {
     //     bool isTrue = false;
     //     int error = EAHelper::LiquidationMBZoneIsHolding<KataraSingleMBDoji>(this, mSetupMBT, mFirstMBInSetupNumber, mSecondMBInSetupNumber, isTrue);
-    //     if (error != ERR_NO_ERROR)
+    //     if (error != Errors::NO_ERROR)
     //     {
     //         EAHelper::InvalidateSetup<KataraSingleMBDoji>(this, true, false);
     //         EAHelper::ResetLiquidationMBSetup<KataraSingleMBDoji>(this, false);
@@ -149,7 +149,7 @@ void KataraSingleMBDoji::CheckSetSetup()
     {
         bool isTrue = false;
         int error = EAHelper::MostRecentMBZoneIsHolding<KataraSingleMBDoji>(this, mSetupMBT, mFirstMBInSetupNumber, isTrue);
-        if (error != ERR_NO_ERROR)
+        if (error != Errors::NO_ERROR)
         {
             EAHelper::InvalidateSetup<KataraSingleMBDoji>(this, true, false);
             EAHelper::ResetSingleMBSetup<KataraSingleMBDoji>(this, false);
@@ -223,7 +223,7 @@ void KataraSingleMBDoji::CheckInvalidateSetup()
     }
 }
 
-void KataraSingleMBDoji::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void KataraSingleMBDoji::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     RecordError(-44);
     EAHelper::InvalidateSetup<KataraSingleMBDoji>(this, deletePendingOrder, false, error);
@@ -238,7 +238,7 @@ bool KataraSingleMBDoji::Confirmation()
     if (currentBars > mBarCount)
     {
         int error = EAHelper::EngulfingCandleInZone<KataraSingleMBDoji>(this, mConfirmationMBT, mFirstMBInConfirmationNumber, hasConfirmation);
-        if (error != ERR_NO_ERROR)
+        if (error != Errors::NO_ERROR)
         {
             EAHelper::InvalidateSetup<KataraSingleMBDoji>(this, true, false);
             EAHelper::ResetSingleMBConfirmation<KataraSingleMBDoji>(this, false);

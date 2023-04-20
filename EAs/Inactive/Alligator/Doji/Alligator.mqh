@@ -250,7 +250,7 @@ void Alligator::CheckInvalidateSetup()
     }
 }
 
-void Alligator::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void Alligator::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<Alligator>(this, deletePendingOrder, false, error);
 

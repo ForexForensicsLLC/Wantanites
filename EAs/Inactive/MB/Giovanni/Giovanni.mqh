@@ -113,7 +113,7 @@ void Giovanni::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void Giovanni::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void Giovanni::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<Giovanni>(this, deletePendingOrder, false, error);
 }

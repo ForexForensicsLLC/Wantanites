@@ -166,7 +166,7 @@ void PendingImpulse::CheckInvalidateSetup()
     }
 }
 
-void PendingImpulse::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void PendingImpulse::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<PendingImpulse>(this, deletePendingOrder, false, error);
 }

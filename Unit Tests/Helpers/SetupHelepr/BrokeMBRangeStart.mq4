@@ -146,7 +146,7 @@ int BrokeBullishMB(bool &actual)
     BrokeBullishMBUnitTest.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(BrokeBullishMBUnitTest.Directory());
 
     int brokeRangeError = SetupHelper::BrokeMBRangeStart(mbNumber, MBT, actual);
-    if (brokeRangeError != ERR_NO_ERROR)
+    if (brokeRangeError != Errors::NO_ERROR)
     {
         reset = true;
         return brokeRangeError;
@@ -204,7 +204,7 @@ int BrokeBearishMB(bool &actual)
     BrokeBearishMBUnitTest.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(BrokeBearishMBUnitTest.Directory());
 
     int brokeRangeError = SetupHelper::BrokeMBRangeStart(mbNumber, MBT, actual);
-    if (brokeRangeError != ERR_NO_ERROR)
+    if (brokeRangeError != Errors::NO_ERROR)
     {
         reset = true;
         return brokeRangeError;
@@ -230,7 +230,7 @@ int DidNotBreakBullishMB(bool &actual)
     DidNotBreakBullishMBUnitTest.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(DidNotBreakBullishMBUnitTest.Directory());
 
     int brokeRangeError = SetupHelper::BrokeMBRangeStart(tempMBState.Number(), MBT, actual);
-    if (brokeRangeError != ERR_NO_ERROR)
+    if (brokeRangeError != Errors::NO_ERROR)
     {
         return brokeRangeError;
     }
@@ -254,7 +254,7 @@ int DidNotBreakBearishMB(bool &actual)
     DidNotBreakBearishMBUnitTest.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(DidNotBreakBearishMBUnitTest.Directory());
 
     int brokeRangeError = SetupHelper::BrokeMBRangeStart(tempMBState.Number(), MBT, actual);
-    if (brokeRangeError != ERR_NO_ERROR)
+    if (brokeRangeError != Errors::NO_ERROR)
     {
         return brokeRangeError;
     }

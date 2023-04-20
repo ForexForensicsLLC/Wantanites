@@ -126,7 +126,7 @@ void Sinji::CheckInvalidateSetup()
     }
 }
 
-void Sinji::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void Sinji::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     RecordError(-300);
     EAHelper::InvalidateSetup<Sinji>(this, deletePendingOrder, false, error);
@@ -141,7 +141,7 @@ bool Sinji::Confirmation()
     // if (currentBars > mBarCount)
     // {
     //     int error = EAHelper::DojiBreakInsideLiquidationSetupMBsHoldingZone<Sinji>(this, mSetupMBT, mFirstMBInSetupNumber, mSecondMBInSetupNumber, hasConfirmation);
-    //     if (error != ERR_NO_ERROR)
+    //     if (error != Errors::NO_ERROR)
     //     {
     //         RecordError(error);
 

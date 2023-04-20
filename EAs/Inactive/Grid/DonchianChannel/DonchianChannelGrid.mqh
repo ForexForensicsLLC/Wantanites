@@ -188,7 +188,7 @@ void DonchianChannelGrid::CheckInvalidateSetup()
     }
 }
 
-void DonchianChannelGrid::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void DonchianChannelGrid::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<DonchianChannelGrid>(this, deletePendingOrder, mStopTrading, error);
 

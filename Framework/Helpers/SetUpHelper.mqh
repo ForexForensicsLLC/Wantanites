@@ -90,7 +90,7 @@ static int SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(int secondMBIn
 
     // The end of our setup is the same as the start of the MB that liquidated the second MB
     isTrue = thirdTempMBState.GlobalStartIsBroken();
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 /*
 
@@ -112,7 +112,7 @@ static int SetupHelper::MostRecentMBPlusHoldingZone(int mostRecentMBNumber, MBTr
     }
 
     isTrue = mbt.MBsClosestValidZoneIsHolding(mostRecentMBNumber);
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 
 static int SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOneNumber, int mbTwoNumber, MBTracker *&mbt, out bool &isTrue)
@@ -150,13 +150,13 @@ static int SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOne
         isTrue = mbt.MBsClosestValidZoneIsHolding(mbOneNumber, thirdMBTempState.EndIndex() + 1);
     }
 
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 
 static int SetupHelper::SameTypeSubsequentMB(int mbNumber, MBTracker *&mbt, out bool isTrue)
 {
     isTrue = mbt.MBIsMostRecent(mbNumber + 1) && mbt.HasNMostRecentConsecutiveMBs(2);
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 
 static int SetupHelper::GetEarlierSetupZoneMitigationIndexForLowerTimeFrame(ZoneState *setupZone, MBTracker *confirmationMBT)
@@ -332,7 +332,7 @@ static int SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNu
 
     additionaInformation += " Nth MB is Further: " + nthMB.mPushedFurtherIntoSetupZone;
     pushedFurtherIntoZone = nthMB.mPushedFurtherIntoSetupZone == Status::IS_TRUE;
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 
 static int SetupHelper::MBRetappedDeepestHoldingSetupZone(int setupMBNumber, int nthConfirmationMB, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &retappedZone,
@@ -446,7 +446,7 @@ static int SetupHelper::MBRetappedDeepestHoldingSetupZone(int setupMBNumber, int
         retappedZone = nthMB.mInsideSetupZone == Status::IS_TRUE && previousMB.mInsideSetupZone == Status::IS_FALSE;
     }
 
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 
 static int SetupHelper::SetupZoneIsValidForConfirmation(int setupMBNumber, int nthConfirmationMB, MBTracker *&setupMBT, MBTracker *&confirmationMBT, bool &isTrue, string &additionalInformation)
@@ -459,7 +459,7 @@ static int SetupHelper::SetupZoneIsValidForConfirmation(int setupMBNumber, int n
     int retappedError = MBRetappedDeepestHoldingSetupZone(setupMBNumber, nthConfirmationMB, setupMBT, confirmationMBT, retappedZone, info);
 
     additionalInformation += " Retapped Zone: " + retappedZone + " Error: " + retappedError + " Info: " + info;
-    if (retappedError != ERR_NO_ERROR)
+    if (retappedError != Errors::NO_ERROR)
     {
         return retappedError;
     }
@@ -469,13 +469,13 @@ static int SetupHelper::SetupZoneIsValidForConfirmation(int setupMBNumber, int n
     int pushedFurtherError = MBPushedFurtherIntoDeepestHoldingSetupZone(setupMBNumber, nthConfirmationMB, setupMBT, confirmationMBT, pushedFurtherIntoZone, info);
 
     additionalInformation += " Pushed Further: " + pushedFurtherIntoZone + " Error: " + pushedFurtherError + " Info: " + info;
-    if (pushedFurtherError != ERR_NO_ERROR)
+    if (pushedFurtherError != Errors::NO_ERROR)
     {
         return pushedFurtherError;
     }
 
     isTrue = retappedZone || pushedFurtherIntoZone;
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 /*
 
@@ -506,7 +506,7 @@ static int SetupHelper::BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker 
 
     if (!mrfts.HadMinROC() || !mbt.NthMostRecentMBIsOpposite(0))
     {
-        return ERR_NO_ERROR;
+        return Errors::NO_ERROR;
     }
 
     MBState *tempMBStates[];
@@ -519,7 +519,7 @@ static int SetupHelper::BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker 
     // had a min roc before another mb is created
     if (iTime(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[0].EndIndex()) <= mrfts.MinROCAchievedTime())
     {
-        return ERR_NO_ERROR;
+        return Errors::NO_ERROR;
     }
 
     bool bothAbove = iLow(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[1].LowIndex()) > mrfts.OpenPrice() && iLow(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[0].LowIndex()) > mrfts.OpenPrice();
@@ -529,7 +529,7 @@ static int SetupHelper::BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker 
     bool breakingDown = bothAbove && tempMBStates[0].Type() == OP_SELL;
 
     isTrue = breakingUp || breakingDown;
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 
 // bullish candlestick pattern where a candle wick liquidates the candle low before it

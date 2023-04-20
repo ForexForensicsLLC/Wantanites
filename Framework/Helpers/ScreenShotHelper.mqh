@@ -8,7 +8,6 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Helpers\OrderHelper.mqh>
 #include <Wantanites\Framework\Constants\Index.mqh>
 
 class ScreenShotHelper
@@ -125,5 +124,5 @@ static int ScreenShotHelper::TryTakeMultiTimeFrameScreenShot(string directory, i
         return GetLastError();
     }
 
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }

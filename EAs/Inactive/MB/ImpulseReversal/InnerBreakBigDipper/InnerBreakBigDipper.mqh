@@ -259,7 +259,7 @@ void ImpulseReversal::CheckInvalidateSetup()
     }
 }
 
-void ImpulseReversal::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void ImpulseReversal::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<ImpulseReversal>(this, deletePendingOrder, false, error);
 

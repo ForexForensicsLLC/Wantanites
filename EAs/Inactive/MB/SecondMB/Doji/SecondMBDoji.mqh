@@ -161,7 +161,7 @@ void SecondMB::CheckInvalidateSetup()
     }
 }
 
-void SecondMB::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void SecondMB::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<SecondMB>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<SecondMB>(this, false);

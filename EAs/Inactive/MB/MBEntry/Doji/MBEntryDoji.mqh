@@ -158,7 +158,7 @@ void MBEntryDoji::CheckInvalidateSetup()
     }
 }
 
-void MBEntryDoji::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void MBEntryDoji::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<MBEntryDoji>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<MBEntryDoji>(this, false);

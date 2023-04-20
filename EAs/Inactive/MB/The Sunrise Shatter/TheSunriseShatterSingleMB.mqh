@@ -131,7 +131,7 @@ void TheSunriseShatterSingleMB::CheckInvalidateSetup()
     }
 }
 
-void TheSunriseShatterSingleMB::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void TheSunriseShatterSingleMB::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<TheSunriseShatterSingleMB>(this, deletePendingOrder, true, error);
 }

@@ -170,7 +170,7 @@ void MBValidationReversal::CheckInvalidateSetup()
     }
 }
 
-void MBValidationReversal::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void MBValidationReversal::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     mFirstMBInSetupNumber = EMPTY;
     EAHelper::InvalidateSetup<MBValidationReversal>(this, deletePendingOrder, mStopTrading, error);

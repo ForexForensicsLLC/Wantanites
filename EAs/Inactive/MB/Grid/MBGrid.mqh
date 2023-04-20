@@ -316,7 +316,7 @@ void MBGrid::CheckInvalidateSetup()
     }
 }
 
-void MBGrid::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void MBGrid::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<MBGrid>(this, deletePendingOrder, mStopTrading, error);
 

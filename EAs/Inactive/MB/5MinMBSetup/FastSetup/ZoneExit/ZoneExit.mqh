@@ -171,7 +171,7 @@ void ZoneExit::CheckInvalidateSetup()
     }
 }
 
-void ZoneExit::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void ZoneExit::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<ZoneExit>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<ZoneExit>(this, false);

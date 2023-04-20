@@ -49,7 +49,7 @@ int VersionSpecificTradeManager::PlaceMarketOrder(OrderType orderType, double lo
 
     int newTicket = OrderSend(Symbol(), type, lots, entryPrice, mSlippage, stopLoss, takeProfit, NULL, mMagicNumber, 0, clrNONE);
 
-    int error = ERR_NO_ERROR;
+    int error = Errors::NO_ERROR;
     if (newTicket == EMPTY)
     {
         error = GetLastError();
@@ -74,7 +74,7 @@ int VersionSpecificTradeManager::PlaceLimitOrder(OrderType orderType, double lot
 
     int ticketNumber = OrderSend(Symbol(), type, lots, entryPrice, mSlippage, stopLoss, takeProfit, NULL, mMagicNumber, 0, clrNONE);
 
-    int error = ERR_NO_ERROR;
+    int error = Errors::NO_ERROR;
     if (ticketNumber == EMPTY)
     {
         error = GetLastError();
@@ -97,7 +97,7 @@ int VersionSpecificTradeManager::PlaceStopOrder(OrderType orderType, double lots
         type = OP_SELLSTOP;
     };
 
-    int error = ERR_NO_ERROR;
+    int error = Errors::NO_ERROR;
     int ticketNumber = OrderSend(Symbol(), type, lots, entryPrice, mSlippage, stopLoss, takeProfit, NULL, mMagicNumber, 0, clrNONE);
 
     if (ticketNumber == EMPTY)
@@ -117,5 +117,5 @@ int VersionSpecificTradeManager::ModifyOrder(int ticket, double entryPrice, doub
         return GetLastError();
     }
 
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }

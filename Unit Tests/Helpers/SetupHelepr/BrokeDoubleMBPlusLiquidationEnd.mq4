@@ -133,7 +133,7 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
         bool isTrue = false;
         // Broke the first mb in the double mb setup
         int setupError = SetupHelper::BrokeMBRangeStart(secondMBNumber - 1, MBT, isTrue);
-        if (setupError != ERR_NO_ERROR || isTrue)
+        if (setupError != Errors::NO_ERROR || isTrue)
         {
             reset = true;
             return Results::UNIT_TEST_DID_NOT_RUN;
@@ -171,7 +171,7 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
         thirdMBNumber = thirdTempMBState.Number();
     }
 
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 
 int HasBullishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
@@ -182,7 +182,7 @@ int HasBullishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     static bool reset = false;
 
     int error = SetSetupVariables(OP_BUY, secondMBNumber, thirdMBNumber, setupType, reset);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -208,7 +208,7 @@ int HasBullishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 
     actual = false;
     int setupError = SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(secondMBNumber, setupType, MBT, actual);
-    if (setupError != ERR_NO_ERROR)
+    if (setupError != Errors::NO_ERROR)
     {
         return setupError;
     }
@@ -225,7 +225,7 @@ int HasBearishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     static bool reset = false;
 
     int error = SetSetupVariables(OP_SELL, secondMBNumber, thirdMBNumber, setupType, reset);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -251,7 +251,7 @@ int HasBearishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 
     actual = false;
     int setupError = SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(secondMBNumber, setupType, MBT, actual);
-    if (setupError != ERR_NO_ERROR)
+    if (setupError != Errors::NO_ERROR)
     {
         return setupError;
     }
@@ -268,7 +268,7 @@ int DidNotBreakLiquidationMBInBullishSetup(bool &actual)
     static bool reset = false;
 
     int error = SetSetupVariables(OP_BUY, secondMBNumber, thirdMBNumber, setupType, reset);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -298,7 +298,7 @@ int DidNotBreakLiquidationMBInBullishSetup(bool &actual)
 
     actual = true;
     int setupError = SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(secondMBNumber, setupType, MBT, actual);
-    if (setupError != ERR_NO_ERROR)
+    if (setupError != Errors::NO_ERROR)
     {
         return setupError;
     }
@@ -315,7 +315,7 @@ int DidNotBreakLiquidationMBInBearishSetup(bool &actual)
     static bool reset = false;
 
     int error = SetSetupVariables(OP_SELL, secondMBNumber, thirdMBNumber, setupType, reset);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -345,7 +345,7 @@ int DidNotBreakLiquidationMBInBearishSetup(bool &actual)
 
     actual = false;
     int setupError = SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(secondMBNumber, setupType, MBT, actual);
-    if (setupError != ERR_NO_ERROR)
+    if (setupError != Errors::NO_ERROR)
     {
         return setupError;
     }

@@ -118,7 +118,7 @@ void TestNewsTimeRangeBreakout::CheckInvalidateSetup()
     }
 }
 
-void TestNewsTimeRangeBreakout::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void TestNewsTimeRangeBreakout::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<TestNewsTimeRangeBreakout>(this, deletePendingOrder, mStopTrading, error);
 }

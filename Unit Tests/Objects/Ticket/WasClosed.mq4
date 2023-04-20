@@ -71,7 +71,7 @@ int WasClosed(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 
     bool wasClosed;
     int wasClosedError = ticket.WasClosed(wasClosed);
-    if (wasClosedError != ERR_NO_ERROR)
+    if (wasClosedError != Errors::NO_ERROR)
     {
         return wasClosedError;
     }
@@ -79,13 +79,13 @@ int WasClosed(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     ticket.Close();
     bool newWasClosed;
     int newWasClosedError = ticket.WasClosed(newWasClosed);
-    if (newWasClosedError != ERR_NO_ERROR)
+    if (newWasClosedError != Errors::NO_ERROR)
     {
         return newWasClosedError;
     }
 
     int selectError = ticket.SelectIfClosed("Testing If Activated");
-    if (selectError != ERR_NO_ERROR)
+    if (selectError != Errors::NO_ERROR)
     {
         return selectError;
     }
@@ -111,7 +111,7 @@ int WasNotClosed(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     ut.PendingRecord.AdditionalInformation = "Ticket By Number: " + IntegerToString(ticketNumber);
 
     int selectError = ticket.SelectIfOpen("Testing If Activated");
-    if (selectError != ERR_NO_ERROR)
+    if (selectError != Errors::NO_ERROR)
     {
         return selectError;
     }
@@ -120,14 +120,14 @@ int WasNotClosed(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 
     bool wasClosed;
     int wasClosedError = ticket.WasClosed(wasClosed);
-    if (wasClosedError != ERR_NO_ERROR)
+    if (wasClosedError != Errors::NO_ERROR)
     {
         return wasClosedError;
     }
 
     bool newWasClosed;
     int newWasClosedError = ticket.WasClosed(newWasClosed);
-    if (newWasClosedError != ERR_NO_ERROR)
+    if (newWasClosedError != Errors::NO_ERROR)
     {
         return newWasClosedError;
     }

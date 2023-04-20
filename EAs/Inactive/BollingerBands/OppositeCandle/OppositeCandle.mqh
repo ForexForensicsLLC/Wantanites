@@ -104,7 +104,7 @@ void OppositeCandle::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void OppositeCandle::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void OppositeCandle::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<OppositeCandle>(this, deletePendingOrder, false, error);
 }

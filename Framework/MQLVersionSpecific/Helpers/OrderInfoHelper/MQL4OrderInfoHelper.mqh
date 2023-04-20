@@ -47,7 +47,7 @@ int VersionSpecificOrderInfoHelper::CountOtherEAOrders(bool todayOnly, int &magi
         }
     }
 
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 
 int VersionSpecificOrderInfoHelper::FindActiveTicketsByMagicNumber(bool todayOnly, int magicNumber, int &tickets[])
@@ -80,12 +80,12 @@ int VersionSpecificOrderInfoHelper::FindActiveTicketsByMagicNumber(bool todayOnl
         }
     }
 
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 
 int VersionSpecificOrderInfoHelper::FindNewTicketAfterPartial(int magicNumber, double openPrice, datetime orderOpenTime, int &ticket)
 {
-    int error = ERR_NO_ERROR;
+    int error = Errors::NO_ERROR;
     for (int i = 0; i < OrdersTotal(); i++)
     {
         if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))

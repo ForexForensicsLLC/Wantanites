@@ -142,7 +142,7 @@ void MorningMB::CheckInvalidateSetup()
     }
 }
 
-void MorningMB::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void MorningMB::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<MorningMB>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<MorningMB>(this, false);

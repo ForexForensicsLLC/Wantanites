@@ -36,7 +36,7 @@ int OnInit()
     NoOpenOrdersInvalidPositionHasErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "No Orders Invalid Position Returns Error", "Should Return An Error When Selecing An Invalid Position With No Orders Opened",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        ERR_NO_ERROR, NoOpenOrdersInvalidPositionHasError);
+        Errors::NO_ERROR, NoOpenOrdersInvalidPositionHasError);
 
     return (INIT_SUCCEEDED);
 }
@@ -69,7 +69,7 @@ int SelectOpenOrdersByPosition(bool &actual)
     for (int i = 0; i < 1; i++)
     {
         int error = OrderHelper::SelectOpenOrderByPosition(i, "Testing Select Open Order By Position");
-        if (error != ERR_NO_ERROR)
+        if (error != Errors::NO_ERROR)
         {
             return error;
         }

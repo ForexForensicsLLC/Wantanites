@@ -163,7 +163,7 @@ int CheckingIfBrokeRangeEnd(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actua
 
     bool brokeRangeEnd;
     int brokeRangeEndError = SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(TSSLMB.SecondMBInSetupNumber(), TSSLMB.SetupType(), MBT, brokeRangeEnd);
-    if (brokeRangeEndError != ERR_NO_ERROR || !brokeRangeEnd)
+    if (brokeRangeEndError != Errors::NO_ERROR || !brokeRangeEnd)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }

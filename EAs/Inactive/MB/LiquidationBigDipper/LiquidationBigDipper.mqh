@@ -198,7 +198,7 @@ void LiquidationBigDipper::CheckInvalidateSetup()
     }
 }
 
-void LiquidationBigDipper::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void LiquidationBigDipper::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<LiquidationBigDipper>(this, deletePendingOrder, false, error);
     mEntryCandleTime = 0;

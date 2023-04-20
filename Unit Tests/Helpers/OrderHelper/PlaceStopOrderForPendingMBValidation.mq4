@@ -77,12 +77,12 @@ int OnInit()
     BullishMBNoErrorUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Bullish MB No Errors", "Places Stop Order On Most Recent Bullish MB Without Errors",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        ERR_NO_ERROR, BullishMBNoError);
+        Errors::NO_ERROR, BullishMBNoError);
 
     BearishMBNoErrorUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Bearish MB No Errors", "Places Stop Order On Most Recent Bearish MB Without Errors",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        ERR_NO_ERROR, BearishMBNoError);
+        Errors::NO_ERROR, BearishMBNoError);
 
     NotMostRecentMBErrorUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Not Most Recent MB Error", "Returns An Error When Trying To Place A Stop Order Not On The Most Recent MB",
@@ -128,7 +128,7 @@ int CloseTicket(int &ticket)
 {
     bool isPending = false;
     int pendingOrderError = OrderHelper::IsPendingOrder(ticket, isPending);
-    if (pendingOrderError != ERR_NO_ERROR)
+    if (pendingOrderError != Errors::NO_ERROR)
     {
         return pendingOrderError;
     }
@@ -143,7 +143,7 @@ int CloseTicket(int &ticket)
     else
     {
         int orderSelectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Check Edit Stop Loss");
-        if (orderSelectError != ERR_NO_ERROR)
+        if (orderSelectError != Errors::NO_ERROR)
         {
             return orderSelectError;
         }
@@ -165,7 +165,7 @@ int CloseTicket(int &ticket)
     }
 
     ticket = EMPTY;
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 
 int CheckMostRecentPendingMB(int type, string &info)
@@ -254,7 +254,7 @@ int BullishMBNoOneThirtyErrors(int &actual)
     if (ticket > 0)
     {
         int closeTicketError = CloseTicket(ticket);
-        if (closeTicketError != ERR_NO_ERROR)
+        if (closeTicketError != Errors::NO_ERROR)
         {
             return closeTicketError;
         }
@@ -284,7 +284,7 @@ int BearishBNoOneThirtyErrors(int &actual)
     if (ticket > 0)
     {
         int closeTicketError = CloseTicket(ticket);
-        if (closeTicketError != ERR_NO_ERROR)
+        if (closeTicketError != Errors::NO_ERROR)
         {
             return closeTicketError;
         }
@@ -314,7 +314,7 @@ int BullishMBNoError(int &actual)
     if (ticket > 0)
     {
         int closeTicketError = CloseTicket(ticket);
-        if (closeTicketError != ERR_NO_ERROR)
+        if (closeTicketError != Errors::NO_ERROR)
         {
             return closeTicketError;
         }
@@ -344,7 +344,7 @@ int BearishMBNoError(int &actual)
     if (ticket > 0)
     {
         int closeTicketError = CloseTicket(ticket);
-        if (closeTicketError != ERR_NO_ERROR)
+        if (closeTicketError != Errors::NO_ERROR)
         {
             return closeTicketError;
         }
@@ -368,7 +368,7 @@ int NotMostRecentMBError(int &actual)
     if (ticket > 0)
     {
         int closeTicketError = CloseTicket(ticket);
-        if (closeTicketError != ERR_NO_ERROR)
+        if (closeTicketError != Errors::NO_ERROR)
         {
             return closeTicketError;
         }
@@ -387,7 +387,7 @@ int BullishMBCorrectOrderPlacementImages(bool &actual)
     BullishMBCorrectOrderPlacementImagesUnitTest.PendingRecord.AdditionalInformation = MBT.ToSingleLineString();
 
     int error = PlaceStoporderOnMostRecentPendingMB(type, ticket, additionalInfo, false);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -397,7 +397,7 @@ int BullishMBCorrectOrderPlacementImages(bool &actual)
     if (ticket > 0)
     {
         int closeTicketError = CloseTicket(ticket);
-        if (closeTicketError != ERR_NO_ERROR)
+        if (closeTicketError != Errors::NO_ERROR)
         {
             return closeTicketError;
         }
@@ -417,7 +417,7 @@ int BearishMBCorrectOrderPlacementImages(bool &actual)
     BearishMBCorrectOrderPlacementImagesUnitTest.PendingRecord.AdditionalInformation = MBT.ToSingleLineString();
 
     int error = PlaceStoporderOnMostRecentPendingMB(type, ticket, additionalInfo, false);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -427,7 +427,7 @@ int BearishMBCorrectOrderPlacementImages(bool &actual)
     if (ticket > 0)
     {
         int closeTicketError = CloseTicket(ticket);
-        if (closeTicketError != ERR_NO_ERROR)
+        if (closeTicketError != Errors::NO_ERROR)
         {
             return closeTicketError;
         }

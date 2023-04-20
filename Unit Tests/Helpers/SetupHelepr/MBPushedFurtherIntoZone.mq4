@@ -143,7 +143,7 @@ int PushedFurtherIntoBullishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &
     string additionalInformation;
 
     int error = SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(tempMBState.Number(), 0, SetupMBT, ConfirmationMBT, pushedFurtherIntoZone, additionalInformation);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -201,7 +201,7 @@ int PushedFurtherIntoBearishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &
     int error = SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(tempMBState.Number(), 0, SetupMBT, ConfirmationMBT, pushedFurtherIntoZone, additionalInformation);
     ut.PendingRecord.AdditionalInformation = additionalInformation;
 
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -239,7 +239,7 @@ int FirstnthMBPushedFurtherIntoBullishZone(BoolUnitTest<DefaultUnitTestRecord> &
     string additionalInformation;
     bool pushedFurtherIntoZone = false;
     int error = SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(tempMBState.Number(), 1, SetupMBT, ConfirmationMBT, pushedFurtherIntoZone, additionalInformation);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -286,7 +286,7 @@ int SecondthMBPushedFurtherIntoBullishZone(BoolUnitTest<DefaultUnitTestRecord> &
     string additionalInformation;
     bool pushedFurtherIntoZone = false;
     int error = SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(tempMBState.Number(), 2, SetupMBT, ConfirmationMBT, pushedFurtherIntoZone, additionalInformation);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -333,7 +333,7 @@ int ZerothIsTrue(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     string additionalInformation;
     bool pushedFurtherIntoZone = false;
     int error = SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(tempMBState.Number(), 0, SetupMBT, ConfirmationMBT, pushedFurtherIntoZone, additionalInformation);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -385,7 +385,7 @@ int OnethIsTrue(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     string additionalInformation;
     bool pushedFurtherIntoZone = false;
     int error = SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(tempMBState.Number(), 1, SetupMBT, ConfirmationMBT, pushedFurtherIntoZone, additionalInformation);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }

@@ -171,7 +171,7 @@ void WickRange::CheckInvalidateSetup()
     }
 }
 
-void WickRange::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void WickRange::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<WickRange>(this, deletePendingOrder, mStopTrading, error);
     mWickRangeCandleTime = 0;

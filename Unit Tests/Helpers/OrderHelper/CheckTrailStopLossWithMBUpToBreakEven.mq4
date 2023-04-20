@@ -194,7 +194,7 @@ int SetSetupVariables(int type, Ticket *&ticket, int &mbNumber, int &setupType, 
     {
         bool isTrue = false;
         int error = SetupHelper::BrokeMBRangeStart(mbNumber, MBT, isTrue);
-        if (error != ERR_NO_ERROR || isTrue)
+        if (error != Errors::NO_ERROR || isTrue)
         {
             reset = true;
             return Results::UNIT_TEST_DID_NOT_RUN;
@@ -237,7 +237,7 @@ int SetSetupVariables(int type, Ticket *&ticket, int &mbNumber, int &setupType, 
     {
         int ticketNumber;
         int error = OrderHelper::PlaceStopOrderForPendingMBValidation(PaddingPips, SpreadPips, RiskPercent, MagicNumber, mbNumber, MBT, ticketNumber);
-        if (error != ERR_NO_ERROR)
+        if (error != Errors::NO_ERROR)
         {
             reset = true;
             return error;
@@ -245,7 +245,7 @@ int SetSetupVariables(int type, Ticket *&ticket, int &mbNumber, int &setupType, 
 
         ticket.SetNewTicket(ticketNumber);
         int selectError = ticket.SelectIfOpen("Testing trailing stop losss");
-        if (selectError != ERR_NO_ERROR)
+        if (selectError != Errors::NO_ERROR)
         {
             reset = true;
             return selectError;
@@ -265,7 +265,7 @@ int SetSetupVariables(int type, Ticket *&ticket, int &mbNumber, int &setupType, 
 
         // This is here just to catch if the order has been closed and reset if it has
         int selectError = ticket.SelectIfOpen("Testing trailing stop losss");
-        if (selectError != ERR_NO_ERROR)
+        if (selectError != Errors::NO_ERROR)
         {
             reset = true;
             return Results::UNIT_TEST_DID_NOT_RUN;
@@ -274,7 +274,7 @@ int SetSetupVariables(int type, Ticket *&ticket, int &mbNumber, int &setupType, 
         stopLoss = OrderStopLoss();
     }
 
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 
 int CheckSetup(int type, Ticket *&ticket, int mbNumber, int setupType, double stopLoss,
@@ -282,7 +282,7 @@ int CheckSetup(int type, Ticket *&ticket, int mbNumber, int setupType, double st
 {
     bool isActive;
     int isActiveError = ticket.IsActive(isActive);
-    if (isActiveError != ERR_NO_ERROR)
+    if (isActiveError != Errors::NO_ERROR)
     {
         return isActiveError;
     }
@@ -306,7 +306,7 @@ int CheckSetup(int type, Ticket *&ticket, int mbNumber, int setupType, double st
         }
 
         int selectError = ticket.SelectIfOpen("Getting Stop Loss");
-        if (selectError != ERR_NO_ERROR)
+        if (selectError != Errors::NO_ERROR)
         {
             return Results::UNIT_TEST_DID_NOT_RUN;
         }
@@ -344,7 +344,7 @@ int CheckSetup(int type, Ticket *&ticket, int mbNumber, int setupType, double st
         }
     }
 
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 
 int BullishNoErrorsSameStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut, bool &actual)
@@ -359,13 +359,13 @@ int BullishNoErrorsSameStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
     static bool reset = false;
 
     int setVariablesError = SetSetupVariables(type, ticket, mbNumber, setupType, stopLoss, entryPrice, reset);
-    if (setVariablesError != ERR_NO_ERROR)
+    if (setVariablesError != Errors::NO_ERROR)
     {
         return setVariablesError;
     }
 
     int setupError = CheckSetup(type, ticket, mbNumber, setupType, stopLoss, false, true, true, true);
-    if (setupError != ERR_NO_ERROR)
+    if (setupError != Errors::NO_ERROR)
     {
         return setupError;
     }
@@ -382,7 +382,7 @@ int BullishNoErrorsSameStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
     ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
     int selectError = ticket.SelectIfOpen("Testing trailing stop losss");
-    if (selectError != ERR_NO_ERROR)
+    if (selectError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -409,13 +409,13 @@ int BearishNoErrorsSameStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
     static bool reset = false;
 
     int setVariablesError = SetSetupVariables(type, ticket, mbNumber, setupType, stopLoss, entryPrice, reset);
-    if (setVariablesError != ERR_NO_ERROR)
+    if (setVariablesError != Errors::NO_ERROR)
     {
         return setVariablesError;
     }
 
     int setupError = CheckSetup(type, ticket, mbNumber, setupType, stopLoss, false, true, true, true);
-    if (setupError != ERR_NO_ERROR)
+    if (setupError != Errors::NO_ERROR)
     {
         return setupError;
     }
@@ -432,7 +432,7 @@ int BearishNoErrorsSameStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
     ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
     int selectError = ticket.SelectIfOpen("Testing trailing stop losss");
-    if (selectError != ERR_NO_ERROR)
+    if (selectError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -458,13 +458,13 @@ int BullishNoErrorsDifferentStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRe
     static bool reset = false;
 
     int setVariablesError = SetSetupVariables(type, ticket, mbNumber, setupType, stopLoss, entryPrice, reset);
-    if (setVariablesError != ERR_NO_ERROR)
+    if (setVariablesError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     int setupError = CheckSetup(type, ticket, mbNumber, setupType, stopLoss, false, true, false, true);
-    if (setupError != ERR_NO_ERROR)
+    if (setupError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -481,7 +481,7 @@ int BullishNoErrorsDifferentStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRe
     ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
     int selectError = ticket.SelectIfOpen("Testing trailing stop losss");
-    if (selectError != ERR_NO_ERROR)
+    if (selectError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -508,13 +508,13 @@ int BearishNoErrorsDifferentStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRe
     static bool reset = false;
 
     int setVariablesError = SetSetupVariables(type, ticket, mbNumber, setupType, stopLoss, entryPrice, reset);
-    if (setVariablesError != ERR_NO_ERROR)
+    if (setVariablesError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     int setupError = CheckSetup(type, ticket, mbNumber, setupType, stopLoss, false, true, false, true);
-    if (setupError != ERR_NO_ERROR)
+    if (setupError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -531,7 +531,7 @@ int BearishNoErrorsDifferentStopLoss(BoolUnitTest<BeforeAndAfterImagesUnitTestRe
     ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
     int selectError = ticket.SelectIfOpen("Testing trailing stop losss");
-    if (selectError != ERR_NO_ERROR)
+    if (selectError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -560,7 +560,7 @@ int DoesNotTrailPendingOrders(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
     ut.PendingRecord.AdditionalInformation = "Ticket: " + ticket.Number() + " MB: " + mbNumber + " Setup Type: " + setupType + " SL: " + stopLoss + " Entry: " + entryPrice;
 
     int setVariablesError = SetSetupVariables(type, ticket, mbNumber, setupType, stopLoss, entryPrice, reset);
-    if (setVariablesError != ERR_NO_ERROR)
+    if (setVariablesError != Errors::NO_ERROR)
     {
         return setVariablesError;
     }
@@ -568,7 +568,7 @@ int DoesNotTrailPendingOrders(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
     ut.PendingRecord.AdditionalInformation += " Made it past Variables";
 
     int setupError = CheckSetup(type, ticket, mbNumber, setupType, stopLoss, true, false, false, false);
-    if (setupError != ERR_NO_ERROR)
+    if (setupError != Errors::NO_ERROR)
     {
         return setupError;
     }
@@ -577,7 +577,7 @@ int DoesNotTrailPendingOrders(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
 
     bool isActive;
     int isActiveError = ticket.IsActive(isActive);
-    if (isActiveError != ERR_NO_ERROR)
+    if (isActiveError != Errors::NO_ERROR)
     {
         return isActiveError;
     }
@@ -614,13 +614,13 @@ int BullishDoesNotTrailPastOpen(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
     static bool reset = false;
 
     int setupVariablesError = SetSetupVariables(type, ticket, mbNumber, setupType, stopLoss, entryPrice, reset);
-    if (setupVariablesError != ERR_NO_ERROR)
+    if (setupVariablesError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     int setupError = CheckSetup(type, ticket, mbNumber, setupType, stopLoss, false, true, false, true);
-    if (setupError != ERR_NO_ERROR)
+    if (setupError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -637,7 +637,7 @@ int BullishDoesNotTrailPastOpen(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
     ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
     int selectError = ticket.SelectIfOpen("Testing trailing stop losss");
-    if (selectError != ERR_NO_ERROR)
+    if (selectError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -665,13 +665,13 @@ int BearishDoesNotTrailPastOpen(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
     static bool reset = false;
 
     int setupVariablesError = SetSetupVariables(type, ticket, mbNumber, setupType, stopLoss, entryPrice, reset);
-    if (setupVariablesError != ERR_NO_ERROR)
+    if (setupVariablesError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     int setupError = CheckSetup(type, ticket, mbNumber, setupType, stopLoss, false, true, false, true);
-    if (setupError != ERR_NO_ERROR)
+    if (setupError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -688,7 +688,7 @@ int BearishDoesNotTrailPastOpen(BoolUnitTest<BeforeAndAfterImagesUnitTestRecord>
     ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
     int selectError = ticket.SelectIfOpen("Testing trailing stop losss");
-    if (selectError != ERR_NO_ERROR)
+    if (selectError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -730,7 +730,7 @@ int SubsequentMBDoesNotExist(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut
     ut.PendingRecord.AfterImage = ScreenShotHelper::TryTakeAfterScreenShot(ut.Directory());
 
     int error = ticket.Close();
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -752,13 +752,13 @@ int BullishNotEqualTypesError(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
     ut.PendingRecord.AdditionalInformation = "Ticket: " + ticket.Number() + " MB: " + mbNumber + " StopLoss: " + stopLoss + " EntryPrice: " + entryPrice;
 
     int setupVariablesError = SetSetupVariables(type, ticket, mbNumber, setupType, stopLoss, entryPrice, reset);
-    if (setupVariablesError != ERR_NO_ERROR)
+    if (setupVariablesError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     int setupError = CheckSetup(type, ticket, mbNumber, setupType, stopLoss, false, false, false, false);
-    if (setupError != ERR_NO_ERROR)
+    if (setupError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -784,13 +784,13 @@ int BearishNotEqualTypesError(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> &u
     static bool reset = false;
 
     int setupVariablesError = SetSetupVariables(type, ticket, mbNumber, setupType, stopLoss, entryPrice, reset);
-    if (setupVariablesError != ERR_NO_ERROR)
+    if (setupVariablesError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
     int setupError = CheckSetup(type, ticket, mbNumber, setupType, stopLoss, false, false, false, false);
-    if (setupError != ERR_NO_ERROR)
+    if (setupError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }

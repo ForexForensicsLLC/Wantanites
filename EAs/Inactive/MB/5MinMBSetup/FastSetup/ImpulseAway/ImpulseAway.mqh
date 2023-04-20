@@ -177,7 +177,7 @@ void ImpulseAway::CheckInvalidateSetup()
     }
 }
 
-void ImpulseAway::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void ImpulseAway::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<ImpulseAway>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<ImpulseAway>(this, false);

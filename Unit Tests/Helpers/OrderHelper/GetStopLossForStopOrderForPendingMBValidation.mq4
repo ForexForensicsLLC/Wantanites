@@ -59,12 +59,12 @@ int OnInit()
     BullishMBNoErrorsUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Bullish MB No Errors", "No Errors Are Returned When Getting The Stop Loss For A Bullish MB",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        ERR_NO_ERROR, BullishMBNoErrors);
+        Errors::NO_ERROR, BullishMBNoErrors);
 
     BearishMBNoErrorsUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Bearish MB No Errors", "No Errors Are Returned When Getting The Stop Loss For A Bearish MB",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        ERR_NO_ERROR, BearishMBNoErrors);
+        Errors::NO_ERROR, BearishMBNoErrors);
 
     BullishMBEmptyRetracementUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Bullish MB Empty Retracement", "Should Return Empty Retracement Error",
@@ -280,7 +280,7 @@ int BullishMBCorrectStopLoss(int &actual)
     double paddingPips = 0.0;
 
     int stopLossError = OrderHelper::GetStopLossForStopOrderForPendingMBValidation(paddingPips, spreadPips, setupType, MBT, stopLoss);
-    if (stopLossError != ERR_NO_ERROR)
+    if (stopLossError != Errors::NO_ERROR)
     {
         return stopLossError;
     }
@@ -307,7 +307,7 @@ int BearishMBCorrectStopLoss(int &actual)
     double paddingPips = 0.0;
 
     int stopLossError = OrderHelper::GetStopLossForStopOrderForPendingMBValidation(paddingPips, spreadPips, setupType, MBT, stopLoss);
-    if (stopLossError != ERR_NO_ERROR)
+    if (stopLossError != Errors::NO_ERROR)
     {
         return stopLossError;
     }
@@ -357,7 +357,7 @@ int CorrectWithSpreadAndPaddingBullish(IntUnitTest<BeforeAndAfterImagesUnitTestR
     double paddingPips = 10.0;
 
     int stopLossError = OrderHelper::GetStopLossForStopOrderForPendingMBValidation(paddingPips, spreadPips, setupType, MBT, stopLoss);
-    if (stopLossError != ERR_NO_ERROR)
+    if (stopLossError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -408,7 +408,7 @@ int CorrectWithPaddingAndSpreadBearish(IntUnitTest<BeforeAndAfterImagesUnitTestR
     double paddingPips = 10.0;
 
     int stopLossError = OrderHelper::GetStopLossForStopOrderForPendingMBValidation(paddingPips, spreadPips, setupType, MBT, stopLoss);
-    if (stopLossError != ERR_NO_ERROR)
+    if (stopLossError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }

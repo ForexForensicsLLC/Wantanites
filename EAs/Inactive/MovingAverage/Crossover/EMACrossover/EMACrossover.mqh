@@ -130,7 +130,7 @@ void EMACrossover::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void EMACrossover::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void EMACrossover::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<EMACrossover>(this, deletePendingOrder, mStopTrading, error);
 }

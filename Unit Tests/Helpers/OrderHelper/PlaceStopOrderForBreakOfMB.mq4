@@ -64,12 +64,12 @@ int OnInit()
     BullishMBNoErrorUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Bullish MB No Errors", "Returns No Errors When Placing Stop Order For Break Of Bullish MB",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        ERR_NO_ERROR, BullishMBNoError);
+        Errors::NO_ERROR, BullishMBNoError);
 
     BearishMBNoErrorUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Bearish MB No Errors", "Returns No Errors When Placing Stop Order For Break Of Bearish MB",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        ERR_NO_ERROR, BearishMBNoError);
+        Errors::NO_ERROR, BearishMBNoError);
 
     MBDoesNotExistErrorUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "MB Does Not Exist Error", "Returns No Errors When Placing Stop Order For Break Of Bearish MB",
@@ -110,7 +110,7 @@ int CloseTicket(int &ticket)
 {
     bool isPending = false;
     int pendingOrderError = OrderHelper::IsPendingOrder(ticket, isPending);
-    if (pendingOrderError != ERR_NO_ERROR)
+    if (pendingOrderError != Errors::NO_ERROR)
     {
         return pendingOrderError;
     }
@@ -125,7 +125,7 @@ int CloseTicket(int &ticket)
     else
     {
         int orderSelectError = OrderHelper::SelectOpenOrderByTicket(ticket, "Testing Check Edit Stop Loss");
-        if (orderSelectError != ERR_NO_ERROR)
+        if (orderSelectError != Errors::NO_ERROR)
         {
             return orderSelectError;
         }
@@ -147,7 +147,7 @@ int CloseTicket(int &ticket)
     }
 
     ticket = EMPTY;
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 
 int PlaceOrder(int mbNumber, int &ticket, bool usePaddingAndSpread = true)
@@ -191,7 +191,7 @@ int BullishMBNoError(int &actual)
     if (ticket > 0)
     {
         int closeTicketError = CloseTicket(ticket);
-        if (closeTicketError != ERR_NO_ERROR)
+        if (closeTicketError != Errors::NO_ERROR)
         {
             return closeTicketError;
         }
@@ -224,7 +224,7 @@ int BearishMBNoError(int &actual)
     if (ticket > 0)
     {
         int closeTicketError = CloseTicket(ticket);
-        if (closeTicketError != ERR_NO_ERROR)
+        if (closeTicketError != Errors::NO_ERROR)
         {
             return closeTicketError;
         }
@@ -247,7 +247,7 @@ int MBDoesNotExistError(int &actual)
     if (ticket > 0)
     {
         int closeTicketError = CloseTicket(ticket);
-        if (closeTicketError != ERR_NO_ERROR)
+        if (closeTicketError != Errors::NO_ERROR)
         {
             return closeTicketError;
         }
@@ -274,7 +274,7 @@ int BullishMBCorrectOrderPlacementImages(bool &actual)
 
     int ticket = EMPTY;
     int placeOrderError = PlaceOrder(tempMBState.Number(), ticket, false);
-    if (placeOrderError != ERR_NO_ERROR)
+    if (placeOrderError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -284,7 +284,7 @@ int BullishMBCorrectOrderPlacementImages(bool &actual)
     if (ticket > 0)
     {
         int ticketError = CloseTicket(ticket);
-        if (ticketError != ERR_NO_ERROR)
+        if (ticketError != Errors::NO_ERROR)
         {
             return ticketError;
         }
@@ -312,7 +312,7 @@ int BearishMBCorrectOrderPlacementImages(bool &actual)
 
     int ticket = EMPTY;
     int placeOrderError = PlaceOrder(tempMBState.Number(), ticket, false);
-    if (placeOrderError != ERR_NO_ERROR)
+    if (placeOrderError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -322,7 +322,7 @@ int BearishMBCorrectOrderPlacementImages(bool &actual)
     if (ticket > 0)
     {
         int ticketError = CloseTicket(ticket);
-        if (ticketError != ERR_NO_ERROR)
+        if (ticketError != Errors::NO_ERROR)
         {
             return ticketError;
         }

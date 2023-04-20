@@ -168,7 +168,7 @@ void LoneDoji::CheckInvalidateSetup()
     }
 }
 
-void LoneDoji::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void LoneDoji::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<LoneDoji>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<LoneDoji>(this, false);

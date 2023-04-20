@@ -201,7 +201,7 @@ void TinyMBGapBreak::CheckInvalidateSetup()
     }
 }
 
-void TinyMBGapBreak::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void TinyMBGapBreak::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<TinyMBGapBreak>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<TinyMBGapBreak>(this, false);

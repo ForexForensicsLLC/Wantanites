@@ -148,7 +148,7 @@ void Simp::CheckInvalidateSetup()
     }
 }
 
-void Simp::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void Simp::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     mHasSetup = false;
 
@@ -250,7 +250,7 @@ void Simp::ManageCurrentPendingSetupTicket()
     }
 
     int error = mCurrentSetupTicket.SelectIfOpen("Managing Order");
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         RecordError(-55);
     }

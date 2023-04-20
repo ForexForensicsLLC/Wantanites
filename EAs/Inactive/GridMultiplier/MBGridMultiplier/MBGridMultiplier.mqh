@@ -169,7 +169,7 @@ void MBGridMultiplier::CheckInvalidateSetup()
     }
 }
 
-void MBGridMultiplier::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void MBGridMultiplier::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<MBGridMultiplier>(this, deletePendingOrder, mStopTrading, error);
 

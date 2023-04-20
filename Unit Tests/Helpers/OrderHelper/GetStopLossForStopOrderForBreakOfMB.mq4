@@ -58,7 +58,7 @@ int OnInit()
     NoErrorsUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "No Errors", "Returns No Errors When Retrieving Stop Loss",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        ERR_NO_ERROR, NoErrors);
+        Errors::NO_ERROR, NoErrors);
 
     CorrectStopLossForBullishMBUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Correct Stop Loss For Bullish MB", "Returns The Correct Stop Loss For A Stop Order On The Break Of A Bullish MB",
@@ -176,7 +176,7 @@ int CorrectStopLossForBullishMB(int &actual)
     double stopLoss = 0.0;
 
     int error = OrderHelper::GetStopLossForStopOrderForBreakOfMB(paddingPips, spreadPips, tempMBState.Number(), MBT, stopLoss);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -214,7 +214,7 @@ int CorrectStopLossForBearishMB(int &actual)
     double stopLoss = 0.0;
 
     int error = OrderHelper::GetStopLossForStopOrderForBreakOfMB(paddingPips, spreadPips, tempMBState.Number(), MBT, stopLoss);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -270,7 +270,7 @@ int CorrectWithSpreadAndPaddingForBullish(IntUnitTest<BeforeAndAfterImagesUnitTe
     double stopLoss = 0.0;
 
     int error = OrderHelper::GetStopLossForStopOrderForBreakOfMB(paddingPips, spreadPips, tempMBState.Number(), MBT, stopLoss);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -326,7 +326,7 @@ int CorrectWithSpreadAndPaddingForBearish(IntUnitTest<BeforeAndAfterImagesUnitTe
     double stopLoss = 0.0;
 
     int error = OrderHelper::GetStopLossForStopOrderForBreakOfMB(paddingPips, spreadPips, tempMBState.Number(), MBT, stopLoss);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }

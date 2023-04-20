@@ -210,7 +210,7 @@ void MidCross::CheckInvalidateSetup()
     }
 }
 
-void MidCross::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void MidCross::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<MidCross>(this, deletePendingOrder, mStopTrading, error);
 }
@@ -358,7 +358,7 @@ void MidCross::CheckPreviousSetupTicket(Ticket &ticket)
     }
 
     int error = ticket.SelectIfClosed("Checking");
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return;
     }

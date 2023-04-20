@@ -354,7 +354,7 @@ void EMAGlideFurtherMBs::CheckInvalidateSetup()
     }
 }
 
-void EMAGlideFurtherMBs::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void EMAGlideFurtherMBs::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<EMAGlideFurtherMBs>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<EMAGlideFurtherMBs>(this, false);

@@ -32,12 +32,12 @@ int OnInit()
     NoErrorsUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "No Errors", "Doesn't Return an Error When Cancelign Pending Order",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        ERR_NO_ERROR, NoErrors);
+        Errors::NO_ERROR, NoErrors);
 
     ErrorsWhenCancelingDeletedOrderUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "Errors When Canceling Delete Order", "Returns Error When Trying To Cancel A Deleted Order",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        ERR_NO_ERROR, ErrorsWhenCancelingDeletedOrder);
+        Errors::NO_ERROR, ErrorsWhenCancelingDeletedOrder);
 
     return (INIT_SUCCEEDED);
 }

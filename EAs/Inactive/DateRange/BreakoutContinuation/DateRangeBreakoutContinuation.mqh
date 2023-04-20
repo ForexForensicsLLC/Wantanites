@@ -112,7 +112,7 @@ void DateRangeBreakoutContinuation::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void DateRangeBreakoutContinuation::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void DateRangeBreakoutContinuation::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<DateRangeBreakoutContinuation>(this, deletePendingOrder, mStopTrading, error);
 }

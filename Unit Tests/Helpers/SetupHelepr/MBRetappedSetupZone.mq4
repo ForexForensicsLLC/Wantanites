@@ -158,7 +158,7 @@ int BullishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     string additionalInformation;
     bool retappedZone = false;
     int error = SetupHelper::MBRetappedDeepestHoldingSetupZone(tempMBState.Number(), 0, SetupMBT, ConfirmationMBT, retappedZone, additionalInformation);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -204,7 +204,7 @@ int BearishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     string additionalInformation;
     bool retappedZone = false;
     int error = SetupHelper::MBRetappedDeepestHoldingSetupZone(tempMBState.Number(), 0, SetupMBT, ConfirmationMBT, retappedZone, additionalInformation);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -250,7 +250,7 @@ int FirstnthMBRetappedBullishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool 
     string additionalInformation;
     bool retappedZone = false;
     int error = SetupHelper::MBRetappedDeepestHoldingSetupZone(tempMBState.Number(), 1, SetupMBT, ConfirmationMBT, retappedZone, additionalInformation);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -296,7 +296,7 @@ int SecondthMBRetappedBullishZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool 
     string additionalInformation;
     bool retappedZone = false;
     int error = SetupHelper::MBRetappedDeepestHoldingSetupZone(tempMBState.Number(), 2, SetupMBT, ConfirmationMBT, retappedZone, additionalInformation);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -342,7 +342,7 @@ int ZerothIsTrue(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     string additionalInformation;
     bool retappedZone = false;
     int error = SetupHelper::MBRetappedDeepestHoldingSetupZone(tempMBState.Number(), 0, SetupMBT, ConfirmationMBT, retappedZone, additionalInformation);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -393,7 +393,7 @@ int OnethIsTrue(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     string additionalInformation;
     bool retappedZone = false;
     int error = SetupHelper::MBRetappedDeepestHoldingSetupZone(tempMBState.Number(), 1, SetupMBT, ConfirmationMBT, retappedZone, additionalInformation);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -495,7 +495,7 @@ int RetappedLiquidationZoneSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &
     bool retappedZone = false;
     string additionalInformation;
     int error = SetupHelper::MBRetappedDeepestHoldingSetupZone(tempMBState.Number(), 0, SetupMBT, ConfirmationMBT, retappedZone, additionalInformation);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }

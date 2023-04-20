@@ -127,7 +127,7 @@ void CrewMember::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void CrewMember::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void CrewMember::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<CrewMember>(this, deletePendingOrder, false, error);
 }

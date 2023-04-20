@@ -129,7 +129,7 @@ void ImpulseBreak::CheckInvalidateSetup()
     }
 }
 
-void ImpulseBreak::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void ImpulseBreak::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<ImpulseBreak>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<ImpulseBreak>(this, false);

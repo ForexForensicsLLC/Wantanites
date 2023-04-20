@@ -201,7 +201,7 @@ void TinyMBValidation::CheckInvalidateSetup()
     }
 }
 
-void TinyMBValidation::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void TinyMBValidation::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<TinyMBValidation>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<TinyMBValidation>(this, false);

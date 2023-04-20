@@ -133,7 +133,7 @@ void RunBackIntoZone::CheckInvalidateSetup()
     }
 }
 
-void RunBackIntoZone::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void RunBackIntoZone::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<RunBackIntoZone>(this, deletePendingOrder, false, error);
     mFirstMBInSetupNumber = EMPTY;

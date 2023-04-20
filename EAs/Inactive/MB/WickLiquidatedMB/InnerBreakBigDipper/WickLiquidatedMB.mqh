@@ -194,7 +194,7 @@ void WickLiquidatedMB::CheckInvalidateSetup()
     }
 }
 
-void WickLiquidatedMB::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void WickLiquidatedMB::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<WickLiquidatedMB>(this, deletePendingOrder, false, error);
 

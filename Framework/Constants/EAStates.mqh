@@ -39,6 +39,7 @@ public:
     static int EAStates::CHECKING_TO_PARTIAL;
     static int EAStates::CHECKING_COVERING_COMMISSIONS;
     static int EAStates::MODIFYING_ORDER;
+    static int EAStates::SEARCHING_FOR_PARTIALED_TICKET;
 
     // 8200s Are For Setup Related States
     static int EAStates::CHECKING_FOR_SETUP;
@@ -95,6 +96,7 @@ static int EAStates::COUNTING_OTHER_EA_ORDERS = 8115;
 static int EAStates::MOVING_TO_BREAK_EVEN = 8116;
 static int EAStates::CHECKING_COVERING_COMMISSIONS = 8117;
 static int EAStates::MODIFYING_ORDER = 8118;
+static int EAStates::SEARCHING_FOR_PARTIALED_TICKET = 8119;
 
 // 8200s Are For Setup Related States
 static int EAStates::CHECKING_FOR_SETUP = 8200;

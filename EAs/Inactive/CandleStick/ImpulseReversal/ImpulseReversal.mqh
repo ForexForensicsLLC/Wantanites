@@ -151,7 +151,7 @@ void ImpulseReversal::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void ImpulseReversal::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void ImpulseReversal::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<ImpulseReversal>(this, deletePendingOrder, mStopTrading, error);
 }

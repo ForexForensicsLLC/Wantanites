@@ -156,7 +156,7 @@ void AlwaysGrid::CheckInvalidateSetup()
     }
 }
 
-void AlwaysGrid::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void AlwaysGrid::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<AlwaysGrid>(this, deletePendingOrder, mStopTrading, error);
 

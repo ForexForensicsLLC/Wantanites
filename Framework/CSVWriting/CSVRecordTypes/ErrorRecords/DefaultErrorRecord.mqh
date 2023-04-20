@@ -39,7 +39,7 @@ DefaultErrorRecord::DefaultErrorRecord()
     MagicNumber = EMPTY;
     Symbol = ConstantValues::UnsetString;
     MethodName = ConstantValues::UnsetString;
-    Error = ERR_NO_ERROR;
+    Error = Errors::NO_ERROR;
     LastState = EMPTY;
     AdditionalInformation = ConstantValues::UnsetString;
     RowNumber = ConstantValues::UnsetString;

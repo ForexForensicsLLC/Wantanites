@@ -127,7 +127,7 @@ void TheDojiExchange::CheckInvalidateSetup()
     }
 }
 
-void TheDojiExchange::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void TheDojiExchange::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<TheDojiExchange>(this, deletePendingOrder, false, error);
 }
@@ -136,7 +136,7 @@ bool TheDojiExchange::Confirmation()
 {
     bool zoneIsHolding = false;
     int zoneIsHoldingError = EAHelper::MostRecentMBZoneIsHolding<TheDojiExchange>(this, mSetupMBT, mFirstMBInSetupNumber, zoneIsHolding);
-    if (zoneIsHoldingError != ERR_NO_ERROR)
+    if (zoneIsHoldingError != Errors::NO_ERROR)
     {
         InvalidateSetup(true);
         return false;

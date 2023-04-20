@@ -1244,7 +1244,7 @@ int MBTracker::MBStartIsBroken(int mbNumber, bool &brokeRangeStart)
     }
 
     brokeRangeStart = tempMBState.GlobalStartIsBroken();
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 
 int MBTracker::MBEndIsBroken(int mbNumber, bool &brokeRangeEnd)
@@ -1253,7 +1253,7 @@ int MBTracker::MBEndIsBroken(int mbNumber, bool &brokeRangeEnd)
     if (mMBs[MostRecentMBIndex()].Number() <= mbNumber)
     {
         brokeRangeEnd = false;
-        return ERR_NO_ERROR;
+        return Errors::NO_ERROR;
     }
 
     MBState *tempMBState;
@@ -1287,7 +1287,7 @@ int MBTracker::MBEndIsBroken(int mbNumber, bool &brokeRangeEnd)
     }
 
     brokeRangeEnd = tempMBState.mEndIsBroken;
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 
 string MBTracker::ToString(int mbsToPrint = 3)

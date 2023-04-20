@@ -30,6 +30,9 @@ private:
     int mBarCount;
     int mLastDay;
 
+    string mEntrySymbol;
+    ENUM_TIMEFRAMES mEntryTimeFrame;
+
 public:
     TradeManager *mTM;
 
@@ -45,9 +48,6 @@ public:
     bool mStopTrading;
     bool mHasSetup;
     bool mWasReset;
-
-    string mEntrySymbol;
-    int mEntryTimeFrame;
 
     int mMaxCurrentSetupTradesAtOnce;
     int mMaxTradesPerDay;
@@ -73,6 +73,9 @@ public:
     int MagicNumber() { return mMagicNumber; }
     SignalType SetupType() { return mSetupType; }
     double StopLossPaddingPips() { return mStopLossPaddingPips; }
+
+    string EntrySymbol() { return mEntrySymbol; }
+    ENUM_TIMEFRAMES EntryTimeFrame() { return mEntryTimeFrame; }
 
     Tick *CurrentTick() { return mCurrentTick; }
     int BarCount() { return mBarCount; }

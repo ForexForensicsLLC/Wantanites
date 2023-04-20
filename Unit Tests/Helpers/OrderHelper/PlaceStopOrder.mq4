@@ -56,12 +56,12 @@ int OnInit()
     BuyStopNoErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "Buy Stop No Errrors", "No Errors When Placing Buy Stop Orders",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        ERR_NO_ERROR, BuyStopNoError);
+        Errors::NO_ERROR, BuyStopNoError);
 
     SellStopNoErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "Sell Stop No Errors", "No Errors When Placing Sell Stop ORders",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        ERR_NO_ERROR, SellStopNoError);
+        Errors::NO_ERROR, SellStopNoError);
 
     OpBuyWrongOrderTypeUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "OP Buy Wrong Order Type", "Returns Error When Placing OP Buy",
