@@ -36,7 +36,7 @@ public:
 int VersionSpecificTicket::SelectTicket(string action)
 {
     int openSelectError = SelectIfOpen(action);
-    if (openSelectError == Errors::NO_ERROR)
+    if (openSelectError != Errors::ORDER_NOT_FOUND)
     {
         return Errors::NO_ERROR;
     }
@@ -76,6 +76,11 @@ int VersionSpecificTicket::SelectIfOpen(string action)
         }
     }
 
+    if (OrderCloseTime() != 0)
+    {
+        return Errors::ORDER_IS_CLOSED;
+    }
+
     return Errors::NO_ERROR;
 }
 
@@ -111,6 +116,11 @@ int VersionSpecificTicket::SelectIfClosed(string action)
         }
     }
 
+    if (OrderCloseTime() == 0)
+    {
+        return Errors::ORDER_IS_OPEN;
+    }
+
     return Errors::NO_ERROR;
 }
 
@@ -132,13 +142,17 @@ OrderType VersionSpecificTicket::Type()
     }
 
     int type = OrderType();
+    Print("Ticket ", mNumber, " type ", type, " lotsize ", OrderLots());
+
     switch (type)
     {
     case OP_BUY:
         mType = OrderType::Buy;
+        Print("Ticket ", mNumber, " is a buy");
         return mType;
     case OP_SELL:
         mType = OrderType::Sell;
+        Print("Ticket ", mNumber, " is a sell");
         return mType;
     case OP_BUYLIMIT:
         return OrderType::BuyLimit;
@@ -351,9 +365,11 @@ int VersionSpecificTicket::Close()
     // Active Order
     if (type == OrderType::Buy || type == OrderType::Sell)
     {
+        RefreshRates();
         double closeAt = type == OrderType::Buy ? Bid : Ask;
         if (!OrderClose(mNumber, LotSize(), closeAt, 0, clrNONE))
         {
+            Print("Failed to close. Type: ", type, ", Close At: ", closeAt);
             return GetLastError();
         }
     }
