@@ -67,7 +67,7 @@ int VersionSpecificOrderInfoHelper::FindActiveTicketsByMagicNumber(bool todayOnl
             return error;
         }
 
-        if (OrderMagicNumber() == magicNumber && OrdeTrype() < 2 && OrderCloseTime() == 0)
+        if (OrderMagicNumber() == magicNumber && OrderType() < 2 && OrderCloseTime() == 0)
         {
             datetime openDate = OrderOpenTime();
             if (todayOnly && (TimeYear(openDate) != Year() || TimeMonth(openDate) != Month() || TimeDay(openDate) != Day()))

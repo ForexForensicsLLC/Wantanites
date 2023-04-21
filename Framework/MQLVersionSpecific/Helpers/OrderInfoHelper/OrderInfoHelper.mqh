@@ -25,7 +25,7 @@ public:
 
 int OrderInfoHelper::CountOtherEAOrders(bool todayOnly, int &magicNumbers[], int &orderCount)
 {
-    return VersionSpecificOrderInfoHelper::CountOtherEAOrders(todayOnly, magicNumbers, tickets);
+    return VersionSpecificOrderInfoHelper::CountOtherEAOrders(todayOnly, magicNumbers, orderCount);
 }
 
 int OrderInfoHelper::FindActiveTicketsByMagicNumber(bool todayOnly, int magicNumber, int &tickets[])

@@ -8,14 +8,16 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Constants\Index.mqh>
+#include <Wantanites\Framework\Constants\Errors.mqh>
 #include <Wantanites\Framework\Constants\EAStates.mqh>
 #include <Wantanites\Framework\Objects\DataObjects\Tick.mqh>
 #include <Wantanites\Framework\CSVWriting\CSVRecordWriter.mqh>
 #include <Wantanites\Framework\Objects\DataStructures\List.mqh>
 #include <Wantanites\Framework\Objects\DataObjects\TradingSession.mqh>
-#include <Wantanites\Framework\MQLVersionSpecific\Utilities\TradeManager\TradeManager.mqh>
+#include <Wantanites\Framework\MQLVersionSpecific\Objects\TradeManager\TradeManager.mqh>
 
+#include <Wantanites\Framework\Helpers\EAHelper.mqh>
+#include <Wantanites\Framework\Helpers\EAHelpers\EARunHelper.mqh>
 #include <Wantanites\Framework\Helpers\EAHelpers\EAInitHelper.mqh>
 #include <Wantanites\Framework\Helpers\EAHelpers\EAOrderHelper.mqh>
 
@@ -179,7 +181,7 @@ void EA::Run()
         mCurrentTick.SetStatus(TickStatus::Valid);
     }
 
-    EAHelper::Run(this);
+    EARunHelper::Run(this);
 
     mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
     mLastDay = Day();

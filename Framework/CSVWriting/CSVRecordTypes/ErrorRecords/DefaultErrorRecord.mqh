@@ -63,7 +63,7 @@ void DefaultErrorRecord::WriteRecord(int fileHandle, bool writeDelimiter = false
     FileHelper::WriteDateTime(fileHandle, ErrorTime);
     FileHelper::WriteInteger(fileHandle, MagicNumber);
     FileHelper::WriteString(fileHandle, Symbol);
-    FileHelper::WriteString(fileHandle, Method);
+    FileHelper::WriteString(fileHandle, MethodName);
     FileHelper::WriteInteger(fileHandle, Error);
     FileHelper::WriteInteger(fileHandle, LastState);
     FileHelper::WriteString(fileHandle, AdditionalInformation, writeDelimiter);

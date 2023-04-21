@@ -75,12 +75,12 @@ void License::CreateLicensingObjects(string objectNamePrefix, string valueToEnco
             string partOfEncodedValue = String::FromCharArray(hashResult, start, count);
             string objName = objectNamePrefix + IntegerToString(i) + partOfEncodedValue;
 
-            if (!ObjectCreate(ChartID(), objName, OBJ_VLINE, 0, TimeCurrent(), 0))
+            if (!ObjectCreate(MQLHelper::CurrentChartID(), objName, OBJ_VLINE, 0, TimeCurrent(), 0))
             {
                 Print("Failed to create Licensing Object. Error: " + IntegerToString(GetLastError()));
             }
 
-            ObjectSetInteger(ChartID(), objName, OBJPROP_TIMEFRAMES, OBJ_NO_PERIODS);
+            ObjectSetInteger(MQLHelper::CurrentChartID(), objName, OBJPROP_TIMEFRAMES, OBJ_NO_PERIODS);
         }
     }
     else
@@ -93,9 +93,9 @@ bool License::HasLicensingObjects()
 {
     SortedDictionary<int, string> *encodedParts = new SortedDictionary<int, string>();
 
-    for (int i = 0; i < ObjectsTotal(ChartID()); i++)
+    for (int i = 0; i < ObjectsTotal(MQLHelper::CurrentChartID()); i++)
     {
-        string objName = ObjectName(ChartID(), i);
+        string objName = ObjectName(MQLHelper::CurrentChartID(), i);
         if (StringFind(objName, mLicenseObjectNamePrefix) != -1)
         {
             int partNumber = IntegerToString(StringSubstr(objName, 3, 1));

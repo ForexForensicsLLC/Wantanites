@@ -9,10 +9,10 @@
 #property strict
 
 #ifdef __MQL4__
-#include <Wantanites\Framework\MQLVersionSpecific\Utilities\TradeManager\MQL4TradeManager.mqh>
+#include <Wantanites\Framework\MQLVersionSpecific\Objects\TradeManager\MQL4TradeManager.mqh>
 #endif
 #ifdef __MQL5__
-#include <Wantanites\Framework\MQLVersionSpecific\Utilities\TradeManager\MQL5TradeManager.mqh>
+#include <Wantanites\Framework\MQLVersionSpecific\Objects\TradeManager\MQL5TradeManager.mqh>
 #endif
 
 class TradeManager
@@ -40,7 +40,10 @@ TradeManager::TradeManager(ulong magicNumber, ulong slippage)
     mTM = new VersionSpecificTradeManager(magicNumber, slippage);
 }
 
-TradeManager::~TradeManager() {}
+TradeManager::~TradeManager()
+{
+    delete mTM;
+}
 
 bool TradeManager::StopLossPastEntry(OrderType orderType, double entryPrice, double stopLoss)
 {
@@ -78,14 +81,14 @@ int TradeManager::PlaceMarketOrder(OrderType orderType, double lots, double entr
 {
     if (orderType != OrderType::Buy && orderType != OrderType::Sell)
     {
-        return TerminalErrors::WRONG_ORDER_TYPE;
+        return Errors::WRONG_ORDER_TYPE;
     }
 
     if (stopLoss > 0.0)
     {
         if (StopLossPastEntry(orderType, entryPrice, stopLoss))
         {
-            return TerminalErrors::STOPLOSS_PAST_ENTRY;
+            return Errors::STOPLOSS_PAST_ENTRY;
         }
     }
 
@@ -97,14 +100,14 @@ int TradeManager::PlaceLimitOrder(OrderType orderType, double lots, double entry
 {
     if (orderType != OrderType::BuyLimit && orderType != OrderType::SellLimit)
     {
-        return TerminalErrors::WRONG_ORDER_TYPE;
+        return Errors::WRONG_ORDER_TYPE;
     }
 
     if (stopLoss > 0.0)
     {
         if (StopLossPastEntry(orderType, entryPrice, stopLoss))
         {
-            return TerminalErrors::STOPLOSS_PAST_ENTRY;
+            return Errors::STOPLOSS_PAST_ENTRY;
         }
     }
 
@@ -116,7 +119,7 @@ int TradeManager::PlaceLimitOrder(OrderType orderType, double lots, double entry
 
     if ((orderType == OrderType::BuyLimit && entryPrice >= currentTick.ask) || (orderType == OrderType::SellLimit && entryPrice <= currentTick.bid))
     {
-        return ExecutionErrors::ORDER_ENTRY_FURTHER_THEN_PRICE;
+        return Errors::ORDER_ENTRY_FURTHER_THEN_PRICE;
     }
 
     lots = CleanLotSize(lots);
@@ -127,14 +130,14 @@ int TradeManager::PlaceStopOrder(OrderType orderType, double lots, double entryP
 {
     if (orderType != OrderType::BuyStop && orderType != OrderType::SellStop)
     {
-        return TerminalErrors::WRONG_ORDER_TYPE;
+        return Errors::WRONG_ORDER_TYPE;
     }
 
     if (stopLoss > 0.0)
     {
         if (StopLossPastEntry(orderType, entryPrice, stopLoss))
         {
-            return TerminalErrors::STOPLOSS_PAST_ENTRY;
+            return Errors::STOPLOSS_PAST_ENTRY;
         }
     }
 
@@ -146,7 +149,7 @@ int TradeManager::PlaceStopOrder(OrderType orderType, double lots, double entryP
 
     if ((orderType == OrderType::BuyStop && entryPrice <= currentTick.ask) || (orderType == OrderType::SellStop && entryPrice >= currentTick.bid))
     {
-        return ExecutionErrors::ORDER_ENTRY_FURTHER_THEN_PRICE;
+        return Errors::ORDER_ENTRY_FURTHER_THEN_PRICE;
     }
 
     lots = CleanLotSize(lots);

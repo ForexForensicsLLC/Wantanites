@@ -11,7 +11,7 @@
 class Errors
 {
 public:
-    static int Errors::NO_ERROR;
+    static const int Errors::NO_ERROR;
 
     // =========================================================================
     // Terminal Errors
@@ -69,7 +69,7 @@ public:
     static int Errors::MB_NOT_IN_ZONE;
     static int Errors::NOT_AFTER_POSSIBLE_ZONE_MITIGATION;
 };
-static int Errors::NO_ERROR = 0;
+static const int Errors::NO_ERROR = 0;
 /*
 
    _____                   _             _   _____

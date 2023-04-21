@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Constants\Index.mqh>
+#include <Wantanites\Framework\Constants\Errors.mqh>
 
 class ScreenShotHelper
 {
@@ -107,7 +107,7 @@ static int ScreenShotHelper::TryTakeMultiTimeFrameScreenShot(string directory, i
 
     if (!foundChart)
     {
-        return ExecutionErrors::SECOND_CHART_NOT_FOUND;
+        return Errors::SECOND_CHART_NOT_FOUND;
     }
 
     string dateTime = DateTimeToFilePathString(TimeCurrent());

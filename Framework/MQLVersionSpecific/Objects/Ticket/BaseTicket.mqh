@@ -18,6 +18,8 @@ protected:
     double mOpenPrice;
     datetime mOpenTime;
     double mLotSize; // lot size can't change. If a ticket is partialed you get a new ticket
+    double mClosePrice;
+    datetime mCloseTime;
     double mCommission;
 
     bool mWasManuallyClosed;
@@ -39,6 +41,8 @@ public:
     void LotSize(double lots) { mLotSize = lots; }
 
     virtual double CurrentStopLoss() = NULL;
+    virtual double ClosePrice() = NULL;
+    virtual datetime CloseTime() = NULL;
     virtual double TakeProfit() = NULL;
     virtual datetime Expiration() = NULL;
     virtual double Profit() = NULL;

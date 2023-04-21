@@ -8,9 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Helpers\OrderHelper.mqh>
+#include <Wantanites\Framework\Utilities\PipConverter.mqh>
 #include <Wantanites\Framework\Helpers\FileHelper.mqh>
-
 #include <Wantanites\Framework\Constants\ConstantValues.mqh>
 
 class RecordColumns
@@ -128,7 +127,7 @@ double RecordColumns::TotalMovePips()
                 return mTotalMovePips;
             }
 
-            mTotalMovePips = NormalizeDouble(OrderHelper::RangeToPips((furthestPoint - EntryPrice)), 2);
+            mTotalMovePips = NormalizeDouble(PipConverter::PointsToPips((furthestPoint - EntryPrice)), 2);
         }
         else if (OrderDirection == "Sell")
         {
@@ -145,7 +144,7 @@ double RecordColumns::TotalMovePips()
                 return mTotalMovePips;
             }
 
-            mTotalMovePips = NormalizeDouble(OrderHelper::RangeToPips((EntryPrice - furthestPoint)), 2);
+            mTotalMovePips = NormalizeDouble(PipConverter::PointsToPips((EntryPrice - furthestPoint)), 2);
         }
     }
 
@@ -165,11 +164,11 @@ double RecordColumns::PotentialRR()
         double totalMovePips = TotalMovePips();
         if (OrderDirection == "Buy")
         {
-            mPotentialRR = NormalizeDouble(totalMovePips / (OrderHelper::RangeToPips(EntryPrice - OriginalStopLoss)), 2);
+            mPotentialRR = NormalizeDouble(totalMovePips / (PipConverter::PointsToPips(EntryPrice - OriginalStopLoss)), 2);
         }
         else if (OrderDirection == "Sell")
         {
-            mPotentialRR = NormalizeDouble(totalMovePips / (OrderHelper::RangeToPips(OriginalStopLoss - EntryPrice)), 2);
+            mPotentialRR = NormalizeDouble(totalMovePips / (PipConverter::PointsToPips(OriginalStopLoss - EntryPrice)), 2);
         }
     }
 

@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Constants\Index.mqh>
+#include <Wantanites\Framework\Constants\Errors.mqh>
 #include <Wantanites\Framework\Objects\Indicators\MB\MB.mqh>
 #include <Wantanites\Framework\Helpers\CandleStickHelper.mqh>
 
@@ -109,8 +109,8 @@ public:
     void UpdateIndexes(int barIndex);
 
     // --- Computer Properties
-    bool CurrentBullishRetracementIndexIsValid(out int &currentBullishRetracementIndex, int barIndex);
-    bool CurrentBearishRetracementIndexIsValid(out int &currentBearishRetracementIndex, int barIndex);
+    bool CurrentBullishRetracementIndexIsValid(int &currentBullishRetracementIndex, int barIndex);
+    bool CurrentBearishRetracementIndexIsValid(int &currentBearishRetracementIndex, int barIndex);
 
     bool MBExists(int mbNumber);
     bool GetNthMostRecentMB(int nthMB, MBState *&mbState);
@@ -969,7 +969,7 @@ void MBTracker::UpdateIndexes(int barIndex)
     mPendingBearishMBHighIndex = mPendingBearishMBHighIndex > -1 ? mPendingBearishMBHighIndex + barIndex : -1;
 }
 // ---------------- Computed Properties -----------------------
-bool MBTracker::CurrentBullishRetracementIndexIsValid(out int &currentBullishRetracementIndex, int barIndex = 0)
+bool MBTracker::CurrentBullishRetracementIndexIsValid(int &currentBullishRetracementIndex, int barIndex = 0)
 {
     // Has to be more than 1 candle
     if ((mCurrentBullishRetracementIndex - barIndex) < mMinMBWidth)
@@ -981,7 +981,7 @@ bool MBTracker::CurrentBullishRetracementIndexIsValid(out int &currentBullishRet
     return true;
 }
 
-bool MBTracker::CurrentBearishRetracementIndexIsValid(out int &currentBearishRetracementIndex, int barIndex = 0)
+bool MBTracker::CurrentBearishRetracementIndexIsValid(int &currentBearishRetracementIndex, int barIndex = 0)
 {
     // has to be more than 1 candle
     if ((mCurrentBearishRetracementIndex - barIndex) < mMinMBWidth)
@@ -1240,7 +1240,7 @@ int MBTracker::MBStartIsBroken(int mbNumber, bool &brokeRangeStart)
     MBState *tempMBState;
     if (!GetMB(mbNumber, tempMBState))
     {
-        return TerminalErrors::MB_DOES_NOT_EXIST;
+        return Errors::MB_DOES_NOT_EXIST;
     }
 
     brokeRangeStart = tempMBState.GlobalStartIsBroken();
@@ -1259,7 +1259,7 @@ int MBTracker::MBEndIsBroken(int mbNumber, bool &brokeRangeEnd)
     MBState *tempMBState;
     if (!GetMB(mbNumber, tempMBState))
     {
-        return TerminalErrors::MB_DOES_NOT_EXIST;
+        return Errors::MB_DOES_NOT_EXIST;
     }
 
     if (!tempMBState.mEndIsBroken)
@@ -1269,7 +1269,7 @@ int MBTracker::MBEndIsBroken(int mbNumber, bool &brokeRangeEnd)
             double high;
             if (!MQLHelper::GetHighestHigh(mSymbol, mTimeFrame, tempMBState.HighIndex(), 0, false, high))
             {
-                return ExecutionErrors::COULD_NOT_RETRIEVE_HIGH;
+                return Errors::COULD_NOT_RETRIEVE_HIGH;
             }
 
             tempMBState.mEndIsBroken = high > iHigh(mSymbol, mTimeFrame, tempMBState.HighIndex());
@@ -1279,7 +1279,7 @@ int MBTracker::MBEndIsBroken(int mbNumber, bool &brokeRangeEnd)
             double low;
             if (!MQLHelper::GetLowestLow(mSymbol, mTimeFrame, tempMBState.LowIndex(), 0, false, low))
             {
-                return ExecutionErrors::COULD_NOT_RETRIEVE_LOW;
+                return Errors::COULD_NOT_RETRIEVE_LOW;
             }
 
             tempMBState.mEndIsBroken = low < iLow(mSymbol, mTimeFrame, tempMBState.LowIndex());

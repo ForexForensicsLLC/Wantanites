@@ -23,6 +23,8 @@ public:
     virtual datetime OpenTime();
     virtual double LotSize();
     virtual double CurrentStopLoss();
+    virtual double ClosePrice();
+    virtual datetime CloseTime();
     virtual double TakeProfit();
     virtual datetime Expiration();
     virtual double Profit();
@@ -227,6 +229,48 @@ double VersionSpecificTicket::CurrentStopLoss()
     }
 
     return OrderStopLoss();
+}
+
+double VersionSpecificTicket::ClosePrice()
+{
+    if (mClosePrice != ConstantValues::EmptyDouble)
+    {
+        return mClosePrice;
+    }
+
+    int selectError = SelectIfClosed("Retrieving Close Price");
+    if (selectError != Errors::NO_ERROR)
+    {
+        SendMail("Unable To Retrieve Close Price",
+                 "Error: " + IntegerToString(selectError) + "\n" +
+                     "Ticket Number: " + IntegerToString(mNumber));
+
+        return ConstantValues::EmptyDouble;
+    }
+
+    mClosePrice = OrderClosePrice();
+    return mClosePrice;
+}
+
+datetime VersionSpecificTicket::CloseTime()
+{
+    if (mCloseTime != 0)
+    {
+        return mCloseTime;
+    }
+
+    int selectError = SelectIfClosed("Retrieving Close Time");
+    if (selectError != Errors::NO_ERROR)
+    {
+        SendMail("Unable To Retrieve Close Time",
+                 "Error: " + IntegerToString(selectError) + "\n" +
+                     "Ticket Number: " + IntegerToString(mNumber));
+
+        return 0;
+    }
+
+    mCloseTime = OrderCloseTime();
+    return mCloseTime;
 }
 
 double VersionSpecificTicket::TakeProfit()

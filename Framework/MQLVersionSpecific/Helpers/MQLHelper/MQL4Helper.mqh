@@ -11,9 +11,21 @@
 class MQLVersionSpecificHelper
 {
 public:
-    static bool GetLowest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, out int &lowIndex);
-    static bool GetHighest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, out int &highIndex);
+    static int CurrentChartID();
+
+    static bool GetLowest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &lowIndex);
+    static bool GetHighest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &highIndex);
 };
+
+static int MQLVersionSpecificHelper::CurrentChartID()
+{
+    if (IsTesting())
+    {
+        return 0;
+    }
+
+    return ChartID();
+}
 /**
  * @brief
  *
@@ -27,7 +39,7 @@ public:
  * @return true
  * @return false
  */
-static bool MQLVersionSpecificHelper::GetLowest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, out int &lowIndex)
+static bool MQLVersionSpecificHelper::GetLowest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &lowIndex)
 {
     if (inclusive)
     {
@@ -49,7 +61,7 @@ static bool MQLVersionSpecificHelper::GetLowest(string symbol, ENUM_TIMEFRAMES t
     return true;
 }
 
-static bool MQLVersionSpecificHelper::GetHighest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, out int &highIndex)
+static bool MQLVersionSpecificHelper::GetHighest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &highIndex)
 {
     if (inclusive)
     {

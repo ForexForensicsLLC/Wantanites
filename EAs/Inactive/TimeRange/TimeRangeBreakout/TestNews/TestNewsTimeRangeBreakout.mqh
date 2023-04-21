@@ -8,11 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Helpers\EAHelper.mqh>
-
 #include <Wantanites\Framework\Objects\DataObjects\EA.mqh>
 #include <Wantanites\Framework\Constants\MagicNumbers.mqh>
-
 #include <Wantanites\Framework\Objects\Indicators\Time\TimeRangeBreakout.mqh>
 
 class TestNewsTimeRangeBreakout : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
@@ -53,7 +50,7 @@ public:
     virtual void RecordTicketOpenData(Ticket &ticket);
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
-    virtual void RecordError(int error, string additionalInformation);
+    virtual void RecordError(string methodName, int error, string additionalInformation);
     virtual bool ShouldReset();
     virtual void Reset();
 };
@@ -118,7 +115,7 @@ void TestNewsTimeRangeBreakout::CheckInvalidateSetup()
     }
 }
 
-void TestNewsTimeRangeBreakout::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
+void TestNewsTimeRangeBreakout::InvalidateSetup(bool deletePendingOrder, int error = 0)
 {
     EAHelper::InvalidateSetup<TestNewsTimeRangeBreakout>(this, deletePendingOrder, mStopTrading, error);
 }
@@ -142,7 +139,7 @@ void TestNewsTimeRangeBreakout::PlaceOrders()
 
         if (mDuringNews)
         {
-            entry += OrderHelper::PipsToRange(newsPips);
+            entry += PipConverter::PipsToPoints(newsPips);
             mRiskPercent = (entry - stopLoss) / (CurrentTick().Ask() - stopLoss);
 
             EAOrderHelper::PlaceStopOrder<TestNewsTimeRangeBreakout>(this, entry, stopLoss);
@@ -159,7 +156,7 @@ void TestNewsTimeRangeBreakout::PlaceOrders()
 
         if (mDuringNews)
         {
-            entry -= OrderHelper::PipsToRange(newsPips);
+            entry -= PipConverter::PipsToPoints(newsPips);
             mRiskPercent = (entry - stopLoss) / (CurrentTick().Ask() - stopLoss);
 
             EAOrderHelper::PlaceStopOrder<TestNewsTimeRangeBreakout>(this, entry, stopLoss);
@@ -238,5 +235,5 @@ void TestNewsTimeRangeBreakout::Reset()
     mDuringNews = false;
 
     mEconomicEvents.Clear();
-    EAHelper::CloseAllCurrentAndPreviousSetupTickets<TestNewsTimeRangeBreakout>(this);
+    EAOrderHelper::CloseAllCurrentAndPreviousSetupTickets<TestNewsTimeRangeBreakout>(this);
 }

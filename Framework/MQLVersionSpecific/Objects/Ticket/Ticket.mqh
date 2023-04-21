@@ -119,6 +119,8 @@ Ticket::Ticket(Ticket &ticket)
     mOpenTime = ticket.OpenTime();
     mOriginalStopLoss = ticket.mOriginalStopLoss;
     mLotSize = ticket.LotSize();
+    mClosePrice = ticket.ClosePrice();
+    mCloseTime = ticket.CloseTime();
 
     // update this tickets status' by calling the old tickets methods
     // do this just in case something changed since the last check
@@ -150,9 +152,12 @@ void Ticket::SetNewTicket(int ticket)
 
     mType = OrderType::Empty;
     mOpenPrice = ConstantValues::EmptyDouble;
-    mOpenTime = EMPTY;
+    mOpenTime = 0;
     mOriginalStopLoss = ConstantValues::EmptyDouble;
     mLotSize = ConstantValues::EmptyDouble;
+    mClosePrice = ConstantValues::EmptyDouble;
+    mCloseTime = 0;
+    mCommission = ConstantValues::EmptyDouble;
 
     mPartials.Clear();
     mActivatedSinceLastCheckCheckers.Clear();

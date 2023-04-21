@@ -12,6 +12,7 @@
 
 class EAInitHelper
 {
+public:
     static bool CheckSymbolAndTimeFrame(string expectedSymbol, int expectedTimeFrame);
     static bool HasLicenses(LicenseManager *&lm);
 
@@ -148,7 +149,7 @@ static void EAInitHelper::SetPreviousSetupTicketsOpenData(TEA &ea)
             {
                 ea.mCurrentSetupTickets[i].OpenPrice(record.EntryPrice);
                 ea.mCurrentSetupTickets[i].OpenTime(record.EntryTime);
-                ea.mCurrentSetupTickets[i].Lots(record.Lots);
+                ea.mCurrentSetupTickets[i].LotSize(record.Lots);
                 ea.mCurrentSetupTickets[i].OriginalStopLoss(record.OriginalStopLoss);
 
                 foundTicket = true;
@@ -167,7 +168,7 @@ static void EAInitHelper::SetPreviousSetupTicketsOpenData(TEA &ea)
             {
                 ea.mPreviousSetupTickets[i].OpenPrice(record.EntryPrice);
                 ea.mPreviousSetupTickets[i].OpenTime(record.EntryTime);
-                ea.mPreviousSetupTickets[i].Lots(record.Lots);
+                ea.mPreviousSetupTickets[i].LotSize(record.Lots);
                 ea.mPreviousSetupTickets[i].OriginalStopLoss(record.OriginalStopLoss);
 
                 break;

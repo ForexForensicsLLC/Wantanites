@@ -8,9 +8,9 @@
 #property version "1.00"
 #property strict
 
+#include <Wantanites\Framework\Constants\Errors.mqh>
 #include <Wantanites\Framework\Objects\Indicators\MB\MBTracker.mqh>
 #include <Wantanites\Framework\Objects\Indicators\Time\MinROCFromTimeStamp.mqh>
-#include <Wantanites\Framework\Constants\Index.mqh>
 
 class SetupHelper
 {
@@ -18,14 +18,14 @@ public:
     // ==========================================================================
     // Range Broke Methods
     // ==========================================================================
-    static int BrokeDoubleMBPlusLiquidationSetupRangeEnd(int secondMBInSetup, int setupType, MBTracker *&mbt, out bool &isTrue);
+    static int BrokeDoubleMBPlusLiquidationSetupRangeEnd(int secondMBInSetup, int setupType, MBTracker *&mbt, bool &isTrue);
 
     // ==========================================================================
     // MB Setup Methods
     // ==========================================================================
-    static int MostRecentMBPlusHoldingZone(int mostRecentMBNumber, MBTracker *&mbt, out bool &isTrue);
-    static int FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOneNumber, int mbTwoNumber, MBTracker *&mbt, out bool &isTrue);
-    static int SameTypeSubsequentMB(int mbNumber, MBTracker *&mbt, out bool isTrue);
+    static int MostRecentMBPlusHoldingZone(int mostRecentMBNumber, MBTracker *&mbt, bool &isTrue);
+    static int FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOneNumber, int mbTwoNumber, MBTracker *&mbt, bool &isTrue);
+    static int SameTypeSubsequentMB(int mbNumber, MBTracker *&mbt, bool isTrue);
 
 private:
     static int GetEarlierSetupZoneMitigationIndexForLowerTimeFrame(ZoneState *setupZone, MBTracker *confirmationMBT);
@@ -40,7 +40,7 @@ public:
     // ==========================================================================
     // Min ROC. From Time Stamp Setup Methods
     // ==========================================================================
-    static int BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker *&mbt, out bool &isTrue);
+    static int BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker *&mbt, bool &isTrue);
 
     static bool HammerCandleStickPattern(string symbol, int timeFrame, int startingCandle);
     static bool HammerCandleStickPatternBreak(string symbol, int timeFrame, bool useBody);
@@ -70,7 +70,7 @@ public:
  * @param isTrue
  * @return int
  */
-static int SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(int secondMBInSetup, int setupType, MBTracker *&mbt, out bool &isTrue)
+static int SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(int secondMBInSetup, int setupType, MBTracker *&mbt, bool &isTrue)
 {
     isTrue = false;
 
@@ -79,13 +79,13 @@ static int SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(int secondMBIn
     // Return false if we can't find the subsequent MB for whatever reason
     if (!mbt.GetSubsequentMB(secondMBInSetup, thirdTempMBState))
     {
-        return ExecutionErrors::SUBSEQUENT_MB_DOES_NOT_EXIST;
+        return Errors::SUBSEQUENT_MB_DOES_NOT_EXIST;
     }
 
     // Types can't be equal if we are looking for a liquidation of the second MB
     if (thirdTempMBState.Type() == setupType)
     {
-        return ExecutionErrors::EQUAL_MB_TYPES;
+        return Errors::EQUAL_MB_TYPES;
     }
 
     // The end of our setup is the same as the start of the MB that liquidated the second MB
@@ -102,20 +102,20 @@ static int SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(int secondMBIn
                                       |_|
 
 */
-static int SetupHelper::MostRecentMBPlusHoldingZone(int mostRecentMBNumber, MBTracker *&mbt, out bool &isTrue)
+static int SetupHelper::MostRecentMBPlusHoldingZone(int mostRecentMBNumber, MBTracker *&mbt, bool &isTrue)
 {
     isTrue = false;
 
     if (!mbt.MBIsMostRecent(mostRecentMBNumber))
     {
-        return ExecutionErrors::MB_IS_NOT_MOST_RECENT;
+        return Errors::MB_IS_NOT_MOST_RECENT;
     }
 
     isTrue = mbt.MBsClosestValidZoneIsHolding(mostRecentMBNumber);
     return Errors::NO_ERROR;
 }
 
-static int SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOneNumber, int mbTwoNumber, MBTracker *&mbt, out bool &isTrue)
+static int SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOneNumber, int mbTwoNumber, MBTracker *&mbt, bool &isTrue)
 {
     isTrue = false;
 
@@ -124,14 +124,14 @@ static int SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOne
 
     if (!mbt.GetMB(mbTwoNumber, secondMBTempMBState))
     {
-        return TerminalErrors::MB_DOES_NOT_EXIST;
+        return Errors::MB_DOES_NOT_EXIST;
     }
 
     if (secondMBTempMBState.Type() == OP_BUY)
     {
         if (!mbt.GetSubsequentMB(mbTwoNumber, thirdMBTempState))
         {
-            return ExecutionErrors::SUBSEQUENT_MB_DOES_NOT_EXIST;
+            return Errors::SUBSEQUENT_MB_DOES_NOT_EXIST;
         }
 
         // add one so that this can return true if the endindex is also tapping into a zone
@@ -142,7 +142,7 @@ static int SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOne
     {
         if (!mbt.GetSubsequentMB(mbTwoNumber, thirdMBTempState))
         {
-            return ExecutionErrors::SUBSEQUENT_MB_DOES_NOT_EXIST;
+            return Errors::SUBSEQUENT_MB_DOES_NOT_EXIST;
         }
 
         // add one so that this can return true if the endindex is also tapping into a zone
@@ -153,7 +153,7 @@ static int SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOne
     return Errors::NO_ERROR;
 }
 
-static int SetupHelper::SameTypeSubsequentMB(int mbNumber, MBTracker *&mbt, out bool isTrue)
+static int SetupHelper::SameTypeSubsequentMB(int mbNumber, MBTracker *&mbt, bool isTrue)
 {
     isTrue = mbt.MBIsMostRecent(mbNumber + 1) && mbt.HasNMostRecentConsecutiveMBs(2);
     return Errors::NO_ERROR;
@@ -180,13 +180,13 @@ static int SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNu
     MBState *tempSetupMB;
     if (!setupMBT.GetMB(setupMBNumber, tempSetupMB))
     {
-        return TerminalErrors::MB_DOES_NOT_EXIST;
+        return Errors::MB_DOES_NOT_EXIST;
     }
 
     ZoneState *tempSetupZone;
     if (!tempSetupMB.GetDeepestHoldingZone(tempSetupZone))
     {
-        return ExecutionErrors::NO_ZONES;
+        return Errors::NO_ZONES;
     }
 
     additionaInformation += " Zone Entry: " + tempSetupZone.EntryPrice();
@@ -194,13 +194,13 @@ static int SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNu
     int lowerEarliestSetupZoneMitigationIndex = GetEarlierSetupZoneMitigationIndexForLowerTimeFrame(tempSetupZone, confirmationMBT);
     if (lowerEarliestSetupZoneMitigationIndex == EMPTY)
     {
-        return ExecutionErrors::LOWER_EARLIEST_SETUP_ZONE_MITIGATION_NOT_FOUND;
+        return Errors::LOWER_EARLIEST_SETUP_ZONE_MITIGATION_NOT_FOUND;
     }
 
     MBState *mostRecentMB;
     if (!confirmationMBT.GetNthMostRecentMB(0, mostRecentMB))
     {
-        return TerminalErrors::MB_DOES_NOT_EXIST;
+        return Errors::MB_DOES_NOT_EXIST;
     }
 
     int startIndex = 0;
@@ -209,7 +209,7 @@ static int SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNu
         MBState *tempMBState;
         if (!confirmationMBT.GetNthMostRecentMB(i, tempMBState))
         {
-            return TerminalErrors::MB_DOES_NOT_EXIST;
+            return Errors::MB_DOES_NOT_EXIST;
         }
 
         if (tempMBState.mInsideSetupZone == Status::IS_FALSE || tempMBState.mInsideSetupZone == Status::NOT_CHECKED)
@@ -230,7 +230,7 @@ static int SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNu
             MBState *tempConfirmationMB;
             if (!confirmationMBT.GetNthMostRecentMB(i, tempConfirmationMB))
             {
-                return TerminalErrors::MB_DOES_NOT_EXIST;
+                return Errors::MB_DOES_NOT_EXIST;
             }
 
             // Already updated this MB, can continue to next
@@ -302,7 +302,7 @@ static int SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNu
             if (currentMBLow > tempSetupZone.EntryPrice())
             {
                 mostRecentMB.mPushedFurtherIntoSetupZone = Status::IS_FALSE;
-                return ExecutionErrors::MB_NOT_IN_ZONE;
+                return Errors::MB_NOT_IN_ZONE;
             }
 
             tempSetupZone.mLowestConfirmationMBLowWithin = currentMBLow;
@@ -313,7 +313,7 @@ static int SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNu
             if (currentMBHigh < tempSetupZone.EntryPrice())
             {
                 mostRecentMB.mPushedFurtherIntoSetupZone = Status::IS_FALSE;
-                return ExecutionErrors::MB_NOT_IN_ZONE;
+                return Errors::MB_NOT_IN_ZONE;
             }
 
             tempSetupZone.mHighestConfirmationMBHighWithin = currentMBHigh;
@@ -327,7 +327,7 @@ static int SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNu
     MBState *nthMB;
     if (!confirmationMBT.GetNthMostRecentMB(nthConfirmationMB, nthMB))
     {
-        return TerminalErrors::MB_DOES_NOT_EXIST;
+        return Errors::MB_DOES_NOT_EXIST;
     }
 
     additionaInformation += " Nth MB is Further: " + nthMB.mPushedFurtherIntoSetupZone;
@@ -343,13 +343,13 @@ static int SetupHelper::MBRetappedDeepestHoldingSetupZone(int setupMBNumber, int
     MBState *tempSetupMB;
     if (!setupMBT.GetMB(setupMBNumber, tempSetupMB))
     {
-        return TerminalErrors::MB_DOES_NOT_EXIST;
+        return Errors::MB_DOES_NOT_EXIST;
     }
 
     ZoneState *tempSetupZone;
     if (!tempSetupMB.GetDeepestHoldingZone(tempSetupZone))
     {
-        return ExecutionErrors::NO_ZONES;
+        return Errors::NO_ZONES;
     }
 
     additionalInformation += " Zone Entry: " + tempSetupZone.EntryPrice();
@@ -357,13 +357,13 @@ static int SetupHelper::MBRetappedDeepestHoldingSetupZone(int setupMBNumber, int
     int lowerEarliestSetupZoneMitigationIndex = GetEarlierSetupZoneMitigationIndexForLowerTimeFrame(tempSetupZone, confirmationMBT);
     if (lowerEarliestSetupZoneMitigationIndex == EMPTY)
     {
-        return ExecutionErrors::LOWER_EARLIEST_SETUP_ZONE_MITIGATION_NOT_FOUND;
+        return Errors::LOWER_EARLIEST_SETUP_ZONE_MITIGATION_NOT_FOUND;
     }
 
     MBState *mostRecentMB;
     if (!confirmationMBT.GetNthMostRecentMB(0, mostRecentMB))
     {
-        return TerminalErrors::MB_DOES_NOT_EXIST;
+        return Errors::MB_DOES_NOT_EXIST;
     }
 
     // only update if our most recent mb hasn't been calcualted
@@ -377,7 +377,7 @@ static int SetupHelper::MBRetappedDeepestHoldingSetupZone(int setupMBNumber, int
             MBState *tempConfirmationMBState;
             if (!confirmationMBT.GetNthMostRecentMB(i, tempConfirmationMBState))
             {
-                return TerminalErrors::MB_DOES_NOT_EXIST;
+                return Errors::MB_DOES_NOT_EXIST;
             }
 
             // All MBs Are Updated
@@ -427,13 +427,13 @@ static int SetupHelper::MBRetappedDeepestHoldingSetupZone(int setupMBNumber, int
     MBState *nthMB;
     if (!confirmationMBT.GetNthMostRecentMB(nthConfirmationMB, nthMB))
     {
-        return TerminalErrors::MB_DOES_NOT_EXIST;
+        return Errors::MB_DOES_NOT_EXIST;
     }
 
     MBState *previousMB;
     if (!confirmationMBT.GetPreviousMB(nthMB.Number(), previousMB))
     {
-        return TerminalErrors::MB_DOES_NOT_EXIST;
+        return Errors::MB_DOES_NOT_EXIST;
     }
 
     // First tap into a zone
@@ -490,18 +490,18 @@ static int SetupHelper::SetupZoneIsValidForConfirmation(int setupMBNumber, int n
 // ---------------- Min ROC From Time Stamp Setup Methods
 // Will check if there is a break of structure after a Min ROC From Time Stamp has occured
 // The First Time this is true ensures that the msot recent mb is the first opposite one
-static int SetupHelper::BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker *&mbt, out bool &isTrue)
+static int SetupHelper::BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker *&mbt, bool &isTrue)
 {
     isTrue = false;
 
     if (mrfts.Symbol() != mbt.Symbol())
     {
-        return TerminalErrors::NOT_EQUAL_SYMBOLS;
+        return Errors::NOT_EQUAL_SYMBOLS;
     }
 
     if (mrfts.TimeFrame() != mbt.TimeFrame())
     {
-        return TerminalErrors::NOT_EQUAL_TIMEFRAMES;
+        return Errors::NOT_EQUAL_TIMEFRAMES;
     }
 
     if (!mrfts.HadMinROC() || !mbt.NthMostRecentMBIsOpposite(0))
@@ -512,7 +512,7 @@ static int SetupHelper::BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker 
     MBState *tempMBStates[];
     if (!mbt.GetNMostRecentMBs(2, tempMBStates))
     {
-        return TerminalErrors::MB_DOES_NOT_EXIST;
+        return Errors::MB_DOES_NOT_EXIST;
     }
 
     // only use the mb if it broke after we have a min roc. This makes sure we don't use an mb that broke its previous mb and then we

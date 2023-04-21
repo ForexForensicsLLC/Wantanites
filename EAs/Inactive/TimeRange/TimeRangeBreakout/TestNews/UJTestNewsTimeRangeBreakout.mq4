@@ -45,17 +45,14 @@ TestNewsTimeRangeBreakout *TRBSells;
 double MaxSpreadPips = 3;
 double StopLossPaddingPips = 0;
 
-input int Value = 0;
-
 int OnInit()
 {
-    if (!EAHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
+    if (!EAInitHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
     {
         return INIT_PARAMETERS_INCORRECT;
     }
 
     LM = new LicenseManager();
-    LM.AddLicense(Licenses::SmartMoney);
 
     TS = new TradingSession();
     TS.AddHourMinuteSession(4, 0, 23, 0);
@@ -107,24 +104,24 @@ void OnDeinit(const int reason)
     delete ErrorWriter;
 }
 
-bool HasLicense = false;
+bool HasLicense = true;
 datetime LastValidatedTime = 0;
 void OnTick()
 {
     if (HasLicense)
     {
-        if (TimeCurrent() - LastValidatedTime > (60 * 60 * 24))
-        {
-            HasLicense = false;
-            LastValidatedTime = 0;
-        }
+        // if (TimeCurrent() - LastValidatedTime > (60 * 60 * 24))
+        // {
+        //     HasLicense = false;
+        //     LastValidatedTime = 0;
+        // }
 
         TRBBuys.Run();
         TRBSells.Run();
     }
     else
     {
-        HasLicense = EAHelper::HasLicenses(LM);
+        HasLicense = EAInitHelper::HasLicenses(LM);
         if (HasLicense)
         {
             LastValidatedTime = TimeCurrent();

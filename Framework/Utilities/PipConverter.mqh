@@ -10,6 +10,7 @@
 
 class PipConverter
 {
+public:
     static double PointsToPips(double points);
     static double PipsToPoints(double pips);
 };

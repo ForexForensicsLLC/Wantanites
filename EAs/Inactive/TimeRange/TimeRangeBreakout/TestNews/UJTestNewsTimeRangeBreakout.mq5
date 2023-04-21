@@ -8,9 +8,9 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites/Framework/MQLVersionSpecific/Defines/MQL4Constants.mqh>
 #include <Wantanites/Framework/Constants/MagicNumbers.mqh>
 #include <Wantanites/Framework/Constants/SymbolConstants.mqh>
+#include <Wantanites/Framework/MQLVersionSpecific/Defines/MQL4Constants.mqh>
 #include <Wantanites/EAs/Inactive/TimeRange/TimeRangeBreakout/TestNews/TestNewsTimeRangeBreakout.mqh>
 
 string ForcedSymbol = "USDJPY";
@@ -50,7 +50,7 @@ input int Value = 0;
 
 int OnInit()
 {
-    if (!EAHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
+    if (!EAInitHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
     {
         return INIT_PARAMETERS_INCORRECT;
     }
@@ -126,7 +126,7 @@ void OnTick()
     }
     else
     {
-        HasLicense = EAHelper::HasLicenses(LM);
+        HasLicense = EAInitHelper::HasLicenses(LM);
         if (HasLicense)
         {
             LastValidatedTime = TimeCurrent();
