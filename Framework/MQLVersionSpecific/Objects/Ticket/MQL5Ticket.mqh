@@ -17,7 +17,7 @@ protected:
     virtual int SelectIfClosed(string action);
 
 public:
-    virtual OrderType Type();
+    virtual TicketType Type();
     virtual double OpenPrice();
     virtual datetime OpenTime();
     virtual double LotSize();
@@ -86,9 +86,9 @@ int VersionSpecificTicket::SelectIfClosed(string action)
     return Errors::NO_ERROR;
 }
 
-OrderType VersionSpecificTicket::Type()
+TicketType VersionSpecificTicket::Type()
 {
-    if (mType == OrderType::Buy || mType == OrderType::Sell)
+    if (mType == TicketType::Buy || mType == TicketType::Sell)
     {
         return mType;
     }
@@ -115,26 +115,26 @@ OrderType VersionSpecificTicket::Type()
                  "Error: " + IntegerToString(selectError) + "\n" +
                      "Ticket Number: " + IntegerToString(mNumber));
 
-        return OrderType::Empty;
+        return TicketType::Empty;
     }
 
     switch (type)
     {
     case ORDER_TYPE_BUY:
-        mType = OrderType::Buy;
+        mType = TicketType::Buy;
         return mType;
     case ORDER_TYPE_SELL:
-        mType = OrderType::Sell;
+        mType = TicketType::Sell;
         return mType;
     case ORDER_TYPE_BUY_LIMIT:
-        return OrderType::BuyLimit;
+        return TicketType::BuyLimit;
     case ORDER_TYPE_SELL_LIMIT:
-        return OrderType::SellLimit;
+        return TicketType::SellLimit;
     case ORDER_TYPE_BUY_STOP:
-        return OrderType::BuyStop;
+        return TicketType::BuyStop;
     case ORDER_TYPE_SELL_STOP:
-        return OrderType::SellStop;
+        return TicketType::SellStop;
     default:
-        return OrderType::Empty;
+        return TicketType::Empty;
     }
 }

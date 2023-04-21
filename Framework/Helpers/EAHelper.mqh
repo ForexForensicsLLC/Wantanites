@@ -1353,7 +1353,7 @@ static void EAHelper::SetDefaultEntryTradeData(TEA &ea, TRecord &record, Ticket 
     record.MagicNumber = ea.MagicNumber();
     record.TicketNumber = ticket.Number();
     record.Symbol = Symbol();
-    record.OrderDirection = ticket.Type() == 0 ? "Buy" : "Sell";
+    record.OrderDirection = ticket.Type() == TicketType::Buy ? "Buy" : "Sell";
     record.AccountBalanceBefore = AccountBalance();
     record.Lots = ticket.LotSize();
     record.EntryTime = ticket.OpenTime();
@@ -1373,7 +1373,7 @@ static void EAHelper::SetDefaultCloseTradeData(TEA &ea, TRecord &record, Ticket 
     // needed for computed properties
     record.Symbol = Symbol();
     record.EntryTimeFrame = entryTimeFrame;
-    record.OrderDirection = ticket.Type() == OrderType::Buy ? "Buy" : "Sell";
+    record.OrderDirection = ticket.Type() == TicketType::Buy ? "Buy" : "Sell";
     record.EntryPrice = ticket.OpenPrice();
     record.EntryTime = ticket.OpenTime();
     record.OriginalStopLoss = ticket.OriginalStopLoss();

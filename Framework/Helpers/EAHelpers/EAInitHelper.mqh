@@ -147,9 +147,9 @@ static void EAInitHelper::SetPreviousSetupTicketsOpenData(TEA &ea)
         {
             if (record.TicketNumber == ea.mCurrentSetupTickets[i].Number())
             {
-                ea.mCurrentSetupTickets[i].OpenPrice(record.EntryPrice);
-                ea.mCurrentSetupTickets[i].OpenTime(record.EntryTime);
-                ea.mCurrentSetupTickets[i].LotSize(record.Lots);
+                // ea.mCurrentSetupTickets[i].OpenPrice(record.EntryPrice);
+                // ea.mCurrentSetupTickets[i].OpenTime(record.EntryTime);
+                // ea.mCurrentSetupTickets[i].LotSize(record.Lots);
                 ea.mCurrentSetupTickets[i].OriginalStopLoss(record.OriginalStopLoss);
 
                 foundTicket = true;
@@ -166,9 +166,9 @@ static void EAInitHelper::SetPreviousSetupTicketsOpenData(TEA &ea)
         {
             if (record.TicketNumber == ea.mPreviousSetupTickets[i].Number())
             {
-                ea.mPreviousSetupTickets[i].OpenPrice(record.EntryPrice);
-                ea.mPreviousSetupTickets[i].OpenTime(record.EntryTime);
-                ea.mPreviousSetupTickets[i].LotSize(record.Lots);
+                // ea.mPreviousSetupTickets[i].OpenPrice(record.EntryPrice);
+                // ea.mPreviousSetupTickets[i].OpenTime(record.EntryTime);
+                // ea.mPreviousSetupTickets[i].LotSize(record.Lots);
                 ea.mPreviousSetupTickets[i].OriginalStopLoss(record.OriginalStopLoss);
 
                 break;

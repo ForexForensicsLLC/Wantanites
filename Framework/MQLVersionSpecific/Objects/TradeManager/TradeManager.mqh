@@ -20,7 +20,7 @@ class TradeManager
 private:
     VersionSpecificTradeManager *mTM;
 
-    bool StopLossPastEntry(OrderType orderType, double entryPrice, double stopLoss);
+    bool StopLossPastEntry(TicketType ticketType, double entryPrice, double stopLoss);
 
 public:
     TradeManager(ulong magicNumber, ulong slippage);
@@ -28,9 +28,9 @@ public:
 
     double CleanLotSize(double dirtyLotSize);
 
-    int PlaceMarketOrder(OrderType orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
-    int PlaceLimitOrder(OrderType orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
-    int PlaceStopOrder(OrderType orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
+    int PlaceMarketOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
+    int PlaceLimitOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
+    int PlaceStopOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
 
     int ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration);
 };
@@ -45,14 +45,14 @@ TradeManager::~TradeManager()
     delete mTM;
 }
 
-bool TradeManager::StopLossPastEntry(OrderType orderType, double entryPrice, double stopLoss)
+bool TradeManager::StopLossPastEntry(TicketType ticketType, double entryPrice, double stopLoss)
 {
-    if ((orderType == OrderType::Buy || orderType == OrderType::BuyLimit || orderType == OrderType::BuyStop) && stopLoss >= entryPrice)
+    if ((ticketType == TicketType::Buy || ticketType == TicketType::BuyLimit || ticketType == TicketType::BuyStop) && stopLoss >= entryPrice)
     {
         return true;
     }
 
-    if ((orderType == OrderType::Sell || orderType == OrderType::SellLimit || orderType == OrderType::SellStop) && stopLoss <= entryPrice)
+    if ((ticketType == TicketType::Sell || ticketType == TicketType::SellLimit || ticketType == TicketType::SellStop) && stopLoss <= entryPrice)
     {
         return true;
     }
@@ -77,35 +77,35 @@ double TradeManager::CleanLotSize(double dirtyLotSize)
     return cleanedLots;
 }
 
-int TradeManager::PlaceMarketOrder(OrderType orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
+int TradeManager::PlaceMarketOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
 {
-    if (orderType != OrderType::Buy && orderType != OrderType::Sell)
+    if (ticketType != TicketType::Buy && ticketType != TicketType::Sell)
     {
         return Errors::WRONG_ORDER_TYPE;
     }
 
     if (stopLoss > 0.0)
     {
-        if (StopLossPastEntry(orderType, entryPrice, stopLoss))
+        if (StopLossPastEntry(ticketType, entryPrice, stopLoss))
         {
             return Errors::STOPLOSS_PAST_ENTRY;
         }
     }
 
     lots = CleanLotSize(lots);
-    return mTM.PlaceMarketOrder(orderType, lots, entryPrice, stopLoss, takeProfit, ticket);
+    return mTM.PlaceMarketOrder(ticketType, lots, entryPrice, stopLoss, takeProfit, ticket);
 }
 
-int TradeManager::PlaceLimitOrder(OrderType orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
+int TradeManager::PlaceLimitOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
 {
-    if (orderType != OrderType::BuyLimit && orderType != OrderType::SellLimit)
+    if (ticketType != TicketType::BuyLimit && ticketType != TicketType::SellLimit)
     {
         return Errors::WRONG_ORDER_TYPE;
     }
 
     if (stopLoss > 0.0)
     {
-        if (StopLossPastEntry(orderType, entryPrice, stopLoss))
+        if (StopLossPastEntry(ticketType, entryPrice, stopLoss))
         {
             return Errors::STOPLOSS_PAST_ENTRY;
         }
@@ -117,25 +117,25 @@ int TradeManager::PlaceLimitOrder(OrderType orderType, double lots, double entry
         return GetLastError();
     }
 
-    if ((orderType == OrderType::BuyLimit && entryPrice >= currentTick.ask) || (orderType == OrderType::SellLimit && entryPrice <= currentTick.bid))
+    if ((ticketType == TicketType::BuyLimit && entryPrice >= currentTick.ask) || (ticketType == TicketType::SellLimit && entryPrice <= currentTick.bid))
     {
         return Errors::ORDER_ENTRY_FURTHER_THEN_PRICE;
     }
 
     lots = CleanLotSize(lots);
-    return mTM.PlaceLimitOrder(orderType, lots, entryPrice, stopLoss, takeProfit, ticket);
+    return mTM.PlaceLimitOrder(ticketType, lots, entryPrice, stopLoss, takeProfit, ticket);
 }
 
-int TradeManager::PlaceStopOrder(OrderType orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
+int TradeManager::PlaceStopOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
 {
-    if (orderType != OrderType::BuyStop && orderType != OrderType::SellStop)
+    if (ticketType != TicketType::BuyStop && ticketType != TicketType::SellStop)
     {
         return Errors::WRONG_ORDER_TYPE;
     }
 
     if (stopLoss > 0.0)
     {
-        if (StopLossPastEntry(orderType, entryPrice, stopLoss))
+        if (StopLossPastEntry(ticketType, entryPrice, stopLoss))
         {
             return Errors::STOPLOSS_PAST_ENTRY;
         }
@@ -147,13 +147,13 @@ int TradeManager::PlaceStopOrder(OrderType orderType, double lots, double entryP
         return GetLastError();
     }
 
-    if ((orderType == OrderType::BuyStop && entryPrice <= currentTick.ask) || (orderType == OrderType::SellStop && entryPrice >= currentTick.bid))
+    if ((ticketType == TicketType::BuyStop && entryPrice <= currentTick.ask) || (ticketType == TicketType::SellStop && entryPrice >= currentTick.bid))
     {
         return Errors::ORDER_ENTRY_FURTHER_THEN_PRICE;
     }
 
     lots = CleanLotSize(lots);
-    return mTM.PlaceStopOrder(orderType, lots, entryPrice, stopLoss, takeProfit, ticket);
+    return mTM.PlaceStopOrder(ticketType, lots, entryPrice, stopLoss, takeProfit, ticket);
 }
 
 int TradeManager::ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration)

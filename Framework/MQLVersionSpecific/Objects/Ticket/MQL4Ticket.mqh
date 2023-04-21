@@ -18,7 +18,7 @@ protected:
     virtual int SelectIfClosed(string action);
 
 public:
-    virtual OrderType Type();
+    virtual TicketType Type();
     virtual double OpenPrice();
     virtual datetime OpenTime();
     virtual double LotSize();
@@ -124,9 +124,9 @@ int VersionSpecificTicket::SelectIfClosed(string action)
     return Errors::NO_ERROR;
 }
 
-OrderType VersionSpecificTicket::Type()
+TicketType VersionSpecificTicket::Type()
 {
-    if (mType == OrderType::Buy || mType == OrderType::Sell)
+    if (mType == TicketType::Buy || mType == TicketType::Sell)
     {
         return mType;
     }
@@ -138,32 +138,29 @@ OrderType VersionSpecificTicket::Type()
                  "Error: " + IntegerToString(selectError) + "\n" +
                      "Ticket Number: " + IntegerToString(mNumber));
 
-        return OrderType::Empty;
+        return TicketType::Empty;
     }
 
     int type = OrderType();
-    Print("Ticket ", mNumber, " type ", type, " lotsize ", OrderLots());
 
     switch (type)
     {
     case OP_BUY:
-        mType = OrderType::Buy;
-        Print("Ticket ", mNumber, " is a buy");
+        mType = TicketType::Buy;
         return mType;
     case OP_SELL:
-        mType = OrderType::Sell;
-        Print("Ticket ", mNumber, " is a sell");
+        mType = TicketType::Sell;
         return mType;
     case OP_BUYLIMIT:
-        return OrderType::BuyLimit;
+        return TicketType::BuyLimit;
     case OP_SELLLIMIT:
-        return OrderType::SellLimit;
+        return TicketType::SellLimit;
     case OP_BUYSTOP:
-        return OrderType::BuyStop;
+        return TicketType::BuyStop;
     case OP_SELLSTOP:
-        return OrderType::SellStop;
+        return TicketType::SellStop;
     default:
-        return OrderType::Empty;
+        return TicketType::Empty;
     }
 }
 
@@ -190,7 +187,7 @@ double VersionSpecificTicket::OpenPrice()
 
 datetime VersionSpecificTicket::OpenTime()
 {
-    if (mOpenTime != EMPTY)
+    if (mOpenTime != 0)
     {
         return mOpenTime;
     }
@@ -202,7 +199,7 @@ datetime VersionSpecificTicket::OpenTime()
                  "Error: " + IntegerToString(selectError) + "\n" +
                      "Ticket Number: " + IntegerToString(mNumber));
 
-        return EMPTY;
+        return 0;
     }
 
     mOpenTime = OrderOpenTime();
@@ -360,13 +357,13 @@ int VersionSpecificTicket::Close()
         return selectOrderError;
     }
 
-    OrderType type = Type();
+    TicketType type = Type();
 
     // Active Order
-    if (type == OrderType::Buy || type == OrderType::Sell)
+    if (type == TicketType::Buy || type == TicketType::Sell)
     {
         RefreshRates();
-        double closeAt = type == OrderType::Buy ? Bid : Ask;
+        double closeAt = type == TicketType::Buy ? Bid : Ask;
         if (!OrderClose(mNumber, LotSize(), closeAt, 0, clrNONE))
         {
             Print("Failed to close. Type: ", type, ", Close At: ", closeAt);

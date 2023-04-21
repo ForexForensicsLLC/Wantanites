@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Types\OrderTypes.mqh>
+#include <Wantanites\Framework\Types\TicketTypes.mqh>
 
 class VersionSpecificTradeManager
 {
@@ -20,9 +20,9 @@ public:
     VersionSpecificTradeManager(ulong magicNumber, ulong slippage);
     ~VersionSpecificTradeManager();
 
-    int PlaceMarketOrder(OrderType orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
-    int PlaceLimitOrder(OrderType orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
-    int PlaceStopOrder(OrderType orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
+    int PlaceMarketOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
+    int PlaceLimitOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
+    int PlaceStopOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
 
     int ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration);
 };
@@ -35,14 +35,14 @@ VersionSpecificTradeManager::VersionSpecificTradeManager(ulong magicNumber, ulon
 
 VersionSpecificTradeManager::~VersionSpecificTradeManager() {}
 
-int VersionSpecificTradeManager::PlaceMarketOrder(OrderType orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
+int VersionSpecificTradeManager::PlaceMarketOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
 {
     int type = EMPTY;
-    if (orderType == OrderType::Buy)
+    if (ticketType == TicketType::Buy)
     {
         type = OP_BUY;
     }
-    else if (orderType == OrderType::Sell)
+    else if (ticketType == TicketType::Sell)
     {
         type = OP_SELL;
     };
@@ -53,21 +53,21 @@ int VersionSpecificTradeManager::PlaceMarketOrder(OrderType orderType, double lo
     if (newTicket == EMPTY)
     {
         error = GetLastError();
-        // SendFailedOrderEMail(1, orderType, entry, stopLoss, lots, magicNumber, error);
+        // SendFailedOrderEMail(1, ticketType, entry, stopLoss, lots, magicNumber, error);
     }
 
     ticket = newTicket;
     return error;
 }
 
-int VersionSpecificTradeManager::PlaceLimitOrder(OrderType orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
+int VersionSpecificTradeManager::PlaceLimitOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
 {
     int type = EMPTY;
-    if (orderType == OrderType::BuyLimit)
+    if (ticketType == TicketType::BuyLimit)
     {
         type = OP_BUYLIMIT;
     }
-    else if (orderType == OrderType::SellLimit)
+    else if (ticketType == TicketType::SellLimit)
     {
         type = OP_SELLLIMIT;
     };
@@ -78,21 +78,21 @@ int VersionSpecificTradeManager::PlaceLimitOrder(OrderType orderType, double lot
     if (ticketNumber == EMPTY)
     {
         error = GetLastError();
-        // SendFailedOrderEMail(1, orderType, entryPrice, stopLoss, lots, mMagicNumber, error);
+        // SendFailedOrderEMail(1, ticketType, entryPrice, stopLoss, lots, mMagicNumber, error);
     }
 
     ticket = ticketNumber;
     return error;
 }
 
-int VersionSpecificTradeManager::PlaceStopOrder(OrderType orderType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
+int VersionSpecificTradeManager::PlaceStopOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
 {
     int type = EMPTY;
-    if (orderType == OrderType::BuyStop)
+    if (ticketType == TicketType::BuyStop)
     {
         type = OP_BUYSTOP;
     }
-    else if (orderType == OrderType::SellStop)
+    else if (ticketType == TicketType::SellStop)
     {
         type = OP_SELLSTOP;
     };
@@ -103,7 +103,7 @@ int VersionSpecificTradeManager::PlaceStopOrder(OrderType orderType, double lots
     if (ticketNumber == EMPTY)
     {
         error = GetLastError();
-        // SendFailedOrderEMail(1, orderType, entryPrice, stopLoss, lots, magicNumber, error);
+        // SendFailedOrderEMail(1, ticketType, entryPrice, stopLoss, lots, magicNumber, error);
     }
 
     ticket = ticketNumber;

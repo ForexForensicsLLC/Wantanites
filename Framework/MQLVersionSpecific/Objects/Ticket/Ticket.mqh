@@ -150,7 +150,7 @@ void Ticket::SetNewTicket(int ticket)
     mStopLossIsMovedToBreakEven = false;
     mDistanceRanFromOpen = ConstantValues::EmptyDouble;
 
-    mType = OrderType::Empty;
+    mType = TicketType::Empty;
     mOpenPrice = ConstantValues::EmptyDouble;
     mOpenTime = 0;
     mOriginalStopLoss = ConstantValues::EmptyDouble;
@@ -182,8 +182,8 @@ int Ticket::IsActive(bool &isActive)
         return selectTicketError;
     }
 
-    OrderType type = Type();
-    isActive = type == OrderType::Buy || type == OrderType::Sell;
+    TicketType type = Type();
+    isActive = type == TicketType::Buy || type == TicketType::Sell;
     return Errors::NO_ERROR;
 }
 
@@ -208,8 +208,8 @@ int Ticket::WasActivated(bool &wasActivated)
         }
     }
 
-    OrderType type = Type();
-    mWasActivated = type == OrderType::Buy || type == OrderType::Sell;
+    TicketType type = Type();
+    mWasActivated = type == TicketType::Buy || type == TicketType::Sell;
     wasActivated = mWasActivated;
 
     return Errors::NO_ERROR;
@@ -324,12 +324,12 @@ int Ticket::StopLossIsMovedToBreakEven(bool &stopLossIsMovedBreakEven)
         double stopLoss = NormalizeDouble(CurrentStopLoss(), Digits);
         double openPrice = NormalizeDouble(OpenPrice(), Digits);
 
-        OrderType type = Type();
-        if (type == OrderType::Buy)
+        TicketType type = Type();
+        if (type == TicketType::Buy)
         {
             mStopLossIsMovedToBreakEven = stopLoss >= openPrice;
         }
-        else if (type == OrderType::Sell)
+        else if (type == TicketType::Sell)
         {
             mStopLossIsMovedToBreakEven = stopLoss <= openPrice;
         }

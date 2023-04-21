@@ -8,13 +8,13 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Types\OrderTypes.mqh>
+#include <Wantanites\Framework\Types\TicketTypes.mqh>
 
 class BaseTicket
 {
 protected:
     ulong mNumber;
-    OrderType mType; // type doesn't change after it has become a normal Buy or Sell order
+    TicketType mType; // type doesn't change after it has become a normal Buy or Sell order
     double mOpenPrice;
     datetime mOpenTime;
     double mLotSize; // lot size can't change. If a ticket is partialed you get a new ticket
@@ -29,17 +29,10 @@ protected:
 
 public:
     ulong Number() { return mNumber; }
-    virtual OrderType Type() = NULL;
-
+    virtual TicketType Type() = NULL;
     virtual double OpenPrice() = NULL;
-    void OpenPrice(double openPrice) { mOpenPrice = openPrice; }
-
     virtual datetime OpenTime() = NULL;
-    void OpenTime(datetime openTime) { mOpenTime = openTime; }
-
     virtual double LotSize() = NULL;
-    void LotSize(double lots) { mLotSize = lots; }
-
     virtual double CurrentStopLoss() = NULL;
     virtual double ClosePrice() = NULL;
     virtual datetime CloseTime() = NULL;

@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-enum OrderType
+enum TicketType
 {
     Empty,
     Buy,
