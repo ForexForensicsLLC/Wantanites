@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                       VersionSpecificTicket.mqh |
+//|                                                       Ticket.mqh |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -10,7 +10,7 @@
 
 #include <Wantanites\Framework\MQLVersionSpecific\Objects\Ticket\BaseTicket.mqh>
 
-class VersionSpecificTicket : public BaseTicket
+class Ticket : public BaseTicket
 {
 protected:
     int SelectTicket(string action);
@@ -18,6 +18,11 @@ protected:
     virtual int SelectIfClosed(string action);
 
 public:
+    Ticket() : BaseTicket() {}
+    Ticket(int ticketNumber) : BaseTicket(ticketNumber) {}
+    Ticket(Ticket &ticket) : BaseTicket(ticket) {}
+
+    virtual ulong Number() { return mNumber; }
     virtual TicketType Type();
     virtual double OpenPrice();
     virtual datetime OpenTime();
@@ -33,7 +38,7 @@ public:
     virtual int Close();
 };
 
-int VersionSpecificTicket::SelectTicket(string action)
+int Ticket::SelectTicket(string action)
 {
     int openSelectError = SelectIfOpen(action);
     if (openSelectError != Errors::ORDER_NOT_FOUND)
@@ -44,7 +49,7 @@ int VersionSpecificTicket::SelectTicket(string action)
     return SelectIfClosed(action);
 }
 
-int VersionSpecificTicket::SelectIfOpen(string action)
+int Ticket::SelectIfOpen(string action)
 {
     if (!OrderSelect(mNumber, SELECT_BY_TICKET, MODE_TRADES))
     {
@@ -84,7 +89,7 @@ int VersionSpecificTicket::SelectIfOpen(string action)
     return Errors::NO_ERROR;
 }
 
-int VersionSpecificTicket::SelectIfClosed(string action)
+int Ticket::SelectIfClosed(string action)
 {
     if (!OrderSelect(mNumber, SELECT_BY_TICKET, MODE_HISTORY))
     {
@@ -124,7 +129,7 @@ int VersionSpecificTicket::SelectIfClosed(string action)
     return Errors::NO_ERROR;
 }
 
-TicketType VersionSpecificTicket::Type()
+TicketType Ticket::Type()
 {
     if (mType == TicketType::Buy || mType == TicketType::Sell)
     {
@@ -164,7 +169,7 @@ TicketType VersionSpecificTicket::Type()
     }
 }
 
-double VersionSpecificTicket::OpenPrice()
+double Ticket::OpenPrice()
 {
     if (mOpenPrice != ConstantValues::EmptyDouble)
     {
@@ -185,7 +190,7 @@ double VersionSpecificTicket::OpenPrice()
     return mOpenPrice;
 }
 
-datetime VersionSpecificTicket::OpenTime()
+datetime Ticket::OpenTime()
 {
     if (mOpenTime != 0)
     {
@@ -206,7 +211,7 @@ datetime VersionSpecificTicket::OpenTime()
     return mOpenTime;
 }
 
-double VersionSpecificTicket::LotSize()
+double Ticket::LotSize()
 {
     if (mLotSize != ConstantValues::EmptyDouble)
     {
@@ -227,7 +232,7 @@ double VersionSpecificTicket::LotSize()
     return mLotSize;
 }
 
-double VersionSpecificTicket::CurrentStopLoss()
+double Ticket::CurrentStopLoss()
 {
     int selectError = SelectTicket("Retrieving Current StopLoss");
     if (selectError != Errors::NO_ERROR)
@@ -242,7 +247,7 @@ double VersionSpecificTicket::CurrentStopLoss()
     return OrderStopLoss();
 }
 
-double VersionSpecificTicket::ClosePrice()
+double Ticket::ClosePrice()
 {
     if (mClosePrice != ConstantValues::EmptyDouble)
     {
@@ -263,7 +268,7 @@ double VersionSpecificTicket::ClosePrice()
     return mClosePrice;
 }
 
-datetime VersionSpecificTicket::CloseTime()
+datetime Ticket::CloseTime()
 {
     if (mCloseTime != 0)
     {
@@ -284,7 +289,7 @@ datetime VersionSpecificTicket::CloseTime()
     return mCloseTime;
 }
 
-double VersionSpecificTicket::TakeProfit()
+double Ticket::TakeProfit()
 {
     int selectError = SelectTicket("Retrieving Take Profit");
     if (selectError != Errors::NO_ERROR)
@@ -299,7 +304,7 @@ double VersionSpecificTicket::TakeProfit()
     return OrderTakeProfit();
 }
 
-datetime VersionSpecificTicket::Expiration()
+datetime Ticket::Expiration()
 {
     int selectError = SelectTicket("Retrieving Expiration");
     if (selectError != Errors::NO_ERROR)
@@ -314,7 +319,7 @@ datetime VersionSpecificTicket::Expiration()
     return OrderExpiration();
 }
 
-double VersionSpecificTicket::Profit()
+double Ticket::Profit()
 {
     int selectError = SelectTicket("Retrieving Profit");
     if (selectError != Errors::NO_ERROR)
@@ -329,7 +334,7 @@ double VersionSpecificTicket::Profit()
     return OrderProfit();
 }
 
-double VersionSpecificTicket::Commission()
+double Ticket::Commission()
 {
     if (mCommission != ConstantValues::EmptyDouble)
     {
@@ -349,7 +354,7 @@ double VersionSpecificTicket::Commission()
     return OrderCommission();
 }
 
-int VersionSpecificTicket::Close()
+int Ticket::Close()
 {
     int selectOrderError = SelectIfOpen("Closing");
     if (selectOrderError != Errors::NO_ERROR)
