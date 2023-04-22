@@ -38,6 +38,9 @@ public:
     Ticket(Ticket &ticket);
 
     virtual ulong Number();
+    ulong PositionNumber() { return mPositionNumber; }
+    ulong DealNumber() { return mDealNumber; }
+
     virtual TicketType Type();
     virtual double OpenPrice();
     virtual datetime OpenTime();
@@ -65,7 +68,8 @@ Ticket::Ticket(int ticketNumber) : BaseTicket(ticketNumber)
 
 Ticket::Ticket(Ticket &ticket) : BaseTicket(ticket)
 {
-    Init();
+    mPositionNumber = ticket.PositionNumber();
+    mDealNumber = ticket.DealNumber();
 }
 
 void Ticket::Init()

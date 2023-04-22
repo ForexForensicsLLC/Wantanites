@@ -37,7 +37,12 @@ public:
     double EntryPrice;
     double EntrySlippage;
     double OriginalStopLoss;
+
     bool DuringNews;
+    int NewsImpact;
+    int DayOfWeek;
+    string Outcome;
+
     string EntryImage;
     string HigherTimeFrameEntryImage;
     string LowerTimeFrameEntryImage;
@@ -83,7 +88,12 @@ RecordColumns::RecordColumns()
     EntryPrice = ConstantValues::EmptyDouble;
     EntrySlippage = ConstantValues::EmptyDouble;
     OriginalStopLoss = ConstantValues::EmptyDouble;
+
     DuringNews = false;
+    NewsImpact = ConstantValues::EmptyInt;
+    DayOfWeek = ConstantValues::EmptyInt;
+    Outcome = ConstantValues::EmptyString;
+
     EntryImage = ConstantValues::UnsetString;
     HigherTimeFrameEntryImage = ConstantValues::UnsetString;
     LowerTimeFrameEntryImage = ConstantValues::UnsetString;
