@@ -122,7 +122,7 @@ template <typename T, typename U>
 bool Dictionary::GetValueByKey(T key, U &value)
 {
     int keyIndex = mKeys.IndexOf(key);
-    if (keyIndex == EMPTY)
+    if (keyIndex == ConstantValues::EmptyInt)
     {
         return false;
     }

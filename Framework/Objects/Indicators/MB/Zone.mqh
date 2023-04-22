@@ -15,7 +15,7 @@ class Zone : public ZoneState
 public:
     Zone();           // only used for default constructor in ObjectList
     Zone(Zone &zone); // only here for copy constructor in ObjectList
-    Zone(bool isPending, string symbol, ENUM_TIMEFRAMES timeFrame, int mbNumber, int zoneNumber, int type, string description, datetime startDateTime,
+    Zone(bool isPending, string symbol, ENUM_TIMEFRAMES timeFrame, int mbNumber, int zoneNumber, SignalType type, string description, datetime startDateTime,
          double entryPrice, datetime endDateTime, double exitPrice, int entryOffset, CandlePart brokenBy, color zoneColor);
     ~Zone();
 
@@ -27,7 +27,7 @@ Zone::Zone() {}
 
 Zone::Zone(Zone &zone) {}
 
-Zone::Zone(bool isPending, string symbol, ENUM_TIMEFRAMES timeFrame, int mbNumber, int zoneNumber, int type, string description, datetime startDateTime,
+Zone::Zone(bool isPending, string symbol, ENUM_TIMEFRAMES timeFrame, int mbNumber, int zoneNumber, SignalType type, string description, datetime startDateTime,
            double entryPrice, datetime endDateTime, double exitPrice, int entryOffset, CandlePart brokenBy, color zoneColor)
 {
     mIsPending = isPending;

@@ -11,12 +11,12 @@
 class VersionSpecificOrderInfoHelper
 {
 public:
-    static int CountOtherEAOrders(bool todayOnly, int &magicNumbers[], int &orderCount);
-    static int FindActiveTicketsByMagicNumber(bool todayOnly, int magicNumber, int &tickets[]);
+    static int CountOtherEAOrders(bool todayOnly, List<int> &magicNumbers, int &orderCount);
+    static int FindActiveTicketsByMagicNumber(int magicNumber, int &tickets[]);
     static int FindNewTicketAfterPartial(int magicNumber, double openPrice, datetime orderOpenTime, int &ticket);
 };
 
-int VersionSpecificOrderInfoHelper::CountOtherEAOrders(bool todayOnly, int &magicNumbers[], int &orderCount)
+int VersionSpecificOrderInfoHelper::CountOtherEAOrders(bool todayOnly, List<int> &magicNumbers, int &orderCount)
 {
     orderCount = 0;
     for (int i = 0; i < OrdersTotal(); i++)
@@ -32,7 +32,7 @@ int VersionSpecificOrderInfoHelper::CountOtherEAOrders(bool todayOnly, int &magi
             return error;
         }
 
-        for (int j = 0; j < ArraySize(magicNumbers); j++)
+        for (int j = 0; j < magicNumbers.Size(); j++)
         {
             if (OrderMagicNumber() == magicNumbers[j])
             {
@@ -50,7 +50,7 @@ int VersionSpecificOrderInfoHelper::CountOtherEAOrders(bool todayOnly, int &magi
     return Errors::NO_ERROR;
 }
 
-int VersionSpecificOrderInfoHelper::FindActiveTicketsByMagicNumber(bool todayOnly, int magicNumber, int &tickets[])
+int VersionSpecificOrderInfoHelper::FindActiveTicketsByMagicNumber(int magicNumber, int &tickets[])
 {
     ArrayFree(tickets);
     ArrayResize(tickets, 0);
@@ -67,14 +67,8 @@ int VersionSpecificOrderInfoHelper::FindActiveTicketsByMagicNumber(bool todayOnl
             return error;
         }
 
-        if (OrderMagicNumber() == magicNumber && OrderType() < 2 && OrderCloseTime() == 0)
+        if (OrderMagicNumber() == magicNumber && OrderCloseTime() == 0)
         {
-            datetime openDate = OrderOpenTime();
-            if (todayOnly && (TimeYear(openDate) != Year() || TimeMonth(openDate) != Month() || TimeDay(openDate) != Day()))
-            {
-                continue;
-            }
-
             ArrayResize(tickets, ArraySize(tickets) + 1);
             tickets[ArraySize(tickets) - 1] = OrderTicket();
         }
@@ -114,7 +108,7 @@ int VersionSpecificOrderInfoHelper::FindNewTicketAfterPartial(int magicNumber, d
             continue;
         }
 
-        if (NormalizeDouble(OrderOpenTime(), Digits) != NormalizeDouble(orderOpenTime, Digits))
+        if (OrderOpenTime() != orderOpenTime)
         {
             continue;
         }

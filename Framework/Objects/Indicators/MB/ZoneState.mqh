@@ -8,9 +8,10 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Objects\Indicators\MB\Types.mqh>
-#include <Wantanites\Framework\MQLVersionSpecific\Helpers\MQLHelper\MQLHelper.mqh>
 #include <Wantanites\Framework\Helpers\CandleStickHelper.mqh>
+#include <Wantanites\Framework\Objects\Indicators\MB\Types.mqh>
+#include <Wantanites\Framework\Types\SignalTypes.mqh>
+#include <Wantanites\Framework\MQLVersionSpecific\Helpers\MQLHelper\MQLHelper.mqh>
 
 class ZoneState
 {
@@ -21,7 +22,7 @@ protected:
 
     int mMBNumber;
     int mNumber;
-    int mType;
+    SignalType mType;
     string mDescription;
 
     double mHeight;
@@ -47,7 +48,7 @@ public:
 
     int Number() { return mNumber; }
     int MBNumber() { return mMBNumber; }
-    int Type() { return mType; }
+    SignalType Type() { return mType; }
     string Description() { return mDescription; }
 
     int StartIndex() { return iBarShift(mSymbol, mTimeFrame, mStartDateTime); }
@@ -94,11 +95,11 @@ double ZoneState::Height()
 
 double ZoneState::PercentOfZonePrice(double percent)
 {
-    if (Type() == OP_BUY)
+    if (Type() == SignalType::Bullish)
     {
         return EntryPrice() - (Height() * percent);
     }
-    else if (Type() == OP_SELL)
+    else if (Type() == SignalType::Bearish)
     {
         return EntryPrice() + (Height() * percent);
     }
@@ -108,11 +109,11 @@ double ZoneState::PercentOfZonePrice(double percent)
 
 bool ZoneState::CandleIsInZone(int index)
 {
-    if (Type() == OP_BUY)
+    if (Type() == SignalType::Bullish)
     {
         return iLow(Symbol(), TimeFrame(), index) <= EntryPrice() && !BelowDemandZone(index);
     }
-    else if (Type() == OP_SELL)
+    else if (Type() == SignalType::Bearish)
     {
         return iHigh(Symbol(), TimeFrame(), index) >= EntryPrice() && !AboveSupplyZone(index);
     }
@@ -138,7 +139,7 @@ bool ZoneState::AboveSupplyZone(int barIndex)
 // checks if price is or was  in the zone from the barIndex, and the zone hasn't been broken
 bool ZoneState::IsHolding(int barIndex)
 {
-    if (mType == OP_BUY)
+    if (mType == SignalType::Bullish)
     {
         double low;
         if (!MQLHelper::GetLowestLow(mSymbol, mTimeFrame, barIndex, 0, false, low))
@@ -148,7 +149,7 @@ bool ZoneState::IsHolding(int barIndex)
 
         return low <= mEntryPrice && !IsBroken();
     }
-    else if (mType == OP_SELL)
+    else if (mType == SignalType::Bearish)
     {
         double high;
         if (!MQLHelper::GetHighestHigh(mSymbol, mTimeFrame, barIndex, 0, false, high))
@@ -171,7 +172,7 @@ bool ZoneState::IsHoldingFromStart()
 bool ZoneState::IsBroken()
 {
     double price = 0.0;
-    if (mType == OP_BUY)
+    if (mType == SignalType::Bullish)
     {
         if (mBrokenBy == CandlePart::Body)
         {
@@ -190,7 +191,7 @@ bool ZoneState::IsBroken()
 
         return price <= ExitPrice();
     }
-    else if (mType == OP_SELL)
+    else if (mType == SignalType::Bearish)
     {
         if (mBrokenBy == CandlePart::Body)
         {

@@ -27,7 +27,7 @@ protected:
     bool mIsPending;
 
     int mNumber;
-    int mType;
+    SignalType mType;
     CandlePart mBrokenBy;
 
     datetime mStartDateTime;
@@ -61,7 +61,7 @@ public:
     ENUM_TIMEFRAMES TimeFrame() { return mTimeFrame; }
     bool IsPending() { return mIsPending; }
     int Number() { return mNumber; }
-    int Type() { return mType; }
+    SignalType Type() { return mType; }
 
     int StartIndex() { return iBarShift(mSymbol, mTimeFrame, mStartDateTime); }
     int EndIndex() { return iBarShift(mSymbol, mTimeFrame, mEndDateTime); }
@@ -139,11 +139,11 @@ double MBState::HeightToWidthRatio()
 
 double MBState::PercentOfMBPrice(double percent)
 {
-    if (Type() == OP_BUY)
+    if (Type() == SignalType::Bullish)
     {
         return iHigh(Symbol(), TimeFrame(), HighIndex()) - ((iHigh(Symbol(), TimeFrame(), HighIndex()) - iLow(Symbol(), TimeFrame(), LowIndex())) * percent);
     }
-    else if (Type() == OP_SELL)
+    else if (Type() == SignalType::Bearish)
     {
         return iLow(Symbol(), TimeFrame(), LowIndex()) + ((iHigh(Symbol(), TimeFrame(), HighIndex()) - iLow(Symbol(), TimeFrame(), LowIndex())) * percent);
     }
@@ -153,7 +153,7 @@ double MBState::PercentOfMBPrice(double percent)
 
 bool MBState::CandleBrokeMB(int barIndex)
 {
-    if (mType == OP_BUY)
+    if (mType == SignalType::Bullish)
     {
         double low;
         if (mBrokenBy == CandlePart::Body)
@@ -167,7 +167,7 @@ bool MBState::CandleBrokeMB(int barIndex)
 
         return low < iLow(mSymbol, mTimeFrame, LowIndex());
     }
-    else if (mType == OP_SELL)
+    else if (mType == SignalType::Bearish)
     {
         double high;
         if (mBrokenBy == CandlePart::Body)
@@ -187,7 +187,7 @@ bool MBState::CandleBrokeMB(int barIndex)
 
 bool MBState::StartIsBrokenFromBarIndex(int barIndex)
 {
-    if (mType == OP_BUY)
+    if (mType == SignalType::Bullish)
     {
         double low;
         if (mBrokenBy == CandlePart::Body)
@@ -207,7 +207,7 @@ bool MBState::StartIsBrokenFromBarIndex(int barIndex)
 
         return low < iLow(mSymbol, mTimeFrame, LowIndex());
     }
-    else if (mType == OP_SELL)
+    else if (mType == SignalType::Bearish)
     {
         double high;
         if (mBrokenBy == CandlePart::Body)
@@ -293,7 +293,7 @@ bool MBState::HasImpulseValidation()
             return false;
         }
 
-        if (mType == OP_BUY)
+        if (mType == SignalType::Bullish)
         {
             // don't have an imbalance break, don't need to check anything else
             if (iHigh(mSymbol, mTimeFrame, EndIndex() + 1) > iLow(mSymbol, mTimeFrame, EndIndex() - 1))
@@ -356,7 +356,7 @@ bool MBState::HasImpulseValidation()
                 }
             }
         }
-        else if (mType == OP_SELL)
+        else if (mType == SignalType::Bearish)
         {
             // don't have an imbalance break, don't need to check anything else
             if (iLow(mSymbol, mTimeFrame, EndIndex() + 1) < iHigh(mSymbol, mTimeFrame, EndIndex() - 1))

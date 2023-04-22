@@ -74,14 +74,14 @@ private:
     int MostRecentMBIndex() { return mMBsToTrack - mCurrentMBs; }
 
     // --- MB Creation Methods ---
-    bool PendingMBIsValidated(int type, int barIndex);
+    bool PendingMBIsValidated(SignalType type, int barIndex);
     void CheckMostRecentMBIsBroken(int barIndex);
     void CalculateMB(int barIndex);
-    bool IsEngulfingCandle(int mbType, int index);
-    void CheckSetRetracement(int startingIndex, int mbType, int prevMBType);
-    void CheckSetPendingMB(int startingIndex, int mbType);
-    void CreateMB(int mbType, int startIndex, int endIndex, int highIndex, int lowIndex);
-    void UpdatePendingMB(int type, int barIndex, bool matchesMostRecentMBType);
+    bool IsEngulfingCandle(SignalType mbType, int index);
+    void CheckSetRetracement(int startingIndex, SignalType mbType, SignalType prevMBType);
+    void CheckSetPendingMB(int startingIndex, SignalType mbType);
+    void CreateMB(SignalType mbType, int startIndex, int endIndex, int highIndex, int lowIndex);
+    void UpdatePendingMB(SignalType type, int barIndex, bool matchesMostRecentMBType);
     void ResetTracking();
 
     // --------- Helper Methods ----------------
@@ -118,7 +118,7 @@ public:
     bool GetMB(int mbNumber, MBState *&mbState);
     bool GetPreviousMB(int mbNumber, MBState *&mbState);
     bool GetSubsequentMB(int mbNumber, MBState *&mbState);
-    int GetNthMostRecentMBsType(int nthMB);
+    SignalType GetNthMostRecentMBsType(int nthMB);
 
     bool HasNMostRecentConsecutiveMBs(int nMBs);
     bool HasNMostRecentConsecutiveMBs(int nMBs, MBState *&mbStates[]);
@@ -223,7 +223,7 @@ void MBTracker::CheckMostRecentMBIsBroken(int barIndex)
 {
     if (mMBs[MostRecentMBIndex()].CandleBrokeMB(barIndex))
     {
-        if (mMBs[MostRecentMBIndex()].Type() == OP_BUY)
+        if (mMBs[MostRecentMBIndex()].Type() == SignalType::Bullish)
         {
             int highestIndex;
             if (!MQLHelper::GetHighest(mSymbol, mTimeFrame, MODE_HIGH, mMBs[MostRecentMBIndex()].EndIndex() - barIndex, barIndex, true, highestIndex))
@@ -231,10 +231,10 @@ void MBTracker::CheckMostRecentMBIsBroken(int barIndex)
                 return;
             }
 
-            CreateMB(OP_SELL, mMBs[MostRecentMBIndex()].LowIndex(), barIndex, highestIndex, mMBs[MostRecentMBIndex()].LowIndex());
+            CreateMB(SignalType::Bearish, mMBs[MostRecentMBIndex()].LowIndex(), barIndex, highestIndex, mMBs[MostRecentMBIndex()].LowIndex());
             ResetTracking();
         }
-        else if (mMBs[MostRecentMBIndex()].Type() == OP_SELL)
+        else if (mMBs[MostRecentMBIndex()].Type() == SignalType::Bearish)
         {
             int lowestIndex = 0;
             if (!MQLHelper::GetLowest(mSymbol, mTimeFrame, MODE_LOW, mMBs[MostRecentMBIndex()].EndIndex() - barIndex, barIndex, true, lowestIndex))
@@ -242,15 +242,15 @@ void MBTracker::CheckMostRecentMBIsBroken(int barIndex)
                 return;
             }
 
-            CreateMB(OP_BUY, mMBs[MostRecentMBIndex()].HighIndex(), barIndex, mMBs[MostRecentMBIndex()].HighIndex(), lowestIndex);
+            CreateMB(SignalType::Bullish, mMBs[MostRecentMBIndex()].HighIndex(), barIndex, mMBs[MostRecentMBIndex()].HighIndex(), lowestIndex);
             ResetTracking();
         }
     }
 }
 
-bool MBTracker::PendingMBIsValidated(int type, int barIndex)
+bool MBTracker::PendingMBIsValidated(SignalType type, int barIndex)
 {
-    if (type == OP_BUY)
+    if (type == SignalType::Bullish)
     {
         double high = 0.0;
         if (mMBsValidatedBy == CandlePart::Body)
@@ -264,7 +264,7 @@ bool MBTracker::PendingMBIsValidated(int type, int barIndex)
 
         return high > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex);
     }
-    else if (type == OP_SELL)
+    else if (type == SignalType::Bearish)
     {
         double low = 0.0;
         if (mMBsValidatedBy == CandlePart::Body)
@@ -286,52 +286,52 @@ void MBTracker::CalculateMB(int barIndex)
 {
     if (CheckPointer(mMBs[mMBsToTrack - 1]) == POINTER_INVALID)
     {
-        CheckSetRetracement(barIndex, OP_BUY, -1);
-        CheckSetPendingMB(barIndex, OP_BUY);
+        CheckSetRetracement(barIndex, SignalType::Bullish, -1);
+        CheckSetPendingMB(barIndex, SignalType::Bullish);
 
-        CheckSetRetracement(barIndex, OP_SELL, -1);
-        CheckSetPendingMB(barIndex, OP_SELL);
+        CheckSetRetracement(barIndex, SignalType::Bearish, -1);
+        CheckSetPendingMB(barIndex, SignalType::Bearish);
 
         // validated Bullish MB
-        if (mHasPendingBullishMB && PendingMBIsValidated(OP_BUY, barIndex))
+        if (mHasPendingBullishMB && PendingMBIsValidated(SignalType::Bullish, barIndex))
         {
-            CreateMB(OP_BUY, mCurrentBullishRetracementIndex, barIndex, mCurrentBullishRetracementIndex, mPendingBullishMBLowIndex);
+            CreateMB(SignalType::Bullish, mCurrentBullishRetracementIndex, barIndex, mCurrentBullishRetracementIndex, mPendingBullishMBLowIndex);
             ResetTracking();
             return;
         }
         // validated Bearish MB
-        else if (mHasPendingBearishMB && PendingMBIsValidated(OP_SELL, barIndex))
+        else if (mHasPendingBearishMB && PendingMBIsValidated(SignalType::Bearish, barIndex))
         {
-            CreateMB(OP_SELL, mCurrentBearishRetracementIndex, barIndex, mPendingBearishMBHighIndex, mCurrentBearishRetracementIndex);
+            CreateMB(SignalType::Bearish, mCurrentBearishRetracementIndex, barIndex, mPendingBearishMBHighIndex, mCurrentBearishRetracementIndex);
             ResetTracking();
             return;
         }
     }
     // prev mb was bullish
-    else if (mMBs[MostRecentMBIndex()].Type() == OP_BUY)
+    else if (mMBs[MostRecentMBIndex()].Type() == SignalType::Bullish)
     {
         // check pending first so that a single candle can trigger the pending flag and confirm an MB else retracement will get reset in CheckSetRetracement()
-        CheckSetPendingMB(barIndex, OP_BUY);
-        CheckSetRetracement(barIndex, OP_BUY, OP_BUY);
+        CheckSetPendingMB(barIndex, SignalType::Bullish);
+        CheckSetRetracement(barIndex, SignalType::Bullish, SignalType::Bullish);
         // recheck for a pending mb again incase we set the retracment flag or else we may not have a pending mb until the candle after we actually do
-        CheckSetPendingMB(barIndex, OP_BUY);
+        CheckSetPendingMB(barIndex, SignalType::Bullish);
 
         if (mHasPendingBullishMB)
         {
             // new bullish mb has been validated
-            if (PendingMBIsValidated(OP_BUY, barIndex))
+            if (PendingMBIsValidated(SignalType::Bullish, barIndex))
             {
                 int bullishRetracementIndex = -1;
                 if (CurrentBullishRetracementIndexIsValid(bullishRetracementIndex, barIndex))
                 {
-                    CreateMB(OP_BUY, bullishRetracementIndex, barIndex, bullishRetracementIndex, mPendingBullishMBLowIndex);
+                    CreateMB(SignalType::Bullish, bullishRetracementIndex, barIndex, bullishRetracementIndex, mPendingBullishMBLowIndex);
                 }
 
                 ResetTracking();
             }
             else if (mShowPendingMBs)
             {
-                UpdatePendingMB(OP_BUY, barIndex, true);
+                UpdatePendingMB(SignalType::Bullish, barIndex, true);
             }
         }
         // only allow the most recent MB to have zones after it has been validated if there is no pending MB
@@ -342,34 +342,34 @@ void MBTracker::CalculateMB(int barIndex)
 
         if (mShowPendingMBs)
         {
-            UpdatePendingMB(OP_SELL, barIndex, false);
+            UpdatePendingMB(SignalType::Bearish, barIndex, false);
         }
     }
     // prev mb was bearish
-    else if (mMBs[MostRecentMBIndex()].Type() == OP_SELL)
+    else if (mMBs[MostRecentMBIndex()].Type() == SignalType::Bearish)
     {
         // check pending first so that a single candle can trigger the pending flag and confirm an MB else retracement will get reset in CheckSetRetracement()
-        CheckSetPendingMB(barIndex, OP_SELL);
-        CheckSetRetracement(barIndex, OP_SELL, OP_SELL);
+        CheckSetPendingMB(barIndex, SignalType::Bearish);
+        CheckSetRetracement(barIndex, SignalType::Bearish, SignalType::Bearish);
         // recheck for a pending mb again incase we set the retracment flag or else we may not have a pending mb until the candle after we actually do
-        CheckSetPendingMB(barIndex, OP_SELL);
+        CheckSetPendingMB(barIndex, SignalType::Bearish);
 
         if (mHasPendingBearishMB)
         {
             // new bearish mb has been validated
-            if (PendingMBIsValidated(OP_SELL, barIndex))
+            if (PendingMBIsValidated(SignalType::Bearish, barIndex))
             {
                 int bearishRetracementIndex = -1;
                 if (CurrentBearishRetracementIndexIsValid(bearishRetracementIndex, barIndex))
                 {
-                    CreateMB(OP_SELL, bearishRetracementIndex, barIndex, mPendingBearishMBHighIndex, bearishRetracementIndex);
+                    CreateMB(SignalType::Bearish, bearishRetracementIndex, barIndex, mPendingBearishMBHighIndex, bearishRetracementIndex);
                 }
 
                 ResetTracking();
             }
             else if (mShowPendingMBs)
             {
-                UpdatePendingMB(OP_SELL, barIndex, true);
+                UpdatePendingMB(SignalType::Bearish, barIndex, true);
             }
         }
         // only allow the most recent MB to have zones after it has been validated if there is no pending MB
@@ -380,14 +380,14 @@ void MBTracker::CalculateMB(int barIndex)
 
         if (mShowPendingMBs)
         {
-            UpdatePendingMB(OP_BUY, barIndex, false);
+            UpdatePendingMB(SignalType::Bullish, barIndex, false);
         }
     }
 }
 
-bool MBTracker::IsEngulfingCandle(int mbType, int index)
+bool MBTracker::IsEngulfingCandle(SignalType mbType, int index)
 {
-    if (mbType == OP_BUY)
+    if (mbType == SignalType::Bullish)
     {
         double retracementOpen = iOpen(mSymbol, mTimeFrame, index);
         double retracementClose = iClose(mSymbol, mTimeFrame, index);
@@ -404,7 +404,7 @@ bool MBTracker::IsEngulfingCandle(int mbType, int index)
             return true;
         }
     }
-    else if (mbType == OP_SELL)
+    else if (mbType == SignalType::Bearish)
     {
         double retracementOpen = iOpen(mSymbol, mTimeFrame, index);
         double retracementClose = iClose(mSymbol, mTimeFrame, index);
@@ -428,17 +428,17 @@ bool MBTracker::IsEngulfingCandle(int mbType, int index)
 // Method that Checks for retracements
 // Will set mCurrentBullishRetracementIndex or mCurrentBearishRetracementIndex if one is found
 // Will reset mCurrentBullishRetracementIndex or mCurrentBearishRetracementIndex if they are invalidated
-void MBTracker::CheckSetRetracement(int startingIndex, int mbType, int prevMBType)
+void MBTracker::CheckSetRetracement(int startingIndex, SignalType mbType, SignalType prevMBType)
 {
-    if (mbType == OP_BUY)
+    if (mbType == SignalType::Bullish)
     {
         // Already have a retracement
-        if (mCurrentBullishRetracementIndex != EMPTY)
+        if (mCurrentBullishRetracementIndex != ConstantValues::EmptyInt)
         {
             // broke further than a retracmeent index without starting an MB. The retracement becomes invalidated
             if (!mHasPendingBullishMB && iHigh(mSymbol, mTimeFrame, startingIndex) > iHigh(mSymbol, mTimeFrame, mCurrentBullishRetracementIndex))
             {
-                mCurrentBullishRetracementIndex = EMPTY;
+                mCurrentBullishRetracementIndex = ConstantValues::EmptyInt;
             }
 
             return;
@@ -447,9 +447,9 @@ void MBTracker::CheckSetRetracement(int startingIndex, int mbType, int prevMBTyp
         // candle that has a high that is lower than the one before it, bullish retracement started
         if ((iHigh(mSymbol, mTimeFrame, startingIndex) < iHigh(mSymbol, mTimeFrame, startingIndex + 1) ||
              iLow(mSymbol, mTimeFrame, startingIndex) < iLow(mSymbol, mTimeFrame, startingIndex + 1)) &&
-            !IsEngulfingCandle(OP_BUY, startingIndex))
+            !IsEngulfingCandle(SignalType::Bullish, startingIndex))
         {
-            if (prevMBType == OP_BUY)
+            if (prevMBType == SignalType::Bullish)
             {
                 // Inclusive in case the highest candle of the next mb is the ending index of the previous
                 int highestIndex;
@@ -475,14 +475,14 @@ void MBTracker::CheckSetRetracement(int startingIndex, int mbType, int prevMBTyp
             }
         }
     }
-    else if (mbType == OP_SELL)
+    else if (mbType == SignalType::Bearish)
     {
-        if (mCurrentBearishRetracementIndex > EMPTY)
+        if (mCurrentBearishRetracementIndex > ConstantValues::EmptyInt)
         {
             // broke further than a retracmeent index without starting an MB. The retracement becomes invalidated
             if (!mHasPendingBearishMB && iLow(mSymbol, mTimeFrame, startingIndex) < iLow(mSymbol, mTimeFrame, mCurrentBearishRetracementIndex))
             {
-                mCurrentBearishRetracementIndex = EMPTY;
+                mCurrentBearishRetracementIndex = ConstantValues::EmptyInt;
             }
 
             return;
@@ -491,9 +491,9 @@ void MBTracker::CheckSetRetracement(int startingIndex, int mbType, int prevMBTyp
         // candle that has a low that is higher than the one before it, bearish retraceemnt started
         if ((iLow(mSymbol, mTimeFrame, startingIndex) > iLow(mSymbol, mTimeFrame, startingIndex + 1) ||
              iHigh(mSymbol, mTimeFrame, startingIndex) > iHigh(mSymbol, mTimeFrame, startingIndex + 1)) &&
-            !IsEngulfingCandle(OP_SELL, startingIndex))
+            !IsEngulfingCandle(SignalType::Bearish, startingIndex))
         {
-            if (prevMBType == OP_SELL)
+            if (prevMBType == SignalType::Bearish)
             {
                 // Add one to this in case the low of the next mb is the ending index of the previous
                 int lowestIndex;
@@ -522,9 +522,9 @@ void MBTracker::CheckSetRetracement(int startingIndex, int mbType, int prevMBTyp
 }
 
 // method that checks if the current retracement turns into a pending mb
-void MBTracker::CheckSetPendingMB(int startingIndex, int mbType)
+void MBTracker::CheckSetPendingMB(int startingIndex, SignalType mbType)
 {
-    if (mbType == OP_BUY && mCurrentBullishRetracementIndex > -1)
+    if (mbType == SignalType::Bullish && mCurrentBullishRetracementIndex > -1)
     {
         // if we already have a pending bullish mb, we just need to find the index of the lowest candle within it
         if (mHasPendingBullishMB)
@@ -593,7 +593,7 @@ void MBTracker::CheckSetPendingMB(int startingIndex, int mbType)
             }
         }
     }
-    else if (mbType == OP_SELL && mCurrentBearishRetracementIndex > -1)
+    else if (mbType == SignalType::Bearish && mCurrentBearishRetracementIndex > -1)
     {
         // if we already have a pending bearish mb, we just need to find the index of the highest candle within it
         if (mHasPendingBearishMB)
@@ -665,7 +665,7 @@ void MBTracker::CheckSetPendingMB(int startingIndex, int mbType)
 }
 
 // method that create an mb
-void MBTracker::CreateMB(int mbType, int startIndex, int endIndex, int highIndex, int lowIndex)
+void MBTracker::CreateMB(SignalType mbType, int startIndex, int endIndex, int highIndex, int lowIndex)
 {
     delete mPendingBullishMB;
     delete mPendingBearishMB;
@@ -673,12 +673,12 @@ void MBTracker::CreateMB(int mbType, int startIndex, int endIndex, int highIndex
     color mbColor;
     color zoneColor;
 
-    if (mbType == OP_BUY)
+    if (mbType == SignalType::Bullish)
     {
         mbColor = mBullishMBColor;
         zoneColor = mDemandZoneColor;
     }
-    else if (mbType == OP_SELL)
+    else if (mbType == SignalType::Bearish)
     {
         mbColor = mBearishMBColor;
         zoneColor = mSupplyZoneColor;
@@ -709,9 +709,9 @@ void MBTracker::CreateMB(int mbType, int startIndex, int endIndex, int highIndex
     mMBsCreated += 1;
 }
 
-void MBTracker::UpdatePendingMB(int type, int barIndex, bool matchesMostRecentMBsType)
+void MBTracker::UpdatePendingMB(SignalType type, int barIndex, bool matchesMostRecentMBsType)
 {
-    if (type == OP_BUY)
+    if (type == SignalType::Bullish)
     {
         if (matchesMostRecentMBsType)
         {
@@ -721,7 +721,7 @@ void MBTracker::UpdatePendingMB(int type, int barIndex, bool matchesMostRecentMB
                 // we delete the old pending mb after an mb has been validated, need to create a new one then
                 if (CheckPointer(mPendingBullishMB) == POINTER_INVALID)
                 {
-                    mPendingBullishMB = new MB(true, mSymbol, mTimeFrame, mMBsCreated, OP_BUY, mMBsBrokenBy, iTime(mSymbol, mTimeFrame, bullishRetracementIndex),
+                    mPendingBullishMB = new MB(true, mSymbol, mTimeFrame, mMBsCreated, SignalType::Bullish, mMBsBrokenBy, iTime(mSymbol, mTimeFrame, bullishRetracementIndex),
                                                iTime(mSymbol, mTimeFrame, barIndex), iTime(mSymbol, mTimeFrame, bullishRetracementIndex),
                                                iTime(mSymbol, mTimeFrame, mPendingBullishMBLowIndex), mMaxZonesInMB, mPendingZonesBrokenBy, mRequiredZonePartInMB,
                                                mAllowPendingMitigatedZones, mAllowPendingOverlappingZones, mBullishMBColor, mPendingDemandZoneColor);
@@ -748,7 +748,7 @@ void MBTracker::UpdatePendingMB(int type, int barIndex, bool matchesMostRecentMB
             if (CheckPointer(mPendingBullishMB) == POINTER_INVALID)
             {
 
-                mPendingBullishMB = new MB(true, mSymbol, mTimeFrame, mMBsCreated, OP_BUY, mMBsBrokenBy, iTime(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].HighIndex()),
+                mPendingBullishMB = new MB(true, mSymbol, mTimeFrame, mMBsCreated, SignalType::Bullish, mMBsBrokenBy, iTime(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].HighIndex()),
                                            iTime(mSymbol, mTimeFrame, barIndex), iTime(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].HighIndex()),
                                            iTime(mSymbol, mTimeFrame, lowestIndex), mMaxZonesInMB, mPendingZonesBrokenBy, mRequiredZonePartInMB, mAllowPendingMitigatedZones,
                                            mAllowPendingOverlappingZones, mBullishMBColor, mPendingDemandZoneColor);
@@ -774,7 +774,7 @@ void MBTracker::UpdatePendingMB(int type, int barIndex, bool matchesMostRecentMB
             }
         }
     }
-    else if (type == OP_SELL)
+    else if (type == SignalType::Bearish)
     {
         if (matchesMostRecentMBsType)
         {
@@ -784,7 +784,7 @@ void MBTracker::UpdatePendingMB(int type, int barIndex, bool matchesMostRecentMB
                 // we delete the old pending mb after an mb has been validated, need to create a new one then
                 if (CheckPointer(mPendingBearishMB) == POINTER_INVALID)
                 {
-                    mPendingBearishMB = new MB(true, mSymbol, mTimeFrame, mMBsCreated, OP_SELL, mMBsBrokenBy, iTime(mSymbol, mTimeFrame, bearishRetracementIndex),
+                    mPendingBearishMB = new MB(true, mSymbol, mTimeFrame, mMBsCreated, SignalType::Bearish, mMBsBrokenBy, iTime(mSymbol, mTimeFrame, bearishRetracementIndex),
                                                iTime(mSymbol, mTimeFrame, barIndex), iTime(mSymbol, mTimeFrame, mPendingBearishMBHighIndex),
                                                iTime(mSymbol, mTimeFrame, bearishRetracementIndex), mMaxZonesInMB, mPendingZonesBrokenBy, mRequiredZonePartInMB,
                                                mAllowPendingMitigatedZones, mAllowPendingOverlappingZones, mBearishMBColor, mPendingSupplyZoneColor);
@@ -810,7 +810,7 @@ void MBTracker::UpdatePendingMB(int type, int barIndex, bool matchesMostRecentMB
             // we delete the old pending mb after an mb has been validated, need to create a new one then
             if (CheckPointer(mPendingBearishMB) == POINTER_INVALID)
             {
-                mPendingBearishMB = new MB(true, mSymbol, mTimeFrame, mMBsCreated, OP_SELL, mMBsBrokenBy, iTime(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].LowIndex()),
+                mPendingBearishMB = new MB(true, mSymbol, mTimeFrame, mMBsCreated, SignalType::Bearish, mMBsBrokenBy, iTime(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].LowIndex()),
                                            iTime(mSymbol, mTimeFrame, barIndex), highestIndex, iTime(mSymbol, mTimeFrame, mMBs[MostRecentMBIndex()].LowIndex()),
                                            mMaxZonesInMB, mPendingZonesBrokenBy, mRequiredZonePartInMB, mAllowPendingMitigatedZones, mAllowPendingOverlappingZones,
                                            mBearishMBColor, mPendingSupplyZoneColor);
@@ -996,7 +996,7 @@ bool MBTracker::CurrentBearishRetracementIndexIsValid(int &currentBearishRetrace
 // -------------- MB Schematic Mehthods ---------------
 bool MBTracker::MBExists(int mbNumber)
 {
-    if (mbNumber == EMPTY)
+    if (mbNumber == ConstantValues::EmptyInt)
     {
         return false;
     }
@@ -1101,7 +1101,7 @@ bool MBTracker::GetNMostRecentMBs(int nMostRecent, MBState *&mbStates[])
     return true;
 }
 
-int MBTracker::GetNthMostRecentMBsType(int nthMB)
+SignalType MBTracker::GetNthMostRecentMBsType(int nthMB)
 {
     Update();
 
@@ -1264,7 +1264,7 @@ int MBTracker::MBEndIsBroken(int mbNumber, bool &brokeRangeEnd)
 
     if (!tempMBState.mEndIsBroken)
     {
-        if (tempMBState.Type() == OP_BUY)
+        if (tempMBState.Type() == SignalType::Bullish)
         {
             double high;
             if (!MQLHelper::GetHighestHigh(mSymbol, mTimeFrame, tempMBState.HighIndex(), 0, false, high))
@@ -1274,7 +1274,7 @@ int MBTracker::MBEndIsBroken(int mbNumber, bool &brokeRangeEnd)
 
             tempMBState.mEndIsBroken = high > iHigh(mSymbol, mTimeFrame, tempMBState.HighIndex());
         }
-        else if (tempMBState.Type() == OP_SELL)
+        else if (tempMBState.Type() == SignalType::Bearish)
         {
             double low;
             if (!MQLHelper::GetLowestLow(mSymbol, mTimeFrame, tempMBState.LowIndex(), 0, false, low))

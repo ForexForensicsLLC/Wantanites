@@ -9,7 +9,7 @@
 #property strict
 
 #include <Wantanites\Framework\Constants\ConstantValues.mqh>
-#include <Wantanites\Framework\MQLVersionSpecific\Helpers\DateTimeHelper\DateTimeHelper.mqh>
+#include <Wantanites\Framework\Helpers\DateTimeHelper.mqh>
 
 class TimeRangeBreakout
 {
@@ -65,7 +65,7 @@ TimeRangeBreakout::TimeRangeBreakout(int rangeHourStartTime, int rangeMinuteStar
     mObjectNamePrefix = "TimeRangeBreakout";
 
     mBarsCalculated = 0;
-    mLastDay = Day();
+    mLastDay = DateTimeHelper::CurrentDay();
 
     mRangeHourStartTime = rangeHourStartTime;
     mRangeMinuteStartTime = rangeMinuteStartTime;
@@ -132,10 +132,11 @@ void TimeRangeBreakout::Update()
 
 void TimeRangeBreakout::Calculate(int barIndex)
 {
-    if (Day() != mLastDay)
+    int currentDay = DateTimeHelper::CurrentDay();
+    if (currentDay != mLastDay)
     {
         Reset();
-        mLastDay = Day();
+        mLastDay = currentDay;
     }
 
     datetime validTime = iTime(Symbol(), Period(), barIndex);
@@ -185,8 +186,9 @@ void TimeRangeBreakout::Calculate(int barIndex)
 
 void TimeRangeBreakout::Reset()
 {
-    mRangeStartTime = DateTimeHelper::HourMinuteToDateTime(mRangeHourStartTime, mRangeMinuteStartTime, Day());
-    mRangeEndTime = DateTimeHelper::HourMinuteToDateTime(mRangeHourEndTime, mRangeMinuteEndTime, Day());
+    int currentDay = DateTimeHelper::CurrentDay();
+    mRangeStartTime = DateTimeHelper::HourMinuteToDateTime(mRangeHourStartTime, mRangeMinuteStartTime, currentDay);
+    mRangeEndTime = DateTimeHelper::HourMinuteToDateTime(mRangeHourEndTime, mRangeMinuteEndTime, currentDay);
 
     mUpdateRangeStart = true;
     mUpdateRangeEnd = true;

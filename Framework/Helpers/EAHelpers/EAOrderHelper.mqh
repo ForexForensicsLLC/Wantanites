@@ -18,8 +18,8 @@ class EAOrderHelper
     // Helper Methdos
     // =========================================================================
 
-    static double GetLotSizeForRiskPercent(double stopLossPips, double riskPercent);
-    static void CheckBreakLotSizeUp(double originalLotSize, int &numberOfOrders, double &lotSizeToUse);
+    static double GetLotSizeForRiskPercent(string symbol, double stopLossPips, double riskPercent);
+    static void CheckBreakLotSizeUp(string symbol, double originalLotSize, int &numberOfOrders, double &lotSizeToUse);
 
     template <typename TEA>
     static double GetReducedRiskPerPercentLost(TEA &ea, double perPercentLost, double reduceBy);
@@ -55,8 +55,8 @@ public:
     // Setup Specific Order Methods
     // =========================================================================
 private:
-    static int GetEntryPriceForStopOrderForPendingMBValidation(double spreadPips, int setupType, MBTracker *&mbt, double &entryPrice);
-    static int GetStopLossForStopOrderForPendingMBValidation(double paddingPips, double spreadPips, int setupType, MBTracker *&mbt, double &stopLoss);
+    static int GetEntryPriceForStopOrderForPendingMBValidation(double spreadPips, SignalType setupType, MBTracker *&mbt, double &entryPrice);
+    static int GetStopLossForStopOrderForPendingMBValidation(double paddingPips, double spreadPips, SignalType setupType, MBTracker *&mbt, double &stopLoss);
     static int GetEntryPriceForStopOrderForBreakOfMB(double spreadPips, int mbNumber, MBTracker *&mbt, double &entryPrice);
     static int GetStopLossForStopOrderForBreakOfMB(double paddingPips, double spreadPips, int mbNumber, MBTracker *&mbt, double &stopLoss);
 
@@ -139,34 +139,34 @@ public:
                |_|
 
 */
-double EAOrderHelper::GetLotSizeForRiskPercent(double stopLossPips, double riskPercent)
+double EAOrderHelper::GetLotSizeForRiskPercent(string symbol, double stopLossPips, double riskPercent)
 {
-    double pipValue = MarketInfo(Symbol(), MODE_TICKSIZE) * 10 * MarketInfo(Symbol(), MODE_LOTSIZE);
+    double pipValue = SymbolInfoDouble(symbol, SYMBOL_TRADE_TICK_SIZE) * 10 * SymbolInfoDouble(symbol, SYMBOL_TRADE_CONTRACT_SIZE);
 
     // since UJ starts with USD, it also involves the current price
     // TODO: update this to catch any other pairs
-    if (StringFind(Symbol(), "JPY") != -1)
+    if (StringFind(symbol, "JPY") != -1)
     {
         MqlTick currentTick;
-        if (!SymbolInfoTick(Symbol(), currentTick))
+        if (!SymbolInfoTick(symbol, currentTick))
         {
             Print("Can't get tick during lot size calculation");
-            return 0.1;
+            return 0;
         }
 
         pipValue = pipValue / currentTick.bid;
     }
 
-    double lotSize = NormalizeDouble((AccountBalance() * riskPercent / 100) / (stopLossPips * pipValue), 2);
-    return MathMax(MarketInfo(Symbol(), MODE_MINLOT), lotSize);
+    return NormalizeDouble((AccountInfoDouble(ACCOUNT_BALANCE) * riskPercent / 100) / (stopLossPips * pipValue), 2);
 }
 
-static void EAOrderHelper::CheckBreakLotSizeUp(double originalLotSize, int &numberOfOrders, double &lotSizeToUse)
+static void EAOrderHelper::CheckBreakLotSizeUp(string symbol, double originalLotSize, int &numberOfOrders, double &lotSizeToUse)
 {
     numberOfOrders = 1;
     lotSizeToUse = originalLotSize;
 
-    while (lotSizeToUse > MarketInfo(Symbol(), MODE_MAXLOT))
+    double maxLotSize = SymbolInfoDouble(symbol, SYMBOL_VOLUME_MAX);
+    while (lotSizeToUse > maxLotSize)
     {
         numberOfOrders += 1;
         lotSizeToUse = originalLotSize / numberOfOrders;
@@ -193,25 +193,28 @@ static bool EAOrderHelper::PrePlaceOrderChecks(TEA &ea)
 {
     ea.mLastState = EAStates::CHECKING_TO_PLACE_ORDER;
 
-    if (ea.mCurrentSetupTicket.Number() != EMPTY)
+    if (ea.mCurrentSetupTicket.Number() != ConstantValues::EmptyInt)
     {
         return false;
     }
 
     ea.mLastState = EAStates::COUNTING_OTHER_EA_ORDERS;
 
-    int orders = 0;
-    int ordersError = OrderHelper::CountOtherEAOrders(true, ea.mStrategyMagicNumbers, orders);
-    if (ordersError != Errors::NO_ERROR)
+    if (ea.MaxTradesForEAGroup() != ConstantValues::EmptyInt)
     {
-        ea.InvalidateSetup(false, ordersError);
-        return false;
-    }
+        int orders = 0;
+        int ordersError = OrderInfoHelper::CountOtherEAOrders(true, ea.mEAGroupMagicNumbers, orders);
+        if (ordersError != Errors::NO_ERROR)
+        {
+            ea.InvalidateSetup(false, ordersError);
+            return false;
+        }
 
-    if (orders >= ea.mMaxCurrentSetupTradesAtOnce)
-    {
-        ea.InvalidateSetup(false);
-        return false;
+        if (orders >= ea.MaxTradesForEAGroup())
+        {
+            ea.InvalidateSetup(false);
+            return false;
+        }
     }
 
     return true;
@@ -221,7 +224,7 @@ template <typename TEA>
 static void EAOrderHelper::PostPlaceOrderChecks(TEA &ea, string methodName, int ticketNumber, int error, TicketType ticketType, double expectedEntry, double stopLoss,
                                                 double lotSize, double takeProfit)
 {
-    if (ticketNumber == EMPTY)
+    if (ticketNumber == ConstantValues::EmptyInt)
     {
         string orderInfo =
             "Method: " + methodName +
@@ -259,7 +262,7 @@ static void EAOrderHelper::PostPlaceOrderChecks(TEA &ea, string methodName, int 
 template <typename TEA>
 static void EAOrderHelper::InternalPlaceMarketOrder(TEA &ea, TicketType ticketType, double entryPrice, double stopLoss, double lotSize, double takeProfit)
 {
-    int ticket = EMPTY;
+    int ticket = ConstantValues::EmptyInt;
     int orderPlaceError = ea.mTM.PlaceMarketOrder(ticketType, lotSize, entryPrice, stopLoss, takeProfit, ticket);
 
     PostPlaceOrderChecks<TEA>(ea, __FUNCTION__, ticket, orderPlaceError, ticketType, entryPrice, stopLoss, lotSize, takeProfit);
@@ -286,12 +289,12 @@ static void EAOrderHelper::PlaceMarketOrder(TEA &ea, double entryPrice, double s
 
     if (lotSize == 0.0)
     {
-        lotSize = GetLotSizeForRiskPercent(PipConverter::PointsToPips(MathAbs(entryPrice - stopLoss)), ea.RiskPercent());
+        lotSize = GetLotSizeForRiskPercent(ea.EntrySymbol(), PipConverter::PointsToPips(MathAbs(entryPrice - stopLoss)), ea.RiskPercent());
     }
 
     int numberOfOrdersToPlace;
     double lotsToUse;
-    CheckBreakLotSizeUp(lotSize, numberOfOrdersToPlace, lotsToUse);
+    CheckBreakLotSizeUp(ea.EntrySymbol(), lotSize, numberOfOrdersToPlace, lotsToUse);
 
     for (int i = 0; i < numberOfOrdersToPlace; i++)
     {
@@ -303,7 +306,7 @@ template <typename TEA>
 static void EAOrderHelper::InternalPlaceLimitOrder(TEA &ea, TicketType ticketType, double entryPrice, double stopLoss, double lotSize, bool fallbackMarketOrder,
                                                    double maxMarketOrderSlippage)
 {
-    int ticket = EMPTY;
+    int ticket = ConstantValues::EmptyInt;
     int orderPlaceError = Errors::NO_ERROR;
 
     if (ticketType == TicketType::BuyLimit)
@@ -353,12 +356,12 @@ static void EAOrderHelper::PlaceLimitOrder(TEA &ea, double entryPrice, double st
 
     if (lotSize == 0.0)
     {
-        lotSize = GetLotSizeForRiskPercent(PipConverter::PointsToPips(MathAbs(entryPrice - stopLoss)), ea.RiskPercent());
+        lotSize = GetLotSizeForRiskPercent(ea.EntrySymbol(), PipConverter::PointsToPips(MathAbs(entryPrice - stopLoss)), ea.RiskPercent());
     }
 
     int numberOfOrdersToPlace;
     double lotsToUse;
-    CheckBreakLotSizeUp(lots, numberOfOrdersToPlace, lotsToUse);
+    CheckBreakLotSizeUp(ea.EntrySymbol(), lots, numberOfOrdersToPlace, lotsToUse);
 
     for (int i = 0; i < numberOfOrdersToPlace; i++)
     {
@@ -370,7 +373,7 @@ template <typename TEA>
 static void EAOrderHelper::InternalPlaceStopOrder(TEA &ea, TicketType ticketType, double entryPrice, double stopLoss, double lotSize, bool fallbackMarketOrder,
                                                   double maxMarketOrderSlippage)
 {
-    int ticket = EMPTY;
+    int ticket = ConstantValues::EmptyInt;
     int orderPlaceError = Errors::NO_ERROR;
 
     if (ticketType == TicketType::BuyStop)
@@ -388,7 +391,7 @@ static void EAOrderHelper::InternalPlaceStopOrder(TEA &ea, TicketType ticketType
     {
         if (fallbackMarketOrder && entryPrice >= ea.CurrentTick().Bid() && entryPrice - ea.CurrentTick().Bid() <= PipConverter::PipsToPoints(maxMarketOrderSlippage))
         {
-            orderPlaceError = ea.mTM.PlaceMarketOrder(OP_SELL, lotSize, ea.CurrentTick().Bid(), stopLoss, 0, ticket);
+            orderPlaceError = ea.mTM.PlaceMarketOrder(TicketType::Sell, lotSize, ea.CurrentTick().Bid(), stopLoss, 0, ticket);
         }
         else
         {
@@ -420,12 +423,12 @@ static void EAOrderHelper::PlaceStopOrder(TEA &ea, double entryPrice, double sto
 
     if (lotSize == 0.0)
     {
-        lotSize = GetLotSizeForRiskPercent(PipConverter::PointsToPips(MathAbs(entryPrice - stopLoss)), ea.RiskPercent());
+        lotSize = GetLotSizeForRiskPercent(ea.EntrySymbol(), PipConverter::PointsToPips(MathAbs(entryPrice - stopLoss)), ea.RiskPercent());
     }
 
     int numberOfOrdersToPlace;
     double lotsToUse;
-    CheckBreakLotSizeUp(lotSize, numberOfOrdersToPlace, lotsToUse);
+    CheckBreakLotSizeUp(ea.EntrySymbol(), lotSize, numberOfOrdersToPlace, lotsToUse);
 
     for (int i = 0; i < numberOfOrdersToPlace; i++)
     {
@@ -443,12 +446,12 @@ static void EAOrderHelper::PlaceStopOrder(TEA &ea, double entryPrice, double sto
                        |_|           |_|
 
 */
-static int EAOrderHelper::GetEntryPriceForStopOrderForPendingMBValidation(double spreadPips, int setupType, MBTracker *&mbt, double &entryPrice)
+static int EAOrderHelper::GetEntryPriceForStopOrderForPendingMBValidation(double spreadPips, SignalType setupType, MBTracker *&mbt, double &entryPrice)
 {
     entryPrice = 0.0;
-    int retracementIndex = EMPTY;
+    int retracementIndex = ConstantValues::EmptyInt;
 
-    if (setupType == OP_BUY)
+    if (setupType == SignalType::Bullish)
     {
         // don't allow an order to be placed unless we have a pending mb and valid retracement
         if (!mbt.HasPendingBullishMB() || !mbt.CurrentBullishRetracementIndexIsValid(retracementIndex))
@@ -459,7 +462,7 @@ static int EAOrderHelper::GetEntryPriceForStopOrderForPendingMBValidation(double
         // only add spread to buys since we want to enter as the bid hits our entry
         entryPrice = iHigh(mbt.Symbol(), mbt.TimeFrame(), retracementIndex) + PipConverter::PipsToPoints(spreadPips);
     }
-    else if (setupType == OP_SELL)
+    else if (setupType == SignalType::Bearish)
     {
         if (!mbt.HasPendingBearishMB() || !mbt.CurrentBearishRetracementIndexIsValid(retracementIndex))
         {
@@ -473,12 +476,12 @@ static int EAOrderHelper::GetEntryPriceForStopOrderForPendingMBValidation(double
     return Errors::NO_ERROR;
 }
 
-static int EAOrderHelper::GetStopLossForStopOrderForPendingMBValidation(double paddingPips, double spreadPips, int setupType, MBTracker *&mbt, double &stopLoss)
+static int EAOrderHelper::GetStopLossForStopOrderForPendingMBValidation(double paddingPips, double spreadPips, SignalType setupType, MBTracker *&mbt, double &stopLoss)
 {
     stopLoss = 0.0;
-    int retracementIndex = EMPTY;
+    int retracementIndex = ConstantValues::EmptyInt;
 
-    if (setupType == OP_BUY)
+    if (setupType == SignalType::Bullish)
     {
         // don't allow an order to be placed unless we have a pending mb and valid retracement
         // TODO: move this check somewhere else
@@ -496,7 +499,7 @@ static int EAOrderHelper::GetStopLossForStopOrderForPendingMBValidation(double p
 
         stopLoss = low - PipConverter::PipsToPoints(paddingPips);
     }
-    else if (setupType == OP_SELL)
+    else if (setupType == SignalType::Bearish)
     {
         if (!mbt.HasPendingBearishMB() || !mbt.CurrentBearishRetracementIndexIsValid(retracementIndex))
         {
@@ -527,11 +530,11 @@ static int EAOrderHelper::GetEntryPriceForStopOrderForBreakOfMB(double spreadPip
         return Errors::MB_DOES_NOT_EXIST;
     }
 
-    if (tempMBState.Type() == OP_BUY)
+    if (tempMBState.Type() == SignalType::Bullish)
     {
         entryPrice = iLow(mbt.Symbol(), mbt.TimeFrame(), tempMBState.LowIndex());
     }
-    else if (tempMBState.Type() == OP_SELL)
+    else if (tempMBState.Type() == SignalType::Bearish)
     {
         entryPrice = iHigh(mbt.Symbol(), mbt.TimeFrame(), tempMBState.HighIndex()) + PipConverter::PipsToPoints(spreadPips);
     }
@@ -549,7 +552,7 @@ static int EAOrderHelper::GetStopLossForStopOrderForBreakOfMB(double paddingPips
         return Errors::MB_DOES_NOT_EXIST;
     }
 
-    if (tempMBState.Type() == OP_BUY)
+    if (tempMBState.Type() == SignalType::Bullish)
     {
         double high;
         if (!MQLHelper::GetHighestHigh(mbt.Symbol(), mbt.TimeFrame(), tempMBState.EndIndex(), 0, true, high))
@@ -559,7 +562,7 @@ static int EAOrderHelper::GetStopLossForStopOrderForBreakOfMB(double paddingPips
 
         stopLoss = high + PipConverter::PipsToPoints(paddingPips + spreadPips);
     }
-    else if (tempMBState.Type() == OP_SELL)
+    else if (tempMBState.Type() == SignalType::Bearish)
     {
         double low = 0.0;
         if (!MQLHelper::GetLowestLow(mbt.Symbol(), mbt.TimeFrame(), tempMBState.EndIndex(), 0, true, low))
@@ -602,10 +605,10 @@ static void EAOrderHelper::PlaceStopOrderForPendingMBValidation(TEA &ea, MBTrack
 
     if (lotSize == 0.0)
     {
-        lotSize = GetLotSizeForRiskPercent(PipConverter::PointsToPips(MathAbs(entryPrice - stopLoss)), ea.RiskPercent());
+        lotSize = GetLotSizeForRiskPercent(ea.EntrySymbol(), PipConverter::PointsToPips(MathAbs(entryPrice - stopLoss)), ea.RiskPercent());
     }
 
-    int ticketNumber = EMPTY;
+    int ticketNumber = ConstantValues::EmptyInt;
     int error = ea.mTM.PlaceStopOrder(ticketType, lotSize, entryPrice, stopLoss, 0, ticketNumber);
 
     PostPlaceOrderChecks<TEA>(ea, __FUNCTION__, ticketNumber, error, ticketType, entryPrice, stopLoss, lotSize, 0);
@@ -635,21 +638,21 @@ static void EAOrderHelper::PlaceStopOrderForBreakOfMB(TEA &ea, MBTracker *&mbt, 
     }
 
     TicketType ticketType = TicketType::Empty;
-    if (tempMBState.Type() == OP_BUY)
+    if (tempMBState.Type() == SignalType::Bullish)
     {
         ticketType = TicketType::SellStop;
     }
-    else if (tempMBState.Type() == OP_SELL)
+    else if (tempMBState.Type() == SignalType::Bearish)
     {
         ticketType = TicketType::BuyStop;
     }
 
     if (lotSize == 0.0)
     {
-        lotSize = GetLotSizeForRiskPercent(PipConverter::PointsToPips(MathAbs(entryPrice - stopLoss)), ea.RiskPercent());
+        lotSize = GetLotSizeForRiskPercent(ea.EntrySymbol(), PipConverter::PointsToPips(MathAbs(entryPrice - stopLoss)), ea.RiskPercent());
     }
 
-    int ticketNumber = EMPTY;
+    int ticketNumber = ConstantValues::EmptyInt;
     int orderPlaceError = ea.mTM.PlaceStopOrder(ticketType, lotSize, entryPrice, stopLoss, 0, ticketNumber);
 
     PostPlaceOrderChecks<TEA>(ea, __FUNCTION__, ticketNumber, orderPlaceError, ticketType, entryPrice, stopLoss, lotSize, 0);
@@ -691,7 +694,7 @@ static void EAOrderHelper::PlaceStopOrderForCandelBreak(TEA &ea, int entryCandle
         lotSize = GetLotSizeForPercentRisk(PipConverter::PointsToPips(MathAbs(entryPrice - stopLoss)), riskPercent);
     }
 
-    int ticketNumber = EMPTY;
+    int ticketNumber = ConstantValues::EmptyInt;
     int orderPlaceError = ea.mTM.PlaceStopOrder(type, lots, entryPrice, stopLoss, takeProfit, ticketNumber);
 
     PostPlaceOrderChecks<TEA>(ea, __FUNCTION__, ticketNumber, orderPlaceError, ticketType, entryPrice, stopLoss, lotSize, takeProfit);
@@ -709,7 +712,7 @@ static void EAOrderHelper::PlaceStopOrderForCandelBreak(TEA &ea, int entryCandle
 template <typename TEA>
 static void EAOrderHelper::MoveTicketToBreakEven(TEA &ea, Ticket &ticket, double additionalPips = 0.0)
 {
-    if (ticket.Number() == EMPTY)
+    if (ticket.Number() == ConstantValues::EmptyInt)
     {
         return;
     }
@@ -830,9 +833,10 @@ void EAOrderHelper::ModifyTicketStopLoss(TEA &ea, Ticket &ticket, string methodN
         {
             ticket.Close();
 
-            double newTicketNumber = EMPTY;
-            double lotSize = GetLotSizeForRiskPercent(PipConverter::PointsToPips(MathAbs(ticket.OpenPrice() - newStopLoss)), ea.RiskPercent());
+            double newTicketNumber = ConstantValues::EmptyInt;
+            double lotSize = GetLotSizeForRiskPercent(ea.EntrySymbol(), PipConverter::PointsToPips(MathAbs(ticket.OpenPrice() - newStopLoss)), ea.RiskPercent());
             int error = ea.mTM.PlaceStopOrder(ticketType, ticket.EntryPrice(), newStopLoss, lotSize, ticket.TakeProfit(), newTicketNumber);
+
             PostPlaceOrderChecks<TEA>(ea, methodName, ticketNumber, error, ticketType, ticket.EntryPrice(), newStopLoss, lotSize, ticket.TakeProfit());
         }
         else
@@ -1112,7 +1116,7 @@ static void EAOrderHelper::MoveToBreakEvenAfterPips(TEA &ea, Ticket &ticket, dou
 {
     ea.mLastState = EAStates::ATTEMPTING_TO_MANAGE_ORDER;
 
-    if (ticket.Number() == EMPTY)
+    if (ticket.Number() == ConstantValues::EmptyInt)
     {
         return;
     }
@@ -1138,7 +1142,7 @@ static void EAOrderHelper::MoveToBreakEvenAfterNextSameTypeMBValidation(TEA &ea,
 {
     ea.mLastState = EAStates::ATTEMPTING_TO_MANAGE_ORDER;
 
-    if (ticket.Number() == EMPTY)
+    if (ticket.Number() == ConstantValues::EmptyInt)
     {
         return;
     }
@@ -1173,7 +1177,7 @@ static void EAOrderHelper::MoveToBreakEvenWithCandleCloseFurtherThanEntry(TEA &e
 {
     ea.mLastState = EAStates::ATTEMPTING_TO_MANAGE_ORDER;
 
-    if (ticket.Number() == EMPTY)
+    if (ticket.Number() == ConstantValues::EmptyInt)
     {
         return;
     }
@@ -1284,7 +1288,7 @@ static void EAOrderHelper::CheckPartialTicket(TEA &ea, Ticket &ticket)
         // record before setting the new ticket or altering the old tickets partials
         ea.RecordTicketPartialData(ticket, newTicket);
 
-        if (newTicket == EMPTY)
+        if (newTicket == ConstantValues::EmptyInt)
         {
             ea.RecordError(__FUNCTION__, Errors::UNABLE_TO_FIND_PARTIALED_TICKET);
         }
@@ -1304,7 +1308,7 @@ static void EAOrderHelper::CheckPartialTicket(TEA &ea, Ticket &ticket)
 template <typename TEA>
 static void EAOrderHelper::CloseIfPriceCrossedTicketOpen(TEA &ea, Ticket &ticket, int candlesAfterOpen)
 {
-    if (ticket.Number() == EMPTY)
+    if (ticket.Number() == ConstantValues::EmptyInt)
     {
         return;
     }
@@ -1451,7 +1455,7 @@ template <typename TEA>
 static bool EAOrderHelper::TicketStopLossIsMovedToBreakEven(TEA &ea, Ticket &ticket)
 {
     ea.mLastState = EAStates::CHECKING_IF_MOVED_TO_BREAK_EVEN;
-    if (ticket.Number() == EMPTY)
+    if (ticket.Number() == ConstantValues::EmptyInt)
     {
         return false;
     }

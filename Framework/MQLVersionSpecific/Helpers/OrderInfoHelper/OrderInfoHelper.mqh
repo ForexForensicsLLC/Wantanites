@@ -18,19 +18,19 @@
 class OrderInfoHelper
 {
 public:
-    static int CountOtherEAOrders(bool todayOnly, int &magicNumbers[], int &orderCount);
-    static int FindActiveTicketsByMagicNumber(bool todayOnly, int magicNumber, int &tickets[]);
+    static int CountOtherEAOrders(bool todayOnly, List<int> &magicNumber, int &orderCount);
+    static int FindActiveTicketsByMagicNumber(int magicNumber, int &tickets[]);
     static int FindNewTicketAfterPartial(int magicNumber, double openPrice, datetime orderOpenTime, int &ticket);
 };
 
-int OrderInfoHelper::CountOtherEAOrders(bool todayOnly, int &magicNumbers[], int &orderCount)
+int OrderInfoHelper::CountOtherEAOrders(bool todayOnly, List<int> &magicNumbers, int &orderCount)
 {
     return VersionSpecificOrderInfoHelper::CountOtherEAOrders(todayOnly, magicNumbers, orderCount);
 }
 
-int OrderInfoHelper::FindActiveTicketsByMagicNumber(bool todayOnly, int magicNumber, int &tickets[])
+int OrderInfoHelper::FindActiveTicketsByMagicNumber(int magicNumber, int &tickets[])
 {
-    return VersionSpecificOrderInfoHelper::FindActiveTicketsByMagicNumber(todayOnly, magicNumber, tickets);
+    return VersionSpecificOrderInfoHelper::FindActiveTicketsByMagicNumber(magicNumber, tickets);
 }
 
 int OrderInfoHelper::FindNewTicketAfterPartial(int magicNumber, double openPrice, datetime orderOpenTime, int &ticket)

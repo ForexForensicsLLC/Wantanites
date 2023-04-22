@@ -70,15 +70,15 @@ int OnInit()
     EconomicEventImpacts.Add(ImpactEnum::HighImpact);
 
     TRB = new TimeRangeBreakout(2, 0, 4, 0);
-    TRBBuys = new TestNewsTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips,
-                                            RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
+    TRBBuys = new TestNewsTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutBuys, SignalType::Bullish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
+                                            MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
 
     TRBBuys.mEconomicEventTitles = EconomicEventTitles;
     TRBBuys.mEconomicEventSymbols = EconomicEventSymbols;
     TRBBuys.mEconomicEventImpacts = EconomicEventImpacts;
     TRBBuys.AddTradingSession(TS);
 
-    TRBSells = new TestNewsTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
+    TRBSells = new TestNewsTimeRangeBreakout(MagicNumbers::UJTimeRangeBreakoutSells, SignalType::Bearish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
                                              MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
 
     TRBSells.mEconomicEventTitles = EconomicEventTitles;

@@ -8,7 +8,6 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\MQLVersionSpecific\Helpers\DateTimeHelper\DateTimeHelper.mqh>
 #include <Wantanites\Framework\Helpers\FileHelper.mqh>
 
 class EconomicEventRecord
@@ -67,7 +66,7 @@ void EconomicEventRecord::ReadRow(int fileHandle)
     AllDay = FileReadBool(fileHandle);
     Title = FileReadString(fileHandle);
     Symbol = FileReadString(fileHandle);
-    Impact = StrToInteger(FileReadString(fileHandle));
+    Impact = StringToInteger(FileReadString(fileHandle));
     Forecast = FileReadString(fileHandle);
     Previous = FileReadString(fileHandle);
 }

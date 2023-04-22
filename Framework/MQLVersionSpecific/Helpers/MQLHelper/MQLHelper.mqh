@@ -22,8 +22,6 @@ public:
     static double Ask(string symbol);
     static double Bid(string symbol);
 
-    static int CurrentChartID();
-
     static bool GetLowest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &lowIndex);
     static bool GetHighest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &highIndex);
 
@@ -51,11 +49,6 @@ static double MQLHelper::Ask(string symbol)
 static double MQLHelper::Bid(string symbol)
 {
     return SymbolInfoDouble(symbol, SYMBOL_BID);
-}
-
-static int MQLHelper::CurrentChartID()
-{
-    return MQLVersionSpecificHelper::CurrentChartID();
 }
 /**
  * @brief

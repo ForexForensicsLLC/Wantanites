@@ -132,7 +132,7 @@ int List::IndexOf(T item)
         }
     }
 
-    return EMPTY;
+    return ConstantValues::EmptyInt;
 }
 
 template <typename T>

@@ -26,7 +26,7 @@ public:
     int RowNumber;
 
     int MagicNumber;
-    int TicketNumber;
+    ulong TicketNumber;
     string Symbol;
     ENUM_TIMEFRAMES EntryTimeFrame; // Needed for TotalMovePips() and PotentialRR()
 
@@ -71,8 +71,8 @@ RecordColumns::RecordColumns()
 
     RowNumber = ConstantValues::UnsetString;
 
-    MagicNumber = EMPTY;
-    TicketNumber = EMPTY;
+    MagicNumber = ConstantValues::EmptyInt;
+    TicketNumber = ConstantValues::EmptyInt;
     Symbol = ConstantValues::UnsetString;
     EntryTimeFrame = Period();
 
@@ -88,7 +88,7 @@ RecordColumns::RecordColumns()
     HigherTimeFrameEntryImage = ConstantValues::UnsetString;
     LowerTimeFrameEntryImage = ConstantValues::UnsetString;
 
-    NewTicketNumber = EMPTY;
+    NewTicketNumber = ConstantValues::EmptyInt;
     ExpectedPartialRR = ConstantValues::EmptyDouble;
     ActualPartialRR = ConstantValues::EmptyDouble;
 
@@ -115,7 +115,7 @@ double RecordColumns::TotalMovePips()
         if (OrderDirection == "Buy")
         {
             int entryIndex = iBarShift(Symbol, EntryTimeFrame, EntryTime, true);
-            if (entryIndex == EMPTY)
+            if (entryIndex == ConstantValues::EmptyInt)
             {
                 mTotalMovePips = 0.0;
                 return mTotalMovePips;
@@ -132,7 +132,7 @@ double RecordColumns::TotalMovePips()
         else if (OrderDirection == "Sell")
         {
             int entryIndex = iBarShift(Symbol, EntryTimeFrame, EntryTime, true);
-            if (entryIndex == EMPTY)
+            if (entryIndex == ConstantValues::EmptyInt)
             {
                 mTotalMovePips = 0.0;
                 return mTotalMovePips;

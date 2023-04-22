@@ -109,7 +109,7 @@ void TestNewsTimeRangeBreakout::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
-    if (LastDay() != Day())
+    if (LastDay() != DateTimeHelper::CurrentDay())
     {
         InvalidateSetup(true);
     }
@@ -132,7 +132,7 @@ void TestNewsTimeRangeBreakout::PlaceOrders()
     double stopLoss = 0.0;
     mRiskPercent = 1;
 
-    if (SetupType() == OP_BUY)
+    if (SetupType() == SignalType::Bullish)
     {
         entry = CurrentTick().Ask();
         stopLoss = mTRB.RangeLow();
@@ -149,7 +149,7 @@ void TestNewsTimeRangeBreakout::PlaceOrders()
             EAOrderHelper::PlaceMarketOrder<TestNewsTimeRangeBreakout>(this, entry, stopLoss);
         }
     }
-    else if (SetupType() == OP_SELL)
+    else if (SetupType() == SignalType::Bearish)
     {
         entry = CurrentTick().Bid();
         stopLoss = mTRB.RangeHigh();
@@ -194,7 +194,8 @@ void TestNewsTimeRangeBreakout::ManagePreviousSetupTicket(Ticket &ticket)
 void TestNewsTimeRangeBreakout::CheckCurrentSetupTicket(Ticket &ticket)
 {
     // close if we are down 1%
-    if ((AccountEquity() - AccountBalance()) / AccountBalance() * 100 <= -1)
+    double balance = AccountInfoDouble(ACCOUNT_BALANCE);
+    if ((AccountInfoDouble(ACCOUNT_EQUITY) - balance) / balance * 100 <= -1)
     {
         ticket.Close();
     }
@@ -215,7 +216,7 @@ void TestNewsTimeRangeBreakout::RecordTicketPartialData(Ticket &partialedTicket,
 
 void TestNewsTimeRangeBreakout::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameExitTradeRecord<TestNewsTimeRangeBreakout>(this, ticket, Period());
+    EAHelper::RecordSingleTimeFrameExitTradeRecord<TestNewsTimeRangeBreakout>(this, ticket, EntryTimeFrame());
 }
 
 void TestNewsTimeRangeBreakout::RecordError(string methodName, int error, string additionalInformation = "")

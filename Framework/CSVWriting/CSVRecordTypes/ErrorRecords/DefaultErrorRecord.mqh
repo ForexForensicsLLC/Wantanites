@@ -36,11 +36,11 @@ public:
 DefaultErrorRecord::DefaultErrorRecord()
 {
     ErrorTime = 0;
-    MagicNumber = EMPTY;
+    MagicNumber = ConstantValues::EmptyInt;
     Symbol = ConstantValues::UnsetString;
     MethodName = ConstantValues::UnsetString;
     Error = Errors::NO_ERROR;
-    LastState = EMPTY;
+    LastState = ConstantValues::EmptyInt;
     AdditionalInformation = ConstantValues::UnsetString;
     RowNumber = ConstantValues::UnsetString;
 }
@@ -72,10 +72,10 @@ void DefaultErrorRecord::WriteRecord(int fileHandle, bool writeDelimiter = false
 void DefaultErrorRecord::ReadRow(int fileHandle)
 {
     ErrorTime = FileReadDatetime(fileHandle);
-    MagicNumber = StrToInteger(FileReadString(fileHandle));
+    MagicNumber = StringToInteger(FileReadString(fileHandle));
     Symbol = FileReadString(fileHandle);
     MethodName = FileReadString(fileHandle);
-    Error = StrToInteger(FileReadString(fileHandle));
-    LastState = StrToInteger(FileReadString(fileHandle));
+    Error = StringToInteger(FileReadString(fileHandle));
+    LastState = StringToInteger(FileReadString(fileHandle));
     AdditionalInformation = FileReadString(fileHandle);
 }

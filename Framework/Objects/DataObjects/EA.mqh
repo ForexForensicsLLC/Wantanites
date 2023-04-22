@@ -35,6 +35,8 @@ private:
     string mEntrySymbol;
     ENUM_TIMEFRAMES mEntryTimeFrame;
 
+    int mMaxTradesForEAGroup;
+
 public:
     TradeManager *mTM;
 
@@ -51,7 +53,6 @@ public:
     bool mHasSetup;
     bool mWasReset;
 
-    int mMaxCurrentSetupTradesAtOnce;
     int mMaxTradesPerDay;
     double mRiskPercent;
     double mMaxSpreadPips;
@@ -59,7 +60,7 @@ public:
     double mPipsToWaitBeforeBE;
     double mBEAdditionalPips;
 
-    int mStrategyMagicNumbers[];
+    List<int> *mEAGroupMagicNumbers;
 
     List<double> *mPartialRRs;
     List<double> *mPartialPercents;
@@ -68,13 +69,14 @@ public:
     double mLargestAccountBalance; // should be defaulted to the starting capital of the account in case no trades have been taken yet
 
 public:
-    EA(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+    EA(int magicNumber, int setupType, int maxTradesForEAGroup, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
        CSVRecordWriter<TEntryRecord> *&entryCSVRecordWriter, CSVRecordWriter<TExitRecord> *&exitCSVRecordWriter, CSVRecordWriter<TErrorRecord> *&errorCSVRecordWriter);
     ~EA();
 
     int MagicNumber() { return mMagicNumber; }
     SignalType SetupType() { return mSetupType; }
     double StopLossPaddingPips() { return mStopLossPaddingPips; }
+    int MaxTradesForEAGroup() { return mMaxTradesForEAGroup; }
 
     string EntrySymbol() { return mEntrySymbol; }
     ENUM_TIMEFRAMES EntryTimeFrame() { return mEntryTimeFrame; }
@@ -113,7 +115,7 @@ public:
 };
 
 template <typename TEntryRecord, typename TPartialRecord, typename TExitRecord, typename TErrorRecord>
-EA::EA(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+EA::EA(int magicNumber, int setupType, int maxTradesForEAGroup, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
        CSVRecordWriter<TEntryRecord> *&entryCSVRecordWriter, CSVRecordWriter<TExitRecord> *&exitCSVRecordWriter, CSVRecordWriter<TErrorRecord> *&errorCSVRecordWriter)
 {
     mTM = new TradeManager(magicNumber, 0);
@@ -127,7 +129,9 @@ EA::EA(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxT
     mEntrySymbol = Symbol();
     mEntryTimeFrame = Period();
 
-    mMaxCurrentSetupTradesAtOnce = maxCurrentSetupTradesAtOnce;
+    mEAGroupMagicNumbers = new List<int>();
+
+    mMaxTradesForEAGroup = maxTradesForEAGroup;
     mMaxTradesPerDay = maxTradesPerDay;
     mRiskPercent = riskPercent;
     mMaxSpreadPips = maxSpreadPips;
@@ -136,8 +140,8 @@ EA::EA(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxT
     mBEAdditionalPips = 0.0;
 
     mCurrentTick = new Tick();
-    mBarCount = EMPTY;
-    mLastDay = EMPTY;
+    mBarCount = ConstantValues::EmptyInt;
+    mLastDay = ConstantValues::EmptyInt;
 
     mEntryCSVRecordWriter = entryCSVRecordWriter;
     mExitCSVRecordWriter = exitCSVRecordWriter;
@@ -184,7 +188,7 @@ void EA::Run()
     EARunHelper::Run(this);
 
     mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
-    mLastDay = Day();
+    mLastDay = DateTimeHelper::CurrentDay();
 }
 
 template <typename TEntryRecord, typename TPartialRecord, typename TExitRecord, typename TErrorRecord>

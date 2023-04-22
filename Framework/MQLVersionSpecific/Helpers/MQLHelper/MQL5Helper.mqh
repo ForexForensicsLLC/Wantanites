@@ -8,26 +8,12 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites/Framework/Constants/Index.mqh>
-
 class MQLVersionSpecificHelper
 {
 public:
-    static int CurrentChartID();
-
     static bool GetLowest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &lowIndex);
     static bool GetHighest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &highIndex);
 };
-
-static int MQLVersionSpecificHelper::CurrentChartID()
-{
-    if (MqlInfoInteger(MQL_TESTER))
-    {
-        return 0;
-    }
-
-    return ChartID();
-}
 /**
  * @brief
  *

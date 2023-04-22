@@ -18,11 +18,11 @@ public:
 static double PipConverter::PointsToPips(double points)
 {
     // do Digits - 1 for pips otherwise it would be in pippetts
-    return points * MathPow(10, Digits - 1);
+    return points * MathPow(10, Digits() - 1);
 }
 
 static double PipConverter::PipsToPoints(double pips)
 {
     // do Digits - 1 for pips otherwise it would be in pippetts
-    return pips / MathPow(10, Digits - 1);
+    return pips / MathPow(10, Digits() - 1);
 }

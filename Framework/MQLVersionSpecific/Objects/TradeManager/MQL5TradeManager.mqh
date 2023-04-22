@@ -9,36 +9,35 @@
 #property strict
 
 #include <Trade\Trade.mqh>
+#include <Wantanites\Framework\Constants\ConstantValues.mqh>
+#include <Wantanites\Framework\Types\TicketTypes.mqh>
 
-class TradeManager
+class VersionSpecificTradeManager
 {
 private:
     CTrade trade;
 
     int CheckResult(int &ticket);
 
-public:
-    TradeManager(ulong magicNumber, ulong slippage);
-    ~TradeManager();
+protected:
+    VersionSpecificTradeManager(ulong magicNumber, ulong slippage);
+    ~VersionSpecificTradeManager();
 
-    int Buy(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
-    int Sell(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
-    int BuyLimit(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
-    int SellLimit(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
-    int BuyStop(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
-    int SellStop(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
+    virtual int PlaceMarketOrder(TicketType ticketType, double lotSize, double entryPrice, double stopLoss, double takeProfit, int &ticket);
+    virtual int PlaceLimitOrder(TicketType ticketType, double lotSize, double entryPrice, double stopLoss, double takeProfit, int &ticket);
+    virtual int PlaceStopOrder(TicketType ticketType, double lotSize, double entryPrice, double stopLoss, double takeProfit, int &ticket);
 
-    int OrderModify(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration);
+    virtual int ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration);
 };
 
-TradeManager::TradeManager(ulong magicNumber, ulong slippage)
+VersionSpecificTradeManager::VersionSpecificTradeManager(ulong magicNumber, ulong slippage)
 {
     trade.SetExpertMagicNumber(magicNumber);
     trade.SetDeviationInPoints(slippage);
     trade.SetAsyncMode(false);
 }
 
-TradeManager::~TradeManager() {}
+VersionSpecificTradeManager::~VersionSpecificTradeManager() {}
 
 int VersionSpecificTradeManager::CheckResult(int &ticket)
 {
@@ -49,51 +48,67 @@ int VersionSpecificTradeManager::CheckResult(int &ticket)
     {
         if (result.deal > 0)
         {
-            ticket = deal;
+            ticket = result.deal;
         }
         else if (result.order > 0)
         {
-            ticket = order;
+            ticket = result.order;
         }
     }
 
     return result.retcode;
 }
 
-int VersionSpecificTradeManager::Buy(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
+int VersionSpecificTradeManager::PlaceMarketOrder(TicketType ticketType, double lotSize, double entryPrice, double stopLoss, double takeProfit, int &ticket)
 {
-    trade.Buy(lots, Symbol(), entryPrice, stopLoss, takeProfit, "");
+    ticket = ConstantValues::EmptyInt;
+
+    if (ticketType == TicketType::Buy)
+    {
+        trade.Buy(lotSize, Symbol(), entryPrice, stopLoss, takeProfit);
+    }
+    else if (ticketType == TicketType::Sell)
+    {
+        trade.Sell(lotSize, Symbol(), entryPrice, stopLoss, takeProfit);
+    }
+
     return CheckResult(ticket);
 }
 
-int VersionSpecificTradeManager::Sell(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
+int VersionSpecificTradeManager::PlaceLimitOrder(TicketType ticketType, double lotSize, double entryPrice, double stopLoss, double takeProfit, int &ticket)
 {
+    ticket = ConstantValues::EmptyInt;
+
+    if (ticketType == TicketType::BuyLimit)
+    {
+        trade.BuyLimit(lotSize, entryPrice, Symbol(), stopLoss, takeProfit);
+    }
+    else if (ticketType == TicketType::SellLimit)
+    {
+        trade.SellLimit(lotSize, entryPrice, Symbol(), stopLoss, takeProfit);
+    }
+
+    return CheckResult(ticket);
 }
 
-int VersionSpecificTradeManager::BuyLimit(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
+int VersionSpecificTradeManager::PlaceStopOrder(TicketType ticketType, double lotSize, double entryPrice, double stopLoss, double takeProfit, int &ticket)
 {
+    ticket = ConstantValues::EmptyInt;
+
+    if (ticketType == TicketType::BuyStop)
+    {
+        trade.BuyStop(lotSize, entryPrice, Symbol(), stopLoss, takeProfit);
+    }
+    else if (ticketType == TicketType::SellStop)
+    {
+        trade.SellStop(lotSize, entryPrice, Symbol(), stopLoss, takeProfit);
+    }
+
+    return CheckResult(ticket);
 }
 
-int VersionSpecificTradeManager::SellLimit(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
+int VersionSpecificTradeManager::ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration)
 {
-}
-
-int VersionSpecificTradeManager::BuyStop(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
-{
-}
-
-int VersionSpecificTradeManager::SellStop(double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
-{
-}
-
-int VersionSpecificTradeManager::OrderModify(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration)
-{
-}
-
-int VersionSpecificTradeManager::OrderDelete(int ticket)
-{
-}
-
-int VersionSpecificTradeManager::OrderClose(int ticket)
-{
+    trade.OrderModify(ticket, entryPrice, stopLoss, takeProfit, ORDER_TIME_GTC, expiration);
+    return CheckResult(ticket);
 }

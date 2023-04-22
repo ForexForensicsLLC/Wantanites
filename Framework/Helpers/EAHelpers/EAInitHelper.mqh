@@ -59,7 +59,7 @@ static void EAInitHelper::FindSetPreviousAndCurrentSetupTickets(TEA &ea)
     ea.mLastState = EAStates::SETTING_ACTIVE_TICKETS;
 
     int tickets[];
-    int findTicketsError = OrderInfoHelper::FindActiveTicketsByMagicNumber(false, ea.MagicNumber(), tickets);
+    int findTicketsError = OrderInfoHelper::FindActiveTicketsByMagicNumber(ea.MagicNumber(), tickets);
     if (findTicketsError != Errors::NO_ERROR)
     {
         ea.RecordError(__FUNCTION__, findTicketsError);

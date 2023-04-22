@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\MQLVersionSpecific\Helpers\DateTimeHelper\DateTimeHelper.mqh>
+#include <Wantanites\Framework\Helpers\DateTimeHelper.mqh>
 #include <Wantanites\Framework\Objects\DataStructures\List.mqh>
 
 enum DayOfWeekEnum
@@ -66,7 +66,7 @@ public:
 
     void ExcludeDay(DayOfWeekEnum day);
 
-    int StartIndex(string symbol, int timeFrame);
+    int StartIndex(string symbol, ENUM_TIMEFRAMES timeFrame);
 
     bool CurrentlyWithinSession();
 };
@@ -75,8 +75,8 @@ TradingSession::TradingSession()
 {
     mTradeAllDay = true;
 
-    AddHourMinuteSession(EMPTY, EMPTY, EMPTY, EMPTY);
-    AddMonthDaySession(EMPTY, EMPTY, EMPTY, EMPTY);
+    AddHourMinuteSession(ConstantValues::EmptyInt, ConstantValues::EmptyInt, ConstantValues::EmptyInt, ConstantValues::EmptyInt);
+    AddMonthDaySession(ConstantValues::EmptyInt, ConstantValues::EmptyInt, ConstantValues::EmptyInt, ConstantValues::EmptyInt);
 
     mExcludedDays = new List<int>();
     mExcludedDays.Add(DayOfWeekEnum::Sunday);
@@ -139,7 +139,7 @@ void TradingSession::ExcludeDay(DayOfWeekEnum dayOfWeek)
     }
 }
 
-int TradingSession::StartIndex(string symbol, int timeFrame)
+int TradingSession::StartIndex(string symbol, ENUM_TIMEFRAMES timeFrame)
 {
     datetime startTime = StringToTime(HourStart() + ":" + MinuteStart());
     return iBarShift(symbol, timeFrame, startTime);
@@ -163,7 +163,10 @@ bool TradingSession::CurrentlyWithinSession()
 bool TradingSession::WithinDayMonthYear()
 {
     // we don't care about day / month if any are empty
-    if (mDayStart == EMPTY || mMonthStart == EMPTY || mExclusiveDayEnd == EMPTY || mExclusiveMonthEnd == EMPTY)
+    if (mDayStart == ConstantValues::EmptyInt ||
+        mMonthStart == ConstantValues::EmptyInt ||
+        mExclusiveDayEnd == ConstantValues::EmptyInt ||
+        mExclusiveMonthEnd == ConstantValues::EmptyInt)
     {
         return true;
     }
@@ -188,7 +191,10 @@ bool TradingSession::WithinDayMonthYear()
 bool TradingSession::WithinHourMinute()
 {
     // we don't care about hour / minute if any are empty
-    if (mHourStart == EMPTY || mMinuteStart == EMPTY || mExclusiveHourEnd == EMPTY || mExclusiveMinuteEnd == EMPTY)
+    if (mHourStart == ConstantValues::EmptyInt ||
+        mMinuteStart == ConstantValues::EmptyInt ||
+        mExclusiveHourEnd == ConstantValues::EmptyInt ||
+        mExclusiveMinuteEnd == ConstantValues::EmptyInt)
     {
         return true;
     }

@@ -15,7 +15,7 @@ class LiquidationSetupTracker
 private:
     MBTracker *mMBT;
 
-    int mSetupType;
+    SignalType mSetupType;
     int mMBsCalculated;
 
     int mFirstMBNumberInSetup;
@@ -29,22 +29,22 @@ private:
     void CheckSetup(int mbNumber);
 
 public:
-    LiquidationSetupTracker(int setupType, MBTracker *&mbt);
+    LiquidationSetupTracker(SignalType setupType, MBTracker *&mbt);
     ~LiquidationSetupTracker();
 
     bool HasSetup(int &firstMBNumberInSetup, int &secondMBNumberInSetup, int &liquidationMBNumberInSetup);
 };
 
-LiquidationSetupTracker::LiquidationSetupTracker(int setupType, MBTracker *&mbt)
+LiquidationSetupTracker::LiquidationSetupTracker(SignalType setupType, MBTracker *&mbt)
 {
     mMBT = mbt;
 
     mSetupType = setupType;
     mMBsCalculated = 0;
 
-    mFirstMBNumberInSetup = EMPTY;
-    mSecondMBNumberInSetup = EMPTY;
-    mLiquidationMBNumberInSetup = EMPTY;
+    mFirstMBNumberInSetup = ConstantValues::EmptyInt;
+    mSecondMBNumberInSetup = ConstantValues::EmptyInt;
+    mLiquidationMBNumberInSetup = ConstantValues::EmptyInt;
 }
 
 LiquidationSetupTracker::~LiquidationSetupTracker()
@@ -68,14 +68,14 @@ void LiquidationSetupTracker::Update()
 
 void LiquidationSetupTracker::Reset()
 {
-    mFirstMBNumberInSetup = EMPTY;
-    mSecondMBNumberInSetup = EMPTY;
-    mLiquidationMBNumberInSetup = EMPTY;
+    mFirstMBNumberInSetup = ConstantValues::EmptyInt;
+    mSecondMBNumberInSetup = ConstantValues::EmptyInt;
+    mLiquidationMBNumberInSetup = ConstantValues::EmptyInt;
 }
 
 void LiquidationSetupTracker::CheckInvalidateSetup()
 {
-    if (mFirstMBNumberInSetup != EMPTY)
+    if (mFirstMBNumberInSetup != ConstantValues::EmptyInt)
     {
         MBState *tempMBState;
         if (!mMBT.GetMB(mFirstMBNumberInSetup, tempMBState))
@@ -91,7 +91,7 @@ void LiquidationSetupTracker::CheckInvalidateSetup()
         }
     }
 
-    if (mLiquidationMBNumberInSetup != EMPTY)
+    if (mLiquidationMBNumberInSetup != ConstantValues::EmptyInt)
     {
         MBState *tempMBState;
         if (!mMBT.GetMB(mLiquidationMBNumberInSetup, tempMBState))
@@ -113,7 +113,7 @@ void LiquidationSetupTracker::CheckInvalidateSetup()
 
 void LiquidationSetupTracker::CheckSetup(int mbNumber)
 {
-    if (mFirstMBNumberInSetup == EMPTY)
+    if (mFirstMBNumberInSetup == ConstantValues::EmptyInt)
     {
         MBState *firstMBState;
         if (!mMBT.GetMB(mbNumber, firstMBState))
@@ -129,7 +129,7 @@ void LiquidationSetupTracker::CheckSetup(int mbNumber)
 
         mFirstMBNumberInSetup = firstMBState.Number();
     }
-    else if (mSecondMBNumberInSetup == EMPTY)
+    else if (mSecondMBNumberInSetup == ConstantValues::EmptyInt)
     {
         if (mbNumber != (mFirstMBNumberInSetup + 1))
         {
@@ -158,7 +158,7 @@ void LiquidationSetupTracker::CheckSetup(int mbNumber)
 
         mSecondMBNumberInSetup = secondMBState.Number();
     }
-    else if (mLiquidationMBNumberInSetup == EMPTY)
+    else if (mLiquidationMBNumberInSetup == ConstantValues::EmptyInt)
     {
         if (mbNumber != (mSecondMBNumberInSetup + 1))
         {
@@ -195,7 +195,7 @@ bool LiquidationSetupTracker::HasSetup(int &firstMBNumberInSetup, int &secondMBN
 {
     Update();
 
-    if (mFirstMBNumberInSetup != EMPTY && mSecondMBNumberInSetup != EMPTY && mLiquidationMBNumberInSetup != EMPTY)
+    if (mFirstMBNumberInSetup != ConstantValues::EmptyInt && mSecondMBNumberInSetup != ConstantValues::EmptyInt && mLiquidationMBNumberInSetup != ConstantValues::EmptyInt)
     {
         firstMBNumberInSetup = mFirstMBNumberInSetup;
         secondMBNumberInSetup = mSecondMBNumberInSetup;

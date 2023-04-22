@@ -15,11 +15,9 @@
 #include <Wantanites\Framework\MQLVersionSpecific\Objects\TradeManager\MQL5TradeManager.mqh>
 #endif
 
-class TradeManager
+class TradeManager : public VersionSpecificTradeManager
 {
 private:
-    VersionSpecificTradeManager *mTM;
-
     bool StopLossPastEntry(TicketType ticketType, double entryPrice, double stopLoss);
 
 public:
@@ -28,21 +26,19 @@ public:
 
     double CleanLotSize(double dirtyLotSize);
 
-    int PlaceMarketOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
-    int PlaceLimitOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
-    int PlaceStopOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
+    virtual int PlaceMarketOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
+    virtual int PlaceLimitOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
+    virtual int PlaceStopOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
 
-    int ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration);
+    virtual int ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration);
 };
 
-TradeManager::TradeManager(ulong magicNumber, ulong slippage)
+TradeManager::TradeManager(ulong magicNumber, ulong slippage) : VersionSpecificTradeManager(magicNumber, slippage)
 {
-    mTM = new VersionSpecificTradeManager(magicNumber, slippage);
 }
 
 TradeManager::~TradeManager()
 {
-    delete mTM;
 }
 
 bool TradeManager::StopLossPastEntry(TicketType ticketType, double entryPrice, double stopLoss)
@@ -62,9 +58,9 @@ bool TradeManager::StopLossPastEntry(TicketType ticketType, double entryPrice, d
 
 double TradeManager::CleanLotSize(double dirtyLotSize)
 {
-    double lotStep = MarketInfo(Symbol(), MODE_LOTSTEP);
-    double maxLotSize = MarketInfo(Symbol(), MODE_MAXLOT);
-    double minLotSize = MarketInfo(Symbol(), MODE_MINLOT);
+    double lotStep = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_STEP);
+    double maxLotSize = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX);
+    double minLotSize = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MIN);
 
     // cut off extra decimal places
     double cleanedLots = NormalizeDouble(dirtyLotSize, 2);
@@ -93,7 +89,7 @@ int TradeManager::PlaceMarketOrder(TicketType ticketType, double lots, double en
     }
 
     lots = CleanLotSize(lots);
-    return mTM.PlaceMarketOrder(ticketType, lots, entryPrice, stopLoss, takeProfit, ticket);
+    return VersionSpecificTradeManager::PlaceMarketOrder(ticketType, lots, entryPrice, stopLoss, takeProfit, ticket);
 }
 
 int TradeManager::PlaceLimitOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
@@ -123,7 +119,7 @@ int TradeManager::PlaceLimitOrder(TicketType ticketType, double lots, double ent
     }
 
     lots = CleanLotSize(lots);
-    return mTM.PlaceLimitOrder(ticketType, lots, entryPrice, stopLoss, takeProfit, ticket);
+    return VersionSpecificTradeManager::PlaceLimitOrder(ticketType, lots, entryPrice, stopLoss, takeProfit, ticket);
 }
 
 int TradeManager::PlaceStopOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
@@ -153,10 +149,10 @@ int TradeManager::PlaceStopOrder(TicketType ticketType, double lots, double entr
     }
 
     lots = CleanLotSize(lots);
-    return mTM.PlaceStopOrder(ticketType, lots, entryPrice, stopLoss, takeProfit, ticket);
+    return VersionSpecificTradeManager::PlaceStopOrder(ticketType, lots, entryPrice, stopLoss, takeProfit, ticket);
 }
 
 int TradeManager::ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration)
 {
-    return mTM.ModifyOrder(ticket, entryPrice, stopLoss, takeProfit, expiration);
+    return VersionSpecificTradeManager::ModifyOrder(ticket, entryPrice, stopLoss, takeProfit, expiration);
 }

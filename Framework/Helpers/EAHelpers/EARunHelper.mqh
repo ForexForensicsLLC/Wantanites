@@ -8,8 +8,6 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\MQLVersionSpecific\Objects\Ticket\Ticket.mqh>
-
 class EARunHelper
 {
 public:
@@ -168,7 +166,7 @@ bool EARunHelper::CheckCurrentSetupTicket(TEA &ea, Ticket &ticket)
 {
     ea.mLastState = EAStates::CHECKING_TICKET;
 
-    if (ticket.Number() == EMPTY)
+    if (ticket.Number() == ConstantValues::EmptyInt)
     {
         return true;
     }
@@ -212,9 +210,9 @@ bool EARunHelper::CheckCurrentSetupTicket(TEA &ea, Ticket &ticket)
         // only record tickets that were actually opened and not pennding orders that were deleted
         if (wasActivated)
         {
-            if (AccountBalance() > ea.mLargestAccountBalance)
+            if (AccountInfoDouble(ACCOUNT_BALANCE) > ea.mLargestAccountBalance)
             {
-                ea.mLargestAccountBalance = AccountBalance();
+                ea.mLargestAccountBalance = AccountInfoDouble(ACCOUNT_BALANCE);
             }
 
             ea.RecordTicketCloseData(ticket);
@@ -241,9 +239,9 @@ static bool EARunHelper::CheckPreviousSetupTicket(TEA &ea, Ticket &ticket)
 
     if (closed)
     {
-        if (AccountBalance() > ea.mLargestAccountBalance)
+        if (AccountInfoDouble(ACCOUNT_BALANCE) > ea.mLargestAccountBalance)
         {
-            ea.mLargestAccountBalance = AccountBalance();
+            ea.mLargestAccountBalance = AccountInfoDouble(ACCOUNT_BALANCE);
         }
 
         ea.RecordTicketCloseData(ticket);
@@ -258,17 +256,17 @@ static bool EARunHelper::CheckPreviousSetupTicket(TEA &ea, Ticket &ticket)
 template <typename TEA>
 static void EARunHelper::CheckUpdateHowFarPriceRanFromOpen(TEA &ea, Ticket &ticket)
 {
-    if (ticket.Number() == EMPTY)
+    if (ticket.Number() == ConstantValues::EmptyInt)
     {
         return;
     }
 
     double distanceRan;
-    if (ea.SetupType() == OP_BUY)
+    if (ea.SetupType() == SignalType::Bullish)
     {
         distanceRan = ea.CurrentTick().Bid() - ticket.OpenPrice();
     }
-    else if (ea.SetupType() == OP_SELL)
+    else if (ea.SetupType() == SignalType::Bearish)
     {
         distanceRan = ticket.OpenPrice() - ea.CurrentTick().Ask();
     }

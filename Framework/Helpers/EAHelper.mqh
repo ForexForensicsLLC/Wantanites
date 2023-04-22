@@ -8,6 +8,8 @@
 #property version "1.00"
 #property strict
 
+#include <Wantanites\Framework\Constants\ConstantValues.mqh>
+
 #include <Wantanites\Framework\Helpers\EAErrorHelper.mqh>
 
 #include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\Index.mqh>
@@ -158,23 +160,23 @@ private:
     template <typename TEA, typename TRecord>
     static void SetDefaultEntryTradeData(TEA &ea, TRecord &record, Ticket &ticket);
     template <typename TEA, typename TRecord>
-    static void SetDefaultCloseTradeData(TEA &ea, TRecord &record, Ticket &ticket, int entryTimeFrame);
+    static void SetDefaultCloseTradeData(TEA &ea, TRecord &record, Ticket &ticket, ENUM_TIMEFRAMES entryTimeFrame);
 
 public:
     template <typename TEA>
     static void RecordDefaultEntryTradeRecord(TEA &ea, Ticket &ticket);
     template <typename TEA>
-    static void RecordDefaultExitTradeRecord(TEA &ea, Ticket &ticket, int entryTimeFrame);
+    static void RecordDefaultExitTradeRecord(TEA &ea, Ticket &ticket, ENUM_TIMEFRAMES entryTimeFrame);
 
     template <typename TEA>
     static void RecordSingleTimeFrameEntryTradeRecord(TEA &ea, Ticket &ticket);
     template <typename TEA>
-    static void RecordSingleTimeFrameExitTradeRecord(TEA &ea, Ticket &ticket, int entryTimeFrame);
+    static void RecordSingleTimeFrameExitTradeRecord(TEA &ea, Ticket &ticket, ENUM_TIMEFRAMES entryTimeFrame);
 
     template <typename TEA>
-    static void RecordMultiTimeFrameEntryTradeRecord(TEA &ea, int higherTimeFrame);
+    static void RecordMultiTimeFrameEntryTradeRecord(TEA &ea, ENUM_TIMEFRAMES higherTimeFrame);
     template <typename TEA>
-    static void RecordMultiTimeFrameExitTradeRecord(TEA &ea, Ticket &ticket, int lowerTimeFrame, int higherTimeFrame);
+    static void RecordMultiTimeFrameExitTradeRecord(TEA &ea, Ticket &ticket, ENUM_TIMEFRAMES lowerTimeFrame, ENUM_TIMEFRAMES higherTimeFrame);
     template <typename TEA>
     static void RecordEntryCandleExitTradeRecord(TEA &ea, Ticket &ticket);
 
@@ -191,33 +193,12 @@ public:
     template <typename TEA>
     static void RecordSingleTimeFrameErrorRecord(TEA &ea, string methodName, int error, string additionalInformation);
     template <typename TEA>
-    static void RecordMultiTimeFrameErrorRecord(TEA &ea, string methodName, int error, string additionalInformation, int lowerTimeFrame, int highTimeFrame);
+    static void RecordMultiTimeFrameErrorRecord(TEA &ea, string methodName, int error, string additionalInformation, ENUM_TIMEFRAMES lowerTimeFrame, ENUM_TIMEFRAMES highTimeFrame);
 
     template <typename TEA>
     static void RecordForexForensicsEntryTradeRecord(TEA &ea, Ticket &ticket);
     template <typename TEA>
-    static void RecordForexForensicsExitTradeRecord(TEA &ea, Ticket &ticket, int entryTimeFrame);
-    // =========================================================================
-    // Reset
-    // =========================================================================
-private:
-    template <typename TEA>
-    static void BaseReset(TEA &ea);
-
-public:
-    template <typename TEA>
-    static void ResetSingleMBSetup(TEA &ea, bool baseReset);
-    template <typename TEA>
-    static void ResetDoubleMBSetup(TEA &ea, bool baseReset);
-    template <typename TEA>
-    static void ResetLiquidationMBSetup(TEA &ea, bool baseReset);
-
-    template <typename TEA>
-    static void ResetSingleMBConfirmation(TEA &ea, bool baseReset);
-    template <typename TEA>
-    static void ResetDoubleMBConfirmation(TEA &ea, bool baseReset);
-    template <typename TEA>
-    static void ResetLiquidationMBConfirmation(TEA &ea, bool baseReset);
+    static void RecordForexForensicsExitTradeRecord(TEA &ea, Ticket &ticket, ENUM_TIMEFRAMES entryTimeFrame);
 };
 /*
 
@@ -232,7 +213,7 @@ public:
 template <typename TEA>
 static bool EAHelper::BelowSpread(TEA &ea)
 {
-    return (MarketInfo(Symbol(), MODE_SPREAD) / 10) <= ea.mMaxSpreadPips;
+    return (SymbolInfoInteger(ea.EntrySymbol(), SYMBOL_SPREAD) / 10) <= ea.mMaxSpreadPips;
 }
 
 template <typename TEA>
@@ -265,7 +246,7 @@ static bool EAHelper::WithinTradingSession(TEA &ea)
 
 */
 template <typename TEA>
-static bool EAHelper::CheckSetFirstMB(TEA &ea, MBTracker *&mbt, int &mbNumber, int forcedType = EMPTY, int nthMB = 0)
+static bool EAHelper::CheckSetFirstMB(TEA &ea, MBTracker *&mbt, int &mbNumber, int forcedType = -1, int nthMB = 0)
 {
     ea.mLastState = EAStates::GETTING_FIRST_MB_IN_SETUP;
 
@@ -282,7 +263,7 @@ static bool EAHelper::CheckSetFirstMB(TEA &ea, MBTracker *&mbt, int &mbNumber, i
         return false;
     }
 
-    if (forcedType != EMPTY)
+    if (forcedType != ConstantValues::EmptyInt)
     {
         if (mbOneTempState.Type() != forcedType)
         {
@@ -312,7 +293,7 @@ static bool EAHelper::CheckSetSecondMB(TEA &ea, MBTracker *&mbt, int &firstMBNum
 
     if (mbTwoTempState.Type() != ea.SetupType())
     {
-        firstMBNumber = EMPTY;
+        firstMBNumber = ConstantValues::EmptyInt;
         ea.InvalidateSetup(false);
 
         return false;
@@ -364,7 +345,7 @@ static bool EAHelper::CheckSetFirstMBAfterMinROCBreak(TEA &ea, MBTracker *&mbt, 
 {
     ea.mLastState = EAStates::CHECKING_FOR_SINGLE_MB_SETUP;
 
-    if (firstMBNumber == EMPTY)
+    if (firstMBNumber == ConstantValues::EmptyInt)
     {
         if (CheckBreakAfterMinROC(ea, mbt))
         {
@@ -372,7 +353,7 @@ static bool EAHelper::CheckSetFirstMBAfterMinROCBreak(TEA &ea, MBTracker *&mbt, 
         }
     }
 
-    return firstMBNumber != EMPTY;
+    return firstMBNumber != ConstantValues::EmptyInt;
 }
 
 template <typename TEA>
@@ -380,17 +361,17 @@ static bool EAHelper::CheckSetDoubleMBAfterMinROCBreak(TEA &ea, MBTracker *&mbt,
 {
     ea.mLastState = EAStates::CHECKING_FOR_SETUP;
 
-    if (firstMBNumber == EMPTY)
+    if (firstMBNumber == ConstantValues::EmptyInt)
     {
         CheckSetFirstMBAfterMinROCBreak(ea, mbt, firstMBNumber);
     }
 
-    if (secondMBNumber == EMPTY)
+    if (secondMBNumber == ConstantValues::EmptyInt)
     {
         return CheckSetSecondMB(ea, mbt, firstMBNumber, secondMBNumber);
     }
 
-    return firstMBNumber != EMPTY && secondMBNumber != EMPTY;
+    return firstMBNumber != ConstantValues::EmptyInt && secondMBNumber != ConstantValues::EmptyInt;
 }
 
 template <typename TEA>
@@ -398,48 +379,48 @@ static bool EAHelper::CheckSetLiquidationMBAfterMinROCBreak(TEA &ea, MBTracker *
 {
     ea.mLastState = EAStates::CHECKING_FOR_SETUP;
 
-    if (firstMBNumber == EMPTY || secondMBNumber == EMPTY)
+    if (firstMBNumber == ConstantValues::EmptyInt || secondMBNumber == ConstantValues::EmptyInt)
     {
         CheckSetDoubleMBAfterMinROCBreak(ea, mbt, firstMBNumber, secondMBNumber);
     }
 
-    if (firstMBNumber != EMPTY && secondMBNumber != EMPTY && liquidationMBNumber == EMPTY)
+    if (firstMBNumber != ConstantValues::EmptyInt && secondMBNumber != ConstantValues::EmptyInt && liquidationMBNumber == ConstantValues::EmptyInt)
     {
         return CheckSetLiquidationMB(ea, mbt, secondMBNumber, liquidationMBNumber);
     }
 
-    return firstMBNumber != EMPTY && secondMBNumber != EMPTY && liquidationMBNumber != EMPTY;
+    return firstMBNumber != ConstantValues::EmptyInt && secondMBNumber != ConstantValues::EmptyInt && liquidationMBNumber != ConstantValues::EmptyInt;
 }
 
 template <typename TEA>
-static bool EAHelper::CheckSetSingleMBSetup(TEA &ea, MBTracker *&mbt, int &firstMBNumber, int forcedType = EMPTY, int nthMB = 0)
+static bool EAHelper::CheckSetSingleMBSetup(TEA &ea, MBTracker *&mbt, int &firstMBNumber, int forcedType = -1, int nthMB = 0)
 {
     ea.mLastState = EAStates::CHECKING_FOR_SINGLE_MB_SETUP;
 
-    if (firstMBNumber == EMPTY)
+    if (firstMBNumber == ConstantValues::EmptyInt)
     {
         CheckSetFirstMB(ea, mbt, firstMBNumber, forcedType, nthMB);
     }
 
-    return firstMBNumber != EMPTY;
+    return firstMBNumber != ConstantValues::EmptyInt;
 }
 
 template <typename TEA>
-static bool EAHelper::CheckSetDoubleMBSetup(TEA &ea, MBTracker *&mbt, int &firstMBNumber, int &secondMBNumber, int forcedType = EMPTY)
+static bool EAHelper::CheckSetDoubleMBSetup(TEA &ea, MBTracker *&mbt, int &firstMBNumber, int &secondMBNumber, int forcedType = -1)
 {
     ea.mLastState = EAStates::CHECKING_FOR_DOUBLE_MB_SETUP;
 
-    if (firstMBNumber == EMPTY)
+    if (firstMBNumber == ConstantValues::EmptyInt)
     {
         CheckSetSingleMBSetup(ea, mbt, firstMBNumber, forcedType, 1);
     }
 
-    if (secondMBNumber == EMPTY)
+    if (secondMBNumber == ConstantValues::EmptyInt)
     {
         CheckSetSecondMB(ea, mbt, firstMBNumber, secondMBNumber);
     }
 
-    return firstMBNumber != EMPTY && secondMBNumber != EMPTY;
+    return firstMBNumber != ConstantValues::EmptyInt && secondMBNumber != ConstantValues::EmptyInt;
 }
 
 template <typename TEA>
@@ -525,7 +506,7 @@ static bool EAHelper::CheckBrokeMBRangeStart(TEA &ea, MBTracker *&mbt, int mbNum
 {
     ea.mLastState = EAStates::CHECKING_IF_BROKE_RANGE_START;
 
-    if (mbNumber != EMPTY && mbt.MBExists(mbNumber))
+    if (mbNumber != ConstantValues::EmptyInt && mbt.MBExists(mbNumber))
     {
         bool brokeRangeStart;
         int brokeRangeStartError = mbt.MBStartIsBroken(mbNumber, brokeRangeStart);
@@ -549,7 +530,7 @@ static bool EAHelper::CheckBrokeMBRangeEnd(TEA &ea, MBTracker *&mbt, int mbNumbe
 {
     ea.mLastState = EAStates::CHECKING_IF_BROKE_RANGE_END;
 
-    if (mbNumber != EMPTY && mbt.MBExists(mbNumber))
+    if (mbNumber != ConstantValues::EmptyInt && mbt.MBExists(mbNumber))
     {
         bool brokeRangeEnd = false;
         int brokeRangeEndError = mbt.MBEndIsBroken(mbNumber, brokeRangeEnd);
@@ -1033,7 +1014,7 @@ static bool EAHelper::RunningBigDipperSetup(TEA &ea, datetime startTime)
 
     int startIndex = iBarShift(ea.mEntrySymbol, ea.mEntryTimeFrame, startTime);
     bool brokeFurtherThanCandle = false;
-    int oppositeCandleIndex = EMPTY;
+    int oppositeCandleIndex = ConstantValues::EmptyInt;
 
     if (ea.SetupType() == OP_BUY)
     {
@@ -1078,11 +1059,11 @@ static bool EAHelper::RunningBigDipperSetup(TEA &ea, datetime startTime)
 template <typename TEA>
 static bool EAHelper::MostRecentCandleBrokeTimeRange(TEA &ea)
 {
-    if (ea.SetupType() == OP_BUY)
+    if (ea.SetupType() == SignalType::Bullish)
     {
         return ea.mTRB.MostRecentCandleBrokeRangeHigh();
     }
-    else if (ea.SetupType() == OP_SELL)
+    else if (ea.SetupType() == SignalType::Bearish)
     {
         return ea.mTRB.MostRecentCandleBrokeRangeLow();
     }
@@ -1124,8 +1105,9 @@ template <typename TEA>
 static void EAHelper::GetEconomicEventsForDate(TEA &ea, string calendar, datetime utcDate, List<string> *&titles, List<string> *&symbols, List<int> *&impacts,
                                                bool ignoreDuplicateTimes = true)
 {
+    MqlDateTime mqlUtcDateTime = DateTimeHelper::ToMQLDateTime(utcDate);
     // strip away hour and minute
-    datetime startTime = DateTimeHelper::DayMonthYearToDateTime(TimeDay(utcDate), TimeMonth(utcDate), TimeYear(utcDate));
+    datetime startTime = DateTimeHelper::DayMonthYearToDateTime(mqlUtcDateTime.day, mqlUtcDateTime.mon, mqlUtcDateTime.year);
     datetime endTime = startTime + (60 * 60 * 24);
 
     EconomicCalendarHelper::GetEventsBetween(calendar, startTime, endTime, ea.mEconomicEvents, titles, symbols, impacts, ignoreDuplicateTimes);
@@ -1306,7 +1288,7 @@ static bool EAHelper::CandleIsInZone(TEA &ea, MBTracker *mbt, int mbNumber, int 
 
         if (furthest)
         {
-            int lowestIndex = EMPTY;
+            int lowestIndex = ConstantValues::EmptyInt;
             if (!MQLHelper::GetLowestIndexBetween(ea.mEntrySymbol, ea.mEntryTimeFrame, zoneStart, 0, true, lowestIndex))
             {
                 ea.RecordError(__FUNCTION__, Errors::COULD_NOT_RETRIEVE_LOW);
@@ -1322,7 +1304,7 @@ static bool EAHelper::CandleIsInZone(TEA &ea, MBTracker *mbt, int mbNumber, int 
 
         if (furthest)
         {
-            int highestIndex = EMPTY;
+            int highestIndex = ConstantValues::EmptyInt;
             if (!MQLHelper::GetHighestIndexBetween(ea.mEntrySymbol, ea.mEntryTimeFrame, zoneStart, 0, true, highestIndex))
             {
                 ea.RecordError(__FUNCTION__, Errors::COULD_NOT_RETRIEVE_HIGH);
@@ -1354,7 +1336,7 @@ static void EAHelper::SetDefaultEntryTradeData(TEA &ea, TRecord &record, Ticket 
     record.TicketNumber = ticket.Number();
     record.Symbol = Symbol();
     record.OrderDirection = ticket.Type() == TicketType::Buy ? "Buy" : "Sell";
-    record.AccountBalanceBefore = AccountBalance();
+    record.AccountBalanceBefore = AccountInfoDouble(ACCOUNT_BALANCE);
     record.Lots = ticket.LotSize();
     record.EntryTime = ticket.OpenTime();
     record.EntryPrice = ticket.OpenPrice();
@@ -1363,7 +1345,7 @@ static void EAHelper::SetDefaultEntryTradeData(TEA &ea, TRecord &record, Ticket 
 }
 
 template <typename TEA, typename TRecord>
-static void EAHelper::SetDefaultCloseTradeData(TEA &ea, TRecord &record, Ticket &ticket, int entryTimeFrame)
+static void EAHelper::SetDefaultCloseTradeData(TEA &ea, TRecord &record, Ticket &ticket, ENUM_TIMEFRAMES entryTimeFrame)
 {
     ea.mLastState = EAStates::RECORDING_ORDER_CLOSE_DATA;
 
@@ -1378,14 +1360,14 @@ static void EAHelper::SetDefaultCloseTradeData(TEA &ea, TRecord &record, Ticket 
     record.EntryTime = ticket.OpenTime();
     record.OriginalStopLoss = ticket.OriginalStopLoss();
 
-    record.AccountBalanceAfter = AccountBalance();
+    record.AccountBalanceAfter = AccountInfoDouble(ACCOUNT_BALANCE);
     record.ExitTime = ticket.CloseTime();
     record.ExitPrice = ticket.ClosePrice();
 
     if (!ticket.WasManuallyClosed() && ticket.CurrentStopLoss() > 0.0)
     {
         bool closedBySL = true;
-        if (OrderTakeProfit() > 0.0)
+        if (ticket.TakeProfit() > 0.0)
         {
             // we either closed from the TP or SL. We'll decide which one by seeing which one we are closer to
             closedBySL = MathAbs(ticket.ClosePrice() - ticket.CurrentStopLoss()) < MathAbs(ticket.ClosePrice() - ticket.TakeProfit());
@@ -1422,7 +1404,7 @@ static void EAHelper::RecordDefaultEntryTradeRecord(TEA &ea, Ticket &ticket)
 }
 
 template <typename TEA>
-static void EAHelper::RecordDefaultExitTradeRecord(TEA &ea, Ticket &ticket, int entryTimeFrame)
+static void EAHelper::RecordDefaultExitTradeRecord(TEA &ea, Ticket &ticket, ENUM_TIMEFRAMES entryTimeFrame)
 {
     DefaultExitTradeRecord *record = new DefaultExitTradeRecord();
     SetDefaultCloseTradeData<TEA, DefaultExitTradeRecord>(ea, record, ticket, entryTimeFrame);
@@ -1444,7 +1426,7 @@ static void EAHelper::RecordSingleTimeFrameEntryTradeRecord(TEA &ea, Ticket &tic
 }
 
 template <typename TEA>
-static void EAHelper::RecordSingleTimeFrameExitTradeRecord(TEA &ea, Ticket &ticket, int entryTimeFrame)
+static void EAHelper::RecordSingleTimeFrameExitTradeRecord(TEA &ea, Ticket &ticket, ENUM_TIMEFRAMES entryTimeFrame)
 {
     SingleTimeFrameExitTradeRecord *record = new SingleTimeFrameExitTradeRecord();
     SetDefaultCloseTradeData<TEA, SingleTimeFrameExitTradeRecord>(ea, record, ticket, entryTimeFrame);
@@ -1456,7 +1438,7 @@ static void EAHelper::RecordSingleTimeFrameExitTradeRecord(TEA &ea, Ticket &tick
 }
 
 template <typename TEA>
-static void EAHelper::RecordMultiTimeFrameEntryTradeRecord(TEA &ea, int higherTimeFrame)
+static void EAHelper::RecordMultiTimeFrameEntryTradeRecord(TEA &ea, ENUM_TIMEFRAMES higherTimeFrame)
 {
     MultiTimeFrameEntryTradeRecord *record = new MultiTimeFrameEntryTradeRecord();
     SetDefaultEntryTradeData<TEA, MultiTimeFrameEntryTradeRecord>(ea, record);
@@ -1479,7 +1461,7 @@ static void EAHelper::RecordMultiTimeFrameEntryTradeRecord(TEA &ea, int higherTi
 }
 
 template <typename TEA>
-static void EAHelper::RecordMultiTimeFrameExitTradeRecord(TEA &ea, Ticket &ticket, int lowerTimeFrame, int higherTimeFrame)
+static void EAHelper::RecordMultiTimeFrameExitTradeRecord(TEA &ea, Ticket &ticket, ENUM_TIMEFRAMES lowerTimeFrame, ENUM_TIMEFRAMES higherTimeFrame)
 {
     MultiTimeFrameExitTradeRecord *record = new MultiTimeFrameExitTradeRecord();
     SetDefaultCloseTradeData<TEA, MultiTimeFrameExitTradeRecord>(ea, record, ticket, lowerTimeFrame);
@@ -1528,8 +1510,8 @@ static void EAHelper::RecordMBEntryTradeRecord(TEA &ea, int mbNumber, MBTracker 
 
     ea.mCurrentSetupTicket.SelectIfOpen("Recording Open");
 
-    int pendingMBStart = EMPTY;
-    double furthestPoint = EMPTY;
+    int pendingMBStart = ConstantValues::EmptyInt;
+    double furthestPoint = ConstantValues::EmptyInt;
     double pendingHeight = -1.0;
     double percentOfPendingMBInPrevious = -1.0;
     double rrToPendingMBVal = 0.0;
@@ -1627,7 +1609,8 @@ static void EAHelper::RecordSingleTimeFrameErrorRecord(TEA &ea, string methodNam
 }
 
 template <typename TEA>
-static void EAHelper::RecordMultiTimeFrameErrorRecord(TEA &ea, string methodName, int error, string additionalInformation, int lowerTimeFrame, int higherTimeFrame)
+static void EAHelper::RecordMultiTimeFrameErrorRecord(TEA &ea, string methodName, int error, string additionalInformation, ENUM_TIMEFRAMES lowerTimeFrame,
+                                                      ENUM_TIMEFRAMES higherTimeFrame)
 {
     MultiTimeFrameErrorRecord *record = new MultiTimeFrameErrorRecord();
     SetDefaultErrorRecordData<TEA, MultiTimeFrameErrorRecord>(ea, record, methodName, error, additionalInformation);
@@ -1667,7 +1650,7 @@ static void EAHelper::RecordForexForensicsEntryTradeRecord(TEA &ea, Ticket &tick
 }
 
 template <typename TEA>
-static void EAHelper::RecordForexForensicsExitTradeRecord(TEA &ea, Ticket &ticket, int entryTimeFrame)
+static void EAHelper::RecordForexForensicsExitTradeRecord(TEA &ea, Ticket &ticket, ENUM_TIMEFRAMES entryTimeFrame)
 {
     ForexForensicsExitTradeRecord *record = new ForexForensicsExitTradeRecord();
     SetDefaultCloseTradeData<TEA, ForexForensicsExitTradeRecord>(ea, record, ticket, entryTimeFrame);
@@ -1675,75 +1658,4 @@ static void EAHelper::RecordForexForensicsExitTradeRecord(TEA &ea, Ticket &ticke
     record.FurthestEquityDrawdownPercent = ea.mFurthestEquityDrawdownPercent;
     ea.mExitCSVRecordWriter.WriteRecord(record);
     delete record;
-}
-/*
-
-   ____                _
-  |  _ \ ___  ___  ___| |_
-  | |_) / _ \/ __|/ _ \ __|
-  |  _ <  __/\__ \  __/ |_
-  |_| \_\___||___/\___|\__|
-
-
-*/
-template <typename TEA>
-static void EAHelper::BaseReset(TEA &ea)
-{
-    ea.mStopTrading = false;
-    ea.mHasSetup = false;
-    ea.SetupType() = EMPTY;
-}
-
-template <typename TEA>
-static void EAHelper::ResetSingleMBSetup(TEA &ea, bool baseReset)
-{
-    ea.mLastState = EAStates::RESETING;
-
-    if (baseReset)
-    {
-        BaseReset(ea);
-    }
-
-    ea.mFirstMBInSetupNumber = EMPTY;
-}
-
-template <typename TEA>
-static void EAHelper::ResetDoubleMBSetup(TEA &ea, bool baseReset)
-{
-    ResetSingleMBSetup(ea, baseReset);
-    ea.mSecondMBInSetupNumber = EMPTY;
-}
-
-template <typename TEA>
-static void EAHelper::ResetLiquidationMBSetup(TEA &ea, bool baseReset)
-{
-    ResetDoubleMBSetup(ea, baseReset);
-    ea.mLiquidationMBInSetupNumber = EMPTY;
-}
-
-template <typename TEA>
-static void EAHelper::ResetSingleMBConfirmation(TEA &ea, bool baseReset)
-{
-    ea.mLastState = EAStates::RESETING;
-
-    if (baseReset)
-    {
-        BaseReset(ea);
-    }
-
-    ea.mFirstMBInConfirmationNumber = EMPTY;
-}
-
-template <typename TEA>
-static void EAHelper::ResetDoubleMBConfirmation(TEA &ea, bool baseReset)
-{
-    ResetSingleMBConfirmation(ea, baseReset);
-    ea.mSecondMBInConfirmationNumber = EMPTY;
-}
-
-template <typename TEA>
-static void EAHelper::ResetLiquidationMBConfirmation(TEA &ea, bool baseReset)
-{
-    ResetDoubleMBSetup(ea, baseReset);
-    ea.mLiquidationMBInConfirmationNumber = EMPTY;
 }

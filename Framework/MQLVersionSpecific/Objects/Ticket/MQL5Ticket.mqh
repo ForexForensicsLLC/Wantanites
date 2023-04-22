@@ -22,10 +22,14 @@ public:
     virtual datetime OpenTime();
     virtual double LotSize();
     virtual double CurrentStopLoss();
+    virtual double ClosePrice();
+    virtual datetime CloseTime();
     virtual double TakeProfit();
     virtual datetime Expiration();
     virtual double Profit();
     virtual double Commission();
+
+    virtual int Close();
 };
 
 int VersionSpecificTicket::SelectIfOpen(string action)
@@ -41,7 +45,7 @@ int VersionSpecificTicket::SelectIfOpen(string action)
                 continue;
             }
 
-            if (OrderGetInteger(ORDER_TICKET) == mNumber)
+            if (ticket == mNumber)
             {
                 found = true;
                 break;
@@ -70,7 +74,7 @@ int VersionSpecificTicket::SelectIfClosed(string action)
                 continue;
             }
 
-            if (HistoryOrderGetInteger(ORDER_TICKET) == mNumber)
+            if (ticket == mNumber)
             {
                 found = true;
                 break;
@@ -94,7 +98,7 @@ TicketType VersionSpecificTicket::Type()
     }
 
     ENUM_ORDER_TYPE type = NULL;
-    int openSelectError = SelectIfOpen();
+    int openSelectError = SelectIfOpen("Getting Type");
     if (openSelectError == Errors::NO_ERROR)
     {
         type = OrderGetInteger(ORDER_TYPE);
@@ -102,20 +106,20 @@ TicketType VersionSpecificTicket::Type()
 
     if (type == NULL)
     {
-        int closedSelectError = SelectIfClosed();
+        int closedSelectError = SelectIfClosed("Getting Type");
         if (closedSelectError == Errors::NO_ERROR)
         {
-            type = HistoryOrderGetInteger(ORDER_TYPE);
+            type = HistoryOrderGetInteger(mNumber, ORDER_TYPE);
         }
-    }
 
-    if (type == NULL)
-    {
-        SendMail("Unable To Retrieve Type",
-                 "Error: " + IntegerToString(selectError) + "\n" +
-                     "Ticket Number: " + IntegerToString(mNumber));
+        if (type == NULL)
+        {
+            SendMail("Unable To Retrieve Type",
+                     "Error: " + IntegerToString(closedSelectError) + "\n" +
+                         "Ticket Number: " + IntegerToString(mNumber));
 
-        return TicketType::Empty;
+            return TicketType::Empty;
+        }
     }
 
     switch (type)

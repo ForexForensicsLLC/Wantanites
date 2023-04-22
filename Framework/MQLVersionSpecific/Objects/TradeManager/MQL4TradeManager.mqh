@@ -16,15 +16,15 @@ private:
     ulong mMagicNumber;
     ulong mSlippage;
 
-public:
+protected:
     VersionSpecificTradeManager(ulong magicNumber, ulong slippage);
     ~VersionSpecificTradeManager();
 
-    int PlaceMarketOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
-    int PlaceLimitOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
-    int PlaceStopOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
+    virtual int PlaceMarketOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
+    virtual int PlaceLimitOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
+    virtual int PlaceStopOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
 
-    int ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration);
+    virtual int ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration);
 };
 
 VersionSpecificTradeManager::VersionSpecificTradeManager(ulong magicNumber, ulong slippage)

@@ -52,11 +52,11 @@ void DefaultExitTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = f
     FileHelper::WriteString(fileHandle, Symbol);
     FileHelper::WriteString(fileHandle, OrderDirection);
     FileHelper::WriteDouble(fileHandle, AccountBalanceAfter, 2);
-    FileHelper::WriteDouble(fileHandle, EntryPrice, Digits);
-    FileHelper::WriteDouble(fileHandle, OriginalStopLoss, Digits);
-    FileHelper::WriteDouble(fileHandle, ExitPrice, Digits);
-    FileHelper::WriteDouble(fileHandle, StopLossExitSlippage, Digits);
-    FileHelper::WriteDouble(fileHandle, TotalMovePips(), Digits);
+    FileHelper::WriteDouble(fileHandle, EntryPrice, Digits());
+    FileHelper::WriteDouble(fileHandle, OriginalStopLoss, Digits());
+    FileHelper::WriteDouble(fileHandle, ExitPrice, Digits());
+    FileHelper::WriteDouble(fileHandle, StopLossExitSlippage, Digits());
+    FileHelper::WriteDouble(fileHandle, TotalMovePips(), Digits());
     FileHelper::WriteDouble(fileHandle, PotentialRR(), 2);
     FileHelper::WriteDouble(fileHandle, RRSecured(), 2);
     FileHelper::WriteString(fileHandle, CurrentDrawdown("F"));               // F is the column where AccountBalanceAfter is located
@@ -66,18 +66,18 @@ void DefaultExitTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = f
 void DefaultExitTradeRecord::ReadRow(int fileHandle)
 {
     ExitTime = FileReadDatetime(fileHandle);
-    MagicNumber = StrToInteger(FileReadString(fileHandle));
-    TicketNumber = StrToInteger(FileReadString(fileHandle));
+    MagicNumber = StringToInteger(FileReadString(fileHandle));
+    TicketNumber = StringToInteger(FileReadString(fileHandle));
     Symbol = FileReadString(fileHandle);
     OrderDirection = FileReadString(fileHandle);
-    AccountBalanceAfter = StrToDouble(FileReadString(fileHandle));
-    EntryPrice = StrToDouble(FileReadString(fileHandle));
-    OriginalStopLoss = StrToDouble(FileReadString(fileHandle));
-    ExitPrice = StrToDouble(FileReadString(fileHandle));
-    StopLossExitSlippage = StrToDouble(FileReadString(fileHandle));
-    mTotalMovePips = StrToDouble(FileReadString(fileHandle));
-    mPotentialRR = StrToDouble(FileReadString(fileHandle));
-    mRRSecured = StrToDouble(FileReadString(fileHandle));
+    AccountBalanceAfter = StringToDouble(FileReadString(fileHandle));
+    EntryPrice = StringToDouble(FileReadString(fileHandle));
+    OriginalStopLoss = StringToDouble(FileReadString(fileHandle));
+    ExitPrice = StringToDouble(FileReadString(fileHandle));
+    StopLossExitSlippage = StringToDouble(FileReadString(fileHandle));
+    mTotalMovePips = StringToDouble(FileReadString(fileHandle));
+    mPotentialRR = StringToDouble(FileReadString(fileHandle));
+    mRRSecured = StringToDouble(FileReadString(fileHandle));
     FileReadString(fileHandle); // don't need to set anything for Curent Drawdown
     FileReadString(fileHandle); // don't need to set anything for Percent Change
 }

@@ -8,6 +8,8 @@
 #property version "1.00"
 #property strict
 
+#include <Wantanites\Framework\Types\SignalTypes.mqh>
+
 class CandleStickHelper
 {
 public:
@@ -23,8 +25,8 @@ public:
     static double PercentChange(string symbol, ENUM_TIMEFRAMES timeFrame, int index);
     static double PercentBody(string symbol, ENUM_TIMEFRAMES timeFrame, int index);
 
-    static bool HasImbalance(int type, string symbol, ENUM_TIMEFRAMES timeFrame, int index);
-    static bool BrokeFurther(int type, string symbol, ENUM_TIMEFRAMES timeFrame, int index);
+    static bool HasImbalance(SignalType type, string symbol, ENUM_TIMEFRAMES timeFrame, int index);
+    static bool BrokeFurther(SignalType type, string symbol, ENUM_TIMEFRAMES timeFrame, int index);
 
     static double HighestBodyPart(string symbol, ENUM_TIMEFRAMES timeFrame, int index);
     static double LowestBodyPart(string symbol, ENUM_TIMEFRAMES timeFrame, int index);
@@ -77,13 +79,13 @@ double CandleStickHelper::PercentBody(string symbol, ENUM_TIMEFRAMES timeFrame, 
     return BodyLength(symbol, timeFrame, index) / candleLength;
 }
 
-bool CandleStickHelper::HasImbalance(int type, string symbol, ENUM_TIMEFRAMES timeFrame, int index)
+bool CandleStickHelper::HasImbalance(SignalType type, string symbol, ENUM_TIMEFRAMES timeFrame, int index)
 {
-    if (type == OP_BUY)
+    if (type == SignalType::Bullish)
     {
         return iHigh(symbol, timeFrame, index + 1) < iLow(symbol, timeFrame, index - 1);
     }
-    else if (type == OP_SELL)
+    else if (type == SignalType::Bearish)
     {
         return iLow(symbol, timeFrame, index + 1) > iHigh(symbol, timeFrame, index - 1);
     }
@@ -91,13 +93,13 @@ bool CandleStickHelper::HasImbalance(int type, string symbol, ENUM_TIMEFRAMES ti
     return false;
 }
 
-bool CandleStickHelper::BrokeFurther(int type, string symbol, ENUM_TIMEFRAMES timeFrame, int index)
+bool CandleStickHelper::BrokeFurther(SignalType type, string symbol, ENUM_TIMEFRAMES timeFrame, int index)
 {
-    if (type == OP_BUY)
+    if (type == SignalType::Bullish)
     {
         return iClose(symbol, timeFrame, index) > iHigh(symbol, timeFrame, index + 1);
     }
-    else if (type == OP_SELL)
+    else if (type == SignalType::Bearish)
     {
         return iClose(symbol, timeFrame, index) < iLow(symbol, timeFrame, index + 1);
     }

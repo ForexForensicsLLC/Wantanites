@@ -47,21 +47,21 @@ void ForexForensicsEntryTradeRecord::WriteRecord(int fileHandle, bool writeDelim
     FileHelper::WriteString(fileHandle, OrderDirection);
     FileHelper::WriteDouble(fileHandle, AccountBalanceBefore, 2);
     FileHelper::WriteDouble(fileHandle, Lots, 2);
-    FileHelper::WriteDouble(fileHandle, EntryPrice, Digits);
-    FileHelper::WriteDouble(fileHandle, OriginalStopLoss, Digits);
+    FileHelper::WriteDouble(fileHandle, EntryPrice, Digits());
+    FileHelper::WriteDouble(fileHandle, OriginalStopLoss, Digits());
     FileHelper::WriteString(fileHandle, DuringNews, writeDelimiter);
 }
 
 void ForexForensicsEntryTradeRecord::ReadRow(int fileHandle)
 {
     EntryTime = FileReadDatetime(fileHandle);
-    MagicNumber = StrToInteger(FileReadString(fileHandle));
-    TicketNumber = StrToInteger(FileReadString(fileHandle));
+    MagicNumber = StringToInteger(FileReadString(fileHandle));
+    TicketNumber = StringToInteger(FileReadString(fileHandle));
     Symbol = FileReadString(fileHandle);
     OrderDirection = FileReadString(fileHandle);
-    AccountBalanceBefore = StrToDouble(FileReadString(fileHandle));
-    Lots = StrToDouble(FileReadString(fileHandle));
-    EntryPrice = StrToDouble(FileReadString(fileHandle));
-    OriginalStopLoss = StrToDouble(FileReadString(fileHandle));
+    AccountBalanceBefore = StringToDouble(FileReadString(fileHandle));
+    Lots = StringToDouble(FileReadString(fileHandle));
+    EntryPrice = StringToDouble(FileReadString(fileHandle));
+    OriginalStopLoss = StringToDouble(FileReadString(fileHandle));
     DuringNews = FileHelper::ReadBool(fileHandle);
 }

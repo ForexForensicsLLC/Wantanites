@@ -8,13 +8,6 @@
 #property version "1.00"
 #property strict
 
-#ifdef __MQL4__
-#include <Wantanites\Framework\MQLVersionSpecific\Helpers\DateTimeHelper\MQL4DateTimeHelper.mqh>
-#endif
-#ifdef __MQL5__
-#include <Wantanites\Framework\MQLVersionSpecific\Helpers\DateTimeHelper\MQL5DateTimeHelper.mqh>
-#endif
-
 class DateTimeHelper
 {
 public:
@@ -28,6 +21,9 @@ public:
     static int CurrentMinute();
     static int CurrentSecond();
     static int CurrentDayOfWeek();
+
+    static MqlDateTime ToMQLDateTime(datetime dt);
+    static int ToDay(datetime dt);
 
     static datetime HourMinuteToDateTime(int hour, int minute, int day);
     static datetime DayMonthYearToDateTime(int day, int month, int year);
@@ -62,37 +58,74 @@ MqlDateTime DateTimeHelper::CurrentTime()
 
 int DateTimeHelper::CurrentYear()
 {
-    return SpecificDateTimeHelperVersion::CurrentYear();
+    MqlDateTime dt;
+    TimeCurrent(dt);
+
+    return dt.year;
 }
 
 int DateTimeHelper::CurrentMonth()
 {
-    return SpecificDateTimeHelperVersion::CurrentMonth();
+    MqlDateTime dt;
+    TimeCurrent(dt);
+
+    return dt.mon;
 }
 
 int DateTimeHelper::CurrentDay()
 {
-    return SpecificDateTimeHelperVersion::CurrentDay();
+    MqlDateTime dt;
+    TimeCurrent(dt);
+
+    return dt.day;
 }
 
 int DateTimeHelper::CurrentHour()
 {
-    return SpecificDateTimeHelperVersion::CurrentHour();
+    MqlDateTime dt;
+    TimeCurrent(dt);
+
+    return dt.hour;
 }
 
 int DateTimeHelper::CurrentMinute()
 {
-    return SpecificDateTimeHelperVersion::CurrentMinute();
+    MqlDateTime dt;
+    TimeCurrent(dt);
+
+    return dt.min;
 }
 
 int DateTimeHelper::CurrentSecond()
 {
-    return SpecificDateTimeHelperVersion::CurrentSecond();
+    MqlDateTime dt;
+    TimeCurrent(dt);
+
+    return dt.sec;
 }
 
 int DateTimeHelper::CurrentDayOfWeek()
 {
-    return SpecificDateTimeHelperVersion::CurrentDayOfWeek();
+    MqlDateTime dt;
+    TimeCurrent(dt);
+
+    return dt.day_of_week;
+}
+
+static MqlDateTime DateTimeHelper::ToMQLDateTime(datetime dt)
+{
+    MqlDateTime mqldt;
+    TimeToStruct(dt, mqldt);
+
+    return mqldt;
+}
+
+static int DateTimeHelper::ToDay(datetime dt)
+{
+    MqlDateTime mqldt;
+    TimeToStruct(dt, mqldt);
+
+    return mqldt.day;
 }
 
 datetime DateTimeHelper::HourMinuteToDateTime(int hour, int minute, int day)

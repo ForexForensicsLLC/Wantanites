@@ -8,12 +8,13 @@
 #property version "1.00"
 #property strict
 
+#include <Wantanites\Framework\Helpers\DateTimeHelper.mqh>
 #include <Wantanites\Framework\Constants\Errors.mqh>
 
 class ScreenShotHelper
 {
 private:
-    static string DateTimeToFilePathString(datetime dt);
+    static string CurrentDateTimeToFilePathString();
 
 public:
     static string TryTakeScreenShot(string directory, string suffix, int width, int height);
@@ -24,19 +25,21 @@ public:
     static int TryTakeMultiTimeFrameScreenShot(string directory, int secondChartTimeFrame, string &currentChartImageName, string &secondChartImageName);
 };
 
-static string ScreenShotHelper::DateTimeToFilePathString(datetime dt)
+static string ScreenShotHelper::CurrentDateTimeToFilePathString()
 {
-    return IntegerToString(TimeYear(dt)) + "-" +
-           IntegerToString(TimeMonth(dt)) + "-" +
-           IntegerToString(TimeDay(dt)) + "_" +
-           IntegerToString(TimeHour(dt)) + "-" +
-           IntegerToString(TimeMinute(dt)) + "-" +
-           IntegerToString(TimeSeconds(dt));
+    MqlDateTime currentTime = DateTimeHelper::CurrentTime();
+
+    return IntegerToString(currentTime.year) + "-" +
+           IntegerToString(currentTime.mon) + "-" +
+           IntegerToString(currentTime.day) + "_" +
+           IntegerToString(currentTime.hour) + "-" +
+           IntegerToString(currentTime.min) + "-" +
+           IntegerToString(currentTime.sec);
 }
 
 static string ScreenShotHelper::TryTakeScreenShot(string directory, string suffix = "", int width = 2000, int height = 800)
 {
-    string imageName = DateTimeToFilePathString(TimeCurrent()) + suffix + ".png";
+    string imageName = CurrentDateTimeToFilePathString() + suffix + ".png";
     string filePath = directory + "Images/" + imageName;
 
     if (!ChartScreenShot(ChartID(), filePath, width, height, ALIGN_RIGHT))
@@ -50,7 +53,7 @@ static string ScreenShotHelper::TryTakeScreenShot(string directory, string suffi
 
 static string ScreenShotHelper::TryTakeBeforeScreenShot(string directory, string suffix = "")
 {
-    string imageName = DateTimeToFilePathString(TimeCurrent()) + "_Before" + suffix + ".png";
+    string imageName = CurrentDateTimeToFilePathString() + "_Before" + suffix + ".png";
     string filePath = directory + "Images/" + imageName;
 
     if (!ChartScreenShot(ChartID(), filePath, 2000, 800, ALIGN_RIGHT))
@@ -64,7 +67,7 @@ static string ScreenShotHelper::TryTakeBeforeScreenShot(string directory, string
 
 static string ScreenShotHelper::TryTakeAfterScreenShot(string directory, string suffix = "")
 {
-    string imageName = DateTimeToFilePathString(TimeCurrent()) + "_After" + suffix + ".png";
+    string imageName = CurrentDateTimeToFilePathString() + "_After" + suffix + ".png";
     string filePath = directory + "Images/" + imageName;
 
     if (!ChartScreenShot(ChartID(), filePath, 2000, 800, ALIGN_RIGHT))
@@ -110,7 +113,7 @@ static int ScreenShotHelper::TryTakeMultiTimeFrameScreenShot(string directory, i
         return Errors::SECOND_CHART_NOT_FOUND;
     }
 
-    string dateTime = DateTimeToFilePathString(TimeCurrent());
+    string dateTime = CurrentDateTimeToFilePathString();
     currentChartImageName = directory + "Images/" + dateTime + "_Period " + IntegerToString(Period()) + ".png";
     secondChartImageName = directory + "Images/" + dateTime + "_Period " + IntegerToString(secondChartTimeFrame) + ".png";
 

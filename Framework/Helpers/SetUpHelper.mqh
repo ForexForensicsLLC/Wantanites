@@ -18,7 +18,7 @@ public:
     // ==========================================================================
     // Range Broke Methods
     // ==========================================================================
-    static int BrokeDoubleMBPlusLiquidationSetupRangeEnd(int secondMBInSetup, int setupType, MBTracker *&mbt, bool &isTrue);
+    static int BrokeDoubleMBPlusLiquidationSetupRangeEnd(int secondMBInSetup, SignalType setupType, MBTracker *&mbt, bool &isTrue);
 
     // ==========================================================================
     // MB Setup Methods
@@ -42,14 +42,14 @@ public:
     // ==========================================================================
     static int BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker *&mbt, bool &isTrue);
 
-    static bool HammerCandleStickPattern(string symbol, int timeFrame, int startingCandle);
-    static bool HammerCandleStickPatternBreak(string symbol, int timeFrame, bool useBody);
+    static bool HammerCandleStickPattern(string symbol, ENUM_TIMEFRAMES timeFrame, int startingCandle);
+    static bool HammerCandleStickPatternBreak(string symbol, ENUM_TIMEFRAMES timeFrame, bool useBody);
 
-    static bool ShootingStarCandleStickPattern(string symbol, int timeFrame, int startingCandle);
-    static bool ShootingStarCandleStickPatternBreak(string symbol, int timeFrame, bool useBody);
+    static bool ShootingStarCandleStickPattern(string symbol, ENUM_TIMEFRAMES timeFrame, int startingCandle);
+    static bool ShootingStarCandleStickPatternBreak(string symbol, ENUM_TIMEFRAMES timeFrame, bool useBody);
 
-    static bool BullishEngulfing(string symbol, int timeFrame, int startingCandle);
-    static bool BearishEngulfing(string symbol, int timeFrame, int startingCandle);
+    static bool BullishEngulfing(string symbol, ENUM_TIMEFRAMES timeFrame, int startingCandle);
+    static bool BearishEngulfing(string symbol, ENUM_TIMEFRAMES timeFrame, int startingCandle);
 };
 /*
 
@@ -70,7 +70,7 @@ public:
  * @param isTrue
  * @return int
  */
-static int SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(int secondMBInSetup, int setupType, MBTracker *&mbt, bool &isTrue)
+static int SetupHelper::BrokeDoubleMBPlusLiquidationSetupRangeEnd(int secondMBInSetup, SignalType setupType, MBTracker *&mbt, bool &isTrue)
 {
     isTrue = false;
 
@@ -127,7 +127,7 @@ static int SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOne
         return Errors::MB_DOES_NOT_EXIST;
     }
 
-    if (secondMBTempMBState.Type() == OP_BUY)
+    if (secondMBTempMBState.Type() == SignalType::Bullish)
     {
         if (!mbt.GetSubsequentMB(mbTwoNumber, thirdMBTempState))
         {
@@ -138,7 +138,7 @@ static int SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(int mbOne
         // should be safe to do since the mb has already been calculated and printed
         isTrue = mbt.MBsClosestValidZoneIsHolding(mbOneNumber, thirdMBTempState.EndIndex() + 1);
     }
-    else if (secondMBTempMBState.Type() == OP_SELL)
+    else if (secondMBTempMBState.Type() == SignalType::Bearish)
     {
         if (!mbt.GetSubsequentMB(mbTwoNumber, thirdMBTempState))
         {
@@ -166,7 +166,7 @@ static int SetupHelper::GetEarlierSetupZoneMitigationIndexForLowerTimeFrame(Zone
 
     if (earliestZoneMitigationTime > TimeCurrent())
     {
-        return EMPTY;
+        return ConstantValues::EmptyInt;
     }
 
     return iBarShift(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), earliestZoneMitigationTime);
@@ -192,7 +192,7 @@ static int SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNu
     additionaInformation += " Zone Entry: " + tempSetupZone.EntryPrice();
 
     int lowerEarliestSetupZoneMitigationIndex = GetEarlierSetupZoneMitigationIndexForLowerTimeFrame(tempSetupZone, confirmationMBT);
-    if (lowerEarliestSetupZoneMitigationIndex == EMPTY)
+    if (lowerEarliestSetupZoneMitigationIndex == ConstantValues::EmptyInt)
     {
         return Errors::LOWER_EARLIEST_SETUP_ZONE_MITIGATION_NOT_FOUND;
     }
@@ -246,7 +246,7 @@ static int SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNu
                 continue;
             }
 
-            if (tempSetupMB.Type() == OP_BUY)
+            if (tempSetupMB.Type() == SignalType::Bullish)
             {
                 double currentMBLow = iLow(tempConfirmationMB.Symbol(), tempConfirmationMB.TimeFrame(), tempConfirmationMB.LowIndex());
                 if (currentMBLow > tempSetupZone.EntryPrice())
@@ -268,7 +268,7 @@ static int SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNu
                     tempConfirmationMB.mPushedFurtherIntoSetupZone = Status::IS_FALSE;
                 }
             }
-            else if (tempSetupMB.Type() == OP_SELL)
+            else if (tempSetupMB.Type() == SignalType::Bearish)
             {
                 double currentMBHigh = iHigh(tempConfirmationMB.Symbol(), tempConfirmationMB.TimeFrame(), tempConfirmationMB.HighIndex());
                 if (currentMBHigh < tempSetupZone.EntryPrice())
@@ -296,7 +296,7 @@ static int SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNu
     {
         additionaInformation += " First MB In Zone: " + mostRecentMB.Number();
 
-        if (tempSetupMB.Type() == OP_BUY)
+        if (tempSetupMB.Type() == SignalType::Bullish)
         {
             double currentMBLow = iLow(mostRecentMB.Symbol(), mostRecentMB.TimeFrame(), mostRecentMB.LowIndex());
             if (currentMBLow > tempSetupZone.EntryPrice())
@@ -307,7 +307,7 @@ static int SetupHelper::MBPushedFurtherIntoDeepestHoldingSetupZone(int setupMBNu
 
             tempSetupZone.mLowestConfirmationMBLowWithin = currentMBLow;
         }
-        else if (tempSetupMB.Type() == OP_SELL)
+        else if (tempSetupMB.Type() == SignalType::Bearish)
         {
             double currentMBHigh = iHigh(mostRecentMB.Symbol(), mostRecentMB.TimeFrame(), mostRecentMB.HighIndex());
             if (currentMBHigh < tempSetupZone.EntryPrice())
@@ -355,7 +355,7 @@ static int SetupHelper::MBRetappedDeepestHoldingSetupZone(int setupMBNumber, int
     additionalInformation += " Zone Entry: " + tempSetupZone.EntryPrice();
 
     int lowerEarliestSetupZoneMitigationIndex = GetEarlierSetupZoneMitigationIndexForLowerTimeFrame(tempSetupZone, confirmationMBT);
-    if (lowerEarliestSetupZoneMitigationIndex == EMPTY)
+    if (lowerEarliestSetupZoneMitigationIndex == ConstantValues::EmptyInt)
     {
         return Errors::LOWER_EARLIEST_SETUP_ZONE_MITIGATION_NOT_FOUND;
     }
@@ -393,7 +393,7 @@ static int SetupHelper::MBRetappedDeepestHoldingSetupZone(int setupMBNumber, int
                 break;
             }
 
-            if (tempSetupMB.Type() == OP_BUY)
+            if (tempSetupMB.Type() == SignalType::Bullish)
             {
                 bool isInZone = iLow(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), tempConfirmationMBState.LowIndex()) <= tempSetupZone.EntryPrice();
                 if (isInZone)
@@ -406,7 +406,7 @@ static int SetupHelper::MBRetappedDeepestHoldingSetupZone(int setupMBNumber, int
                     tempConfirmationMBState.mInsideSetupZone = Status::IS_FALSE;
                 }
             }
-            else if (tempSetupMB.Type() == OP_SELL)
+            else if (tempSetupMB.Type() == SignalType::Bearish)
             {
                 bool isInZone = iHigh(confirmationMBT.Symbol(), confirmationMBT.TimeFrame(), tempConfirmationMBState.HighIndex()) >= tempSetupZone.EntryPrice();
                 if (isInZone)
@@ -525,8 +525,8 @@ static int SetupHelper::BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker 
     bool bothAbove = iLow(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[1].LowIndex()) > mrfts.OpenPrice() && iLow(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[0].LowIndex()) > mrfts.OpenPrice();
     bool bothBelow = iHigh(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[1].HighIndex()) < mrfts.OpenPrice() && iHigh(mrfts.Symbol(), mrfts.TimeFrame(), tempMBStates[0].HighIndex()) < mrfts.OpenPrice();
 
-    bool breakingUp = bothBelow && tempMBStates[0].Type() == OP_BUY;
-    bool breakingDown = bothAbove && tempMBStates[0].Type() == OP_SELL;
+    bool breakingUp = bothBelow && tempMBStates[0].Type() == SignalType::Bullish;
+    bool breakingDown = bothAbove && tempMBStates[0].Type() == SignalType::Bearish;
 
     isTrue = breakingUp || breakingDown;
     return Errors::NO_ERROR;
@@ -534,7 +534,7 @@ static int SetupHelper::BreakAfterMinROC(MinROCFromTimeStamp *&mrfts, MBTracker 
 
 // bullish candlestick pattern where a candle wick liquidates the candle low before it
 // hopint to see price break up after
-static bool SetupHelper::HammerCandleStickPattern(string symbol, int timeFrame, int startingCandle)
+static bool SetupHelper::HammerCandleStickPattern(string symbol, ENUM_TIMEFRAMES timeFrame, int startingCandle)
 {
     // bool HighNotAbovePreviuos = iHigh(symbol, timeFrame, startingCandle) < iHigh(symbol, timeFrame, startingCandle + 1);
     bool bodyNotBelowPrevious = MathMin(iOpen(symbol, timeFrame, startingCandle), iClose(symbol, timeFrame, startingCandle)) >= iLow(symbol, timeFrame, startingCandle + 1);
@@ -543,7 +543,7 @@ static bool SetupHelper::HammerCandleStickPattern(string symbol, int timeFrame, 
     return bodyNotBelowPrevious && wickBelowPreviuos;
 }
 
-static bool SetupHelper::HammerCandleStickPatternBreak(string symbol, int timeFrame, bool useBody = true)
+static bool SetupHelper::HammerCandleStickPatternBreak(string symbol, ENUM_TIMEFRAMES timeFrame, bool useBody = true)
 {
     // bool HighNotAbovePreviuos = iHigh(symbol, timeFrame, 2) < iHigh(symbol, timeFrame, 3);
     bool bodyNotBelowPrevious = MathMin(iOpen(symbol, timeFrame, 2), iClose(symbol, timeFrame, 2)) > iLow(symbol, timeFrame, 3);
@@ -556,7 +556,7 @@ static bool SetupHelper::HammerCandleStickPatternBreak(string symbol, int timeFr
 
 // bearish candlestick pattern where a candle wick liqudiates the candle high before it
 // hoping to see price break down after
-static bool SetupHelper::ShootingStarCandleStickPattern(string symbol, int timeFrame, int startingCandle)
+static bool SetupHelper::ShootingStarCandleStickPattern(string symbol, ENUM_TIMEFRAMES timeFrame, int startingCandle)
 {
     // bool lowNotBelowPrevious = iLow(symbol, timeFrame, startingCandle) > iLow(symbol, timeFrame, startingCandle + 1);
     bool bodyNotAbovePrevious = MathMax(iOpen(symbol, timeFrame, startingCandle), iClose(symbol, timeFrame, startingCandle)) <= iHigh(symbol, timeFrame, startingCandle + 1);
@@ -565,7 +565,7 @@ static bool SetupHelper::ShootingStarCandleStickPattern(string symbol, int timeF
     return bodyNotAbovePrevious && wickAbovePrevious;
 }
 
-static bool SetupHelper::ShootingStarCandleStickPatternBreak(string symbol, int timeFrame, bool useBody = true)
+static bool SetupHelper::ShootingStarCandleStickPatternBreak(string symbol, ENUM_TIMEFRAMES timeFrame, bool useBody = true)
 {
     // bool lowNotBelowPrevious = iLow(symbol, timeFrame, 2) > iLow(symbol, timeFrame, 3);
     bool bodyNotAbovePrevious = MathMax(iOpen(symbol, timeFrame, 2), iClose(symbol, timeFrame, 2)) < iHigh(symbol, timeFrame, 3);
@@ -576,7 +576,7 @@ static bool SetupHelper::ShootingStarCandleStickPatternBreak(string symbol, int 
     return bodyNotAbovePrevious && wickAbovePrevious && breakLower;
 }
 
-static bool SetupHelper::BullishEngulfing(string symbol, int timeFrame, int startingCandle)
+static bool SetupHelper::BullishEngulfing(string symbol, ENUM_TIMEFRAMES timeFrame, int startingCandle)
 {
     bool isBullish = iOpen(symbol, timeFrame, startingCandle) < iClose(symbol, timeFrame, startingCandle);
     bool belowPreviousBody = MathMin(iOpen(symbol, timeFrame, startingCandle + 1), iClose(symbol, timeFrame, startingCandle + 1)) >= iOpen(symbol, timeFrame, startingCandle);
@@ -585,7 +585,7 @@ static bool SetupHelper::BullishEngulfing(string symbol, int timeFrame, int star
     return isBullish && belowPreviousBody && bodyAbovePreviousHigh;
 }
 
-static bool SetupHelper::BearishEngulfing(string symbol, int timeFrame, int startingCandle)
+static bool SetupHelper::BearishEngulfing(string symbol, ENUM_TIMEFRAMES timeFrame, int startingCandle)
 {
     bool isBearish = iOpen(symbol, timeFrame, startingCandle) > iClose(symbol, timeFrame, startingCandle);
     bool abovePreviousBody = MathMax(iOpen(symbol, timeFrame, startingCandle + 1), iClose(symbol, timeFrame, startingCandle + 1)) <= iOpen(symbol, timeFrame, startingCandle);

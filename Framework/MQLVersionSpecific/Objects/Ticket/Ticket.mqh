@@ -27,8 +27,6 @@
 class Ticket : public VersionSpecificTicket
 {
 private:
-    typedef bool (*TTicketNumberLocator)(Ticket &, int);
-
     bool mLastCloseCheck;
     bool mLastActiveCheck;
 
@@ -87,13 +85,15 @@ public:
     static bool EqualsTicketNumber(Ticket &ticket, int ticketNumber);
 };
 
+typedef bool (*TTicketNumberLocator)(Ticket &, int);
+
 Ticket::Ticket()
 {
     mPartials = new ObjectList<Partial>();
     mActivatedSinceLastCheckCheckers = new Dictionary<string, bool>();
     mClosedSinceLastCheckCheckers = new Dictionary<string, bool>();
 
-    SetNewTicket(EMPTY);
+    SetNewTicket(ConstantValues::EmptyInt);
 }
 
 Ticket::Ticket(int ticket)
@@ -321,8 +321,8 @@ int Ticket::StopLossIsMovedToBreakEven(bool &stopLossIsMovedBreakEven)
         }
 
         // Need to normalize or else this will always return false on pairs that have more digits like currencies
-        double stopLoss = NormalizeDouble(CurrentStopLoss(), Digits);
-        double openPrice = NormalizeDouble(OpenPrice(), Digits);
+        double stopLoss = NormalizeDouble(CurrentStopLoss(), Digits());
+        double openPrice = NormalizeDouble(OpenPrice(), Digits());
 
         TicketType type = Type();
         if (type == TicketType::Buy)

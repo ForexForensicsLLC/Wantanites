@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\MQLVersionSpecific\Helpers\DateTimeHelper\DateTimeHelper.mqh>
+#include <Wantanites\Framework\Helpers\DateTimeHelper.mqh>
 
 #include <Wantanites\Framework\CSVWriting\CSVRecordWriter.mqh>
 #include <Wantanites\Framework\CSVWriting\CSVRecordTypes\ObjectRecords\EconomicEventRecord.mqh>
@@ -35,9 +35,10 @@ public:
 // returns a string in the format of /yyyy/MM/dd
 string EconomicCalendarHelper::EventPath(datetime date)
 {
-    return "/" + IntegerToString(TimeYear(date)) + "/" +
-           DateTimeHelper::FormatAsTwoDigits(TimeMonth(date)) + "/" +
-           DateTimeHelper::FormatAsTwoDigits(TimeDay(date)) + "/";
+    MqlDateTime dt = DateTimeHelper::ToMQLDateTime(date);
+    return "/" + IntegerToString(dt.year) + "/" +
+           DateTimeHelper::FormatAsTwoDigits(dt.mon) + "/" +
+           DateTimeHelper::FormatAsTwoDigits(dt.day) + "/";
 }
 
 void EconomicCalendarHelper::ReadEvents(string calendar, datetime utcStart, datetime utcEnd, datetime utcCurrent, ObjectList<EconomicEvent> *&economicEvents,
@@ -109,7 +110,7 @@ void EconomicCalendarHelper::GetEventsBetween(string calendar, datetime utcStart
                                               List<string> *&symbols, List<int> *&impacts, bool ignoreDuplicateTimes = true)
 {
     datetime currentDate = utcStart;
-    while (TimeDay(currentDate) < TimeDay(utcEnd))
+    while (DateTimeHelper::ToDay(currentDate) < DateTimeHelper::ToDay(utcEnd))
     {
         ReadEvents(calendar, utcStart, utcEnd, currentDate, economicEvents, titles, symbols, impacts, ignoreDuplicateTimes);
         currentDate += (60 * 60 * 24); // add one day in seconds
