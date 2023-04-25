@@ -8,9 +8,10 @@
 #property version "1.00"
 #property strict
 
+#include <Wantanites\Framework\Constants\ConstantValues.mqh>
+#include <Wantanites\Framework\Types\SignalTypes.mqh>
 #include <Wantanites\Framework\Helpers\CandleStickHelper.mqh>
 #include <Wantanites\Framework\Objects\Indicators\MB\Types.mqh>
-#include <Wantanites\Framework\Types\SignalTypes.mqh>
 #include <Wantanites\Framework\MQLVersionSpecific\Helpers\MQLHelper\MQLHelper.mqh>
 
 class ZoneState

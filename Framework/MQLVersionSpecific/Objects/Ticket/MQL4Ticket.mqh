@@ -22,7 +22,6 @@ public:
     Ticket(int ticketNumber) : BaseTicket(ticketNumber) {}
     Ticket(Ticket &ticket) : BaseTicket(ticket) {}
 
-    virtual ulong Number() { return mNumber; }
     virtual TicketType Type();
     virtual double OpenPrice();
     virtual datetime OpenTime();
@@ -36,6 +35,7 @@ public:
     virtual double Commission();
 
     virtual int Close();
+    virtual int ClosePartial(double price, double lotSize);
 };
 
 int Ticket::SelectTicket(string action)
@@ -385,5 +385,27 @@ int Ticket::Close()
     }
 
     mWasManuallyClosed = true;
+    return Errors::NO_ERROR;
+}
+
+int Ticket::ClosePartial(double price, double lotSize)
+{
+    int selectOrderError = SelectIfOpen("Closing");
+    if (selectOrderError != Errors::NO_ERROR)
+    {
+        return selectOrderError;
+    }
+
+    TicketType type = Type();
+    if (type != TicketType::Buy && type != TicketType::Sell)
+    {
+        return Errors::WRONG_ORDER_TYPE;
+    }
+
+    if (!OrderClose(mNumber, lotSize, price, 0, clrNONE))
+    {
+        return GetLastError();
+    }
+
     return Errors::NO_ERROR;
 }

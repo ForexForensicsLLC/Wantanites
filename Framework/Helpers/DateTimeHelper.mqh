@@ -131,9 +131,7 @@ static int DateTimeHelper::ToDay(datetime dt)
 datetime DateTimeHelper::HourMinuteToDateTime(int hour, int minute, int day)
 {
     MqlDateTime dt = CurrentTime();
-
-    string timeString = dt.year + "." + dt.mon + "." + day + " " + IntegerToString(hour) + ":" + IntegerToString(minute);
-    return StringToTime(timeString);
+    return FullDateTimeToString(day, dt.mon, dt.year, hour, minute);
 }
 
 datetime DateTimeHelper::DayMonthYearToDateTime(int day, int month, int year)
@@ -144,7 +142,12 @@ datetime DateTimeHelper::DayMonthYearToDateTime(int day, int month, int year)
 
 datetime DateTimeHelper::FullDateTimeToString(int day, int month, int year, int hour, int minute)
 {
-    string dateString = DayMonthYearToDateTime(day, month, year) + " " + IntegerToString(hour) + ":" + IntegerToString(minute);
+    string dateString = IntegerToString(year) + "." +
+                        IntegerToString(month) + "." +
+                        IntegerToString(day) + " " +
+                        IntegerToString(hour) + ":" +
+                        IntegerToString(minute);
+
     return StringToTime(dateString);
 }
 

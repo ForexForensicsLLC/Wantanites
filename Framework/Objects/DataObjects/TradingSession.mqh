@@ -141,7 +141,7 @@ void TradingSession::ExcludeDay(DayOfWeekEnum dayOfWeek)
 
 int TradingSession::StartIndex(string symbol, ENUM_TIMEFRAMES timeFrame)
 {
-    datetime startTime = StringToTime(HourStart() + ":" + MinuteStart());
+    datetime startTime = StringToTime(IntegerToString(HourStart()) + ":" + IntegerToString(MinuteStart()));
     return iBarShift(symbol, timeFrame, startTime);
 }
 

@@ -92,7 +92,7 @@ RecordColumns::RecordColumns()
     DuringNews = false;
     NewsImpact = ConstantValues::EmptyInt;
     DayOfWeek = ConstantValues::EmptyInt;
-    Outcome = ConstantValues::EmptyString;
+    Outcome = ConstantValues::UnsetString;
 
     EntryImage = ConstantValues::UnsetString;
     HigherTimeFrameEntryImage = ConstantValues::UnsetString;

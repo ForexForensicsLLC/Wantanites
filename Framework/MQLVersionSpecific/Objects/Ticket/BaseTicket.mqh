@@ -39,8 +39,12 @@ protected:
     double mOpenPrice;
     datetime mOpenTime;
     double mLotSize; // lot size can't change. If a ticket is partialed you get a new ticket
+    double mCurrentStopLoss;
     double mClosePrice;
     datetime mCloseTime;
+    double mTakeProfit;
+    datetime mExpiration;
+    double mProfit;
     double mCommission;
 
     bool mWasManuallyClosed;
@@ -62,7 +66,7 @@ public:
     Dictionary<string, bool> *mActivatedSinceLastCheckCheckers;
     Dictionary<string, bool> *mClosedSinceLastCheckCheckers;
 
-    virtual ulong Number() = NULL;
+    ulong Number() { return mNumber; };
     virtual TicketType Type() = NULL;
 
     double ExpectedOpenPrice() { return mExpectedOpenPrice; }
@@ -102,6 +106,7 @@ public:
     int WasClosedSinceLastCheck(string checker, bool &closed);
 
     virtual int Close() = NULL;
+    virtual int ClosePartial(double price, double lotSize) = NULL;
     bool WasManuallyClosed() { return mWasManuallyClosed; }
 
     void SetPartials(List<double> &partialRRs, List<double> &partialPercents);
@@ -143,8 +148,12 @@ BaseTicket::BaseTicket(BaseTicket &ticket)
     mOpenTime = ticket.OpenTime();
     mOriginalStopLoss = ticket.mOriginalStopLoss;
     mLotSize = ticket.LotSize();
+    mCurrentStopLoss = ticket.CurrentStopLoss();
     mClosePrice = ticket.ClosePrice();
     mCloseTime = ticket.CloseTime();
+    mTakeProfit = ticket.TakeProfit();
+    mExpiration = ticket.Expiration();
+    mProfit = ticket.Profit();
     mCommission = ticket.Commission();
 
     mWasManuallyClosed = false;
@@ -182,8 +191,12 @@ void BaseTicket::SetNewTicket(int ticket)
     mOpenTime = 0;
     mOriginalStopLoss = ConstantValues::EmptyDouble;
     mLotSize = ConstantValues::EmptyDouble;
+    mCurrentStopLoss = ConstantValues::EmptyDouble;
     mClosePrice = ConstantValues::EmptyDouble;
     mCloseTime = 0;
+    mTakeProfit = ConstantValues::EmptyDouble;
+    mExpiration = 0;
+    mProfit = ConstantValues::EmptyDouble;
     mCommission = ConstantValues::EmptyDouble;
 
     mPartials.Clear();

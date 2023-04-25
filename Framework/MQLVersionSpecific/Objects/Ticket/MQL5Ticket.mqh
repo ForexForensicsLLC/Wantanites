@@ -8,28 +8,28 @@
 #property version "1.00"
 #property strict
 
+#include <Trade\Trade.mqh>
 #include <Wantanites\Framework\MQLVersionSpecific\Objects\Ticket\BaseTicket.mqh>
 
-enum PropertyType
+enum TicketStatus
 {
-    Integer,
-    Double,
-    String
+    Pending,
+    Active,
+    ClosedPending,
+    ClosedDeal
 };
 
 class Ticket : public BaseTicket
 {
 private:
-    void Init();
+    CTrade mTrade;
+    TicketStatus mStatus;
 
 protected:
-    ulong mPositionNumber;
-    ulong mDealNumber;
-
-    template <typename T>
-    int GetProperty(PropertyType type, int property, T &value);
-
+    int SelectDeal(ENUM_DEAL_ENTRY dealType, ulong &dealTicket);
     virtual int SelectIfOpen(string action);
+
+    int SelectIfClosed(string action, ulong &dealTicket);
     virtual int SelectIfClosed(string action);
 
 public:
@@ -37,9 +37,7 @@ public:
     Ticket(int ticketNumber);
     Ticket(Ticket &ticket);
 
-    virtual ulong Number();
-    ulong PositionNumber() { return mPositionNumber; }
-    ulong DealNumber() { return mDealNumber; }
+    TicketStatus Status() { return mStatus; }
 
     virtual TicketType Type();
     virtual double OpenPrice();
@@ -54,111 +52,109 @@ public:
     virtual double Commission();
 
     virtual int Close();
+    virtual int ClosePartial(double price, double lotSize);
 };
 
 Ticket::Ticket() : BaseTicket()
 {
-    Init();
+    mStatus = TicketStatus::Pending;
 }
 
 Ticket::Ticket(int ticketNumber) : BaseTicket(ticketNumber)
 {
-    Init();
+    mStatus = TicketStatus::Pending;
 }
 
 Ticket::Ticket(Ticket &ticket) : BaseTicket(ticket)
 {
-    mPositionNumber = ticket.PositionNumber();
-    mDealNumber = ticket.DealNumber();
+    mStatus = ticket.Status();
 }
 
-void Ticket::Init()
+int Ticket::SelectDeal(ENUM_DEAL_ENTRY dealType, ulong &dealTicket)
 {
-    mPositionNumber = ConstantValues::EmptyInt;
-    mDealNumber = ConstantValues::EmptyInt;
-}
-
-template <typename T>
-int Ticket::GetProperty(PropertyType type, int property, T &value)
-{
-    value = NULL;
-    int openSelectError = SelectIfOpen("Getting Type");
-    if (openSelectError == Errors::NO_ERROR)
+    for (int i = 0; i < HistoryDealsTotal(); i++)
     {
-        switch (type)
+        ulong ticket = HistoryDealGetTicket(i);
+        if (ticket <= 0)
         {
-        case PropertyType::Integer:
-            value = OrderGetInteger((ENUM_ORDER_PROPERTY_INTEGER)property);
-            break;
-        case PropertyType::Double:
-            value = OrderGetDouble((ENUM_ORDER_PROPERTY_DOUBLE)property);
-            break;
-        case PropertyType::String:
-            value = OrderGetString((ENUM_ORDER_PROPERTY_STRING)property);
-            break;
-        default:
-            return Errors::WRONG_TYPE;
+            continue;
+        }
+
+        ulong positionNumber = HistoryDealGetInteger(ticket, DEAL_POSITION_ID);
+        if (positionNumber == mNumber && HistoryDealGetInteger(ticket, DEAL_ENTRY) == dealType)
+        {
+            HistoryDealSelect(ticket);
+            dealTicket = ticket;
+
+            return Errors::NO_ERROR;
         }
     }
 
-    if (property == NULL)
+    return Errors::ORDER_NOT_FOUND;
+}
+
+int Ticket::SelectIfOpen(string action)
+{
+    if (mStatus == TicketStatus::ClosedPending || mStatus == TicketStatus::ClosedDeal)
     {
-        int closedSelectError = SelectIfClosed("Getting Type");
-        if (closedSelectError == Errors::NO_ERROR)
+        return Errors::ORDER_IS_CLOSED;
+    }
+
+    bool found = false;
+    if (mStatus == TicketStatus::Pending)
+    {
+        found = OrderSelect(mNumber);
+    }
+
+    if (mStatus == TicketStatus::Active || !found)
+    {
+        if (PositionSelectByTicket(mNumber))
         {
-            switch (type)
+            if (mStatus != TicketStatus::Active)
             {
-            case PropertyType::Integer:
-                value = HistoryOrderGetInteger(Number(), (ENUM_ORDER_PROPERTY_INTEGER)property);
-                break;
-            case PropertyType::Double:
-                value = HistoryOrderGetDouble(Number(), (ENUM_ORDER_PROPERTY_DOUBLE)property);
-                break;
-            case PropertyType::String:
-                value = HistoryOrderGetString(Number(), (ENUM_ORDER_PROPERTY_STRING)property);
-                break;
-            default:
-                return Errors::WRONG_TYPE;
+                mStatus = TicketStatus::Active;
             }
-        }
 
-        if (value == NULL)
-        {
-            SendMail("Unable To Retrieve Type",
-                     "Error: " + IntegerToString(closedSelectError) + "\n" +
-                         "Ticket Number: " + IntegerToString(mNumber));
-
-            return closedSelectError;
+            found = true;
         }
+    }
+
+    if (!found)
+    {
+        return Errors::ORDER_NOT_FOUND;
     }
 
     return Errors::NO_ERROR;
 }
 
-int Ticket::SelectIfOpen(string action)
+int Ticket::SelectIfClosed(string action, ulong &dealTicket)
 {
-    if (!OrderSelect(mNumber))
+    datetime currentTime = TimeCurrent();
+    HistorySelect(currentTime - (60 * 60 * 24), currentTime);
+
+    // need to first check if the ticket is still opened as History Orders will have our ticket even if it is a current position
+    if ((mStatus != TicketStatus::ClosedPending && mStatus != TicketStatus::ClosedDeal) && SelectIfOpen("Selecting if closed") == Errors::NO_ERROR)
     {
-        bool found = false;
-        for (int i = 0; i < OrdersTotal(); i++)
-        {
-            ulong ticket = OrderGetTicket(i);
-            if (ticket <= 0)
-            {
-                continue;
-            }
+        return Errors::ORDER_IS_OPEN;
+    }
 
-            if (ticket == mNumber)
-            {
-                found = true;
-                break;
-            }
-        }
-
-        if (!found)
+    if (SelectDeal(DEAL_ENTRY_OUT, dealTicket) == Errors::NO_ERROR)
+    {
+        if (mStatus != TicketStatus::ClosedDeal)
         {
-            return Errors::ORDER_NOT_FOUND;
+            mStatus = TicketStatus::ClosedDeal;
         }
+    }
+    else if (HistoryOrderSelect(mNumber))
+    {
+        if (mStatus != TicketStatus::ClosedPending)
+        {
+            mStatus = TicketStatus::ClosedPending;
+        }
+    }
+    else
+    {
+        return Errors::ORDER_NOT_FOUND;
     }
 
     return Errors::NO_ERROR;
@@ -166,71 +162,102 @@ int Ticket::SelectIfOpen(string action)
 
 int Ticket::SelectIfClosed(string action)
 {
-    if (!HistoryOrderSelect(mNumber))
-    {
-        bool found = false;
-        for (int i = 0; i < HistoryOrdersTotal(); i++)
-        {
-            ulong ticket = HistoryOrderGetTicket(i);
-            if (ticket <= 0)
-            {
-                continue;
-            }
-
-            if (ticket == mNumber)
-            {
-                found = true;
-                break;
-            }
-        }
-
-        if (!found)
-        {
-            return Errors::ORDER_NOT_FOUND;
-        }
-    }
-
-    return Errors::NO_ERROR;
-}
-
-ulong Ticket::Number()
-{
-    return 0;
+    ulong tempTicket = -1;
+    return SelectIfClosed(action, tempTicket);
 }
 
 TicketType Ticket::Type()
 {
-    if (mType == TicketType::Buy || mType == TicketType::Sell)
+    if (mType != TicketType::Empty)
     {
         return mType;
     }
 
-    int type;
-    int error = GetProperty<int>(PropertyType::Integer, ORDER_TYPE, type);
-    if (error != Errors::NO_ERROR)
+    int type = -1;
+    int openError = SelectIfOpen("Getting type");
+    if (openError == Errors::NO_ERROR)
     {
-        return TicketType::Empty;
+        if (mStatus == TicketStatus::Pending)
+        {
+            type = OrderGetInteger(ORDER_TYPE);
+            switch ((ENUM_ORDER_TYPE)type)
+            {
+            case ORDER_TYPE_BUY_LIMIT:
+                return mType;
+            case ORDER_TYPE_SELL_LIMIT:
+                return mType;
+            case ORDER_TYPE_BUY_STOP:
+                return mType;
+            case ORDER_TYPE_SELL_STOP:
+                return mType;
+            default:
+                return TicketType::Empty;
+            }
+        }
+        else if (mStatus == TicketStatus::Active)
+        {
+            type = PositionGetInteger(POSITION_TYPE);
+            switch ((ENUM_POSITION_TYPE)type)
+            {
+            case POSITION_TYPE_BUY:
+                mType = TicketType::Buy;
+                return mType;
+            case POSITION_TYPE_SELL:
+                mType = TicketType::Sell;
+                return mType;
+            default:
+                return TicketType::Empty;
+            }
+        }
+    }
+    else
+    {
+        ulong dealTicket = -1;
+        int closedError = SelectIfClosed("Getting Type", dealTicket);
+        if (closedError != Errors::NO_ERROR)
+        {
+            return closedError;
+        }
+
+        if (mStatus == TicketStatus::ClosedPending)
+        {
+            type = HistoryOrderGetInteger(mNumber, ORDER_TYPE);
+            switch ((ENUM_ORDER_TYPE)type)
+            {
+            case ORDER_TYPE_BUY_LIMIT:
+                mType = TicketType::BuyLimit;
+                return mType;
+            case ORDER_TYPE_SELL_LIMIT:
+                mType = TicketType::SellLimit;
+                return mType;
+            case ORDER_TYPE_BUY_STOP:
+                mType = TicketType::BuyStop;
+                return mType;
+            case ORDER_TYPE_SELL_STOP:
+                mType = TicketType::SellStop;
+                return mType;
+            default:
+                return TicketType::Empty;
+            }
+        }
+        else if (mStatus == TicketStatus::ClosedDeal)
+        {
+            type = HistoryDealGetInteger(dealTicket, DEAL_TYPE);
+            switch ((ENUM_DEAL_TYPE)type)
+            {
+            case DEAL_TYPE_BUY:
+                mType = TicketType::Buy;
+                return mType;
+            case DEAL_TYPE_SELL:
+                mType = TicketType::Sell;
+                return mType;
+            default:
+                return TicketType::Empty;
+            }
+        }
     }
 
-    switch ((ENUM_ORDER_TYPE)type)
-    {
-    case ORDER_TYPE_BUY:
-        mType = TicketType::Buy;
-        return mType;
-    case ORDER_TYPE_SELL:
-        mType = TicketType::Sell;
-        return mType;
-    case ORDER_TYPE_BUY_LIMIT:
-        return TicketType::BuyLimit;
-    case ORDER_TYPE_SELL_LIMIT:
-        return TicketType::SellLimit;
-    case ORDER_TYPE_BUY_STOP:
-        return TicketType::BuyStop;
-    case ORDER_TYPE_SELL_STOP:
-        return TicketType::SellStop;
-    default:
-        return TicketType::Empty;
-    }
+    return TicketType::Empty;
 }
 
 double Ticket::OpenPrice()
@@ -240,14 +267,14 @@ double Ticket::OpenPrice()
         return mOpenPrice;
     }
 
-    double openPrice;
-    int error = GetProperty<double>(PropertyType::Double, ORDER_PRICE_CURRENT, openPrice);
-    if (error != Errors::NO_ERROR)
+    ulong dealTicket;
+    int dealSelectError = SelectDeal(DEAL_ENTRY_IN, dealTicket);
+    if (dealSelectError != Errors::NO_ERROR)
     {
         return ConstantValues::EmptyDouble;
     }
 
-    mOpenPrice = openPrice;
+    mOpenPrice = HistoryDealGetDouble(dealTicket, DEAL_PRICE);
     return mOpenPrice;
 }
 
@@ -258,14 +285,14 @@ datetime Ticket::OpenTime()
         return mOpenTime;
     }
 
-    datetime openTime;
-    int error = GetProperty<datetime>(PropertyType::Integer, ORDER_TIME_SETUP, openTime);
-    if (error != Errors::NO_ERROR)
+    ulong dealTicket;
+    int dealSelectError = SelectDeal(DEAL_ENTRY_IN, dealTicket);
+    if (dealSelectError != Errors::NO_ERROR)
     {
         return 0;
     }
 
-    mOpenTime = openTime;
+    mOpenTime = HistoryDealGetInteger(dealTicket, DEAL_TIME);
     return mOpenTime;
 }
 
@@ -276,67 +303,288 @@ double Ticket::LotSize()
         return mLotSize;
     }
 
-    double lotSize;
-    int error = GetProperty<double>(PropertyType::Double, ORDER_VOLUME_CURRENT, lotSize);
-    if (error != Errors::NO_ERROR)
+    ulong dealTicket;
+    int dealSelectError = SelectDeal(DEAL_ENTRY_IN, dealTicket);
+    if (dealSelectError != Errors::NO_ERROR)
     {
         return ConstantValues::EmptyDouble;
     }
 
-    mLotSize = lotSize;
-    return mLotSize;
+    mOpenPrice = HistoryDealGetDouble(dealTicket, DEAL_VOLUME);
+    return mOpenPrice;
 }
 
 double Ticket::CurrentStopLoss()
 {
-    double currentStopLoss;
-    int error = GetProperty<double>(PropertyType::Double, ORDER_SL, currentStopLoss);
-    if (error != Errors::NO_ERROR)
+    if (mCurrentStopLoss != ConstantValues::EmptyDouble)
     {
-        return ConstantValues::EmptyDouble;
+        return mCurrentStopLoss;
     }
 
-    return currentStopLoss;
-}
+    int openError = SelectIfOpen("Getting SL");
+    if (openError == Errors::NO_ERROR)
+    {
+        if (mStatus == TicketStatus::Pending)
+        {
+            return OrderGetDouble(ORDER_SL);
+        }
+        else if (mStatus == TicketStatus::Active)
+        {
+            return PositionGetDouble(POSITION_SL);
+        }
+    }
+    else
+    {
+        ulong dealTicket = ConstantValues::EmptyInt;
+        int closedError = SelectIfClosed("Getting SL", dealTicket);
+        if (closedError != Errors::NO_ERROR)
+        {
+            return closedError;
+        }
 
+        if (mStatus == TicketStatus::ClosedPending)
+        {
+            mCurrentStopLoss = HistoryOrderGetDouble(mNumber, ORDER_SL);
+        }
+        else if (mStatus == TicketStatus::ClosedDeal)
+        {
+            mCurrentStopLoss = HistoryDealGetDouble(dealTicket, DEAL_SL);
+        }
+    }
+
+    return mCurrentStopLoss;
+}
 double Ticket::ClosePrice()
 {
-    double currentStopLoss;
-    int error = GetProperty<double>(PropertyType::Double, ORDER_SL, currentStopLoss);
-    if (error != Errors::NO_ERROR)
+    if (mClosePrice != ConstantValues::EmptyDouble)
+    {
+        return mClosePrice;
+    }
+
+    ulong dealTicket;
+    int dealSelectError = SelectDeal(DEAL_ENTRY_OUT, dealTicket);
+    if (dealSelectError != Errors::NO_ERROR)
     {
         return ConstantValues::EmptyDouble;
     }
 
-    return currentStopLoss;
+    mClosePrice = HistoryDealGetDouble(dealTicket, DEAL_PRICE);
+    return mClosePrice;
 }
 
 datetime Ticket::CloseTime()
 {
-    return 0;
+    if (mCloseTime != 0)
+    {
+        return mCloseTime;
+    }
+
+    ulong dealTicket;
+    int dealSelectError = SelectDeal(DEAL_ENTRY_OUT, dealTicket);
+    if (dealSelectError != Errors::NO_ERROR)
+    {
+        return 0;
+    }
+
+    mCloseTime = HistoryDealGetInteger(dealTicket, DEAL_TIME);
+    return mCloseTime;
 }
 
 double Ticket::TakeProfit()
 {
-    return 0;
+    if (mTakeProfit != ConstantValues::EmptyDouble)
+    {
+        return mTakeProfit;
+    }
+
+    int openError = SelectIfOpen("Getting SL");
+    if (openError == Errors::NO_ERROR)
+    {
+        if (mStatus == TicketStatus::Pending)
+        {
+            return OrderGetDouble(ORDER_TP);
+        }
+        else if (mStatus == TicketStatus::Active)
+        {
+            return PositionGetDouble(POSITION_TP);
+        }
+    }
+    else
+    {
+        ulong dealTicket = ConstantValues::EmptyInt;
+        int closedError = SelectIfClosed("Getting SL", dealTicket);
+        if (closedError != Errors::NO_ERROR)
+        {
+            return closedError;
+        }
+
+        if (mStatus == TicketStatus::ClosedPending)
+        {
+            mTakeProfit = HistoryOrderGetDouble(mNumber, ORDER_TP);
+        }
+        else if (mStatus == TicketStatus::ClosedDeal)
+        {
+            mTakeProfit = HistoryDealGetDouble(dealTicket, DEAL_TP);
+        }
+    }
+
+    return mTakeProfit;
 }
 
 datetime Ticket::Expiration()
 {
-    return 0;
+    if (mExpiration != 0)
+    {
+        return mExpiration;
+    }
+
+    int openSelectError = SelectIfOpen("Getting Expiration");
+    if (openSelectError == Errors::NO_ERROR)
+    {
+        if (mStatus == TicketStatus::Pending)
+        {
+            mExpiration = OrderGetInteger(ORDER_TIME_EXPIRATION);
+        }
+        else if (mStatus == TicketStatus::Active)
+        {
+            return 0;
+        }
+    }
+    else
+    {
+        int closedSelectError = SelectIfClosed("Getting Expiration");
+        if (closedSelectError != Errors::NO_ERROR)
+        {
+            return 0;
+        }
+
+        if (mStatus == TicketStatus::ClosedPending)
+        {
+            mExpiration = HistoryOrderGetInteger(mNumber, ORDER_TIME_EXPIRATION);
+        }
+        else if (mStatus == TicketStatus::ClosedDeal)
+        {
+            return 0;
+        }
+    }
+
+    return mExpiration;
 }
 
 double Ticket::Profit()
 {
-    return 0;
+    if (mProfit != ConstantValues::EmptyDouble)
+    {
+        return mProfit;
+    }
+
+    int openError = SelectIfOpen("Getting SL");
+    if (openError == Errors::NO_ERROR)
+    {
+        if (mStatus == TicketStatus::Pending)
+        {
+            return ConstantValues::EmptyDouble;
+        }
+        else if (mStatus == TicketStatus::Active)
+        {
+            return PositionGetDouble(POSITION_PROFIT);
+        }
+    }
+    else
+    {
+        ulong dealTicket = ConstantValues::EmptyInt;
+        int closedError = SelectIfClosed("Getting SL", dealTicket);
+        if (closedError != Errors::NO_ERROR)
+        {
+            return closedError;
+        }
+
+        if (mStatus == TicketStatus::ClosedPending)
+        {
+            return ConstantValues::EmptyDouble;
+        }
+        else if (mStatus == TicketStatus::ClosedDeal)
+        {
+            mProfit = HistoryDealGetDouble(dealTicket, DEAL_PROFIT);
+        }
+    }
+
+    return mProfit;
 }
 
 double Ticket::Commission()
 {
-    return 0;
+    if (mCommission != ConstantValues::EmptyDouble)
+    {
+        return mCommission;
+    }
+
+    ulong dealTicket;
+    double commissions = 0.0;
+
+    int dealSelectErrorOne = SelectDeal(DEAL_ENTRY_IN, dealTicket);
+    if (dealSelectErrorOne != Errors::NO_ERROR)
+    {
+        return 0;
+    }
+
+    commissions += HistoryDealGetDouble(dealTicket, DEAL_COMMISSION);
+
+    int dealSelectErrorTwo = SelectDeal(DEAL_ENTRY_OUT, dealTicket);
+    if (dealSelectErrorTwo != Errors::NO_ERROR)
+    {
+        return commissions;
+    }
+
+    commissions += HistoryDealGetDouble(dealTicket, DEAL_COMMISSION);
+    mCommission = commissions;
+
+    return mCommission;
 }
 
 int Ticket::Close()
 {
-    return 0;
+    int openSelectError = SelectIfOpen("Closing");
+    if (openSelectError != Errors::NO_ERROR)
+    {
+        return openSelectError;
+    }
+
+    if (mStatus == TicketStatus::Pending)
+    {
+        if (!mTrade.OrderDelete(mNumber))
+        {
+            return GetLastError();
+        }
+    }
+    else if (mStatus == TicketStatus::Active)
+    {
+        if (!mTrade.PositionClose(mNumber))
+        {
+            return GetLastError();
+        }
+    }
+
+    return Errors::NO_ERROR;
+}
+
+int Ticket::ClosePartial(double price, double lotSize)
+{
+    int openSelectError = SelectIfOpen("Closing");
+    if (openSelectError != Errors::NO_ERROR)
+    {
+        return openSelectError;
+    }
+
+    if (mStatus != TicketStatus::Active)
+    {
+        return Errors::WRONG_ORDER_TYPE;
+    }
+
+    if (!mTrade.PositionClosePartial(mNumber, lotSize))
+    {
+        return GetLastError();
+    }
+
+    return Errors::NO_ERROR;
 }

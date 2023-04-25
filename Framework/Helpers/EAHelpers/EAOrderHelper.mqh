@@ -1261,7 +1261,7 @@ static void EAOrderHelper::CheckPartialTicket(TEA &ea, Ticket &ticket)
         lotsToPartial = ea.mTM.CleanLotSize(currentTicketLots * ticket.mPartials[0].PercentAsDecimal());
     }
 
-    int partialError = ea.mTM.CloseOrder(ticket.Number(), currentPrice, lotsToPartial);
+    int partialError = ticket.Partial(currentPrice, lotsToPartial);
     if (partialError != Errors::NO_ERROR)
     {
         ea.RecordError(__FUNCTION__, partialError);
