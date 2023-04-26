@@ -23,7 +23,6 @@ private:
     bool mLastCloseCheck;
     bool mLastActiveCheck;
 
-    bool mWasActivated;
     bool mIsClosed;
 
     double mExpectedOpenPrice;
@@ -32,6 +31,8 @@ private:
     double mRRAcquired;
     double mDistanceRanFromOpen;
     bool mStopLossIsMovedToBreakEven;
+
+    double mAccountBalanceBefore;
 
 protected:
     ulong mNumber;
@@ -47,6 +48,7 @@ protected:
     double mProfit;
     double mCommission;
 
+    bool mWasActivated;
     bool mWasManuallyClosed;
 
     virtual int SelectIfOpen(string action) = NULL;
@@ -75,6 +77,9 @@ public:
     double OriginalStopLoss() { return mOriginalStopLoss; }
     void OriginalStopLoss(double originalStopLoss) { mOriginalStopLoss = originalStopLoss; }
 
+    double AccountBalanceBefore() { return mAccountBalanceBefore; }
+    void AccountBalanceBefore(double accountBalanceBefore) { mAccountBalanceBefore = accountBalanceBefore; }
+
     virtual double OpenPrice() = NULL;
     virtual datetime OpenTime() = NULL;
     virtual double LotSize() = NULL;
@@ -99,7 +104,7 @@ public:
     void UpdateTicketNumber(int newTicketNumber);
 
     int IsActive(bool &isActive);
-    int WasActivated(bool &active);
+    virtual int WasActivated(bool &active) = NULL;
     int WasActivatedSinceLastCheck(string checker, bool &active);
 
     int IsClosed(bool &closed);
@@ -155,6 +160,7 @@ BaseTicket::BaseTicket(BaseTicket &ticket)
     mExpiration = ticket.Expiration();
     mProfit = ticket.Profit();
     mCommission = ticket.Commission();
+    mAccountBalanceBefore = ticket.AccountBalanceBefore();
 
     mWasManuallyClosed = false;
 
@@ -199,6 +205,8 @@ void BaseTicket::SetNewTicket(int ticket)
     mProfit = ConstantValues::EmptyDouble;
     mCommission = ConstantValues::EmptyDouble;
 
+    mAccountBalanceBefore = ConstantValues::EmptyDouble;
+
     mPartials.Clear();
     mActivatedSinceLastCheckCheckers.Clear();
     mClosedSinceLastCheckCheckers.Clear();
@@ -224,34 +232,6 @@ int BaseTicket::IsActive(bool &isActive)
 
     TicketType type = Type();
     isActive = type == TicketType::Buy || type == TicketType::Sell;
-    return Errors::NO_ERROR;
-}
-
-int BaseTicket::WasActivated(bool &wasActivated)
-{
-    if (mWasActivated)
-    {
-        wasActivated = mWasActivated;
-        return Errors::NO_ERROR;
-    }
-
-    int selectFromOpenOrdersError = SelectIfOpen("Checking if order is activated fallback open");
-    if (selectFromOpenOrdersError != Errors::NO_ERROR)
-    {
-        // if we failed finding it we could have opened and closed the ticket between the last check.
-        // If so we should check the closed tickets to see if our ticket is there
-        int selectFromClosedOrdersError = SelectIfClosed("Checking if order is activated fallback closed");
-        if (selectFromClosedOrdersError != Errors::NO_ERROR)
-        {
-            wasActivated = false;
-            return selectFromClosedOrdersError;
-        }
-    }
-
-    TicketType type = Type();
-    mWasActivated = type == TicketType::Buy || type == TicketType::Sell;
-    wasActivated = mWasActivated;
-
     return Errors::NO_ERROR;
 }
 

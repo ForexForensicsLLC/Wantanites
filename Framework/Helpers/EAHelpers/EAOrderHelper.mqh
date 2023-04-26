@@ -27,7 +27,7 @@ class EAOrderHelper
     static bool PrePlaceOrderChecks(TEA &ea);
     template <typename TEA>
     static void PostPlaceOrderChecks(TEA &ea, string methodName, int ticketNumber, int error, TicketType ticketType, double originalEntry, double stopLoss, double lotSize,
-                                     double takeProfit);
+                                     double takeProfit, double accountBalanceBefore);
 
     // =========================================================================
     // Base Order Methods
@@ -222,7 +222,7 @@ static bool EAOrderHelper::PrePlaceOrderChecks(TEA &ea)
 
 template <typename TEA>
 static void EAOrderHelper::PostPlaceOrderChecks(TEA &ea, string methodName, int ticketNumber, int error, TicketType ticketType, double expectedEntry, double stopLoss,
-                                                double lotSize, double takeProfit)
+                                                double lotSize, double takeProfit, double accountBalanceBefore)
 {
     if (ticketNumber == ConstantValues::EmptyInt)
     {
@@ -244,6 +244,7 @@ static void EAOrderHelper::PostPlaceOrderChecks(TEA &ea, string methodName, int 
     Ticket *ticket = new Ticket(ticketNumber);
     ticket.SetPartials(ea.mPartialRRs, ea.mPartialPercents);
     ticket.ExpectedOpenPrice(expectedEntry);
+    ticket.AccountBalanceBefore(accountBalanceBefore);
 
     ea.mCurrentSetupTickets.Add(ticket);
 }
@@ -263,9 +264,10 @@ template <typename TEA>
 static void EAOrderHelper::InternalPlaceMarketOrder(TEA &ea, TicketType ticketType, double entryPrice, double stopLoss, double lotSize, double takeProfit)
 {
     int ticket = ConstantValues::EmptyInt;
+    double accountBalanceBefore = AccountInfoDouble(ACCOUNT_BALANCE);
     int orderPlaceError = ea.mTM.PlaceMarketOrder(ticketType, lotSize, entryPrice, stopLoss, takeProfit, ticket);
 
-    PostPlaceOrderChecks<TEA>(ea, __FUNCTION__, ticket, orderPlaceError, ticketType, entryPrice, stopLoss, lotSize, takeProfit);
+    PostPlaceOrderChecks<TEA>(ea, __FUNCTION__, ticket, orderPlaceError, ticketType, entryPrice, stopLoss, lotSize, takeProfit, accountBalanceBefore);
 }
 
 template <typename TEA>
@@ -308,6 +310,7 @@ static void EAOrderHelper::InternalPlaceLimitOrder(TEA &ea, TicketType ticketTyp
 {
     int ticket = ConstantValues::EmptyInt;
     int orderPlaceError = Errors::NO_ERROR;
+    double accountBalanceBefore = AccountInfoDouble(ACCOUNT_BALANCE);
 
     if (ticketType == TicketType::BuyLimit)
     {
@@ -332,7 +335,7 @@ static void EAOrderHelper::InternalPlaceLimitOrder(TEA &ea, TicketType ticketTyp
         }
     }
 
-    PostPlaceOrderChecks<TEA>(ea, __FUNCTION__, ticket, orderPlaceError, ticketType, entryPrice, stopLoss, lotSize, 0);
+    PostPlaceOrderChecks<TEA>(ea, __FUNCTION__, ticket, orderPlaceError, ticketType, entryPrice, stopLoss, lotSize, 0, accountBalanceBefore);
 }
 
 template <typename TEA>
@@ -375,6 +378,7 @@ static void EAOrderHelper::InternalPlaceStopOrder(TEA &ea, TicketType ticketType
 {
     int ticket = ConstantValues::EmptyInt;
     int orderPlaceError = Errors::NO_ERROR;
+    double accountBalanceBefore = AccountInfoDouble(ACCOUNT_BALANCE);
 
     if (ticketType == TicketType::BuyStop)
     {
@@ -399,7 +403,7 @@ static void EAOrderHelper::InternalPlaceStopOrder(TEA &ea, TicketType ticketType
         }
     }
 
-    PostPlaceOrderChecks<TEA>(ea, __FUNCTION__, ticket, orderPlaceError, ticketType, entryPrice, stopLoss, lotSize, 0);
+    PostPlaceOrderChecks<TEA>(ea, __FUNCTION__, ticket, orderPlaceError, ticketType, entryPrice, stopLoss, lotSize, 0, accountBalanceBefore);
 }
 
 template <typename TEA>

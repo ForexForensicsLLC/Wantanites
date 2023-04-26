@@ -64,11 +64,12 @@ double TradeManager::CleanLotSize(double dirtyLotSize)
 
     // cut off extra decimal places
     double cleanedLots = NormalizeDouble(dirtyLotSize, 2);
-
     // make sure we are not larger than the max
     cleanedLots = MathMin(cleanedLots, maxLotSize);
     // make sure we are not lower than the min
     cleanedLots = MathMax(cleanedLots, minLotSize);
+    // make sure we have the correct step
+    cleanedLots = MathRound(cleanedLots / lotStep) * lotStep;
 
     return cleanedLots;
 }

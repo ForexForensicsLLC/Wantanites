@@ -24,7 +24,7 @@ protected:
 
     int mRowCount;
 
-    void CheckWriteHeaders(TRecord &record);
+    void CheckWriteHeaders();
     void Init();
     void CountRows();
 
@@ -73,6 +73,8 @@ void CSVRecordWriter::Init()
 
     mRowCount = 1;
     CountRows();
+
+    CheckWriteHeaders();
 }
 
 template <typename TRecord>
@@ -164,12 +166,21 @@ void CSVRecordWriter::CountRows()
 }
 
 template <typename TRecord>
-void CSVRecordWriter::CheckWriteHeaders(TRecord &record)
+void CSVRecordWriter::CheckWriteHeaders()
 {
+    SeekToStart();
+
     if (FileTell(mFileHandle) == 0)
     {
+        TRecord *record = new TRecord();
         record.WriteHeaders(mFileHandle);
         mRowCount += 1;
+
+        delete record;
+    }
+    else
+    {
+        Print("Didn't write headers. FileTell Value: ", FileTell(mFileHandle));
     }
 }
 
@@ -191,7 +202,6 @@ void CSVRecordWriter::WriteRecord(TRecord &record)
         return;
     }
 
-    CheckWriteHeaders(record);
     FileWriteString(mFileHandle, "\n");
 
     record.RowNumber = mRowCount;

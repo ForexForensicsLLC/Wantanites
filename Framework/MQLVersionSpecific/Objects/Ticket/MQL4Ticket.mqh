@@ -34,6 +34,8 @@ public:
     virtual double Profit();
     virtual double Commission();
 
+    virtual int WasActivated(bool &active);
+
     virtual int Close();
     virtual int ClosePartial(double price, double lotSize);
 };
@@ -352,6 +354,34 @@ double Ticket::Commission()
     }
 
     return OrderCommission();
+}
+
+int Ticket::WasActivated(bool &wasActivated)
+{
+    if (mWasActivated)
+    {
+        wasActivated = mWasActivated;
+        return Errors::NO_ERROR;
+    }
+
+    int selectFromOpenOrdersError = SelectIfOpen("Checking if order is activated fallback open");
+    if (selectFromOpenOrdersError != Errors::NO_ERROR)
+    {
+        // if we failed finding it we could have opened and closed the ticket between the last check.
+        // If so we should check the closed tickets to see if our ticket is there
+        int selectFromClosedOrdersError = SelectIfClosed("Checking if order is activated fallback closed");
+        if (selectFromClosedOrdersError != Errors::NO_ERROR)
+        {
+            wasActivated = false;
+            return selectFromClosedOrdersError;
+        }
+    }
+
+    TicketType type = Type();
+    mWasActivated = type == TicketType::Buy || type == TicketType::Sell;
+    wasActivated = mWasActivated;
+
+    return Errors::NO_ERROR;
 }
 
 int Ticket::Close()

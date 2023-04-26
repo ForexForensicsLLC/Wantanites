@@ -8,6 +8,8 @@
 #property version "1.00"
 #property strict
 
+#include <Wantanites\Framework\Constants\ConstantValues.mqh>
+
 #include <Wantanites\Framework\Utilities\Crypter.mqh>
 #include <Wantanites\Framework\Constants\LicenseObjects.mqh>
 #include <Wantanites\Framework\Objects\DataStructures\SortedDictionary.mqh>

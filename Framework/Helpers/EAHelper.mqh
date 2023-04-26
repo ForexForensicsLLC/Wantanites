@@ -1336,7 +1336,7 @@ static void EAHelper::SetDefaultEntryTradeData(TEA &ea, TRecord &record, Ticket 
     record.TicketNumber = ticket.Number();
     record.Symbol = Symbol();
     record.OrderDirection = ticket.Type() == TicketType::Buy ? "Buy" : "Sell";
-    record.AccountBalanceBefore = AccountInfoDouble(ACCOUNT_BALANCE);
+    record.AccountBalanceBefore = ticket.AccountBalanceBefore();
     record.Lots = ticket.LotSize();
     record.EntryTime = ticket.OpenTime();
     record.EntryPrice = ticket.OpenPrice();

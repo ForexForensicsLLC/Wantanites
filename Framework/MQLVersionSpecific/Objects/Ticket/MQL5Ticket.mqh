@@ -51,6 +51,8 @@ public:
     virtual double Profit();
     virtual double Commission();
 
+    virtual int WasActivated(bool &wasActivated);
+
     virtual int Close();
     virtual int ClosePartial(double price, double lotSize);
 };
@@ -72,6 +74,9 @@ Ticket::Ticket(Ticket &ticket) : BaseTicket(ticket)
 
 int Ticket::SelectDeal(ENUM_DEAL_ENTRY dealType, ulong &dealTicket)
 {
+    datetime currentTime = TimeCurrent();
+    HistorySelect(currentTime - (60 * 60 * 24), currentTime);
+
     for (int i = 0; i < HistoryDealsTotal(); i++)
     {
         ulong ticket = HistoryDealGetTicket(i);
@@ -129,9 +134,6 @@ int Ticket::SelectIfOpen(string action)
 
 int Ticket::SelectIfClosed(string action, ulong &dealTicket)
 {
-    datetime currentTime = TimeCurrent();
-    HistorySelect(currentTime - (60 * 60 * 24), currentTime);
-
     // need to first check if the ticket is still opened as History Orders will have our ticket even if it is a current position
     if ((mStatus != TicketStatus::ClosedPending && mStatus != TicketStatus::ClosedDeal) && SelectIfOpen("Selecting if closed") == Errors::NO_ERROR)
     {
@@ -310,8 +312,8 @@ double Ticket::LotSize()
         return ConstantValues::EmptyDouble;
     }
 
-    mOpenPrice = HistoryDealGetDouble(dealTicket, DEAL_VOLUME);
-    return mOpenPrice;
+    mLotSize = HistoryDealGetDouble(dealTicket, DEAL_VOLUME);
+    return mLotSize;
 }
 
 double Ticket::CurrentStopLoss()
@@ -542,6 +544,28 @@ double Ticket::Commission()
     return mCommission;
 }
 
+int Ticket::WasActivated(bool &wasActivated)
+{
+    if (mWasActivated)
+    {
+        wasActivated = mWasActivated;
+        return Errors::NO_ERROR;
+    }
+
+    ulong tempDealTicket = -1;
+    int selectDealError = SelectDeal(DEAL_ENTRY_IN, tempDealTicket);
+    if (selectDealError != Errors::NO_ERROR)
+    {
+        wasActivated = false;
+        return selectDealError;
+    }
+
+    mWasActivated = true;
+    wasActivated = mWasActivated;
+
+    return Errors::NO_ERROR;
+}
+
 int Ticket::Close()
 {
     int openSelectError = SelectIfOpen("Closing");
@@ -565,6 +589,7 @@ int Ticket::Close()
         }
     }
 
+    mWasManuallyClosed = true;
     return Errors::NO_ERROR;
 }
 

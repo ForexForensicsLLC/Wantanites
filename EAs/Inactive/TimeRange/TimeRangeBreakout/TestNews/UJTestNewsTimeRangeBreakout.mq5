@@ -25,7 +25,7 @@ string EAName = "UJ/";
 string SetupTypeName = "TestNewsContinuation/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
-LicenseManager *LM;
+// LicenseManager *LM;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
@@ -54,8 +54,8 @@ int OnInit()
         return INIT_PARAMETERS_INCORRECT;
     }
 
-    LM = new LicenseManager();
-    LM.AddLicense(Licenses::SmartMoney);
+    // LM = new LicenseManager();
+    //  LM.AddLicense(Licenses::SmartMoney);
 
     TS = new TradingSession();
     TS.AddHourMinuteSession(4, 0, 23, 0);
@@ -91,7 +91,7 @@ int OnInit()
 
 void OnDeinit(const int reason)
 {
-    delete LM;
+    // delete LM;
 
     delete TRB;
 
@@ -107,28 +107,28 @@ void OnDeinit(const int reason)
     delete ErrorWriter;
 }
 
-bool HasLicense = false;
+bool HasLicense = true;
 datetime LastValidatedTime = 0;
 void OnTick()
 {
     if (HasLicense)
     {
         // reset license every day
-        if (TimeCurrent() - LastValidatedTime > (60 * 60 * 24))
-        {
-            HasLicense = false;
-            LastValidatedTime = 0;
-        }
+        // if (TimeCurrent() - LastValidatedTime > (60 * 60 * 24))
+        // {
+        //     HasLicense = false;
+        //     LastValidatedTime = 0;
+        // }
 
         TRBBuys.Run();
         TRBSells.Run();
     }
-    else
-    {
-        HasLicense = EAInitHelper::HasLicenses(LM);
-        if (HasLicense)
-        {
-            LastValidatedTime = TimeCurrent();
-        }
-    }
+    // else
+    // {
+    //     HasLicense = EAInitHelper::HasLicenses(LM);
+    //     if (HasLicense)
+    //     {
+    //         LastValidatedTime = TimeCurrent();
+    //     }
+    // }
 }

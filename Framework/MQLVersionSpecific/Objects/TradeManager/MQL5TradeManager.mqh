@@ -44,7 +44,7 @@ int VersionSpecificTradeManager::CheckResult(int &ticket)
     MqlTradeResult result;
     trade.Result(result);
 
-    if (result.retcode == 10008)
+    if (result.retcode >= 10008 && result.retcode <= 10010)
     {
         if (result.deal > 0)
         {
