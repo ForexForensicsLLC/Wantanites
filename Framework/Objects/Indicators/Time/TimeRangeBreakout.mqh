@@ -231,9 +231,10 @@ void TimeRangeBreakout::Draw()
 
     if (mRangeHigh > 0 && mUpdateRangeHigh)
     {
+        datetime tomorrow = TimeCurrent() + (60 * 60 * 24);
         ObjectDelete(NULL, mObjectNamePrefix + "_high");
 
-        ObjectCreate(NULL, mObjectNamePrefix + "_high", OBJ_TREND, 0, mRangeStartTime, mRangeHigh, mRangeEndTime, mRangeHigh);
+        ObjectCreate(NULL, mObjectNamePrefix + "_high", OBJ_TREND, 0, mRangeStartTime, mRangeHigh, tomorrow, mRangeHigh);
         ObjectSetInteger(NULL, mObjectNamePrefix + "_high", OBJPROP_COLOR, clrBlue);
         ObjectSetInteger(NULL, mObjectNamePrefix + "_high", OBJPROP_WIDTH, 2);
 
@@ -242,9 +243,10 @@ void TimeRangeBreakout::Draw()
 
     if (mRangeLow > 0 && mUpdateRangeLow)
     {
+        datetime tomorrow = TimeCurrent() + (60 * 60 * 24);
         ObjectDelete(NULL, mObjectNamePrefix + "_low");
 
-        ObjectCreate(NULL, mObjectNamePrefix + "_low", OBJ_TREND, 0, mRangeStartTime, mRangeLow, mRangeEndTime, mRangeLow);
+        ObjectCreate(NULL, mObjectNamePrefix + "_low", OBJ_TREND, 0, mRangeStartTime, mRangeLow, tomorrow, mRangeLow);
         ObjectSetInteger(NULL, mObjectNamePrefix + "_low", OBJPROP_COLOR, clrBlue);
         ObjectSetInteger(NULL, mObjectNamePrefix + "_low", OBJPROP_WIDTH, 2);
 
