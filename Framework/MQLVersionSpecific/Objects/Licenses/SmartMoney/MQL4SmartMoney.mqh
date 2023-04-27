@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Objects\Licenses\License.mqh>
+#include <Wantanites\Framework\Objects\DataObjects\License.mqh>
 
 class SmartMoneyLicense : public License
 {
@@ -24,7 +24,40 @@ SmartMoneyLicense::SmartMoneyLicense()
     mLicenseObjectNamePrefix = LicenseObjects::SmartMoney;
     mLicenseKey = String::Random(20);
 
-    iCustom(Symbol(), Period(), "SmartMoney", "", 1, 1, false, false, false, false, "", -1, -1, "", mLicenseKey, 0, 0);
+    iCustom(Symbol(), Period(), "SmartMoney",
+            // -- Structure --
+            "",
+            1,
+            1,
+            1,
+            1,
+            false,
+            // -- Zones --
+            "",
+            1,
+            false,
+            1,
+            1,
+            false,
+            false,
+            false,
+            1,
+            false,
+            false,
+            // -- Colors --
+            "",
+            clrBlack,
+            clrBlack,
+            clrBlack,
+            clrBlack,
+            clrBlack,
+            clrBlack,
+            // -- Licensing --
+            "",
+            mLicenseKey,
+            false,
+            0,  // mode
+            0); // shift
 }
 
 SmartMoneyLicense::~SmartMoneyLicense()

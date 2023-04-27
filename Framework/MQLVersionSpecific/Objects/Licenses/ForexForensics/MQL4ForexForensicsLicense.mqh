@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Objects\Licenses\License.mqh>
+#include <Wantanites\Framework\Objects\DataObjects\License.mqh>
 
 class ForexForensicsLicense : public License
 {

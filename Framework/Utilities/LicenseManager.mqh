@@ -8,7 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Objects\Licenses\Index.mqh>
+#include <Wantanites\Framework\MQLVersionSpecific\Objects\Licenses\Index.mqh>
 #include <Wantanites\Framework\Objects\DataStructures\List.mqh>
 
 enum Licenses

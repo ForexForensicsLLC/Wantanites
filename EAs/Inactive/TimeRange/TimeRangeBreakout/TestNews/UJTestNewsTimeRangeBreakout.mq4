@@ -53,6 +53,7 @@ int OnInit()
     }
 
     LM = new LicenseManager();
+    LM.AddLicense(Licenses::SmartMoney);
 
     TS = new TradingSession();
     TS.AddHourMinuteSession(4, 0, 23, 0);
@@ -104,17 +105,17 @@ void OnDeinit(const int reason)
     delete ErrorWriter;
 }
 
-bool HasLicense = true;
+bool HasLicense = false;
 datetime LastValidatedTime = 0;
 void OnTick()
 {
     if (HasLicense)
     {
-        // if (TimeCurrent() - LastValidatedTime > (60 * 60 * 24))
-        // {
-        //     HasLicense = false;
-        //     LastValidatedTime = 0;
-        // }
+        if (TimeCurrent() - LastValidatedTime > (60 * 60 * 24))
+        {
+            HasLicense = false;
+            LastValidatedTime = 0;
+        }
 
         TRBBuys.Run();
         TRBSells.Run();

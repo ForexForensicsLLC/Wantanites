@@ -22,6 +22,8 @@ public:
     static double Ask(string symbol);
     static double Bid(string symbol);
 
+    static long CurrentChartID();
+
     static bool GetLowest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &lowIndex);
     static bool GetHighest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &highIndex);
 
@@ -50,6 +52,11 @@ static double MQLHelper::Bid(string symbol)
 {
     return SymbolInfoDouble(symbol, SYMBOL_BID);
 }
+
+static long MQLHelper::CurrentChartID()
+{
+    return VersionSpecificMQLHelper::CurrentChartID();
+}
 /**
  * @brief
  *
@@ -65,12 +72,12 @@ static double MQLHelper::Bid(string symbol)
  */
 static bool MQLHelper::GetLowest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &lowIndex)
 {
-    return MQLVersionSpecificHelper::GetLowest(symbol, timeFrame, mode, count, startIndex, inclusive, lowIndex);
+    return VersionSpecificMQLHelper::GetLowest(symbol, timeFrame, mode, count, startIndex, inclusive, lowIndex);
 }
 
 static bool MQLHelper::GetHighest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &highIndex)
 {
-    return MQLVersionSpecificHelper::GetHighest(symbol, timeFrame, mode, count, startIndex, inclusive, highIndex);
+    return VersionSpecificMQLHelper::GetHighest(symbol, timeFrame, mode, count, startIndex, inclusive, highIndex);
 }
 
 static bool MQLHelper::GetLowestIndexBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, int &lowIndex)

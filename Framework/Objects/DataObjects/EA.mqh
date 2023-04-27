@@ -160,6 +160,8 @@ EA::~EA()
 {
     delete mTM;
 
+    delete mEAGroupMagicNumbers;
+
     delete mCurrentSetupTickets;
     delete mPreviousSetupTickets;
 

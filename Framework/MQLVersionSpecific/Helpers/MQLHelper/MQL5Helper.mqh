@@ -8,12 +8,20 @@
 #property version "1.00"
 #property strict
 
-class MQLVersionSpecificHelper
+class VersionSpecificMQLHelper
 {
 public:
+    static long CurrentChartID();
+
     static bool GetLowest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &lowIndex);
     static bool GetHighest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &highIndex);
 };
+
+static long VersionSpecificMQLHelper::CurrentChartID()
+{
+    // ChartID always seems to work in mql5 no matter if we are in the strategy tester or not
+    return ChartID();
+}
 /**
  * @brief
  *
@@ -27,7 +35,7 @@ public:
  * @return true
  * @return false
  */
-static bool MQLVersionSpecificHelper::GetLowest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &lowIndex)
+static bool VersionSpecificMQLHelper::GetLowest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &lowIndex)
 {
     if (inclusive)
     {
@@ -54,7 +62,7 @@ static bool MQLVersionSpecificHelper::GetLowest(string symbol, ENUM_TIMEFRAMES t
     return true;
 }
 
-static bool MQLVersionSpecificHelper::GetHighest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &highIndex)
+static bool VersionSpecificMQLHelper::GetHighest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &highIndex)
 {
     if (inclusive)
     {
