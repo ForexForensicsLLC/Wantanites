@@ -25,6 +25,8 @@ SmartMoneyLicense::SmartMoneyLicense()
     mLicenseKey = String::Random(20);
 
     iCustom(Symbol(), Period(), "SmartMoney",
+            // -- Init --
+            1,
             // -- Structure --
             "",
             1,

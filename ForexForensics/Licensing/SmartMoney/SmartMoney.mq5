@@ -16,6 +16,9 @@
 
 string ButtonName = "ClearButton";
 
+input string InitSettings = "------ Init -------"; // -
+input int BarStart = 400;                          // Bars Back to Start Calculating From (-1=All Bars)
+
 input string StructureSettings = "------- Structure ---------"; // -
 input int StructureBoxesToTrack = 10;
 input int MinCandlesInStructure = 3;
@@ -51,10 +54,10 @@ MBTracker *MBT;
 
 int OnInit()
 {
-    MBT = new MBTracker(false, Symbol(), Period(), StructureBoxesToTrack, MinCandlesInStructure, StructureValidatedBy, StructureBrokenBy, ShowPendingStructure,
-                        MaxZonesInStructure, AllowZonesAfterStructureValidation, ZonesBrokenBy, RequiredZonePartInStructure, AllowMitigatedZones, AllowOverlappingZones,
-                        ShowPendingZones, PendingZonesBrokenBy, AllowPendingMitigatedZones, AllowPendingOverlappingZones, BullishStructure, BearishStructure, DemandZone,
-                        SupplyZone, PendingDemandZone, PendingSupplyZone);
+    MBT = new MBTracker(false, Symbol(), Period(), BarStart, StructureBoxesToTrack, MinCandlesInStructure, StructureValidatedBy, StructureBrokenBy,
+                        ShowPendingStructure, MaxZonesInStructure, AllowZonesAfterStructureValidation, ZonesBrokenBy, RequiredZonePartInStructure, AllowMitigatedZones,
+                        AllowOverlappingZones, ShowPendingZones, PendingZonesBrokenBy, AllowPendingMitigatedZones, AllowPendingOverlappingZones, BullishStructure,
+                        BearishStructure, DemandZone, SupplyZone, PendingDemandZone, PendingSupplyZone);
 
     if (LicenseKey != "")
     {
@@ -76,9 +79,14 @@ void OnDeinit(const int reason)
 
 int OnCalculate(const int rates_total,
                 const int prev_calculated,
-                const int begin,
-                const double &price[])
-
+                const datetime &time[],
+                const double &open[],
+                const double &high[],
+                const double &low[],
+                const double &close[],
+                const long &tick_volume[],
+                const long &volume[],
+                const int &spread[])
 {
     if (ShouldRun)
     {

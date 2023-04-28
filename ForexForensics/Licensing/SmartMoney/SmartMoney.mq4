@@ -16,6 +16,9 @@
 
 string ButtonName = "ClearButton";
 
+input string InitSettings = "------ Init -------"; // -
+input int BarStart = 400;                          // Bars Back to Start Calculating From (-1=All Bars)
+
 input string StructureSettings = "------- Structure ---------"; // -
 input int StructureBoxesToTrack = 10;
 input int MinCandlesInStructure = 3;
@@ -51,10 +54,10 @@ MBTracker *MBT;
 
 int OnInit()
 {
-    MBT = new MBTracker(false, Symbol(), (ENUM_TIMEFRAMES)Period(), StructureBoxesToTrack, MinCandlesInStructure, StructureValidatedBy, StructureBrokenBy, ShowPendingStructure,
-                        MaxZonesInStructure, AllowZonesAfterStructureValidation, ZonesBrokenBy, RequiredZonePartInStructure, AllowMitigatedZones, AllowOverlappingZones,
-                        ShowPendingZones, PendingZonesBrokenBy, AllowPendingMitigatedZones, AllowPendingOverlappingZones, BullishStructure, BearishStructure, DemandZone,
-                        SupplyZone, PendingDemandZone, PendingSupplyZone);
+    MBT = new MBTracker(false, Symbol(), Period(), BarStart, StructureBoxesToTrack, MinCandlesInStructure, StructureValidatedBy, StructureBrokenBy,
+                        ShowPendingStructure, MaxZonesInStructure, AllowZonesAfterStructureValidation, ZonesBrokenBy, RequiredZonePartInStructure, AllowMitigatedZones,
+                        AllowOverlappingZones, ShowPendingZones, PendingZonesBrokenBy, AllowPendingMitigatedZones, AllowPendingOverlappingZones, BullishStructure,
+                        BearishStructure, DemandZone, SupplyZone, PendingDemandZone, PendingSupplyZone);
 
     if (LicenseKey != "")
     {

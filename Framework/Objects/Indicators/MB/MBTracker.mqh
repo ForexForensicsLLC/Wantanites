@@ -21,6 +21,7 @@ private:
     bool mCalculateOnTick; // Needs to be true when on the 1 second chart or else we'll miss values
     ENUM_TIMEFRAMES mTimeFrame;
     string mSymbol;
+    int mBarStart;
     int mPrevCalculated;
     datetime mFirstBarTime;
     bool mInitialLoad;
@@ -98,8 +99,8 @@ public:
     bool HasPendingBearishMB() { return mHasPendingBearishMB; }
 
     // --- Constructors / Destructors ---
-    MBTracker(bool calculatedOnTick, string symbol, ENUM_TIMEFRAMES timeFrame, int mbsToTrack, int minCandlesInMB, CandlePart mbsValidatedBy, CandlePart mbsBrokenBy,
-              bool showPendingMBs, int maxZonesInMB, bool allowZonesAfterMBValidation, CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB,
+    MBTracker(bool calculatedOnTick, string symbol, ENUM_TIMEFRAMES timeFrame, int barStart, int mbsToTrack, int minCandlesInMB, CandlePart mbsValidatedBy,
+              CandlePart mbsBrokenBy, bool showPendingMBs, int maxZonesInMB, bool allowZonesAfterMBValidation, CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB,
               bool allowMitigatedZones, bool allowOverlappingZones, bool showPendingZones, CandlePart pendingZonesBrokenBy, bool allowPendingMitigatedZones,
               bool allowPendingOverlappingZones, color bullishMBColor, color bearishMBColor, color demandZoneColor, color supplyZoneColor, color pendingDemandZoneColor,
               color pendingSupplyZoneColor);
@@ -165,7 +166,7 @@ public:
 void MBTracker::Update()
 {
     // how many bars are available to calcualte
-    int bars = iBars(mSymbol, mTimeFrame);
+    int bars = mBarStart == ConstantValues::EmptyInt ? iBars(mSymbol, mTimeFrame) : mBarStart;
     datetime firstBarTime = iTime(mSymbol, mTimeFrame, bars - 1);
 
     // how many bars to calculate
@@ -200,6 +201,7 @@ void MBTracker::Update()
     // only calculate when a new bar gets created. Will calcualte on the previous bar
     else
     {
+        // Calcualte MBs for each bar we have left
         for (int i = limit; i > 0; i--)
         {
             // This is added so that the inital load of MBs still functions as usual
@@ -211,9 +213,6 @@ void MBTracker::Update()
             CalculateMB(i);
         }
     }
-
-    // Calcualte MBs for each bar we have left
-    // removed -1 from limit here, i don't think it should be there
 
     mPrevCalculated = bars;
     mInitialLoad = false;
@@ -900,8 +899,8 @@ bool MBTracker::InternalNthMostRecentMBIsOpposite(int nthMB)
 // ##############################################################
 
 // -------------- Constructors / Destructors --------------------
-MBTracker::MBTracker(bool calculateOnTick, string symbol, ENUM_TIMEFRAMES timeFrame, int mbsToTrack, int minCandlesInMB, CandlePart mbsValidatedBy, CandlePart mbsBrokenBy,
-                     bool showPendingMBs, int maxZonesInMB, bool allowZonesAfterMBValidation, CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB,
+MBTracker::MBTracker(bool calculateOnTick, string symbol, ENUM_TIMEFRAMES timeFrame, int barStart, int mbsToTrack, int minCandlesInMB, CandlePart mbsValidatedBy,
+                     CandlePart mbsBrokenBy, bool showPendingMBs, int maxZonesInMB, bool allowZonesAfterMBValidation, CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB,
                      bool allowMitigatedZones, bool allowOverlappingZones, bool showPendingZones, CandlePart pendingZonesBrokenBy, bool allowPendingMitigatedZones,
                      bool allowPendingOverlappingZones, color bullishMBColor = clrLimeGreen, color bearishMBColor = clrRed, color demandZoneColor = clrGold,
                      color supplyZoneColor = clrMediumVioletRed, color pendingDemandZoneColor = clrYellow, color pendingSupplyZoneColor = clrAqua)
@@ -909,6 +908,7 @@ MBTracker::MBTracker(bool calculateOnTick, string symbol, ENUM_TIMEFRAMES timeFr
     mCalculateOnTick = calculateOnTick;
     mSymbol = symbol;
     mTimeFrame = timeFrame;
+    mBarStart = barStart;
     mPrevCalculated = 0;
     mFirstBarTime = 0;
     mInitialLoad = true;
@@ -954,6 +954,10 @@ MBTracker::~MBTracker()
     {
         delete mMBs[i];
     }
+
+    // Make sure all objects are deleted
+    ObjectsDeleteAll(ChartID(), "MB");
+    ObjectsDeleteAll(ChartID(), "Zone");
 
     delete mPendingBullishMB;
     delete mPendingBearishMB;

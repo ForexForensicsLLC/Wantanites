@@ -25,6 +25,7 @@ string EAName = "UJ/";
 string SetupTypeName = "TestNewsContinuation/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
+List<int> *LicensedAccountNumbers;
 LicenseManager *LM;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -45,15 +46,16 @@ TestNewsTimeRangeBreakout *TRBSells;
 double MaxSpreadPips = 3;
 double StopLossPaddingPips = 0;
 
+bool IsLicensedAccount = false;
+bool HasLicense = false;
+datetime LastValidatedTime = 0;
+
 int OnInit()
 {
     if (!EAInitHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
     {
         return INIT_PARAMETERS_INCORRECT;
     }
-
-    LM = new LicenseManager();
-    LM.AddLicense(Licenses::SmartMoney);
 
     TS = new TradingSession();
     TS.AddHourMinuteSession(4, 0, 23, 0);
@@ -84,6 +86,15 @@ int OnInit()
     TRBSells.mEconomicEventImpacts = EconomicEventImpacts;
     TRBSells.AddTradingSession(TS);
 
+    LicensedAccountNumbers = new List<int>();
+    LicensedAccountNumbers.Add(1051598151);
+    IsLicensedAccount = LicensedAccountNumbers.Contains(AccountInfoInteger(ACCOUNT_LOGIN));
+    if (!IsLicensedAccount)
+    {
+        LM = new LicenseManager();
+        LM.AddLicense(Licenses::SmartMoney);
+    }
+
     return (INIT_SUCCEEDED);
 }
 
@@ -103,14 +114,20 @@ void OnDeinit(const int reason)
     delete EntryWriter;
     delete ExitWriter;
     delete ErrorWriter;
+
+    delete LicensedAccountNumbers;
 }
 
-bool HasLicense = false;
-datetime LastValidatedTime = 0;
 void OnTick()
 {
-    if (HasLicense)
+    if (IsLicensedAccount)
     {
+        TRBBuys.Run();
+        TRBSells.Run();
+    }
+    else if (HasLicense)
+    {
+        // Reset the license each day to make sure they still have it
         if (TimeCurrent() - LastValidatedTime > (60 * 60 * 24))
         {
             HasLicense = false;
