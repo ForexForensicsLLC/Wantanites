@@ -550,16 +550,8 @@ MB::MB(bool isPending, string symbol, ENUM_TIMEFRAMES timeFrame, int number, Sig
 
 MB::~MB()
 {
-    GetLastError();
-    if (ObjectsDeleteAll(ChartID(), mName, 0, OBJ_RECTANGLE) == 0)
-    {
-        if (mNumber == 316)
-        {
-            Print("No Structure Objects deleted. Error: ", GetLastError());
-        }
-    }
-
-    ObjectsDeleteAll(ChartID(), mName + "imp");
+    ObjectsDeleteAll(ChartID(), mName, 0, OBJ_RECTANGLE)
+        ObjectsDeleteAll(ChartID(), mName + "imp");
 
     delete mZones;
 }
