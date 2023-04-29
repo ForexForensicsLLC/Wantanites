@@ -11,10 +11,23 @@
 class VersionSpecificOrderInfoHelper
 {
 public:
+    static int TotalCurrentOrders();
+
     static int CountOtherEAOrders(bool todayOnly, List<int> &magicNumbers, int &orderCount);
+    static int GetAllActiveTickets(List<int> &ticketNumbers);
     static int FindActiveTicketsByMagicNumber(int magicNumber, int &tickets[]);
     static int FindNewTicketAfterPartial(int magicNumber, double openPrice, datetime orderOpenTime, int &ticket);
 };
+
+static int VersionSpecificOrderInfoHelper::TotalCurrentOrders()
+{
+    return OrdersTotal();
+}
+
+int VersionSpecificOrderInfoHelper::TotalCurrentOrders()
+{
+    return OrdersTotal();
+}
 
 int VersionSpecificOrderInfoHelper::CountOtherEAOrders(bool todayOnly, List<int> &magicNumbers, int &orderCount)
 {
@@ -48,6 +61,23 @@ int VersionSpecificOrderInfoHelper::CountOtherEAOrders(bool todayOnly, List<int>
     }
 
     return Errors::NO_ERROR;
+}
+
+int VersionSpecificOrderInfoHelper::GetAllActiveTickets(List<int> ticketNumbers)
+{
+    error = Errors::NO_ERROR;
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+        {
+            error = GetLastError();
+            continue;
+        }
+
+        ticketNumbers.Add(OrderTicket());
+    }
+
+    return error;
 }
 
 int VersionSpecificOrderInfoHelper::FindActiveTicketsByMagicNumber(int magicNumber, int &tickets[])

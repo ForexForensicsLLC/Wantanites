@@ -550,8 +550,8 @@ MB::MB(bool isPending, string symbol, ENUM_TIMEFRAMES timeFrame, int number, Sig
 
 MB::~MB()
 {
-    ObjectsDeleteAll(ChartID(), mName, 0, OBJ_RECTANGLE)
-        ObjectsDeleteAll(ChartID(), mName + "imp");
+    ObjectsDeleteAll(ChartID(), mName, 0, OBJ_RECTANGLE);
+    ObjectsDeleteAll(ChartID(), mName + "imp");
 
     delete mZones;
 }

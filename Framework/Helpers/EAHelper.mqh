@@ -99,6 +99,8 @@ public:
     static void GetEconomicEventsForDate(TEA &ea, string calendar, datetime utcDate, List<string> *&titles, List<string> *&symbols, List<int> *&impacts, bool ignoreDuplicateTimes);
     template <typename TEA>
     static bool CandleIsDuringEconomicEvent(TEA &ea, int candleIndex);
+    template <typename TEA>
+    static bool GetEconomicEventsForCandle(TEA &ea, ObjectList<EconomicEvent> &events, int candleIndex);
 
     // =========================================================================
     // Check Invalidate Setup
@@ -199,6 +201,11 @@ public:
     static void RecordForexForensicsEntryTradeRecord(TEA &ea, Ticket &ticket);
     template <typename TEA>
     static void RecordForexForensicsExitTradeRecord(TEA &ea, Ticket &ticket, ENUM_TIMEFRAMES entryTimeFrame);
+
+    template <typename TEA>
+    static void RecordFeatureEngineeringEntryTradeRecord(TEA &ea, Ticket &ticket);
+    template <typename TEA>
+    static void RecordFeatureEngineeringExitTradeRecord(TEA &ea, Ticket &ticket, ENUM_TIMEFRAMES entryTimeFrame);
 };
 /*
 
@@ -1133,6 +1140,25 @@ static bool EAHelper::CandleIsDuringEconomicEvent(TEA &ea, int candleIndex = 0)
 }
 
 template <typename TEA>
+static bool EAHelper::GetEconomicEventsForCandle(TEA &ea, ObjectList<EconomicEvent> &events, int candleIndex = 0)
+{
+    // iTime looks like it always returns the exact bar time but it doesn't hurt to make sure
+    datetime currentBarTime = iTime(ea.EntrySymbol(), ea.EntryTimeFrame(), candleIndex);
+    int secondsPerCandle = ea.EntryTimeFrame() * 60;
+    datetime exactBarTime = currentBarTime - (currentBarTime % secondsPerCandle); // get exact bar time
+
+    for (int i = 0; i < ea.mEconomicEvents.Size(); i++)
+    {
+        if (MathAbs(ea.mEconomicEvents[i].Date() - exactBarTime) <= secondsPerCandle)
+        {
+            events.Add(ea.mEconomicEvents[i]);
+        }
+    }
+
+    return events.Size() > 0;
+}
+
+template <typename TEA>
 static bool EAHelper::MBWithinWidth(TEA &ea, MBTracker *mbt, int mbNumber, int minWidth = 0, int maxWidth = 0)
 {
     ea.mLastState = EAStates::CHECKING_FOR_CONFIRMATION;
@@ -1656,6 +1682,66 @@ static void EAHelper::RecordForexForensicsExitTradeRecord(TEA &ea, Ticket &ticke
     SetDefaultCloseTradeData<TEA, ForexForensicsExitTradeRecord>(ea, record, ticket, entryTimeFrame);
 
     record.FurthestEquityDrawdownPercent = ea.mFurthestEquityDrawdownPercent;
+    ea.mExitCSVRecordWriter.WriteRecord(record);
+    delete record;
+}
+
+template <typename TEA>
+static void EAHelper::RecordFeatureEngineeringEntryTradeRecord(TEA &ea, Ticket &ticket)
+{
+    FeatureEngineeringEntryTradeRecord *record = new FeatureEngineeringEntryTradeRecord();
+    SetDefaultEntryTradeData<TEA, FeatureEngineeringEntryTradeRecord>(ea, record, ticket);
+
+    int entryCandle = iBarShift(ea.EntrySymbol(), ea.EntryTimeFrame(), ticket.OpenTime());
+    ObjectList<EconomicEvent> *Events = new ObjectList<EconomicEvent>();
+    if (GetEconomicEventsForCandle<TEA>(ea, Events, entryCandle))
+    {
+        record.DuringNews = true;
+
+        for (int i = 0; i < Events.Size(); i++)
+        {
+            if (Events[i].Impact() > record.NewsImpact)
+            {
+                record.NewsImpact = Events[i].Impact();
+            }
+        }
+    }
+    else
+    {
+        record.DuringNews = false;
+        record.NewsImpact = -1;
+    }
+
+    record.DayOfWeek = DateTimeHelper::CurrentDayOfWeek();
+
+    record.PreviousCandleWasBullish = CandleStickHelper::IsBullish(ea.EntrySymbol(), ea.EntryTimeFrame(), entryCandle + 1);
+
+    record.EntryAboveFiveEMA = IndicatorHelper::MovingAverage(ea.EntrySymbol(), ea.EntryTimeFrame(), 5, 0, MODE_EMA, PRICE_CLOSE, entryCandle) > ticket.OpenPrice();
+    record.EntryAboveFiftyEMA = IndicatorHelper::MovingAverage(ea.EntrySymbol(), ea.EntryTimeFrame(), 50, 0, MODE_EMA, PRICE_CLOSE, entryCandle) > ticket.OpenPrice();
+    record.EntryAboveTwoHundreadEMA = IndicatorHelper::MovingAverage(ea.EntrySymbol(), ea.EntryTimeFrame(), 200, 0, MODE_EMA, PRICE_CLOSE, entryCandle) > ticket.OpenPrice();
+
+    record.FivePeriodOBVAverageChange = IndicatorHelper::OnBalanceValueAverageChange(ea.Symbol(), ea.TimeFrame(), PRICE_CLOSE, 5);
+    record.TenPeriodOBVAverageChange = IndicatorHelper::OnBalanceValueAverageChange(ea.Symbol(), ea.TimeFrame(), PRICE_CLOSE, 10);
+    record.TwentyPeriodOBVAverageChange = IndicatorHelper::OnBalanceValueAverageChange(ea.Symbol(), ea.TimeFrame(), PRICE_CLOSE, 20);
+    record.FourtyPeriodOBVAverageChange = IndicatorHelper::OnBalanceValueAverageChange(ea.Symbol(), ea.TimeFrame(), PRICE_CLOSE, 40);
+
+    record.EntryDuringRSIAboveThirty = IndicatorHelper::RSI(ea.EntrySymbol(), ea.EntryTimeFrame(), 14, 0, PRICE_CLOSE, entryCandle) > 30;
+    record.EntryDuringRSIAboveFifty = IndicatorHelper::RSI(ea.EntrySymbol(), ea.EntryTimeFrame(), 14, 0, PRICE_CLOSE, entryCandle) > 50;
+    record.EntryDuringRSIAboveSeventy = IndicatorHelper::RSI(ea.EntrySymbol(), ea.EntryTimeFrame(), 14, 0, PRICE_CLOSE, entryCandle) > 70;
+
+    ea.mEntryCSVRecordWriter.WriteRecord(record);
+    delete record;
+}
+
+template <typename TEA>
+static void EAHelper::RecordFeatureEngineeringExitTradeRecord(TEA &ea, Ticket &ticket, ENUM_TIMEFRAMES entryTimeFrame)
+{
+    FeatureEngineeringExitTradeRecord *record = new FeatureEngineeringExitTradeRecord();
+    SetDefaultCloseTradeData<TEA, FeatureEngineeringExitTradeRecord>(ea, record, ticket, entryTimeFrame);
+
+    record.FurthestEquityDrawdownPercent = ea.mFurthestEquityDrawdownPercent;
+    record.Outcome = ticket.Profit() > 0 ? "Win" : "Lose";
+
     ea.mExitCSVRecordWriter.WriteRecord(record);
     delete record;
 }

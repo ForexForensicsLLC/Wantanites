@@ -69,6 +69,9 @@ public:
     static void PlaceStopOrderForCandelBreak(TEA &ea, int entryCandleIndex, int stopLossCandleIndex, double takeProfit,
                                              TicketType ticketType, double lotSize);
 
+    template <typename TEA>
+    static void MimicOrders(TEA &ea);
+
     // =========================================================================
     // Moving to Break Even
     // =========================================================================
@@ -702,6 +705,26 @@ static void EAOrderHelper::PlaceStopOrderForCandelBreak(TEA &ea, int entryCandle
     int orderPlaceError = ea.mTM.PlaceStopOrder(type, lots, entryPrice, stopLoss, takeProfit, ticketNumber);
 
     PostPlaceOrderChecks<TEA>(ea, __FUNCTION__, ticketNumber, orderPlaceError, ticketType, entryPrice, stopLoss, lotSize, takeProfit);
+}
+
+template <typename TEA>
+static void EAOrderHelper::MimicOrders(TEA &ea)
+{
+    if (OrderInfoHelper::TotalCurrentOrders() > ea.mCurrentSetupTickets.Size())
+    {
+        List<int> tickets = new List < int();
+        OrderInfoHelper::GetAllActiveTickets(tickets);
+
+        for (int i = 0; i < tickets.Size(); i++)
+        {
+            if (!ea.mCurrentSetupTickets.Contains<TTicketNumberLocator, int>(Ticket::EqualsTicketNumber, tickets[i]))
+            {
+                Ticket *ticket = new Ticket(tickets[i]);
+                ticket.OpenPrice(ticket.OpenPrice());
+                mCurrentSetupTickets.Add(ticket);
+            }
+        }
+    }
 }
 /*
 
