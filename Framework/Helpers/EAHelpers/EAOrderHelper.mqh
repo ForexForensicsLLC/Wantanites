@@ -712,7 +712,7 @@ static void EAOrderHelper::MimicOrders(TEA &ea)
 {
     if (OrderInfoHelper::TotalCurrentOrders() > ea.mCurrentSetupTickets.Size())
     {
-        List<int> tickets = new List < int();
+        List<int> *tickets = new List<int>();
         OrderInfoHelper::GetAllActiveTickets(tickets);
 
         for (int i = 0; i < tickets.Size(); i++)
@@ -720,10 +720,11 @@ static void EAOrderHelper::MimicOrders(TEA &ea)
             if (!ea.mCurrentSetupTickets.Contains<TTicketNumberLocator, int>(Ticket::EqualsTicketNumber, tickets[i]))
             {
                 Ticket *ticket = new Ticket(tickets[i]);
-                ticket.OpenPrice(ticket.OpenPrice());
-                mCurrentSetupTickets.Add(ticket);
+                ea.mCurrentSetupTickets.Add(ticket);
             }
         }
+
+        delete tickets;
     }
 }
 /*
@@ -1456,16 +1457,7 @@ static double EAOrderHelper::GetTotalTicketsEquityPercentChange(TEA &ea, double 
     double profits = 0.0;
     for (int i = 0; i < tickets.Size(); i++)
     {
-        int selectError = tickets[i].SelectIfOpen("Getting Profit");
-        if (Errors::IsTerminalError(selectError))
-        {
-            ea.RecordError(__FUNCTION__, selectError);
-            continue;
-        }
-        else
-        {
-            profits += OrderProfit();
-        }
+        profits += tickets[i].Profit();
     }
 
     double finalEquity = startingEquity + profits;
@@ -1478,6 +1470,7 @@ static double EAOrderHelper::GetTotalTicketsEquityPercentChange(TEA &ea, double 
 
     return (finalEquity - startingEquity) / finalEquity * 100;
 }
+
 template <typename TEA>
 static bool EAOrderHelper::TicketStopLossIsMovedToBreakEven(TEA &ea, Ticket &ticket)
 {

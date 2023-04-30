@@ -8,10 +8,12 @@
 #property version "1.00"
 #property strict
 
+#include <Wantanites\Framework\Types\SignalTypes.mqh>
+
 class HeikinAshiCandle
 {
 private:
-    int mType;
+    SignalType mType;
     datetime mCandleTime;
 
     double mOpen;
@@ -23,11 +25,11 @@ private:
 
 public:
     HeikinAshiCandle();
-    HeikinAshiCandle(int type, int index, double open, double close, double high, double low);
+    HeikinAshiCandle(SignalType type, int index, double open, double close, double high, double low);
     HeikinAshiCandle(HeikinAshiCandle &candle);
     ~HeikinAshiCandle();
 
-    int Type() { return mType; }
+    SignalType Type() { return mType; }
     int Index() { return iBarShift(Symbol(), Period(), mCandleTime); }
     datetime CandleTime() { return mCandleTime; }
 
@@ -42,7 +44,7 @@ HeikinAshiCandle::HeikinAshiCandle()
 {
 }
 
-HeikinAshiCandle::HeikinAshiCandle(int type, int index, double open, double close, double high, double low)
+HeikinAshiCandle::HeikinAshiCandle(SignalType type, int index, double open, double close, double high, double low)
 {
     mType = type;
     mCandleTime = iTime(Symbol(), Period(), index);

@@ -18,6 +18,7 @@
 #include <Wantanites\Framework\Helpers\SetupHelper.mqh>
 #include <Wantanites\Framework\Helpers\ScreenShotHelper.mqh>
 #include <Wantanites\Framework\Helpers\CandleStickHelper.mqh>
+#include <Wantanites\Framework\MQLVersionSpecific\Helpers\IndicatorHelper\IndicatorHelper.mqh>
 
 #include <Wantanites\Framework\Helpers\ObjectHelpers\EconomicCalendarHelper.mqh>
 
@@ -96,7 +97,8 @@ public:
     static bool MostRecentCandleBrokeDateRange(TEA &ea);
 
     template <typename TEA>
-    static void GetEconomicEventsForDate(TEA &ea, string calendar, datetime utcDate, List<string> *&titles, List<string> *&symbols, List<int> *&impacts, bool ignoreDuplicateTimes);
+    static void GetEconomicEventsForDate(TEA &ea, string calendar, datetime utcDate, List<string> *&titles, List<string> *&symbols, List<int> *&impacts,
+                                         bool ignoreDuplicateTimes);
     template <typename TEA>
     static bool CandleIsDuringEconomicEvent(TEA &ea, int candleIndex);
     template <typename TEA>
@@ -155,6 +157,8 @@ public:
     static bool PriceIsFurtherThanPercentIntoHoldingZone(TEA &ea, MBTracker *&mbt, int mbNumber, double price, double percentAsDecimal);
     template <typename TEA>
     static bool CandleIsInZone(TEA &ea, MBTracker *mbt, int mbNumber, int candleIndex, bool furthest);
+    template <typename TEA>
+    static bool CandleIsInPendingZone(TEA &ea, MBTracker *&mbt, SignalType mbType, int candleIndex, bool furthest);
     // =========================================================================
     // Record Data
     // =========================================================================
@@ -1151,7 +1155,8 @@ static bool EAHelper::GetEconomicEventsForCandle(TEA &ea, ObjectList<EconomicEve
     {
         if (MathAbs(ea.mEconomicEvents[i].Date() - exactBarTime) <= secondsPerCandle)
         {
-            events.Add(ea.mEconomicEvents[i]);
+            EconomicEvent *event = ea.mEconomicEvents[i];
+            events.Add(event);
         }
     }
 
@@ -1308,14 +1313,14 @@ static bool EAHelper::CandleIsInZone(TEA &ea, MBTracker *mbt, int mbNumber, int 
     }
 
     bool isTrue = false;
-    if (tempMBState.Type() == OP_BUY)
+    if (tempMBState.Type() == SignalType::Bullish)
     {
         isTrue = tempZoneState.CandleIsInZone(candleIndex);
 
         if (furthest)
         {
             int lowestIndex = ConstantValues::EmptyInt;
-            if (!MQLHelper::GetLowestIndexBetween(ea.mEntrySymbol, ea.mEntryTimeFrame, zoneStart, 0, true, lowestIndex))
+            if (!MQLHelper::GetLowestIndexBetween(ea.EntrySymbol(), ea.EntryTimeFrame(), zoneStart, 0, true, lowestIndex))
             {
                 ea.RecordError(__FUNCTION__, Errors::COULD_NOT_RETRIEVE_LOW);
                 return false;
@@ -1324,14 +1329,14 @@ static bool EAHelper::CandleIsInZone(TEA &ea, MBTracker *mbt, int mbNumber, int 
             isTrue = isTrue && lowestIndex == candleIndex;
         }
     }
-    else if (tempMBState.Type() == OP_SELL)
+    else if (tempMBState.Type() == SignalType::Bearish)
     {
         isTrue = tempZoneState.CandleIsInZone(candleIndex);
 
         if (furthest)
         {
             int highestIndex = ConstantValues::EmptyInt;
-            if (!MQLHelper::GetHighestIndexBetween(ea.mEntrySymbol, ea.mEntryTimeFrame, zoneStart, 0, true, highestIndex))
+            if (!MQLHelper::GetHighestIndexBetween(ea.EntrySymbol(), ea.EntryTimeFrame(), zoneStart, 0, true, highestIndex))
             {
                 ea.RecordError(__FUNCTION__, Errors::COULD_NOT_RETRIEVE_HIGH);
                 return false;
@@ -1342,6 +1347,74 @@ static bool EAHelper::CandleIsInZone(TEA &ea, MBTracker *mbt, int mbNumber, int 
     }
 
     return isTrue;
+}
+
+template <typename TEA>
+static bool EAHelper::CandleIsInPendingZone(TEA &ea, MBTracker *&mbt, SignalType mbType, int candleIndex, bool furthest = false)
+{
+    ZoneState *tempZoneState;
+    int zoneStart = ConstantValues::EmptyInt;
+
+    if (mbType == SignalType::Bullish && mbt.HasPendingBullishMB())
+    {
+        if (!mbt.GetBullishPendingMBsDeepestHoldingZone(tempZoneState))
+        {
+            return false;
+        }
+
+        zoneStart = tempZoneState.StartIndex() - tempZoneState.EntryOffset() - 1;
+
+        if (furthest)
+        {
+            int lowestIndex = ConstantValues::EmptyInt;
+            if (!MQLHelper::GetLowestIndexBetween(ea.EntrySymbol(), ea.EntryTimeFrame(), zoneStart, 0, true, lowestIndex))
+            {
+                ea.RecordError(__FUNCTION__, Errors::COULD_NOT_RETRIEVE_LOW);
+                return false;
+            }
+
+            if (lowestIndex != candleIndex)
+            {
+                return false;
+            }
+        }
+    }
+    else if (mbType == SignalType::Bearish && mbt.HasPendingBearishMB())
+    {
+        if (!mbt.GetBearishPendingMBsDeepestHoldingZone(tempZoneState))
+        {
+            return false;
+        }
+
+        zoneStart = tempZoneState.StartIndex() - tempZoneState.EntryOffset() - 1;
+
+        if (furthest)
+        {
+            int highestIndex = ConstantValues::EmptyInt;
+            if (!MQLHelper::GetHighestIndexBetween(ea.EntrySymbol(), ea.EntryTimeFrame(), zoneStart, 0, true, highestIndex))
+            {
+                ea.RecordError(__FUNCTION__, Errors::COULD_NOT_RETRIEVE_HIGH);
+                return false;
+            }
+
+            if (highestIndex != candleIndex)
+            {
+                return false;
+            }
+        }
+    }
+    else
+    {
+        return false;
+    }
+
+    // don't count the candle if it is the zone or before it
+    if (candleIndex >= zoneStart)
+    {
+        return false;
+    }
+
+    return tempZoneState.CandleIsInZone(candleIndex);
 }
 /*
 
@@ -1693,16 +1766,16 @@ static void EAHelper::RecordFeatureEngineeringEntryTradeRecord(TEA &ea, Ticket &
     SetDefaultEntryTradeData<TEA, FeatureEngineeringEntryTradeRecord>(ea, record, ticket);
 
     int entryCandle = iBarShift(ea.EntrySymbol(), ea.EntryTimeFrame(), ticket.OpenTime());
-    ObjectList<EconomicEvent> *Events = new ObjectList<EconomicEvent>();
-    if (GetEconomicEventsForCandle<TEA>(ea, Events, entryCandle))
+    ObjectList<EconomicEvent> *events = new ObjectList<EconomicEvent>();
+    if (GetEconomicEventsForCandle<TEA>(ea, events, entryCandle))
     {
         record.DuringNews = true;
 
-        for (int i = 0; i < Events.Size(); i++)
+        for (int i = 0; i < events.Size(); i++)
         {
-            if (Events[i].Impact() > record.NewsImpact)
+            if (events[i].Impact() > record.NewsImpact)
             {
-                record.NewsImpact = Events[i].Impact();
+                record.NewsImpact = events[i].Impact();
             }
         }
     }
@@ -1712,22 +1785,41 @@ static void EAHelper::RecordFeatureEngineeringEntryTradeRecord(TEA &ea, Ticket &
         record.NewsImpact = -1;
     }
 
+    delete events;
+
     record.DayOfWeek = DateTimeHelper::CurrentDayOfWeek();
 
     record.PreviousCandleWasBullish = CandleStickHelper::IsBullish(ea.EntrySymbol(), ea.EntryTimeFrame(), entryCandle + 1);
+    record.PreviousCandleWasBullishEngulfing = SetupHelper::BullishEngulfing(ea.EntrySymbol(), ea.EntryTimeFrame(), entryCandle + 1);
+    record.PreviousCandleWasBearishEngulfing = SetupHelper::BearishEngulfing(ea.EntrySymbol(), ea.EntryTimeFrame(), entryCandle + 1);
+    record.PreviousCandleWasHammerPattern = SetupHelper::HammerCandleStickPattern(ea.EntrySymbol(), ea.EntryTimeFrame(), entryCandle + 1);
+    record.PreivousCandleWasShootingStarPattern = SetupHelper::ShootingStarCandleStickPattern(ea.EntrySymbol(), ea.EntryTimeFrame(), entryCandle + 1);
 
     record.EntryAboveFiveEMA = IndicatorHelper::MovingAverage(ea.EntrySymbol(), ea.EntryTimeFrame(), 5, 0, MODE_EMA, PRICE_CLOSE, entryCandle) > ticket.OpenPrice();
     record.EntryAboveFiftyEMA = IndicatorHelper::MovingAverage(ea.EntrySymbol(), ea.EntryTimeFrame(), 50, 0, MODE_EMA, PRICE_CLOSE, entryCandle) > ticket.OpenPrice();
     record.EntryAboveTwoHundreadEMA = IndicatorHelper::MovingAverage(ea.EntrySymbol(), ea.EntryTimeFrame(), 200, 0, MODE_EMA, PRICE_CLOSE, entryCandle) > ticket.OpenPrice();
 
-    record.FivePeriodOBVAverageChange = IndicatorHelper::OnBalanceValueAverageChange(ea.Symbol(), ea.TimeFrame(), PRICE_CLOSE, 5);
-    record.TenPeriodOBVAverageChange = IndicatorHelper::OnBalanceValueAverageChange(ea.Symbol(), ea.TimeFrame(), PRICE_CLOSE, 10);
-    record.TwentyPeriodOBVAverageChange = IndicatorHelper::OnBalanceValueAverageChange(ea.Symbol(), ea.TimeFrame(), PRICE_CLOSE, 20);
-    record.FourtyPeriodOBVAverageChange = IndicatorHelper::OnBalanceValueAverageChange(ea.Symbol(), ea.TimeFrame(), PRICE_CLOSE, 40);
+    record.FivePeriodOBVAverageChange = IndicatorHelper::OnBalanceVolumnAverageChange(ea.EntrySymbol(), ea.EntryTimeFrame(), PRICE_CLOSE, 5);
+    record.TenPeriodOBVAverageChange = IndicatorHelper::OnBalanceVolumnAverageChange(ea.EntrySymbol(), ea.EntryTimeFrame(), PRICE_CLOSE, 10);
+    record.TwentyPeriodOBVAverageChange = IndicatorHelper::OnBalanceVolumnAverageChange(ea.EntrySymbol(), ea.EntryTimeFrame(), PRICE_CLOSE, 20);
+    record.FourtyPeriodOBVAverageChange = IndicatorHelper::OnBalanceVolumnAverageChange(ea.EntrySymbol(), ea.EntryTimeFrame(), PRICE_CLOSE, 40);
 
-    record.EntryDuringRSIAboveThirty = IndicatorHelper::RSI(ea.EntrySymbol(), ea.EntryTimeFrame(), 14, 0, PRICE_CLOSE, entryCandle) > 30;
-    record.EntryDuringRSIAboveFifty = IndicatorHelper::RSI(ea.EntrySymbol(), ea.EntryTimeFrame(), 14, 0, PRICE_CLOSE, entryCandle) > 50;
-    record.EntryDuringRSIAboveSeventy = IndicatorHelper::RSI(ea.EntrySymbol(), ea.EntryTimeFrame(), 14, 0, PRICE_CLOSE, entryCandle) > 70;
+    double rsi = IndicatorHelper::RSI(ea.EntrySymbol(), ea.EntryTimeFrame(), 14, PRICE_CLOSE, entryCandle);
+    record.EntryDuringRSIAboveThirty = rsi > 30;
+    record.EntryDuringRSIAboveFifty = rsi > 50;
+    record.EntryDuringRSIAboveSeventy = rsi > 70;
+
+    record.PreviousConsecutiveBullishHeikinAshiCandles = ea.mHAT.PreviousConsecutiveBullishCandles();
+    record.PreviousConsecutiveBearishHeikinAshiCandles = ea.mHAT.PreviousConsecutiveBearishCandles();
+
+    bool mostRecentStructureIsBullish = ea.mMBT.GetNthMostRecentMBsType(0) == SignalType::Bullish;
+    bool inMostRecentStructureZone = CandleIsInZone<TEA>(ea, ea.mMBT, ea.mMBT.MBsCreated() - 1, entryCandle);
+
+    record.CurrentStructureIsBullish = mostRecentStructureIsBullish;
+    record.WithinDemandZone = mostRecentStructureIsBullish && inMostRecentStructureZone;
+    record.WithinSupplyZone = !mostRecentStructureIsBullish && inMostRecentStructureZone;
+    record.WithinPendingDemandZone = CandleIsInPendingZone<TEA>(ea, ea.mMBT, SignalType::Bullish, entryCandle);
+    record.WithinPendingSupplyZone = CandleIsInPendingZone<TEA>(ea, ea.mMBT, SignalType::Bearish, entryCandle);
 
     ea.mEntryCSVRecordWriter.WriteRecord(record);
     delete record;

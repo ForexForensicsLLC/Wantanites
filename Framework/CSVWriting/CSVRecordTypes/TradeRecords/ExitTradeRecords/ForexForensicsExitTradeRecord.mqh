@@ -28,6 +28,7 @@ ForexForensicsExitTradeRecord::~ForexForensicsExitTradeRecord() {}
 void ForexForensicsExitTradeRecord::WriteHeaders(int fileHandle, bool writeDelimiter = false)
 {
     FileHelper::WriteString(fileHandle, "Exit Time");
+    FileHelper::WriteString(fileHandle, "Ticket Number");
     FileHelper::WriteString(fileHandle, "Account Balance After");
     FileHelper::WriteString(fileHandle, "Exit Price");
     FileHelper::WriteString(fileHandle, "RR Secured");
@@ -37,6 +38,7 @@ void ForexForensicsExitTradeRecord::WriteHeaders(int fileHandle, bool writeDelim
 void ForexForensicsExitTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = false)
 {
     FileHelper::WriteDateTime(fileHandle, ExitTime);
+    FileHelper::WriteInteger(fileHandle, TicketNumber);
     FileHelper::WriteDouble(fileHandle, AccountBalanceAfter, 2);
     FileHelper::WriteDouble(fileHandle, ExitPrice, Digits());
     FileHelper::WriteDouble(fileHandle, RRSecured(), 2);

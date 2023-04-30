@@ -22,12 +22,12 @@ public:
     void ReadRow(int fileHandle);
 };
 
-FeatureEngineeringExitTradeRecord::FeatureEngineeringExitTradeRecord() : RecordColumns() {}
+FeatureEngineeringExitTradeRecord::FeatureEngineeringExitTradeRecord() : ForexForensicsExitTradeRecord() {}
 FeatureEngineeringExitTradeRecord::~FeatureEngineeringExitTradeRecord() {}
 
 void FeatureEngineeringExitTradeRecord::WriteHeaders(int fileHandle, bool writeDelimiter = false)
 {
-    ForexForensicsExitTradeRecord::WriteHeader(fileHandle, true);
+    ForexForensicsExitTradeRecord::WriteHeaders(fileHandle, true);
     FileHelper::WriteString(fileHandle, "Outcome");
 }
 

@@ -8,9 +8,9 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Constants\ConstantValues.mqh>
-
 #include <Wantanites\Framework\Constants\Errors.mqh>
+#include <Wantanites\Framework\Types\TicketTypes.mqh>
+#include <Wantanites\Framework\Constants\ConstantValues.mqh>
 
 #include <Wantanites\Framework\Objects\DataObjects\Partial.mqh>
 #include <Wantanites\Framework\Objects\DataStructures\List.mqh>

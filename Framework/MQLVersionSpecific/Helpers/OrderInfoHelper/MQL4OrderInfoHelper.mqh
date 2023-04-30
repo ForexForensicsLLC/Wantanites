@@ -24,11 +24,6 @@ static int VersionSpecificOrderInfoHelper::TotalCurrentOrders()
     return OrdersTotal();
 }
 
-int VersionSpecificOrderInfoHelper::TotalCurrentOrders()
-{
-    return OrdersTotal();
-}
-
 int VersionSpecificOrderInfoHelper::CountOtherEAOrders(bool todayOnly, List<int> &magicNumbers, int &orderCount)
 {
     orderCount = 0;
@@ -63,9 +58,9 @@ int VersionSpecificOrderInfoHelper::CountOtherEAOrders(bool todayOnly, List<int>
     return Errors::NO_ERROR;
 }
 
-int VersionSpecificOrderInfoHelper::GetAllActiveTickets(List<int> ticketNumbers)
+int VersionSpecificOrderInfoHelper::GetAllActiveTickets(List<int> &ticketNumbers)
 {
-    error = Errors::NO_ERROR;
+    int error = Errors::NO_ERROR;
     for (int i = 0; i < OrdersTotal(); i++)
     {
         if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))

@@ -8,13 +8,18 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Objects\DataObjects\EA.mqh>
 #include <Wantanites\Framework\Helpers\EAHelper.mqh>
+#include <Wantanites\Framework\Objects\DataObjects\EA.mqh>
 #include <Wantanites\Framework\Constants\MagicNumbers.mqh>
+
+#include <Wantanites\Framework\Objects\Indicators\HeikinAshi\HeikinAshiTracker.mqh>
 
 class FeatureEngineering : public EA<FeatureEngineeringEntryTradeRecord, EmptyPartialTradeRecord, FeatureEngineeringExitTradeRecord, DefaultErrorRecord>
 {
 public:
+    MBTracker *mMBT;
+    HeikinAshiTracker *mHAT;
+
     ObjectList<EconomicEvent> *mEconomicEvents;
 
     List<string> *mEconomicEventTitles;
@@ -51,7 +56,7 @@ public:
     virtual void RecordTicketOpenData(Ticket &ticket);
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
-    virtual void RecordError(int error, string additionalInformation);
+    virtual void RecordError(string methodName, int error, string additionalInformation);
     virtual bool ShouldReset();
     virtual void Reset();
 };
@@ -63,6 +68,11 @@ FeatureEngineering::FeatureEngineering(CSVRecordWriter<FeatureEngineeringEntryTr
 {
     mEconomicEvents = new ObjectList<EconomicEvent>();
 
+    mMBT = new MBTracker(false, EntrySymbol(), EntryTimeFrame(), -1, 2, 3, CandlePart::Body, CandlePart::Body, true, 5, true, CandlePart::Body, ZonePartInMB::Whole,
+                         false, false, true, CandlePart::Wick, true, false);
+
+    mHAT = new HeikinAshiTracker();
+
     mLoadedEventsForToday = false;
     mDuringNews = false;
 
@@ -72,19 +82,22 @@ FeatureEngineering::FeatureEngineering(CSVRecordWriter<FeatureEngineeringEntryTr
 FeatureEngineering::~FeatureEngineering()
 {
     delete mEconomicEvents;
+    delete mMBT;
+    delete mHAT;
 }
 
 void FeatureEngineering::PreRun()
 {
     if (!mLoadedEventsForToday)
     {
-        EAHelper::GetEconomicEventsForDate<FeatureEngineering>(this, TimeGMT(), mEconomicEventTitles, mEconomicEventSymbols, mEconomicEventImpacts);
+        EAHelper::GetEconomicEventsForDate<FeatureEngineering>(this, "EventsAndCandles", TimeGMT(), mEconomicEventTitles, mEconomicEventSymbols, mEconomicEventImpacts,
+                                                               false);
 
         mLoadedEventsForToday = true;
         mWasReset = false;
     }
 
-    double equityChange = EAHelper::GetTotalTicketsEquityPercentChange<FeatureEngineering>(this, AccountBalance(), mCurrentSetupTickets) / 100;
+    double equityChange = EAOrderHelper::GetTotalTicketsEquityPercentChange<FeatureEngineering>(this, AccountBalance(), mCurrentSetupTickets) / 100;
     if (equityChange < mFurthestEquityDrawdownPercent)
     {
         mFurthestEquityDrawdownPercent = equityChange;
@@ -107,7 +120,7 @@ void FeatureEngineering::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void FeatureEngineering::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
+void FeatureEngineering::InvalidateSetup(bool deletePendingOrder, int error = -1)
 {
     EAHelper::InvalidateSetup<FeatureEngineering>(this, deletePendingOrder, mStopTrading, error);
 }
@@ -161,12 +174,12 @@ void FeatureEngineering::RecordTicketPartialData(Ticket &partialedTicket, int ne
 
 void FeatureEngineering::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordFeatureEngineeringExitTradeRecord<FeatureEngineering>(this, ticket, mEntryTimeFrame);
+    EAHelper::RecordFeatureEngineeringExitTradeRecord<FeatureEngineering>(this, ticket, EntryTimeFrame());
 }
 
-void FeatureEngineering::RecordError(int error, string additionalInformation = "")
+void FeatureEngineering::RecordError(string methodName, int error, string additionalInformation = "")
 {
-    EAHelper::RecordDefaultErrorRecord<FeatureEngineering>(this, error, additionalInformation);
+    EAHelper::RecordDefaultErrorRecord<FeatureEngineering>(this, methodName, error, additionalInformation);
 }
 
 bool FeatureEngineering::ShouldReset()

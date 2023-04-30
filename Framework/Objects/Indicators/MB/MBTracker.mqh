@@ -152,6 +152,9 @@ public:
     bool NthMostRecentMBsClosestValidZoneIsHolding(int nthMB, ZoneState *&zoneState, int barIndex);
     bool MBsClosestValidZoneIsHolding(int mbNumber, int barIndex);
 
+    bool GetBullishPendingMBsDeepestHoldingZone(ZoneState *&zoneState);
+    bool GetBearishPendingMBsDeepestHoldingZone(ZoneState *&zoneState);
+
     // -- Zone Display Methods --
     void DrawZonesForNMostRecentMBs(int nMBs);
 
@@ -1405,6 +1408,26 @@ bool MBTracker::MBsClosestValidZoneIsHolding(int mbNumber, int barIndex = -1)
     if (GetMB(mbNumber, tempMBState))
     {
         return tempMBState.ClosestValidZoneIsHolding(barIndex);
+    }
+
+    return false;
+}
+
+bool MBTracker::GetBullishPendingMBsDeepestHoldingZone(ZoneState *&zoneState)
+{
+    if (CheckPointer(mPendingBullishMB) != POINTER_INVALID)
+    {
+        return mPendingBullishMB.GetDeepestHoldingZone(zoneState);
+    }
+
+    return false;
+}
+
+bool MBTracker::GetBearishPendingMBsDeepestHoldingZone(ZoneState *&zoneState)
+{
+    if (CheckPointer(mPendingBearishMB) != POINTER_INVALID)
+    {
+        return mPendingBearishMB.GetDeepestHoldingZone(zoneState);
     }
 
     return false;
