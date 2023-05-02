@@ -36,6 +36,7 @@ private:
 
 protected:
     ulong mNumber;
+    int mMagicNumber;
     TicketType mType; // type doesn't change after it has become a normal Buy or Sell order
     double mOpenPrice;
     datetime mOpenTime;
@@ -69,7 +70,6 @@ public:
     Dictionary<string, bool> *mClosedSinceLastCheckCheckers;
 
     ulong Number() { return mNumber; };
-    virtual TicketType Type() = NULL;
 
     double ExpectedOpenPrice() { return mExpectedOpenPrice; }
     void ExpectedOpenPrice(double expectedOpenPrice) { mExpectedOpenPrice = expectedOpenPrice; }
@@ -80,6 +80,8 @@ public:
     double AccountBalanceBefore() { return mAccountBalanceBefore; }
     void AccountBalanceBefore(double accountBalanceBefore) { mAccountBalanceBefore = accountBalanceBefore; }
 
+    virtual int MagicNumber() = NULL;
+    virtual TicketType Type() = NULL;
     virtual double OpenPrice() = NULL;
     virtual datetime OpenTime() = NULL;
     virtual double LotSize() = NULL;
@@ -148,6 +150,7 @@ BaseTicket::BaseTicket(BaseTicket &ticket)
     mActivatedSinceLastCheckCheckers = new Dictionary<string, bool>(ticket.mActivatedSinceLastCheckCheckers);
     mClosedSinceLastCheckCheckers = new Dictionary<string, bool>(ticket.mClosedSinceLastCheckCheckers);
 
+    mMagicNumber = ticket.MagicNumber();
     mDistanceRanFromOpen = ticket.mDistanceRanFromOpen;
     mOpenPrice = ticket.OpenPrice();
     mOpenTime = ticket.OpenTime();
@@ -192,6 +195,7 @@ void BaseTicket::SetNewTicket(int ticket)
     mStopLossIsMovedToBreakEven = false;
     mDistanceRanFromOpen = ConstantValues::EmptyDouble;
 
+    mMagicNumber = ConstantValues::EmptyInt;
     mType = TicketType::Empty;
     mOpenPrice = ConstantValues::EmptyDouble;
     mOpenTime = 0;

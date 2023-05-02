@@ -29,7 +29,7 @@ int OnInit()
     EconomicEventSymbols = new List<string>();
     EconomicEventImpacts = new List<int>();
 
-    NE = new ForexForensics(EntryWriter, ExitWriter, ErrorWriter);
+    NE = new NewsEmulation(EntryWriter, ExitWriter, ErrorWriter);
     NE.mEconomicEventTitles = EconomicEventTitles;
     NE.mEconomicEventSymbols = EconomicEventSymbols;
     NE.mEconomicEventImpacts = EconomicEventImpacts;

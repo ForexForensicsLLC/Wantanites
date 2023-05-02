@@ -100,7 +100,11 @@ static void EARunHelper::ManageCurrentSetupTicket(TEA &ea)
     for (int i = ea.mCurrentSetupTickets.Size() - 1; i >= 0; i--)
     {
         // do any custom checking first since tickets will be removed in CheckCurrentSetupTicket if they are closed
-        ea.CheckCurrentSetupTicket(ea.mCurrentSetupTickets[i]);
+        if (ea.CheckCurrentSetupTicket(ea.mCurrentSetupTickets[i]))
+        {
+            // we deleted the current ticket manually
+            continue;
+        }
 
         // default checking that every ticket needs to go through
         CheckUpdateHowFarPriceRanFromOpen(ea, ea.mCurrentSetupTickets[i]);
@@ -148,7 +152,11 @@ static void EARunHelper::ManagePreviousSetupTickets(TEA &ea)
     for (int i = ea.mPreviousSetupTickets.Size() - 1; i >= 0; i--)
     {
         // do any custom checking first since tickets will be removed in CheckPreviousSetupTicket if they are closed
-        ea.CheckPreviousSetupTicket(ea.mPreviousSetupTickets[i]);
+        if (ea.CheckPreviousSetupTicket(ea.mPreviousSetupTickets[i]))
+        {
+            // we deleted the current ticket manually
+            continue;
+        }
 
         // default checking that every ticket needs to go through
         CheckUpdateHowFarPriceRanFromOpen(ea, ea.mPreviousSetupTickets[i]);

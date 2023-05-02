@@ -45,12 +45,12 @@ public:
     virtual void ManageCurrentActiveSetupTicket(Ticket &ticket);
     virtual bool MoveToPreviousSetupTickets(Ticket &ticket);
     virtual void ManagePreviousSetupTicket(Ticket &ticket);
-    virtual void CheckCurrentSetupTicket(Ticket &ticket);
-    virtual void CheckPreviousSetupTicket(Ticket &ticket);
+    virtual bool CheckCurrentSetupTicket(Ticket &ticket);
+    virtual bool CheckPreviousSetupTicket(Ticket &ticket);
     virtual void RecordTicketOpenData(Ticket &ticket);
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
-    virtual void RecordError(int error, string additionalInformation);
+    virtual void RecordError(string methodName, int error, string additionalInformation);
     virtual bool ShouldReset();
     virtual void Reset();
 };
@@ -76,36 +76,19 @@ void NewsEmulation::PreRun()
 {
     if (!mLoadedEventsForToday)
     {
-        EAHelper::GetEconomicEventsForDate<NewsEmulation>(this, TimeGMT(), mEconomicEventTitles, mEconomicEventSymbols, mEconomicEventImpacts);
+        EAHelper::GetEconomicEventsForDate<NewsEmulation>(this, "", TimeGMT(), mEconomicEventTitles, mEconomicEventSymbols, mEconomicEventImpacts);
 
         mLoadedEventsForToday = true;
         mWasReset = false;
     }
 
-    double equityChange = EAHelper::GetTotalTicketsEquityPercentChange<NewsEmulation>(this, AccountBalance(), mCurrentSetupTickets) / 100;
+    double equityChange = EAOrderHelper::GetTotalTicketsEquityPercentChange<NewsEmulation>(this, AccountBalance(), mCurrentSetupTickets) / 100;
     if (equityChange < mFurthestEquityDrawdownPercent)
     {
         mFurthestEquityDrawdownPercent = equityChange;
     }
 
-    if (OrdersTotal() > mCurrentSetupTickets.Size())
-    {
-        for (int i = 0; i < OrdersTotal(); i++)
-        {
-            if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
-            {
-                RecordError(GetLastError());
-                continue;
-            }
-
-            if (!mCurrentSetupTickets.Contains<TTicketNumberLocator, int>(Ticket::EqualsTicketNumber, OrderTicket()))
-            {
-                Ticket *ticket = new Ticket(OrderTicket());
-                ticket.OpenPrice(ticket.OpenPrice());
-                mCurrentSetupTickets.Add(ticket);
-            }
-        }
-    }
+    EAOrderHelper::MimicOrders<NewsEmulation>(this);
 }
 
 bool NewsEmulation::AllowedToTrade()
@@ -122,7 +105,7 @@ void NewsEmulation::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void NewsEmulation::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
+void NewsEmulation::InvalidateSetup(bool deletePendingOrder, int error = -1)
 {
     EAHelper::InvalidateSetup<NewsEmulation>(this, deletePendingOrder, mStopTrading, error);
 }
@@ -157,12 +140,83 @@ void NewsEmulation::ManagePreviousSetupTicket(Ticket &ticket)
 {
 }
 
-void NewsEmulation::CheckCurrentSetupTicket(Ticket &ticket)
+bool NewsEmulation::CheckCurrentSetupTicket(Ticket &ticket)
 {
+    bool wasActivated = false;
+    int error = ticket.WasActivatedSinceLastCheck(__FUNCTION__, wasActivated);
+    if (wasActivated)
+    {
+        int currentTickets = mCurrentSetupTickets.Size();
+        ObjectList<EconomicEvent> *events = new ObjectList<EconomicEvent>();
+        int openIndex = iBarShift(EntrySymbol(), EntryTimeFrame(), ticket.OpenTime());
+
+        if (EAHelper::GetEconomicEventsForCandle<NewsEmulation>(this, events, openIndex))
+        {
+            TicketType type = ticket.Type();
+            int newTicketNumber = ConstantValues::EmptyInt;
+
+            if (type == TicketType::Buy)
+            {
+                double candleHigh = ConstantValues::EmptyDouble;
+                for (int i = 0; i < events.Size(); i++)
+                {
+                    if (events[i].High() > candleHigh)
+                    {
+                        candleHigh = events[i].High();
+                    }
+                }
+
+                double newOpenPrice = MathMin(ticket.OpenPrice() + PipConverter::PipsToPoints(25), candleHigh);
+
+                if (CurrentTick().Ask() >= newOpenPrice)
+                {
+                    EAOrderHelper::PlaceMarketOrder<NewsEmulation>(this, newOpenPrice, ticket.CurrentStopLoss(), ticket.LotSize(), ticket.TakeProfit(), type);
+                }
+                else
+                {
+                    EAOrderHelper::PlaceStopOrder<NewsEmulation>(this, newOpenPrice, ticket.CurrentStopLoss(), ticket.LotSize(), ticket.TakeProfit(), false, 0.0, type);
+                }
+            }
+            else if (type == TicketType::Sell)
+            {
+                double candleLow = ConstantValues::EmptyDouble;
+                for (int i = 0; i < events.Size(); i++)
+                {
+                    if (events[i].Low() < candleHigh || candleLow == ConstantValues::EmptyDouble)
+                    {
+                        candleLow = events[i].Low();
+                    }
+                }
+
+                double newOpenPrice = MathMax(ticket.OpenPrice() - PipConverter::PipsToRange(25), candleLow);
+
+                if (CurrentTick().Bid() <= newOpenPrice)
+                {
+                    EAOrderHelper::PlaceMarketOrder<NewsEmulation>(this, newOpenPrice, ticket.CurrentStopLoss(), ticket.LotSize(), ticket.TakeProfit(), type);
+                }
+                else
+                {
+                    EAOrderHelper::PlaceStopOrder<NewsEmulation>(this, newOpenPrice, ticket.CurrentStopLoss(), ticket.LotSize(), ticket.TakeProfit(), false, 0.0, type);
+                }
+            }
+        }
+
+        // successfully added a new ticket
+        if (currentTickets != mCurrentSetupTickets.Size())
+        {
+            mCurrentSetupTickets.RemoveWhere<TTicketNumberLocator, int>(Ticket::EqualsTicketNumber, ticket.Number());
+            return true;
+        }
+
+        delete events;
+    }
+
+    return false;
 }
 
-void NewsEmulation::CheckPreviousSetupTicket(Ticket &ticket)
+bool NewsEmulation::CheckPreviousSetupTicket(Ticket &ticket)
 {
+    return false;
 }
 
 void NewsEmulation::RecordTicketOpenData(Ticket &ticket)
@@ -179,7 +233,7 @@ void NewsEmulation::RecordTicketCloseData(Ticket &ticket)
     EAHelper::RecordForexForensicsExitTradeRecord<NewsEmulation>(this, ticket, mEntryTimeFrame);
 }
 
-void NewsEmulation::RecordError(int error, string additionalInformation = "")
+void NewsEmulation::RecordError(string methodName, int error, string additionalInformation = "")
 {
     EAHelper::RecordDefaultErrorRecord<NewsEmulation>(this, error, additionalInformation);
 }

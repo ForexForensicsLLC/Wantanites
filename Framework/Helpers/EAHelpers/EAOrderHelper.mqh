@@ -39,7 +39,7 @@ class EAOrderHelper
     static void InternalPlaceLimitOrder(TEA &ea, TicketType ticketType, double entryPrice, double stopLoss, double lotSize, bool fallbackMarketOrder,
                                         double maxMarketOrderSlippage);
     template <typename TEA>
-    static void InternalPlaceStopOrder(TEA &ea, TicketType ticketType, double entryPrice, double stopLoss, double lotSize, bool fallbackMarketOrder,
+    static void InternalPlaceStopOrder(TEA &ea, TicketType ticketType, double entryPrice, double stopLoss, double lotSize, double takeProfit, bool fallbackMarketOrder,
                                        double maxMarketOrderSlippage);
 
 public:
@@ -49,7 +49,7 @@ public:
     static void PlaceLimitOrder(TEA &ea, double entryPrice, double stopLoss, double lotSize, bool fallbackMarketOrder, double maxMarketOrderSlippage,
                                 TicketType orderTypeOverride);
     template <typename TEA>
-    static void PlaceStopOrder(TEA &ea, double entryPrice, double stopLoss, double lotSize, bool fallbackMarketOrder, double maxMarketOrderSlippage,
+    static void PlaceStopOrder(TEA &ea, double entryPrice, double stopLoss, double lotSize, double takeProfit, bool fallbackMarketOrder, double maxMarketOrderSlippage,
                                TicketType orderTypeOverride);
     // =========================================================================
     // Setup Specific Order Methods
@@ -376,8 +376,8 @@ static void EAOrderHelper::PlaceLimitOrder(TEA &ea, double entryPrice, double st
 }
 
 template <typename TEA>
-static void EAOrderHelper::InternalPlaceStopOrder(TEA &ea, TicketType ticketType, double entryPrice, double stopLoss, double lotSize, bool fallbackMarketOrder,
-                                                  double maxMarketOrderSlippage)
+static void EAOrderHelper::InternalPlaceStopOrder(TEA &ea, TicketType ticketType, double entryPrice, double stopLoss, double lotSize, double takeProfit,
+                                                  bool fallbackMarketOrder, double maxMarketOrderSlippage)
 {
     int ticket = ConstantValues::EmptyInt;
     int orderPlaceError = Errors::NO_ERROR;
@@ -387,30 +387,30 @@ static void EAOrderHelper::InternalPlaceStopOrder(TEA &ea, TicketType ticketType
     {
         if (fallbackMarketOrder && entryPrice <= ea.CurrentTick().Ask() && ea.CurrentTick().Ask() - entryPrice <= PipConverter::PipsToPoints(maxMarketOrderSlippage))
         {
-            orderPlaceError = ea.mTM.PlaceMarketOrder(TicketType::Buy, lotSize, ea.CurrentTick().Ask(), stopLoss, 0, ticket);
+            orderPlaceError = ea.mTM.PlaceMarketOrder(TicketType::Buy, lotSize, ea.CurrentTick().Ask(), stopLoss, takeProfit, ticket);
         }
         else
         {
-            orderPlaceError = ea.mTM.PlaceStopOrder(ticketType, lotSize, entryPrice, stopLoss, 0, ticket);
+            orderPlaceError = ea.mTM.PlaceStopOrder(ticketType, lotSize, entryPrice, stopLoss, takeProfit, ticket);
         }
     }
     else if (ticketType == TicketType::SellStop)
     {
         if (fallbackMarketOrder && entryPrice >= ea.CurrentTick().Bid() && entryPrice - ea.CurrentTick().Bid() <= PipConverter::PipsToPoints(maxMarketOrderSlippage))
         {
-            orderPlaceError = ea.mTM.PlaceMarketOrder(TicketType::Sell, lotSize, ea.CurrentTick().Bid(), stopLoss, 0, ticket);
+            orderPlaceError = ea.mTM.PlaceMarketOrder(TicketType::Sell, lotSize, ea.CurrentTick().Bid(), stopLoss, takeProfit, ticket);
         }
         else
         {
-            orderPlaceError = ea.mTM.PlaceStopOrder(ticketType, lotSize, entryPrice, stopLoss, 0, ticket);
+            orderPlaceError = ea.mTM.PlaceStopOrder(ticketType, lotSize, entryPrice, stopLoss, takeProfit, ticket);
         }
     }
 
-    PostPlaceOrderChecks<TEA>(ea, __FUNCTION__, ticket, orderPlaceError, ticketType, entryPrice, stopLoss, lotSize, 0, accountBalanceBefore);
+    PostPlaceOrderChecks<TEA>(ea, __FUNCTION__, ticket, orderPlaceError, ticketType, entryPrice, stopLoss, lotSize, takeProfit, accountBalanceBefore);
 }
 
 template <typename TEA>
-static void EAOrderHelper::PlaceStopOrder(TEA &ea, double entryPrice, double stopLoss, double lotSize = 0.0, bool fallbackMarketOrder = false,
+static void EAOrderHelper::PlaceStopOrder(TEA &ea, double entryPrice, double stopLoss, double lotSize = 0.0, double takeProfit = 0.0, bool fallbackMarketOrder = false,
                                           double maxMarketOrderSlippage = 0.0, TicketType orderTypeOverride = TicketType::Empty)
 {
     ea.mLastState = EAStates::PLACING_ORDER;
@@ -439,7 +439,7 @@ static void EAOrderHelper::PlaceStopOrder(TEA &ea, double entryPrice, double sto
 
     for (int i = 0; i < numberOfOrdersToPlace; i++)
     {
-        InternalPlaceStopOrder(ea, stopType, entryPrice, stopLoss, lotsToUse, fallbackMarketOrder, maxMarketOrderSlippage);
+        InternalPlaceStopOrder(ea, stopType, entryPrice, stopLoss, lotsToUse, takeProfit, fallbackMarketOrder, maxMarketOrderSlippage);
     }
 }
 
@@ -727,6 +727,27 @@ static void EAOrderHelper::MimicOrders(TEA &ea)
         delete tickets;
     }
 }
+
+// template <typename TEA>
+// static void EAOrderHelper::MimicOrdersForEconomicEventSlippage(TEA &ea)
+// {
+//     if (OrderInfoHelper::TotalCurrentOrders() > ea.mCurrentSetupTickets.Size())
+//     {
+//         List<int> *tickets = new List<int>();
+//         OrderInfoHelper::GetAllActiveTickets(tickets);
+
+//         for (int i = 0; i < tickets.Size(); i++)
+//         {
+//             if (!ea.mCurrentSetupTickets.Contains<TTicketNumberLocator, int>(Ticket::EqualsTicketNumber, tickets[i]))
+//             {
+//                 Ticket *ticket = new Ticket(tickets[i]);
+//                 // ea.mCurrentSetupTickets.Add(ticket);
+//             }
+//         }
+
+//         delete tickets;
+//     }
+// }
 /*
 
    __  __            _               _____       ____                 _      _____

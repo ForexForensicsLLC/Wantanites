@@ -1738,11 +1738,9 @@ static void EAHelper::RecordForexForensicsEntryTradeRecord(TEA &ea, Ticket &tick
     ForexForensicsEntryTradeRecord *record = new ForexForensicsEntryTradeRecord();
     SetDefaultEntryTradeData<TEA, ForexForensicsEntryTradeRecord>(ea, record, ticket);
 
-    ticket.SelectIfOpen("Getting Magic Number");
-
-    // override the magic number with whatever one the ticket was placed with
-    record.MagicNumber = OrderMagicNumber();
-    record.DuringNews = CandleIsDuringEconomicEvent<TEA>(ea, iBarShift(ea.mEntrySymbol, ea.mEntryTimeFrame, ticket.OpenTime()));
+    // override the magic number so that it matches the ticket that we copied the trade from
+    record.MagicNumber = ticket.MagicNumber();
+    record.DuringNews = CandleIsDuringEconomicEvent<TEA>(ea, iBarShift(ea.EntrySymbol(), ea.EntryTimeFrame(), ticket.OpenTime()));
 
     ea.mEntryCSVRecordWriter.WriteRecord(record);
     delete record;

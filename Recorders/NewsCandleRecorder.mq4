@@ -76,9 +76,7 @@ void RecordEvents()
         int barIndex = iBarShift(Symbol(), Period(), Events[i].Date());
 
         record.Id = Events[i].Id();
-        Print("Before Title: ", Events[i].Title(), ", Date: ", Events[i].Date());
         record.Date = DateTimeHelper::MQLTimeToUTC(Events[i].Date());
-        Print("After Title: ", Events[i].Title(), ", Date: ", record.Date);
         record.AllDay = Events[i].AllDay();
         record.Title = Events[i].Title();
         record.Symbol = Events[i].Symbol();

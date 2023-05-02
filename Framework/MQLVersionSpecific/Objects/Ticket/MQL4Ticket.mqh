@@ -22,6 +22,7 @@ public:
     Ticket(int ticketNumber) : BaseTicket(ticketNumber) {}
     Ticket(Ticket &ticket) : BaseTicket(ticket) {}
 
+    virtual int MagicNumber();
     virtual TicketType Type();
     virtual double OpenPrice();
     virtual datetime OpenTime();
@@ -129,6 +130,27 @@ int Ticket::SelectIfClosed(string action)
     }
 
     return Errors::NO_ERROR;
+}
+
+int Ticket::MagicNumber()
+{
+    if (mMagicNumber != ConstantValues::EmptyInt)
+    {
+        return mMagicNumber;
+    }
+
+    int selectError = SelectTicket("Retrieving Magic Number");
+    if (selectError != Errors::NO_ERROR)
+    {
+        SendMail("Unable To Retrieve Magic Number",
+                 "Error: " + IntegerToString(selectError) + "\n" +
+                     "Ticket Number: " + IntegerToString(mNumber));
+
+        return ConstantValues::EmptyInt;
+    }
+
+    mMagicNumber = OrderMagicNumber();
+    return mMagicNumber;
 }
 
 TicketType Ticket::Type()

@@ -39,6 +39,7 @@ public:
 
     TicketStatus Status() { return mStatus; }
 
+    virtual int MagicNumber();
     virtual TicketType Type();
     virtual double OpenPrice();
     virtual datetime OpenTime();
@@ -166,6 +167,47 @@ int Ticket::SelectIfClosed(string action)
 {
     ulong tempTicket = -1;
     return SelectIfClosed(action, tempTicket);
+}
+
+int Ticket::MagicNumber()
+{
+    if (mMagicNumber != ConstantValues::EmptyInt)
+    {
+        return mMagicNumber;
+    }
+
+    int openError = SelectIfOpen("Getting Magic Number");
+    if (openError == Errors::NO_ERROR)
+    {
+        if (mStatus == TicketStatus::Pending)
+        {
+            mMagicNumber = OrderGetInteger(ORDER_MAGIC);
+        }
+        else if (mStatus == TicketStatus::Active)
+        {
+            mMagicNumber = PositionGetInteger(POSITION_MAGIC);
+        }
+    }
+    else
+    {
+        ulong dealTicket = ConstantValues::EmptyInt;
+        int closedError = SelectIfClosed("Getting Magic Number", dealTicket);
+        if (closedError != Errors::NO_ERROR)
+        {
+            return closedError;
+        }
+
+        if (mStatus == TicketStatus::ClosedPending)
+        {
+            mMagicNumber = HistoryOrderGetInteger(mNumber, ORDER_MAGIC);
+        }
+        else if (mStatus == TicketStatus::ClosedDeal)
+        {
+            mMagicNumber = HistoryDealGetInteger(dealTicket, DEAL_MAGIC);
+        }
+    }
+
+    return mMagicNumber;
 }
 
 TicketType Ticket::Type()
