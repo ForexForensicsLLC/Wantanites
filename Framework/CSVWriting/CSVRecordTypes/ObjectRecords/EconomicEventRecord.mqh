@@ -50,7 +50,7 @@ void EconomicEventRecord::WriteHeaders(int fileHandle, bool writeDelimiter = fal
 void EconomicEventRecord::WriteRecord(int fileHandle, bool writeDelimiter = false)
 {
     FileHelper::WriteString(fileHandle, Id);
-    FileHelper::WriteDateTime(fileHandle, Date);
+    FileHelper::WriteDateTime(fileHandle, Date, TimeFormat::MQL); // write in MQL format since we are going to have to read the values in at some point
     FileHelper::WriteString(fileHandle, AllDay);
     FileHelper::WriteString(fileHandle, Title);
     FileHelper::WriteString(fileHandle, Symbol);

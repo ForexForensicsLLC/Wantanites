@@ -10,6 +10,12 @@
 
 #include <Wantanites\Framework\Constants\ConstantValues.mqh>
 
+enum TimeFormat
+{
+    MQL,
+    Excel
+};
+
 class FileHelper
 {
 private:
@@ -23,7 +29,7 @@ public:
     static void WriteString(int fileHandle, string value, bool writeDelimiter);
     static void WriteInteger(int fileHandle, int value, bool writeDelimiter);
     static void WriteDouble(int fileHandle, double value, int precision, bool writeDelimiter);
-    static void WriteDateTime(int fileHandle, datetime value, bool writeDelimiter);
+    static void WriteDateTime(int fileHandle, datetime value, TimeFormat timeFormat, bool writeDelimiter);
 
     static bool ReadBool(int fileHandle);
 };
@@ -80,11 +86,15 @@ static void FileHelper::WriteDouble(int fileHandle, double value, int precision,
     }
 }
 
-static void FileHelper::WriteDateTime(int fileHandle, datetime value, bool writeDelimiter = true)
+static void FileHelper::WriteDateTime(int fileHandle, datetime value, TimeFormat timeFormat = TimeFormat::Excel, bool writeDelimiter = true)
 {
-    // replace '.' with '/' so that excel knows its a date and allows for datetime functions within
     string dateAsString = TimeToString(value, TIME_DATE | TIME_MINUTES);
-    StringReplace(dateAsString, ".", "/");
+
+    // replace '.' with '/' so that excel knows its a date and allows for datetime functions within
+    if (timeFormat == TimeFormat::Excel)
+    {
+        StringReplace(dateAsString, ".", "/");
+    }
 
     if (!InternalWriteString(fileHandle, dateAsString, writeDelimiter))
     {

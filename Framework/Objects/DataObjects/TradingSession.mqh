@@ -11,17 +11,6 @@
 #include <Wantanites\Framework\Helpers\DateTimeHelper.mqh>
 #include <Wantanites\Framework\Objects\DataStructures\List.mqh>
 
-enum DayOfWeekEnum
-{
-    Sunday = 0,
-    Monday,
-    Tuesday,
-    Wednesday,
-    Thursday,
-    Friday,
-    Saturday
-};
-
 class TradingSession
 {
 private:

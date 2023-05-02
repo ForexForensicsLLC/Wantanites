@@ -44,7 +44,8 @@ string EconomicCalendarHelper::EventPath(datetime date)
 void EconomicCalendarHelper::ReadEvents(string calendar, datetime utcStart, datetime utcEnd, datetime utcCurrent, ObjectList<EconomicEvent> *&economicEvents,
                                         List<string> *&titles, List<string> *&symbols, List<int> *&impacts, bool ignoreDuplicateTimes)
 {
-    CSVRecordWriter<EconomicEventRecord> *csvRecordWriter = new CSVRecordWriter<EconomicEventRecord>(Directory() + calendar + EventPath(utcCurrent), EventsDocument(), false);
+    CSVRecordWriter<EconomicEventRecord> *csvRecordWriter = new CSVRecordWriter<EconomicEventRecord>(Directory() + calendar + EventPath(utcCurrent), EventsDocument(),
+                                                                                                     true, false, false);
     csvRecordWriter.SeekToStart();
 
     EconomicEventRecord *record = new EconomicEventRecord();
