@@ -49,6 +49,8 @@ public:
 
     static bool IsDayLightSavings(datetime dt);
     static MqlDateTime GetNthDayOfWeekForMonthAndYear(int nth, DayOfWeekEnum dayOfWeek, int month, int year);
+
+    static bool DateIsDuringCandleIndex(string symbol, ENUM_TIMEFRAMES timeFrame, datetime date, int candleIndex);
 };
 
 int DateTimeHelper::MQLUTCOffset(datetime dt)
@@ -264,4 +266,14 @@ static MqlDateTime DateTimeHelper::GetNthDayOfWeekForMonthAndYear(int nth, DayOf
     TimeToStruct(nthDayOfWeekForMonthAndYearDT, nthDayOfWeekForMonthAndYearMQLDT);
 
     return nthDayOfWeekForMonthAndYearMQLDT;
+}
+
+static bool DateTimeHelper::DateIsDuringCandleIndex(string symbol, ENUM_TIMEFRAMES timeFrame, datetime date, int candleIndex)
+{
+    // iTime looks like it always returns the exact bar time but it doesn't hurt to make sure
+    datetime currentBarTime = iTime(symbol, timeFrame, candleIndex);
+    int secondsPerCandle = timeFrame * 60;
+    datetime exactBarTime = currentBarTime - (currentBarTime % secondsPerCandle); // get exact bar time
+
+    return MathAbs(date - exactBarTime) < secondsPerCandle;
 }

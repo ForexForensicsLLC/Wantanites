@@ -50,7 +50,7 @@ public:
     virtual void RecordTicketOpenData(Ticket &ticket);
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
-    virtual void RecordError(int error, string additionalInformation);
+    virtual void RecordError(string methodName, int error, string additionalInformation);
     virtual bool ShouldReset();
     virtual void Reset();
 };
@@ -76,36 +76,20 @@ void InDepthAnalysis::PreRun()
 {
     if (!mLoadedEventsForToday)
     {
-        EAHelper::GetEconomicEventsForDate<InDepthAnalysis>(this, TimeGMT(), mEconomicEventTitles, mEconomicEventSymbols, mEconomicEventImpacts);
+        string calendar = "JustEvents";
+        EAHelper::GetEconomicEventsForDate<InDepthAnalysis, EconomicEventRecord>(this, calendar, TimeGMT());
 
         mLoadedEventsForToday = true;
         mWasReset = false;
     }
 
-    double equityChange = EAHelper::GetTotalTicketsEquityPercentChange<InDepthAnalysis>(this, AccountBalance(), mCurrentSetupTickets) / 100;
+    double equityChange = EAOrderHelper::GetTotalTicketsEquityPercentChange<InDepthAnalysis>(this, AccountBalance(), mCurrentSetupTickets) / 100;
     if (equityChange < mFurthestEquityDrawdownPercent)
     {
         mFurthestEquityDrawdownPercent = equityChange;
     }
 
-    if (OrdersTotal() > mCurrentSetupTickets.Size())
-    {
-        for (int i = 0; i < OrdersTotal(); i++)
-        {
-            if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
-            {
-                RecordError(GetLastError());
-                continue;
-            }
-
-            if (!mCurrentSetupTickets.Contains<TTicketNumberLocator, int>(Ticket::EqualsTicketNumber, OrderTicket()))
-            {
-                Ticket *ticket = new Ticket(OrderTicket());
-                ticket.OpenPrice(ticket.OpenPrice());
-                mCurrentSetupTickets.Add(ticket);
-            }
-        }
-    }
+    EAOrderHelper::MimicOrders<InDepthAnalysis>(this);
 }
 
 bool InDepthAnalysis::AllowedToTrade()
@@ -122,7 +106,7 @@ void InDepthAnalysis::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void InDepthAnalysis::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
+void InDepthAnalysis::InvalidateSetup(bool deletePendingOrder, int error = -1)
 {
     EAHelper::InvalidateSetup<InDepthAnalysis>(this, deletePendingOrder, mStopTrading, error);
 }
@@ -176,12 +160,12 @@ void InDepthAnalysis::RecordTicketPartialData(Ticket &partialedTicket, int newTi
 
 void InDepthAnalysis::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordForexForensicsExitTradeRecord<InDepthAnalysis>(this, ticket, mEntryTimeFrame);
+    EAHelper::RecordForexForensicsExitTradeRecord<InDepthAnalysis>(this, ticket, EntryTimeFrame());
 }
 
-void InDepthAnalysis::RecordError(int error, string additionalInformation = "")
+void InDepthAnalysis::RecordError(string methodName, int error, string additionalInformation = "")
 {
-    EAHelper::RecordDefaultErrorRecord<InDepthAnalysis>(this, error, additionalInformation);
+    EAHelper::RecordDefaultErrorRecord<InDepthAnalysis>(this, methodName, error, additionalInformation);
 }
 
 bool InDepthAnalysis::ShouldReset()

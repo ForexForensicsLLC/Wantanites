@@ -99,8 +99,8 @@ public:
     virtual void ManageCurrentActiveSetupTicket(Ticket &ticket) = NULL;
     virtual bool MoveToPreviousSetupTickets(Ticket &ticket) = NULL;
     virtual void ManagePreviousSetupTicket(Ticket &ticket) = NULL;
-    virtual bool CheckCurrentSetupTicket(Ticket &ticket) = NULL;  // returns true if ticket was deleted manually
-    virtual bool CheckPreviousSetupTicket(Ticket &ticket) = NULL; // returns true if ticket was deleted manually
+    virtual void CheckCurrentSetupTicket(Ticket &ticket) = NULL;
+    virtual void CheckPreviousSetupTicket(Ticket &ticket) = NULL;
     virtual void RecordTicketOpenData(Ticket &ticket) = NULL;
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber) = NULL;
     virtual void RecordTicketCloseData(Ticket &ticket) = NULL;

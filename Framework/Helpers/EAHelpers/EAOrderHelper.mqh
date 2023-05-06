@@ -71,7 +71,6 @@ public:
 
     template <typename TEA>
     static void MimicOrders(TEA &ea);
-
     // =========================================================================
     // Moving to Break Even
     // =========================================================================
@@ -720,6 +719,7 @@ static void EAOrderHelper::MimicOrders(TEA &ea)
             if (!ea.mCurrentSetupTickets.Contains<TTicketNumberLocator, int>(Ticket::EqualsTicketNumber, tickets[i]))
             {
                 Ticket *ticket = new Ticket(tickets[i]);
+                ticket.AccountBalanceBefore(AccountInfoDouble(ACCOUNT_BALANCE));
                 ea.mCurrentSetupTickets.Add(ticket);
             }
         }
@@ -727,27 +727,6 @@ static void EAOrderHelper::MimicOrders(TEA &ea)
         delete tickets;
     }
 }
-
-// template <typename TEA>
-// static void EAOrderHelper::MimicOrdersForEconomicEventSlippage(TEA &ea)
-// {
-//     if (OrderInfoHelper::TotalCurrentOrders() > ea.mCurrentSetupTickets.Size())
-//     {
-//         List<int> *tickets = new List<int>();
-//         OrderInfoHelper::GetAllActiveTickets(tickets);
-
-//         for (int i = 0; i < tickets.Size(); i++)
-//         {
-//             if (!ea.mCurrentSetupTickets.Contains<TTicketNumberLocator, int>(Ticket::EqualsTicketNumber, tickets[i]))
-//             {
-//                 Ticket *ticket = new Ticket(tickets[i]);
-//                 // ea.mCurrentSetupTickets.Add(ticket);
-//             }
-//         }
-
-//         delete tickets;
-//     }
-// }
 /*
 
    __  __            _               _____       ____                 _      _____

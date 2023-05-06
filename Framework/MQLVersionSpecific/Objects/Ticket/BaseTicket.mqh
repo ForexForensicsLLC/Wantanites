@@ -82,6 +82,7 @@ public:
 
     virtual int MagicNumber() = NULL;
     virtual TicketType Type() = NULL;
+    void OpenPrice(double openPrice) { mOpenPrice = openPrice; } // used in NewsEmulation.mqh
     virtual double OpenPrice() = NULL;
     virtual datetime OpenTime() = NULL;
     virtual double LotSize() = NULL;

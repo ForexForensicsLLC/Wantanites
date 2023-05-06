@@ -34,6 +34,7 @@ public:
     double AccountBalanceBefore;
     double Lots;
     datetime EntryTime;
+    double ExpectedEntryPrice;
     double EntryPrice;
     double EntrySlippage;
     double OriginalStopLoss;
@@ -85,6 +86,7 @@ RecordColumns::RecordColumns()
     AccountBalanceBefore = ConstantValues::EmptyDouble;
     Lots = ConstantValues::EmptyDouble;
     EntryTime = 0;
+    ExpectedEntryPrice = ConstantValues::EmptyDouble;
     EntryPrice = ConstantValues::EmptyDouble;
     EntrySlippage = ConstantValues::EmptyDouble;
     OriginalStopLoss = ConstantValues::EmptyDouble;

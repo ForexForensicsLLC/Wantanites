@@ -11,6 +11,7 @@
 #include <Wantanites/Framework/Constants/MagicNumbers.mqh>
 #include <Wantanites/Framework/Constants/SymbolConstants.mqh>
 #include <Wantanites/EAs/Inactive/TimeRange/TimeRangeBreakout/StartOfDayTimeRangeBreakout.mqh>
+#include <Wantanites/Framework/Helpers/MailHelper.mqh>
 
 string ForcedSymbol = "USDJPY";
 int ForcedTimeFrame = 5;
@@ -42,7 +43,7 @@ double MaxSlippage = 3;
 
 int OnInit()
 {
-    if (!EAHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
+    if (!EAInitHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
     {
         return INIT_PARAMETERS_INCORRECT;
     }
@@ -78,6 +79,9 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
+    iCustom(Symbol(), Period(), "NewsEmulation", 0, 0);
+    // iCustom(Symbol(), Period(), "InDepthAnalysis", 0, 0);
+
     TRBBuys.Run();
     TRBSells.Run();
 }

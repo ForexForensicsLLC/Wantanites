@@ -31,6 +31,7 @@ public:
                   CSVRecordWriter<DefaultErrorRecord> *&errorCSVRecordWriter);
     ~NewsEmulation();
 
+    virtual double MaxSlippagePips() { return 25; }
     virtual double RiskPercent() { return mRiskPercent; }
 
     virtual void PreRun();
@@ -45,8 +46,8 @@ public:
     virtual void ManageCurrentActiveSetupTicket(Ticket &ticket);
     virtual bool MoveToPreviousSetupTickets(Ticket &ticket);
     virtual void ManagePreviousSetupTicket(Ticket &ticket);
-    virtual bool CheckCurrentSetupTicket(Ticket &ticket);
-    virtual bool CheckPreviousSetupTicket(Ticket &ticket);
+    virtual void CheckCurrentSetupTicket(Ticket &ticket);
+    virtual void CheckPreviousSetupTicket(Ticket &ticket);
     virtual void RecordTicketOpenData(Ticket &ticket);
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
@@ -76,7 +77,8 @@ void NewsEmulation::PreRun()
 {
     if (!mLoadedEventsForToday)
     {
-        EAHelper::GetEconomicEventsForDate<NewsEmulation>(this, "", TimeGMT(), mEconomicEventTitles, mEconomicEventSymbols, mEconomicEventImpacts);
+        string calendar = "EventsAndCandles/" + EntrySymbol();
+        EAHelper::GetEconomicEventsForDate<NewsEmulation, EconomicEventAndCandleRecord>(this, calendar, TimeGMT());
 
         mLoadedEventsForToday = true;
         mWasReset = false;
@@ -140,83 +142,43 @@ void NewsEmulation::ManagePreviousSetupTicket(Ticket &ticket)
 {
 }
 
-bool NewsEmulation::CheckCurrentSetupTicket(Ticket &ticket)
+void NewsEmulation::CheckCurrentSetupTicket(Ticket &ticket)
 {
     bool wasActivated = false;
     int error = ticket.WasActivatedSinceLastCheck(__FUNCTION__, wasActivated);
     if (wasActivated)
     {
-        int currentTickets = mCurrentSetupTickets.Size();
-        ObjectList<EconomicEvent> *events = new ObjectList<EconomicEvent>();
         int openIndex = iBarShift(EntrySymbol(), EntryTimeFrame(), ticket.OpenTime());
 
-        if (EAHelper::GetEconomicEventsForCandle<NewsEmulation>(this, events, openIndex))
+        double emulatedOpenPrice = ConstantValues::EmptyDouble;
+        TicketType type = ticket.Type();
+
+        if (type == TicketType::Buy)
         {
-            TicketType type = ticket.Type();
-            int newTicketNumber = ConstantValues::EmptyInt;
-
-            if (type == TicketType::Buy)
+            if (!EAHelper::GetCandleHighForEconomicEvent<NewsEmulation>(this, emulatedOpenPrice, openIndex))
             {
-                double candleHigh = ConstantValues::EmptyDouble;
-                for (int i = 0; i < events.Size(); i++)
-                {
-                    if (events[i].High() > candleHigh)
-                    {
-                        candleHigh = events[i].High();
-                    }
-                }
-
-                double newOpenPrice = MathMin(ticket.OpenPrice() + PipConverter::PipsToPoints(25), candleHigh);
-
-                if (CurrentTick().Ask() >= newOpenPrice)
-                {
-                    EAOrderHelper::PlaceMarketOrder<NewsEmulation>(this, newOpenPrice, ticket.CurrentStopLoss(), ticket.LotSize(), ticket.TakeProfit(), type);
-                }
-                else
-                {
-                    EAOrderHelper::PlaceStopOrder<NewsEmulation>(this, newOpenPrice, ticket.CurrentStopLoss(), ticket.LotSize(), ticket.TakeProfit(), false, 0.0, type);
-                }
+                return;
             }
-            else if (type == TicketType::Sell)
+
+            emulatedOpenPrice = MathMin(ticket.OpenPrice() + PipConverter::PipsToPoints(MaxSlippagePips()), emulatedOpenPrice);
+        }
+        else if (type == TicketType::Sell)
+        {
+            if (!EAHelper::GetCandleLowForEconomicEvent<NewsEmulation>(this, emulatedOpenPrice, openIndex))
             {
-                double candleLow = ConstantValues::EmptyDouble;
-                for (int i = 0; i < events.Size(); i++)
-                {
-                    if (events[i].Low() < candleHigh || candleLow == ConstantValues::EmptyDouble)
-                    {
-                        candleLow = events[i].Low();
-                    }
-                }
-
-                double newOpenPrice = MathMax(ticket.OpenPrice() - PipConverter::PipsToRange(25), candleLow);
-
-                if (CurrentTick().Bid() <= newOpenPrice)
-                {
-                    EAOrderHelper::PlaceMarketOrder<NewsEmulation>(this, newOpenPrice, ticket.CurrentStopLoss(), ticket.LotSize(), ticket.TakeProfit(), type);
-                }
-                else
-                {
-                    EAOrderHelper::PlaceStopOrder<NewsEmulation>(this, newOpenPrice, ticket.CurrentStopLoss(), ticket.LotSize(), ticket.TakeProfit(), false, 0.0, type);
-                }
+                return;
             }
+
+            emulatedOpenPrice = MathMax(ticket.OpenPrice() - PipConverter::PipsToPoints(MaxSlippagePips()), emulatedOpenPrice);
         }
 
-        // successfully added a new ticket
-        if (currentTickets != mCurrentSetupTickets.Size())
-        {
-            mCurrentSetupTickets.RemoveWhere<TTicketNumberLocator, int>(Ticket::EqualsTicketNumber, ticket.Number());
-            return true;
-        }
-
-        delete events;
+        // override the open price to the emulated open price
+        ticket.ExpectedOpenPrice(emulatedOpenPrice);
     }
-
-    return false;
 }
 
-bool NewsEmulation::CheckPreviousSetupTicket(Ticket &ticket)
+void NewsEmulation::CheckPreviousSetupTicket(Ticket &ticket)
 {
-    return false;
 }
 
 void NewsEmulation::RecordTicketOpenData(Ticket &ticket)
@@ -230,12 +192,12 @@ void NewsEmulation::RecordTicketPartialData(Ticket &partialedTicket, int newTick
 
 void NewsEmulation::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordForexForensicsExitTradeRecord<NewsEmulation>(this, ticket, mEntryTimeFrame);
+    EAHelper::RecordForexForensicsExitTradeRecord<NewsEmulation>(this, ticket, EntryTimeFrame());
 }
 
 void NewsEmulation::RecordError(string methodName, int error, string additionalInformation = "")
 {
-    EAHelper::RecordDefaultErrorRecord<NewsEmulation>(this, error, additionalInformation);
+    EAHelper::RecordDefaultErrorRecord<NewsEmulation>(this, methodName, error, additionalInformation);
 }
 
 bool NewsEmulation::ShouldReset()

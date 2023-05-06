@@ -96,13 +96,14 @@ public:
     template <typename TEA>
     static bool MostRecentCandleBrokeDateRange(TEA &ea);
 
-    template <typename TEA>
-    static void GetEconomicEventsForDate(TEA &ea, string calendar, datetime utcDate, List<string> *&titles, List<string> *&symbols, List<int> *&impacts,
-                                         bool ignoreDuplicateTimes);
+    template <typename TEA, typename TRecord>
+    static void GetEconomicEventsForDate(TEA &ea, string calendar, datetime utcDate, bool ignoreDuplicateTimes);
     template <typename TEA>
     static bool CandleIsDuringEconomicEvent(TEA &ea, int candleIndex);
     template <typename TEA>
-    static bool GetEconomicEventsForCandle(TEA &ea, ObjectList<EconomicEvent> &events, int candleIndex);
+    static bool GetCandleHighForEconomicEvent(TEA &ea, double &high, int candleIndex);
+    template <typename TEA>
+    static bool GetCandleLowForEconomicEvent(TEA &ea, double &low, int candleIndex);
 
     // =========================================================================
     // Check Invalidate Setup
@@ -1112,29 +1113,25 @@ static bool EAHelper::MostRecentCandleBrokeDateRange(TEA &ea)
     return false;
 }
 
-template <typename TEA>
-static void EAHelper::GetEconomicEventsForDate(TEA &ea, string calendar, datetime utcDate, List<string> *&titles, List<string> *&symbols, List<int> *&impacts,
-                                               bool ignoreDuplicateTimes = true)
+template <typename TEA, typename TRecord>
+static void EAHelper::GetEconomicEventsForDate(TEA &ea, string calendar, datetime utcDate, bool ignoreDuplicateTimes = true)
 {
     MqlDateTime mqlUtcDateTime = DateTimeHelper::ToMQLDateTime(utcDate);
+
     // strip away hour and minute
     datetime startTime = DateTimeHelper::DayMonthYearToDateTime(mqlUtcDateTime.day, mqlUtcDateTime.mon, mqlUtcDateTime.year);
     datetime endTime = startTime + (60 * 60 * 24);
 
-    EconomicCalendarHelper::GetEventsBetween(calendar, startTime, endTime, ea.mEconomicEvents, titles, symbols, impacts, ignoreDuplicateTimes);
+    EconomicCalendarHelper::GetEventsBetween<TRecord>(calendar, startTime, endTime, ea.mEconomicEvents, ea.mEconomicEventTitles, ea.mEconomicEventSymbols,
+                                                      ea.mEconomicEventImpacts, ignoreDuplicateTimes);
 }
 
 template <typename TEA>
 static bool EAHelper::CandleIsDuringEconomicEvent(TEA &ea, int candleIndex = 0)
 {
-    // iTime looks like it always returns the exact bar time but it doesn't hurt to make sure
-    datetime currentBarTime = iTime(ea.EntrySymbol(), ea.EntryTimeFrame(), candleIndex);
-    int secondsPerCandle = ea.EntryTimeFrame() * 60;
-    datetime exactBarTime = currentBarTime - (currentBarTime % secondsPerCandle); // get exact bar time
-
     for (int i = 0; i < ea.mEconomicEvents.Size(); i++)
     {
-        if (MathAbs(ea.mEconomicEvents[i].Date() - exactBarTime) <= secondsPerCandle)
+        if (DateTimeHelper::DateIsDuringCandleIndex(ea.EntrySymbol(), ea.EntryTimeFrame(), ea.mEconomicEvents[i].Date(), candleIndex))
         {
             return true;
         }
@@ -1144,23 +1141,35 @@ static bool EAHelper::CandleIsDuringEconomicEvent(TEA &ea, int candleIndex = 0)
 }
 
 template <typename TEA>
-static bool EAHelper::GetEconomicEventsForCandle(TEA &ea, ObjectList<EconomicEvent> &events, int candleIndex = 0)
+static bool EAHelper::GetCandleHighForEconomicEvent(TEA &ea, double &high, int candleIndex = 0)
 {
-    // iTime looks like it always returns the exact bar time but it doesn't hurt to make sure
-    datetime currentBarTime = iTime(ea.EntrySymbol(), ea.EntryTimeFrame(), candleIndex);
-    int secondsPerCandle = ea.EntryTimeFrame() * 60;
-    datetime exactBarTime = currentBarTime - (currentBarTime % secondsPerCandle); // get exact bar time
-
     for (int i = 0; i < ea.mEconomicEvents.Size(); i++)
     {
-        if (MathAbs(ea.mEconomicEvents[i].Date() - exactBarTime) <= secondsPerCandle)
+        if (DateTimeHelper::DateIsDuringCandleIndex(ea.EntrySymbol(), ea.EntryTimeFrame(), ea.mEconomicEvents[i].Date(), candleIndex))
         {
-            EconomicEvent *event = ea.mEconomicEvents[i];
-            events.Add(event);
+            high = ea.mEconomicEvents[i].High();
+            return true;
         }
     }
 
-    return events.Size() > 0;
+    high = ConstantValues::EmptyDouble;
+    return false;
+}
+
+template <typename TEA>
+static bool EAHelper::GetCandleLowForEconomicEvent(TEA &ea, double &low, int candleIndex = 0)
+{
+    for (int i = 0; i < ea.mEconomicEvents.Size(); i++)
+    {
+        if (DateTimeHelper::DateIsDuringCandleIndex(ea.EntrySymbol(), ea.EntryTimeFrame(), ea.mEconomicEvents[i].Date(), candleIndex))
+        {
+            low = ea.mEconomicEvents[i].Low();
+            return true;
+        }
+    }
+
+    low = ConstantValues::EmptyDouble;
+    return false;
 }
 
 template <typename TEA>
@@ -1740,6 +1749,7 @@ static void EAHelper::RecordForexForensicsEntryTradeRecord(TEA &ea, Ticket &tick
 
     // override the magic number so that it matches the ticket that we copied the trade from
     record.MagicNumber = ticket.MagicNumber();
+    record.ExpectedEntryPrice = ticket.ExpectedOpenPrice();
     record.DuringNews = CandleIsDuringEconomicEvent<TEA>(ea, iBarShift(ea.EntrySymbol(), ea.EntryTimeFrame(), ticket.OpenTime()));
 
     ea.mEntryCSVRecordWriter.WriteRecord(record);

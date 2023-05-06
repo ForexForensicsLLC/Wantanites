@@ -34,6 +34,7 @@ void ForexForensicsEntryTradeRecord::WriteHeaders(int fileHandle, bool writeDeli
     FileHelper::WriteString(fileHandle, "Order Type");
     FileHelper::WriteString(fileHandle, "Account Balance Before");
     FileHelper::WriteString(fileHandle, "Lots");
+    FileHelper::WriteString(fileHandle, "Expected Open Price");
     FileHelper::WriteString(fileHandle, "Entry Price");
     FileHelper::WriteString(fileHandle, "Original Stop Loss");
     FileHelper::WriteString(fileHandle, "During News", writeDelimiter);
@@ -47,6 +48,7 @@ void ForexForensicsEntryTradeRecord::WriteRecord(int fileHandle, bool writeDelim
     FileHelper::WriteString(fileHandle, OrderDirection);
     FileHelper::WriteDouble(fileHandle, AccountBalanceBefore, 2);
     FileHelper::WriteDouble(fileHandle, Lots, 2);
+    FileHelper::WriteDouble(fileHandle, ExpectedEntryPrice, Digits());
     FileHelper::WriteDouble(fileHandle, EntryPrice, Digits());
     FileHelper::WriteDouble(fileHandle, OriginalStopLoss, Digits());
     FileHelper::WriteString(fileHandle, DuringNews, writeDelimiter);
@@ -61,6 +63,7 @@ void ForexForensicsEntryTradeRecord::ReadRow(int fileHandle)
     OrderDirection = FileReadString(fileHandle);
     AccountBalanceBefore = StringToDouble(FileReadString(fileHandle));
     Lots = StringToDouble(FileReadString(fileHandle));
+    ExpectedEntryPrice = StringToDouble(FileReadString(fileHandle));
     EntryPrice = StringToDouble(FileReadString(fileHandle));
     OriginalStopLoss = StringToDouble(FileReadString(fileHandle));
     DuringNews = FileHelper::ReadBool(fileHandle);
