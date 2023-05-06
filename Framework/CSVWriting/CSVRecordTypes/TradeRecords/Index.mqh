@@ -21,6 +21,7 @@
 #include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\ExitTradeRecords\EntryCandleExitTradeRecord.mqh>
 #include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\ExitTradeRecords\ForexForensicsExitTradeRecord.mqh>
 #include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\ExitTradeRecords\FeatureEngineeringExitTradeRecord.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\ExitTradeRecords\ProfitTrackingExitTradeRecord.mqh>
 
 #include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\PartialTradeRecords\EmptyPartialTradeRecord.mqh>
 #include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\PartialTradeRecords\PartialTradeRecord.mqh>

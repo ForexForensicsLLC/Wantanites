@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                                    InDepthAnalysis.mqh |
+//|                                                    ProfitTracking.mqh |
 //|                        Copyright 2022, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -8,11 +8,11 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Objects\DataObjects\EA.mqh>
 #include <Wantanites\Framework\Helpers\EAHelper.mqh>
+#include <Wantanites\Framework\Objects\DataObjects\EA.mqh>
 #include <Wantanites\Framework\Constants\MagicNumbers.mqh>
 
-class InDepthAnalysis : public EA<ForexForensicsEntryTradeRecord, EmptyPartialTradeRecord, ForexForensicsExitTradeRecord, DefaultErrorRecord>
+class ProfitTracking : public EA<ForexForensicsEntryTradeRecord, EmptyPartialTradeRecord, ProfitTrackingExitTradeRecord, DefaultErrorRecord>
 {
 public:
     ObjectList<EconomicEvent> *mEconomicEvents;
@@ -27,9 +27,9 @@ public:
     double mFurthestEquityDrawdownPercent;
 
 public:
-    InDepthAnalysis(CSVRecordWriter<ForexForensicsEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<ForexForensicsExitTradeRecord> *&exitCSVRecordWriter,
-                    CSVRecordWriter<DefaultErrorRecord> *&errorCSVRecordWriter);
-    ~InDepthAnalysis();
+    ProfitTracking(CSVRecordWriter<ForexForensicsEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<ProfitTrackingExitTradeRecord> *&exitCSVRecordWriter,
+                   CSVRecordWriter<DefaultErrorRecord> *&errorCSVRecordWriter);
+    ~ProfitTracking();
 
     virtual double RiskPercent() { return mRiskPercent; }
 
@@ -55,8 +55,8 @@ public:
     virtual void Reset();
 };
 
-InDepthAnalysis::InDepthAnalysis(CSVRecordWriter<ForexForensicsEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<ForexForensicsExitTradeRecord> *&exitCSVRecordWriter,
-                                 CSVRecordWriter<DefaultErrorRecord> *&errorCSVRecordWriter)
+ProfitTracking::ProfitTracking(CSVRecordWriter<ForexForensicsEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<ProfitTrackingExitTradeRecord> *&exitCSVRecordWriter,
+                               CSVRecordWriter<DefaultErrorRecord> *&errorCSVRecordWriter)
     : EA(-99, -1, -1, -1, -1, -1, -1, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mEconomicEvents = new ObjectList<EconomicEvent>();
@@ -67,113 +67,113 @@ InDepthAnalysis::InDepthAnalysis(CSVRecordWriter<ForexForensicsEntryTradeRecord>
     mFurthestEquityDrawdownPercent = 0.0;
 }
 
-InDepthAnalysis::~InDepthAnalysis()
+ProfitTracking::~ProfitTracking()
 {
     delete mEconomicEvents;
 }
 
-void InDepthAnalysis::PreRun()
+void ProfitTracking::PreRun()
 {
     if (!mLoadedEventsForToday)
     {
         string calendar = "JustEvents";
-        EAHelper::GetEconomicEventsForDate<InDepthAnalysis, EconomicEventRecord>(this, calendar, TimeGMT());
+        EAHelper::GetEconomicEventsForDate<ProfitTracking, EconomicEventRecord>(this, calendar, TimeGMT());
 
         mLoadedEventsForToday = true;
         mWasReset = false;
     }
 
-    double equityChange = EAOrderHelper::GetTotalTicketsEquityPercentChange<InDepthAnalysis>(this, AccountBalance(), mCurrentSetupTickets) / 100;
+    double equityChange = EAOrderHelper::GetTotalTicketsEquityPercentChange<ProfitTracking>(this, AccountBalance(), mCurrentSetupTickets) / 100;
     if (equityChange < mFurthestEquityDrawdownPercent)
     {
         mFurthestEquityDrawdownPercent = equityChange;
     }
 
-    EAOrderHelper::MimicOrders<InDepthAnalysis>(this);
+    EAOrderHelper::MimicOrders<ProfitTracking>(this);
 }
 
-bool InDepthAnalysis::AllowedToTrade()
+bool ProfitTracking::AllowedToTrade()
 {
     return false;
 }
 
-void InDepthAnalysis::CheckSetSetup()
+void ProfitTracking::CheckSetSetup()
 {
 }
 
-void InDepthAnalysis::CheckInvalidateSetup()
+void ProfitTracking::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void InDepthAnalysis::InvalidateSetup(bool deletePendingOrder, int error = -1)
+void ProfitTracking::InvalidateSetup(bool deletePendingOrder, int error = -1)
 {
-    EAHelper::InvalidateSetup<InDepthAnalysis>(this, deletePendingOrder, mStopTrading, error);
+    EAHelper::InvalidateSetup<ProfitTracking>(this, deletePendingOrder, mStopTrading, error);
 }
 
-bool InDepthAnalysis::Confirmation()
+bool ProfitTracking::Confirmation()
+{
+    return true;
+}
+
+void ProfitTracking::PlaceOrders()
+{
+}
+
+void ProfitTracking::ManageCurrentPendingSetupTicket(Ticket &ticket)
+{
+}
+
+void ProfitTracking::ManageCurrentActiveSetupTicket(Ticket &ticket)
+{
+}
+
+void ProfitTracking::PreManageTickets()
+{
+}
+
+bool ProfitTracking::MoveToPreviousSetupTickets(Ticket &ticket)
 {
     return false;
 }
 
-void InDepthAnalysis::PlaceOrders()
+void ProfitTracking::ManagePreviousSetupTicket(Ticket &ticket)
 {
 }
 
-void InDepthAnalysis::ManageCurrentPendingSetupTicket(Ticket &ticket)
+void ProfitTracking::CheckCurrentSetupTicket(Ticket &ticket)
 {
 }
 
-void InDepthAnalysis::ManageCurrentActiveSetupTicket(Ticket &ticket)
+void ProfitTracking::CheckPreviousSetupTicket(Ticket &ticket)
 {
 }
 
-void InDepthAnalysis::PreManageTickets()
+void ProfitTracking::RecordTicketOpenData(Ticket &ticket)
+{
+    EAHelper::RecordForexForensicsEntryTradeRecord<ProfitTracking>(this, ticket);
+}
+
+void ProfitTracking::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
 }
 
-bool InDepthAnalysis::MoveToPreviousSetupTickets(Ticket &ticket)
+void ProfitTracking::RecordTicketCloseData(Ticket &ticket)
 {
-    return false;
+    EAHelper::RecordProfitTrackingExitTradeRecord<ProfitTracking>(this, ticket, EntryTimeFrame());
 }
 
-void InDepthAnalysis::ManagePreviousSetupTicket(Ticket &ticket)
+void ProfitTracking::RecordError(string methodName, int error, string additionalInformation = "")
 {
+    EAHelper::RecordDefaultErrorRecord<ProfitTracking>(this, methodName, error, additionalInformation);
 }
 
-void InDepthAnalysis::CheckCurrentSetupTicket(Ticket &ticket)
-{
-}
-
-void InDepthAnalysis::CheckPreviousSetupTicket(Ticket &ticket)
-{
-}
-
-void InDepthAnalysis::RecordTicketOpenData(Ticket &ticket)
-{
-    EAHelper::RecordForexForensicsEntryTradeRecord<InDepthAnalysis>(this, ticket);
-}
-
-void InDepthAnalysis::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
-{
-}
-
-void InDepthAnalysis::RecordTicketCloseData(Ticket &ticket)
-{
-    EAHelper::RecordForexForensicsExitTradeRecord<InDepthAnalysis>(this, ticket, EntryTimeFrame());
-}
-
-void InDepthAnalysis::RecordError(string methodName, int error, string additionalInformation = "")
-{
-    EAHelper::RecordDefaultErrorRecord<InDepthAnalysis>(this, methodName, error, additionalInformation);
-}
-
-bool InDepthAnalysis::ShouldReset()
+bool ProfitTracking::ShouldReset()
 {
     return Day() != LastDay();
 }
 
-void InDepthAnalysis::Reset()
+void ProfitTracking::Reset()
 {
     mLoadedEventsForToday = false;
     mEconomicEvents.Clear();

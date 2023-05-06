@@ -211,6 +211,9 @@ public:
     static void RecordFeatureEngineeringEntryTradeRecord(TEA &ea, Ticket &ticket);
     template <typename TEA>
     static void RecordFeatureEngineeringExitTradeRecord(TEA &ea, Ticket &ticket, ENUM_TIMEFRAMES entryTimeFrame);
+
+    template <typename TEA>
+    static void RecordProfitTrackingExitTradeRecord(TEA &ea, Ticket &ticket, ENUM_TIMEFRAMES entryTimeFram);
 };
 /*
 
@@ -1842,6 +1845,17 @@ static void EAHelper::RecordFeatureEngineeringExitTradeRecord(TEA &ea, Ticket &t
     record.FurthestEquityDrawdownPercent = ea.mFurthestEquityDrawdownPercent;
     record.Outcome = ticket.Profit() > 0 ? "Win" : "Lose";
 
+    ea.mExitCSVRecordWriter.WriteRecord(record);
+    delete record;
+}
+
+template <typename TEA>
+static void EAHelper::RecordProfitTrackingExitTradeRecord(TEA &ea, Ticket &ticket, ENUM_TIMEFRAMES entryTimeFrame)
+{
+    ProfitTrackingExitTradeRecord *record = new ProfitTrackingExitTradeRecord();
+    SetDefaultCloseTradeData<TEA, ProfitTrackingExitTradeRecord>(ea, record, ticket, entryTimeFrame);
+
+    record.FurthestEquityDrawdownPercent = ea.mFurthestEquityDrawdownPercent;
     ea.mExitCSVRecordWriter.WriteRecord(record);
     delete record;
 }
