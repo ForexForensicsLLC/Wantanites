@@ -9,7 +9,7 @@
 #property strict
 #property indicator_chart_window
 
-#include <Wantanites\ForexForensics\FeatureEngineering\FeatureEnginerring.mqh>
+#include <Wantanites\ForexForensics\FeatureEngineering\FeatureEngineering.mqh>
 
 List<string> *EconomicEventTitles;
 List<string> *EconomicEventSymbols;
@@ -21,7 +21,7 @@ CSVRecordWriter<FeatureEngineeringEntryTradeRecord> *EntryWriter = new CSVRecord
 CSVRecordWriter<FeatureEngineeringExitTradeRecord> *ExitWriter = new CSVRecordWriter<FeatureEngineeringExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<DefaultErrorRecord> *ErrorWriter = new CSVRecordWriter<DefaultErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-FeatureEnginerring *FE;
+FeatureEngineering *FE;
 
 int OnInit()
 {
@@ -29,7 +29,7 @@ int OnInit()
     EconomicEventSymbols = new List<string>();
     EconomicEventImpacts = new List<int>();
 
-    FE = new FeatureEnginerring(EntryWriter, ExitWriter, ErrorWriter);
+    FE = new FeatureEngineering(EntryWriter, ExitWriter, ErrorWriter);
     FE.mEconomicEventTitles = EconomicEventTitles;
     FE.mEconomicEventSymbols = EconomicEventSymbols;
     FE.mEconomicEventImpacts = EconomicEventImpacts;

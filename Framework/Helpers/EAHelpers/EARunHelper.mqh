@@ -262,11 +262,12 @@ static void EARunHelper::CheckUpdateHowFarPriceRanFromOpen(TEA &ea, Ticket &tick
     }
 
     double distanceRan;
-    if (ea.SetupType() == SignalType::Bullish)
+    TicketType ticketType = ticket.Type();
+    if (ticketType == TicketType::Buy)
     {
         distanceRan = ea.CurrentTick().Bid() - ticket.OpenPrice();
     }
-    else if (ea.SetupType() == SignalType::Bearish)
+    else if (ticketType == TicketType::Sell)
     {
         distanceRan = ticket.OpenPrice() - ea.CurrentTick().Ask();
     }
