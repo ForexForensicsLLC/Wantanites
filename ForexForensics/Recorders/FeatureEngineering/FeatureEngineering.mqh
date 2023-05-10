@@ -90,14 +90,13 @@ void FeatureEngineering::PreRun()
 {
     if (!mLoadedEventsForToday)
     {
-        EAHelper::GetEconomicEventsForDate<FeatureEngineering>(this, "EventsAndCandles", TimeGMT(), mEconomicEventTitles, mEconomicEventSymbols, mEconomicEventImpacts,
-                                                               false);
+        EAHelper::GetEconomicEventsForDate<FeatureEngineering, EconomicEventAndCandleRecord>(this, "EventsAndCandles", TimeGMT(), false);
 
         mLoadedEventsForToday = true;
         mWasReset = false;
     }
 
-    double equityChange = EAOrderHelper::GetTotalTicketsEquityPercentChange<FeatureEngineering>(this, AccountBalance(), mCurrentSetupTickets) / 100;
+    double equityChange = EAOrderHelper::GetTotalTicketsEquityPercentChange<FeatureEngineering>(this, AccountInfoDouble(ACCOUNT_BALANCE), mCurrentSetupTickets) / 100;
     if (equityChange < mFurthestEquityDrawdownPercent)
     {
         mFurthestEquityDrawdownPercent = equityChange;
@@ -184,7 +183,7 @@ void FeatureEngineering::RecordError(string methodName, int error, string additi
 
 bool FeatureEngineering::ShouldReset()
 {
-    return Day() != LastDay();
+    return DateTimeHelper::CurrentDay() != LastDay();
 }
 
 void FeatureEngineering::Reset()

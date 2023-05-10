@@ -1777,16 +1777,15 @@ static void EAHelper::RecordFeatureEngineeringEntryTradeRecord(TEA &ea, Ticket &
     SetDefaultEntryTradeData<TEA, FeatureEngineeringEntryTradeRecord>(ea, record, ticket);
 
     int entryCandle = iBarShift(ea.EntrySymbol(), ea.EntryTimeFrame(), ticket.OpenTime());
-    ObjectList<EconomicEvent> *events = new ObjectList<EconomicEvent>();
-    if (GetEconomicEventsForCandle<TEA>(ea, events, entryCandle))
+    if (CandleIsDuringEconomicEvent<TEA>(ea, entryCandle))
     {
         record.DuringNews = true;
 
-        for (int i = 0; i < events.Size(); i++)
+        for (int i = 0; i < ea.mEconomicEvents.Size(); i++)
         {
-            if (events[i].Impact() > record.NewsImpact)
+            if (ea.mEconomicEvents[i].Impact() > record.NewsImpact)
             {
-                record.NewsImpact = events[i].Impact();
+                record.NewsImpact = ea.mEconomicEvents[i].Impact();
             }
         }
     }
@@ -1795,8 +1794,6 @@ static void EAHelper::RecordFeatureEngineeringEntryTradeRecord(TEA &ea, Ticket &
         record.DuringNews = false;
         record.NewsImpact = -1;
     }
-
-    delete events;
 
     record.DayOfWeek = DateTimeHelper::CurrentDayOfWeek();
 

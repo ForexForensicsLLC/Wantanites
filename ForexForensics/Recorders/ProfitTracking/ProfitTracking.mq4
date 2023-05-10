@@ -9,7 +9,7 @@
 #property strict
 #property indicator_chart_window
 
-#include <Wantanites\ForexForensics\ProfitTracking\ProfitTracking.mqh>
+#include <Wantanites\ForexForensics\Recorders\ProfitTracking\ProfitTracking.mqh>
 
 List<string> *EconomicEventTitles;
 List<string> *EconomicEventSymbols;

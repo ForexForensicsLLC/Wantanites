@@ -84,7 +84,7 @@ void NewsEmulation::PreRun()
         mWasReset = false;
     }
 
-    double equityChange = EAOrderHelper::GetTotalTicketsEquityPercentChange<NewsEmulation>(this, AccountBalance(), mCurrentSetupTickets) / 100;
+    double equityChange = EAOrderHelper::GetTotalTicketsEquityPercentChange<NewsEmulation>(this, AccountInfoDouble(ACCOUNT_BALANCE), mCurrentSetupTickets) / 100;
     if (equityChange < mFurthestEquityDrawdownPercent)
     {
         mFurthestEquityDrawdownPercent = equityChange;
@@ -202,7 +202,7 @@ void NewsEmulation::RecordError(string methodName, int error, string additionalI
 
 bool NewsEmulation::ShouldReset()
 {
-    return Day() != LastDay();
+    return DateTimeHelper::CurrentDay() != LastDay();
 }
 
 void NewsEmulation::Reset()

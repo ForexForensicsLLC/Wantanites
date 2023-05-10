@@ -9,7 +9,7 @@
 #property strict
 #property indicator_chart_window
 
-#include <Wantanites\ForexForensics\InDepthAnalysis\InDepthAnalysis.mqh>
+#include <Wantanites\ForexForensics\Recorders\InDepthAnalysis\InDepthAnalysis.mqh>
 
 List<string> *EconomicEventTitles;
 List<string> *EconomicEventSymbols;

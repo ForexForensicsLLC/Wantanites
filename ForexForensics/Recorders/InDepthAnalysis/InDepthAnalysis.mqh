@@ -83,7 +83,7 @@ void InDepthAnalysis::PreRun()
         mWasReset = false;
     }
 
-    double equityChange = EAOrderHelper::GetTotalTicketsEquityPercentChange<InDepthAnalysis>(this, AccountBalance(), mCurrentSetupTickets) / 100;
+    double equityChange = EAOrderHelper::GetTotalTicketsEquityPercentChange<InDepthAnalysis>(this, AccountInfoDouble(ACCOUNT_BALANCE), mCurrentSetupTickets) / 100;
     if (equityChange < mFurthestEquityDrawdownPercent)
     {
         mFurthestEquityDrawdownPercent = equityChange;
@@ -170,7 +170,7 @@ void InDepthAnalysis::RecordError(string methodName, int error, string additiona
 
 bool InDepthAnalysis::ShouldReset()
 {
-    return Day() != LastDay();
+    return DateTimeHelper::CurrentDay() != LastDay();
 }
 
 void InDepthAnalysis::Reset()

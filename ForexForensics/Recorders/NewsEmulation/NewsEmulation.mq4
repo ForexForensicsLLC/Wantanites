@@ -9,7 +9,7 @@
 #property strict
 #property indicator_chart_window
 
-#include <Wantanites\ForexForensics\NewsEmulation\NewsEmulation.mqh>
+#include <Wantanites\ForexForensics\Recorders\NewsEmulation\NewsEmulation.mqh>
 
 List<string> *EconomicEventTitles;
 List<string> *EconomicEventSymbols;

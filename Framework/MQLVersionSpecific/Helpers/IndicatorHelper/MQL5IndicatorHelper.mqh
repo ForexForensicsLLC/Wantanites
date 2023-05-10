@@ -11,12 +11,13 @@
 class VersionSpecificIndicatorHelper
 {
 public:
-    static double MovingAverage(string symbol, ENUM_TIMEFRAMES timeFrame, int maPeriod, int shift, int mode, int appliedPrice, int position);
+    static double MovingAverage(string symbol, ENUM_TIMEFRAMES timeFrame, int maPeriod, int shift, ENUM_MA_METHOD mode, int appliedPrice, int position);
     static double OnBalanceVolumnAverageChange(string symbol, ENUM_TIMEFRAMES timeFrame, int appliedPrice, int period);
     static double RSI(string symbol, ENUM_TIMEFRAMES timeFrame, int rsiPeriod, int appliedPrice, int position);
 };
 
-static double VersionSpecificIndicatorHelper::MovingAverage(string symbol, ENUM_TIMEFRAMES timeFrame, int maPeriod, int shift, int mode, int appliedPrice, int position)
+static double VersionSpecificIndicatorHelper::MovingAverage(string symbol, ENUM_TIMEFRAMES timeFrame, int maPeriod, int shift, ENUM_MA_METHOD mode, int appliedPrice,
+                                                            int position)
 {
     int handle;
     double values[];
@@ -33,7 +34,7 @@ static double VersionSpecificIndicatorHelper::OnBalanceVolumnAverageChange(strin
     int handle;
     double values[];
 
-    handle = iOBV(symbol, timeFrame, appliedPrice);
+    handle = iOBV(symbol, timeFrame, VOLUME_REAL);
     CopyBuffer(handle, 0, 0, period, values);
 
     int sum = 0;

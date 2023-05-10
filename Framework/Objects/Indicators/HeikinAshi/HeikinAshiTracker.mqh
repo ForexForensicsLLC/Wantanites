@@ -90,8 +90,8 @@ void HeikinAshiTracker::Calculate(int barIndex)
     }
     else
     {
-        heikinAshiOpen = NormalizeDouble((mCandles[0].Open() + mCandles[0].Close()) / 2, Digits);
-        heikinAshiClose = NormalizeDouble((barOpen + barClose + barHigh + barLow) / 4, Digits);
+        heikinAshiOpen = NormalizeDouble((mCandles[0].Open() + mCandles[0].Close()) / 2, Digits());
+        heikinAshiClose = NormalizeDouble((barOpen + barClose + barHigh + barLow) / 4, Digits());
         heikinAshiHigh = MathMax(barHigh, MathMax(heikinAshiOpen, heikinAshiClose));
         heikinAshiLow = MathMin(barLow, MathMin(heikinAshiOpen, heikinAshiClose));
         type = heikinAshiOpen > heikinAshiClose ? SignalType::Bearish : SignalType::Bullish;

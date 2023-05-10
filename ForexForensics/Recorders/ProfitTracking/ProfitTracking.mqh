@@ -83,7 +83,7 @@ void ProfitTracking::PreRun()
         mWasReset = false;
     }
 
-    double equityChange = EAOrderHelper::GetTotalTicketsEquityPercentChange<ProfitTracking>(this, AccountBalance(), mCurrentSetupTickets) / 100;
+    double equityChange = EAOrderHelper::GetTotalTicketsEquityPercentChange<ProfitTracking>(this, AccountInfoDouble(ACCOUNT_BALANCE), mCurrentSetupTickets) / 100;
     if (equityChange < mFurthestEquityDrawdownPercent)
     {
         mFurthestEquityDrawdownPercent = equityChange;
@@ -170,7 +170,7 @@ void ProfitTracking::RecordError(string methodName, int error, string additional
 
 bool ProfitTracking::ShouldReset()
 {
-    return Day() != LastDay();
+    return DateTimeHelper::CurrentDay() != LastDay();
 }
 
 void ProfitTracking::Reset()

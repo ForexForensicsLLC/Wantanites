@@ -18,12 +18,12 @@
 class IndicatorHelper
 {
 public:
-    static double MovingAverage(string symbol, ENUM_TIMEFRAMES timeFrame, int maPeriod, int shift, int mode, int appliedPrice, int position);
+    static double MovingAverage(string symbol, ENUM_TIMEFRAMES timeFrame, int maPeriod, int shift, ENUM_MA_METHOD mode, int appliedPrice, int position);
     static double OnBalanceVolumnAverageChange(string symbol, ENUM_TIMEFRAMES timeFrame, int appliedPrice, int period);
     static double RSI(string symbol, ENUM_TIMEFRAMES timeFrame, int rsiPeriod, int appliePrice, int poisition);
 };
 
-static double IndicatorHelper::MovingAverage(string symbol, ENUM_TIMEFRAMES timeFrame, int maPeriod, int shift, int mode, int appliedPrice, int position)
+static double IndicatorHelper::MovingAverage(string symbol, ENUM_TIMEFRAMES timeFrame, int maPeriod, int shift, ENUM_MA_METHOD mode, int appliedPrice, int position)
 {
     return VersionSpecificIndicatorHelper::MovingAverage(symbol, timeFrame, maPeriod, shift, mode, appliedPrice, position);
 }
