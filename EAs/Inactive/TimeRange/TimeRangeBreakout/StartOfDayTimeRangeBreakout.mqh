@@ -9,7 +9,6 @@
 #property strict
 
 #include <Wantanites\Framework\Objects\DataObjects\EA.mqh>
-#include <Wantanites\Framework\Helpers\EAHelper.mqh>
 #include <Wantanites\Framework\Constants\MagicNumbers.mqh>
 
 #include <Wantanites\Framework\Objects\Indicators\Time\TimeRangeBreakout.mqh>
@@ -71,12 +70,12 @@ void StartOfDayTimeRangeBreakout::PreRun()
 
 bool StartOfDayTimeRangeBreakout::AllowedToTrade()
 {
-    return EAHelper::BelowSpread<StartOfDayTimeRangeBreakout>(this) && EAHelper::WithinTradingSession<StartOfDayTimeRangeBreakout>(this);
+    return EARunHelper::BelowSpread<StartOfDayTimeRangeBreakout>(this) && EARunHelper::WithinTradingSession<StartOfDayTimeRangeBreakout>(this);
 }
 
 void StartOfDayTimeRangeBreakout::CheckSetSetup()
 {
-    if (EAHelper::MostRecentCandleBrokeTimeRange<StartOfDayTimeRangeBreakout>(this))
+    if (EASetupHelper::MostRecentCandleBrokeTimeRange<StartOfDayTimeRangeBreakout>(this))
     {
         mHasSetup = true;
     }
@@ -86,7 +85,7 @@ void StartOfDayTimeRangeBreakout::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
-    if (LastDay() != Day())
+    if (LastDay() != DateTimeHelper::CurrentDay())
     {
         InvalidateSetup(true);
     }
@@ -94,7 +93,7 @@ void StartOfDayTimeRangeBreakout::CheckInvalidateSetup()
 
 void StartOfDayTimeRangeBreakout::InvalidateSetup(bool deletePendingOrder, int error = -1)
 {
-    EAHelper::InvalidateSetup<StartOfDayTimeRangeBreakout>(this, deletePendingOrder, mStopTrading, error);
+    EASetupHelper::InvalidateSetup<StartOfDayTimeRangeBreakout>(this, deletePendingOrder, mStopTrading, error);
 }
 
 bool StartOfDayTimeRangeBreakout::Confirmation()
@@ -146,7 +145,8 @@ void StartOfDayTimeRangeBreakout::ManagePreviousSetupTicket(Ticket &ticket)
 void StartOfDayTimeRangeBreakout::CheckCurrentSetupTicket(Ticket &ticket)
 {
     // Make sure we are only ever losing how much we intend to risk, even if we entered at a worse price due to slippage
-    if ((AccountEquity() - AccountBalance()) / AccountBalance() * 100 <= -RiskPercent())
+    double accountBalance = AccountInfoDouble(ACCOUNT_BALANCE);
+    if ((AccountInfoDouble(ACCOUNT_EQUITY) - accountBalance) / accountBalance * 100 <= -RiskPercent())
     {
         ticket.Close();
     }
@@ -158,7 +158,7 @@ void StartOfDayTimeRangeBreakout::CheckPreviousSetupTicket(Ticket &ticket)
 
 void StartOfDayTimeRangeBreakout::RecordTicketOpenData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameEntryTradeRecord<StartOfDayTimeRangeBreakout>(this, ticket);
+    EARecordHelper::RecordSingleTimeFrameEntryTradeRecord<StartOfDayTimeRangeBreakout>(this, ticket);
 }
 
 void StartOfDayTimeRangeBreakout::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
@@ -167,17 +167,17 @@ void StartOfDayTimeRangeBreakout::RecordTicketPartialData(Ticket &partialedTicke
 
 void StartOfDayTimeRangeBreakout::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameExitTradeRecord<StartOfDayTimeRangeBreakout>(this, ticket, EntryTimeFrame());
+    EARecordHelper::RecordSingleTimeFrameExitTradeRecord<StartOfDayTimeRangeBreakout>(this, ticket);
 }
 
 void StartOfDayTimeRangeBreakout::RecordError(string methodName, int error, string additionalInformation = "")
 {
-    EAHelper::RecordSingleTimeFrameErrorRecord<StartOfDayTimeRangeBreakout>(this, methodName, error, additionalInformation);
+    EARecordHelper::RecordSingleTimeFrameErrorRecord<StartOfDayTimeRangeBreakout>(this, methodName, error, additionalInformation);
 }
 
 bool StartOfDayTimeRangeBreakout::ShouldReset()
 {
-    return !EAHelper::WithinTradingSession<StartOfDayTimeRangeBreakout>(this);
+    return !EARunHelper::WithinTradingSession<StartOfDayTimeRangeBreakout>(this);
 }
 
 void StartOfDayTimeRangeBreakout::Reset()
