@@ -8,9 +8,18 @@
 #property version "1.00"
 #property strict
 
+#include <Wantanites\Framework\MQLVersionSpecific\Objects\Ticket\Ticket.mqh>
+
 class EARunHelper
 {
 public:
+    template <typename TEA>
+    static bool BelowSpread(TEA &ea);
+    template <typename TEA>
+    static bool PastMinROCOpenTime(TEA &ea);
+    template <typename TEA>
+    static bool WithinTradingSession(TEA &ea);
+
     template <typename TEA>
     static void Run(TEA &ea);
 
@@ -26,6 +35,32 @@ private:
     template <typename TEA>
     static void CheckUpdateHowFarPriceRanFromOpen(TEA &ea, Ticket &ticket);
 };
+
+template <typename TEA>
+static bool EARunHelper::BelowSpread(TEA &ea)
+{
+    return (SymbolInfoInteger(ea.EntrySymbol(), SYMBOL_SPREAD) / 10) <= ea.mMaxSpreadPips;
+}
+
+template <typename TEA>
+static bool EARunHelper::PastMinROCOpenTime(TEA &ea)
+{
+    return ea.mMRFTS.OpenPrice() > 0.0 || ea.mHasSetup;
+}
+
+template <typename TEA>
+static bool EARunHelper::WithinTradingSession(TEA &ea)
+{
+    for (int i = 0; i < ea.mTradingSessions.Size(); i++)
+    {
+        if (ea.mTradingSessions[i].CurrentlyWithinSession())
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
 
 template <typename TEA>
 static void EARunHelper::Run(TEA &ea)

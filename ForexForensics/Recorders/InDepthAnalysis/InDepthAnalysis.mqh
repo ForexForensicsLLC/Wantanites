@@ -9,7 +9,6 @@
 #property strict
 
 #include <Wantanites\Framework\Objects\DataObjects\EA.mqh>
-#include <Wantanites\Framework\Helpers\EAHelper.mqh>
 #include <Wantanites\Framework\Constants\MagicNumbers.mqh>
 
 class InDepthAnalysis : public EA<ForexForensicsEntryTradeRecord, EmptyPartialTradeRecord, ForexForensicsExitTradeRecord, DefaultErrorRecord>
@@ -77,7 +76,7 @@ void InDepthAnalysis::PreRun()
     if (!mLoadedEventsForToday)
     {
         string calendar = "JustEvents";
-        EAHelper::GetEconomicEventsForDate<InDepthAnalysis, EconomicEventRecord>(this, calendar, TimeGMT());
+        EASetupHelper::GetEconomicEventsForDate<InDepthAnalysis, EconomicEventRecord>(this, calendar, TimeGMT());
 
         mLoadedEventsForToday = true;
         mWasReset = false;
@@ -108,7 +107,7 @@ void InDepthAnalysis::CheckInvalidateSetup()
 
 void InDepthAnalysis::InvalidateSetup(bool deletePendingOrder, int error = -1)
 {
-    EAHelper::InvalidateSetup<InDepthAnalysis>(this, deletePendingOrder, mStopTrading, error);
+    EASetupHelper::InvalidateSetup<InDepthAnalysis>(this, deletePendingOrder, mStopTrading, error);
 }
 
 bool InDepthAnalysis::Confirmation()
@@ -151,7 +150,7 @@ void InDepthAnalysis::CheckPreviousSetupTicket(Ticket &ticket)
 
 void InDepthAnalysis::RecordTicketOpenData(Ticket &ticket)
 {
-    EAHelper::RecordForexForensicsEntryTradeRecord<InDepthAnalysis>(this, ticket);
+    EARecordHelper::RecordForexForensicsEntryTradeRecord<InDepthAnalysis>(this, ticket);
 }
 
 void InDepthAnalysis::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
@@ -160,12 +159,12 @@ void InDepthAnalysis::RecordTicketPartialData(Ticket &partialedTicket, int newTi
 
 void InDepthAnalysis::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordForexForensicsExitTradeRecord<InDepthAnalysis>(this, ticket, EntryTimeFrame());
+    EARecordHelper::RecordForexForensicsExitTradeRecord<InDepthAnalysis>(this, ticket);
 }
 
 void InDepthAnalysis::RecordError(string methodName, int error, string additionalInformation = "")
 {
-    EAHelper::RecordDefaultErrorRecord<InDepthAnalysis>(this, methodName, error, additionalInformation);
+    EARecordHelper::RecordDefaultErrorRecord<InDepthAnalysis>(this, methodName, error, additionalInformation);
 }
 
 bool InDepthAnalysis::ShouldReset()

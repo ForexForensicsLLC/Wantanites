@@ -8,7 +8,6 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Helpers\EAHelper.mqh>
 #include <Wantanites\Framework\Objects\DataObjects\EA.mqh>
 #include <Wantanites\Framework\Constants\MagicNumbers.mqh>
 
@@ -77,7 +76,7 @@ void ProfitTracking::PreRun()
     if (!mLoadedEventsForToday)
     {
         string calendar = "JustEvents";
-        EAHelper::GetEconomicEventsForDate<ProfitTracking, EconomicEventRecord>(this, calendar, TimeGMT());
+        EASetupHelper::GetEconomicEventsForDate<ProfitTracking, EconomicEventRecord>(this, calendar, TimeGMT());
 
         mLoadedEventsForToday = true;
         mWasReset = false;
@@ -108,7 +107,7 @@ void ProfitTracking::CheckInvalidateSetup()
 
 void ProfitTracking::InvalidateSetup(bool deletePendingOrder, int error = -1)
 {
-    EAHelper::InvalidateSetup<ProfitTracking>(this, deletePendingOrder, mStopTrading, error);
+    EASetupHelper::InvalidateSetup<ProfitTracking>(this, deletePendingOrder, mStopTrading, error);
 }
 
 bool ProfitTracking::Confirmation()
@@ -151,7 +150,7 @@ void ProfitTracking::CheckPreviousSetupTicket(Ticket &ticket)
 
 void ProfitTracking::RecordTicketOpenData(Ticket &ticket)
 {
-    EAHelper::RecordForexForensicsEntryTradeRecord<ProfitTracking>(this, ticket);
+    EARecordHelper::RecordForexForensicsEntryTradeRecord<ProfitTracking>(this, ticket);
 }
 
 void ProfitTracking::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
@@ -160,12 +159,12 @@ void ProfitTracking::RecordTicketPartialData(Ticket &partialedTicket, int newTic
 
 void ProfitTracking::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordProfitTrackingExitTradeRecord<ProfitTracking>(this, ticket, EntryTimeFrame());
+    EARecordHelper::RecordProfitTrackingExitTradeRecord<ProfitTracking>(this, ticket);
 }
 
 void ProfitTracking::RecordError(string methodName, int error, string additionalInformation = "")
 {
-    EAHelper::RecordDefaultErrorRecord<ProfitTracking>(this, methodName, error, additionalInformation);
+    EARecordHelper::RecordDefaultErrorRecord<ProfitTracking>(this, methodName, error, additionalInformation);
 }
 
 bool ProfitTracking::ShouldReset()

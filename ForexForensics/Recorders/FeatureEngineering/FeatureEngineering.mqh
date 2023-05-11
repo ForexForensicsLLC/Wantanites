@@ -8,7 +8,6 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Helpers\EAHelper.mqh>
 #include <Wantanites\Framework\Objects\DataObjects\EA.mqh>
 #include <Wantanites\Framework\Constants\MagicNumbers.mqh>
 
@@ -90,7 +89,7 @@ void FeatureEngineering::PreRun()
 {
     if (!mLoadedEventsForToday)
     {
-        EAHelper::GetEconomicEventsForDate<FeatureEngineering, EconomicEventAndCandleRecord>(this, "EventsAndCandles", TimeGMT(), false);
+        EASetupHelper::GetEconomicEventsForDate<FeatureEngineering, EconomicEventAndCandleRecord>(this, "EventsAndCandles", TimeGMT(), false);
 
         mLoadedEventsForToday = true;
         mWasReset = false;
@@ -121,7 +120,7 @@ void FeatureEngineering::CheckInvalidateSetup()
 
 void FeatureEngineering::InvalidateSetup(bool deletePendingOrder, int error = -1)
 {
-    EAHelper::InvalidateSetup<FeatureEngineering>(this, deletePendingOrder, mStopTrading, error);
+    EASetupHelper::InvalidateSetup<FeatureEngineering>(this, deletePendingOrder, mStopTrading, error);
 }
 
 bool FeatureEngineering::Confirmation()
@@ -164,7 +163,7 @@ void FeatureEngineering::CheckPreviousSetupTicket(Ticket &ticket)
 
 void FeatureEngineering::RecordTicketOpenData(Ticket &ticket)
 {
-    EAHelper::RecordFeatureEngineeringEntryTradeRecord<FeatureEngineering>(this, ticket);
+    EARecordHelper::RecordFeatureEngineeringEntryTradeRecord<FeatureEngineering>(this, ticket);
 }
 
 void FeatureEngineering::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
@@ -173,12 +172,12 @@ void FeatureEngineering::RecordTicketPartialData(Ticket &partialedTicket, int ne
 
 void FeatureEngineering::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordFeatureEngineeringExitTradeRecord<FeatureEngineering>(this, ticket, EntryTimeFrame());
+    EARecordHelper::RecordFeatureEngineeringExitTradeRecord<FeatureEngineering>(this, ticket);
 }
 
 void FeatureEngineering::RecordError(string methodName, int error, string additionalInformation = "")
 {
-    EAHelper::RecordDefaultErrorRecord<FeatureEngineering>(this, methodName, error, additionalInformation);
+    EARecordHelper::RecordDefaultErrorRecord<FeatureEngineering>(this, methodName, error, additionalInformation);
 }
 
 bool FeatureEngineering::ShouldReset()

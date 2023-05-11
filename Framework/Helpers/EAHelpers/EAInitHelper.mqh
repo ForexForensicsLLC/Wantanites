@@ -8,6 +8,7 @@
 #property version "1.00"
 #property strict
 
+#include <Wantanites\Framework\Utilities\LicenseManager.mqh>
 #include <Wantanites\Framework\MQLVersionSpecific\Helpers\OrderInfoHelper\OrderInfoHelper.mqh>
 
 class EAInitHelper

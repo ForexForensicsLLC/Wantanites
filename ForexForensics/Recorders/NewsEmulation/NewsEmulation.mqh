@@ -9,7 +9,6 @@
 #property strict
 
 #include <Wantanites\Framework\Objects\DataObjects\EA.mqh>
-#include <Wantanites\Framework\Helpers\EAHelper.mqh>
 #include <Wantanites\Framework\Constants\MagicNumbers.mqh>
 
 class NewsEmulation : public EA<ForexForensicsEntryTradeRecord, EmptyPartialTradeRecord, ForexForensicsExitTradeRecord, DefaultErrorRecord>
@@ -78,7 +77,7 @@ void NewsEmulation::PreRun()
     if (!mLoadedEventsForToday)
     {
         string calendar = "EventsAndCandles/" + EntrySymbol();
-        EAHelper::GetEconomicEventsForDate<NewsEmulation, EconomicEventAndCandleRecord>(this, calendar, TimeGMT());
+        EASetupHelper::GetEconomicEventsForDate<NewsEmulation, EconomicEventAndCandleRecord>(this, calendar, TimeGMT());
 
         mLoadedEventsForToday = true;
         mWasReset = false;
@@ -109,7 +108,7 @@ void NewsEmulation::CheckInvalidateSetup()
 
 void NewsEmulation::InvalidateSetup(bool deletePendingOrder, int error = -1)
 {
-    EAHelper::InvalidateSetup<NewsEmulation>(this, deletePendingOrder, mStopTrading, error);
+    EASetupHelper::InvalidateSetup<NewsEmulation>(this, deletePendingOrder, mStopTrading, error);
 }
 
 bool NewsEmulation::Confirmation()
@@ -155,7 +154,7 @@ void NewsEmulation::CheckCurrentSetupTicket(Ticket &ticket)
 
         if (type == TicketType::Buy)
         {
-            if (!EAHelper::GetCandleHighForEconomicEvent<NewsEmulation>(this, emulatedOpenPrice, openIndex))
+            if (!EASetupHelper::GetCandleHighForEconomicEvent<NewsEmulation>(this, emulatedOpenPrice, openIndex))
             {
                 return;
             }
@@ -164,7 +163,7 @@ void NewsEmulation::CheckCurrentSetupTicket(Ticket &ticket)
         }
         else if (type == TicketType::Sell)
         {
-            if (!EAHelper::GetCandleLowForEconomicEvent<NewsEmulation>(this, emulatedOpenPrice, openIndex))
+            if (!EASetupHelper::GetCandleLowForEconomicEvent<NewsEmulation>(this, emulatedOpenPrice, openIndex))
             {
                 return;
             }
@@ -183,7 +182,7 @@ void NewsEmulation::CheckPreviousSetupTicket(Ticket &ticket)
 
 void NewsEmulation::RecordTicketOpenData(Ticket &ticket)
 {
-    EAHelper::RecordForexForensicsEntryTradeRecord<NewsEmulation>(this, ticket);
+    EARecordHelper::RecordForexForensicsEntryTradeRecord<NewsEmulation>(this, ticket);
 }
 
 void NewsEmulation::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
@@ -192,12 +191,12 @@ void NewsEmulation::RecordTicketPartialData(Ticket &partialedTicket, int newTick
 
 void NewsEmulation::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordForexForensicsExitTradeRecord<NewsEmulation>(this, ticket, EntryTimeFrame());
+    EARecordHelper::RecordForexForensicsExitTradeRecord<NewsEmulation>(this, ticket);
 }
 
 void NewsEmulation::RecordError(string methodName, int error, string additionalInformation = "")
 {
-    EAHelper::RecordDefaultErrorRecord<NewsEmulation>(this, methodName, error, additionalInformation);
+    EARecordHelper::RecordDefaultErrorRecord<NewsEmulation>(this, methodName, error, additionalInformation);
 }
 
 bool NewsEmulation::ShouldReset()

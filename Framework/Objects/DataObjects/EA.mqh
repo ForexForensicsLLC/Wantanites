@@ -16,10 +16,11 @@
 #include <Wantanites\Framework\Objects\DataObjects\TradingSession.mqh>
 #include <Wantanites\Framework\MQLVersionSpecific\Objects\TradeManager\TradeManager.mqh>
 
-#include <Wantanites\Framework\Helpers\EAHelper.mqh>
 #include <Wantanites\Framework\Helpers\EAHelpers\EARunHelper.mqh>
 #include <Wantanites\Framework\Helpers\EAHelpers\EAInitHelper.mqh>
+#include <Wantanites\Framework\Helpers\EAHelpers\EASetupHelper.mqh>
 #include <Wantanites\Framework\Helpers\EAHelpers\EAOrderHelper.mqh>
+#include <Wantanites\Framework\Helpers\EAHelpers\EARecordHelper.mqh>
 
 template <typename TEntryRecord, typename TPartialRecord, typename TExitRecord, typename TErrorRecord>
 class EA
