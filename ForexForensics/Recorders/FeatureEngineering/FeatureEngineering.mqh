@@ -89,7 +89,8 @@ void FeatureEngineering::PreRun()
 {
     if (!mLoadedEventsForToday)
     {
-        EASetupHelper::GetEconomicEventsForDate<FeatureEngineering, EconomicEventAndCandleRecord>(this, "EventsAndCandles", TimeGMT(), false);
+        string calendar = "EventsAndCandles/" + EntrySymbol();
+        EASetupHelper::GetEconomicEventsForDate<FeatureEngineering, EconomicEventAndCandleRecord>(this, calendar, TimeGMT(), false);
 
         mLoadedEventsForToday = true;
         mWasReset = false;

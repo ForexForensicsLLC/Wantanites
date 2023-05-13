@@ -249,26 +249,32 @@ void ZoneState::Draw()
         return;
     }
 
-    if (!ObjectCreate(ChartID(), mName, OBJ_RECTANGLE, 0,
+    if (!ObjectCreate(MQLHelper::CurrentChartID(), mName, OBJ_RECTANGLE, 0,
                       mStartDateTime, // Start
                       mEntryPrice,    // Entry
                       mEndDateTime,   // End
                       mExitPrice))    // Exit
     {
-        Print("Zone Object Creation Failed: ", GetLastError());
-        return;
+        int error = GetLastError();
+
+        // obj already exists error
+        if (error != 4200)
+        {
+            Print("Zone Object Creation Failed: ", error);
+            return;
+        }
     }
 
-    ObjectSetInteger(ChartID(), mName, OBJPROP_COLOR, mZoneColor);
-    ObjectSetInteger(ChartID(), mName, OBJPROP_WIDTH, 1);
-    ObjectSetInteger(ChartID(), mName, OBJPROP_BACK, false);
-    ObjectSetInteger(ChartID(), mName, OBJPROP_FILL, !mIsPending);
-    ObjectSetInteger(ChartID(), mName, OBJPROP_SELECTED, false);
-    ObjectSetInteger(ChartID(), mName, OBJPROP_SELECTABLE, false);
+    ObjectSetInteger(MQLHelper::CurrentChartID(), mName, OBJPROP_COLOR, mZoneColor);
+    ObjectSetInteger(MQLHelper::CurrentChartID(), mName, OBJPROP_WIDTH, 1);
+    ObjectSetInteger(MQLHelper::CurrentChartID(), mName, OBJPROP_BACK, false);
+    ObjectSetInteger(MQLHelper::CurrentChartID(), mName, OBJPROP_FILL, !mIsPending);
+    ObjectSetInteger(MQLHelper::CurrentChartID(), mName, OBJPROP_SELECTED, false);
+    ObjectSetInteger(MQLHelper::CurrentChartID(), mName, OBJPROP_SELECTABLE, false);
 
     if (mIsPending)
     {
-        ObjectSetInteger(ChartID(), mName, OBJPROP_STYLE, STYLE_DOT);
+        ObjectSetInteger(MQLHelper::CurrentChartID(), mName, OBJPROP_STYLE, STYLE_DOT);
     }
 
     mDrawn = true;

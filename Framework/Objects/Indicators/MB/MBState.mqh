@@ -306,8 +306,8 @@ bool MBState::HasImpulseValidation()
                 if (percentChange > (minPercentChange / 100))
                 {
                     mHasImpulseValidation = Status::IS_TRUE;
-                    ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
-                    ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
+                    ObjectCreate(MQLHelper::CurrentChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
+                    ObjectSetInteger(MQLHelper::CurrentChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
                 }
                 else
                 {
@@ -326,8 +326,8 @@ bool MBState::HasImpulseValidation()
                     if (percentChange > (minPercentChange / 100))
                     {
                         mHasImpulseValidation = Status::IS_TRUE;
-                        ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
-                        ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
+                        ObjectCreate(MQLHelper::CurrentChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
+                        ObjectSetInteger(MQLHelper::CurrentChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
                     }
                     else
                     {
@@ -345,8 +345,8 @@ bool MBState::HasImpulseValidation()
                         if (percentChange > (minPercentChange / 100))
                         {
                             mHasImpulseValidation = Status::IS_TRUE;
-                            ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
-                            ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
+                            ObjectCreate(MQLHelper::CurrentChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
+                            ObjectSetInteger(MQLHelper::CurrentChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
                         }
                         else
                         {
@@ -369,8 +369,8 @@ bool MBState::HasImpulseValidation()
                 if (percentChange > (minPercentChange / 100))
                 {
                     mHasImpulseValidation = Status::IS_TRUE;
-                    ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
-                    ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
+                    ObjectCreate(MQLHelper::CurrentChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
+                    ObjectSetInteger(MQLHelper::CurrentChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
                 }
                 else
                 {
@@ -389,8 +389,8 @@ bool MBState::HasImpulseValidation()
                     if (percentChange > (minPercentChange / 100))
                     {
                         mHasImpulseValidation = Status::IS_TRUE;
-                        ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
-                        ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
+                        ObjectCreate(MQLHelper::CurrentChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
+                        ObjectSetInteger(MQLHelper::CurrentChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
                     }
                     else
                     {
@@ -408,8 +408,8 @@ bool MBState::HasImpulseValidation()
                         if (percentChange > (minPercentChange / 100))
                         {
                             mHasImpulseValidation = Status::IS_TRUE;
-                            ObjectCreate(ChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
-                            ObjectSetInteger(ChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
+                            ObjectCreate(MQLHelper::CurrentChartID(), mName + "imp", OBJ_VLINE, 0, mEndDateTime, MQLHelper::Ask(mSymbol));
+                            ObjectSetInteger(MQLHelper::CurrentChartID(), mName + "imp", OBJPROP_COLOR, clrAqua);
                         }
                         else
                         {
@@ -482,28 +482,34 @@ void MBState::Draw()
     }
 
     GetLastError();
-    if (!ObjectCreate(ChartID(), mName, OBJ_RECTANGLE, 0,
+    if (!ObjectCreate(MQLHelper::CurrentChartID(), mName, OBJ_RECTANGLE, 0,
                       mStartDateTime,                          // Start
                       iHigh(mSymbol, mTimeFrame, HighIndex()), // High
                       mEndDateTime,                            // End
                       iLow(mSymbol, mTimeFrame, LowIndex())))  // Low
     {
-        Print("Structure Object Creation Failed: ", GetLastError());
-        return;
+        int error = GetLastError();
+
+        // obj already exists error
+        if (error != 4200)
+        {
+            Print("Structure Object Creation Failed: ", error);
+            return;
+        }
     }
 
-    ObjectSetInteger(ChartID(), mName, OBJPROP_COLOR, mMBColor);
-    ObjectSetInteger(ChartID(), mName, OBJPROP_WIDTH, 2);
-    ObjectSetInteger(ChartID(), mName, OBJPROP_BACK, false);
-    ObjectSetInteger(ChartID(), mName, OBJPROP_FILL, false);
-    ObjectSetInteger(ChartID(), mName, OBJPROP_SELECTED, false);
-    ObjectSetInteger(ChartID(), mName, OBJPROP_SELECTABLE, false);
+    ObjectSetInteger(MQLHelper::CurrentChartID(), mName, OBJPROP_COLOR, mMBColor);
+    ObjectSetInteger(MQLHelper::CurrentChartID(), mName, OBJPROP_WIDTH, 2);
+    ObjectSetInteger(MQLHelper::CurrentChartID(), mName, OBJPROP_BACK, false);
+    ObjectSetInteger(MQLHelper::CurrentChartID(), mName, OBJPROP_FILL, false);
+    ObjectSetInteger(MQLHelper::CurrentChartID(), mName, OBJPROP_SELECTED, false);
+    ObjectSetInteger(MQLHelper::CurrentChartID(), mName, OBJPROP_SELECTABLE, false);
 
     if (mIsPending)
     {
         // Line styling only works when the width is set to 1 or 0
-        ObjectSetInteger(ChartID(), mName, OBJPROP_WIDTH, 1);
-        ObjectSetInteger(ChartID(), mName, OBJPROP_STYLE, STYLE_DOT);
+        ObjectSetInteger(MQLHelper::CurrentChartID(), mName, OBJPROP_WIDTH, 1);
+        ObjectSetInteger(MQLHelper::CurrentChartID(), mName, OBJPROP_STYLE, STYLE_DOT);
     }
 
     mDrawn = true;
