@@ -15,7 +15,7 @@ List<string> *EconomicEventTitles;
 List<string> *EconomicEventSymbols;
 List<int> *EconomicEventImpacts;
 
-string Directory = "ForexForensics/TylerWanta/InDepthAnalysis/";
+string Directory = "ForexForensics/InDepthAnalysis/";
 
 CSVRecordWriter<ForexForensicsEntryTradeRecord> *EntryWriter = new CSVRecordWriter<ForexForensicsEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
 CSVRecordWriter<ForexForensicsExitTradeRecord> *ExitWriter = new CSVRecordWriter<ForexForensicsExitTradeRecord>(Directory + "Exits/", "Exits.csv");

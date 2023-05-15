@@ -80,9 +80,9 @@ void OnDeinit(const int reason)
 void OnTick()
 {
     // iCustom(Symbol(), Period(), "NewsEmulation", 0, 0);
-    // iCustom(Symbol(), Period(), "InDepthAnalysis", 0, 0);
+    iCustom(Symbol(), Period(), "InDepthAnalysis", 0, 0);
     // iCustom(Symbol(), Period(), "ProfitTracking", 0, 0);
-    iCustom(Symbol(), Period(), "FeatureEngineering", 0, 0);
+    // iCustom(Symbol(), Period(), "FeatureEngineering", 0, 0);
 
     TRBBuys.Run();
     TRBSells.Run();
