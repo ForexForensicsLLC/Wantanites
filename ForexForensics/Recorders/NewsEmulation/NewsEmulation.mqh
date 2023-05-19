@@ -76,7 +76,7 @@ void NewsEmulation::PreRun()
 {
     if (!mLoadedEventsForToday)
     {
-        string calendar = "EventsAndCandles/" + EntrySymbol();
+        string calendar = "EventsAndCandles/" + "USDJPY";
         EASetupHelper::GetEconomicEventsForDate<NewsEmulation, EconomicEventAndCandleRecord>(this, calendar, TimeGMT());
 
         mLoadedEventsForToday = true;

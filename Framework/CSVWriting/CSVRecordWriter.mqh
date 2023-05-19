@@ -16,6 +16,7 @@ class CSVRecordWriter
 protected:
     string mDirectory;
     string mCSVFileName;
+    bool mUsingCommon;
     bool mCreateIfFileDoesNotExist;
     bool mStopTryingToOpenFile;
 
@@ -31,7 +32,7 @@ protected:
     void CountRows();
 
 public:
-    CSVRecordWriter(string directory, string csvFileName, bool createIfFileDoesNotExist);
+    CSVRecordWriter(string directory, string csvFileName, bool read, bool write, bool createIfFileDoesNotExist, bool useCommon);
     ~CSVRecordWriter();
 
     string Directory() { return mDirectory; }
@@ -46,7 +47,7 @@ public:
 };
 
 template <typename TRecord>
-CSVRecordWriter::CSVRecordWriter(string directory, string csvFileName, bool read = true, bool write = true, bool createIfFileDoesNotExist = true)
+CSVRecordWriter::CSVRecordWriter(string directory, string csvFileName, bool read = true, bool write = true, bool createIfFileDoesNotExist = true, bool useCommon = false)
 {
     mDirectory = directory;
     mCSVFileName = csvFileName;
@@ -64,6 +65,12 @@ CSVRecordWriter::CSVRecordWriter(string directory, string csvFileName, bool read
     else if (write)
     {
         mFileOperation = FILE_WRITE;
+    }
+
+    if (useCommon)
+    {
+        mUsingCommon = true;
+        mFileOperation = mFileOperation | FILE_COMMON;
     }
 
     mFileIsOpen = false;
@@ -100,7 +107,7 @@ bool CSVRecordWriter::Open()
         return false;
     }
 
-    if (!mCreateIfFileDoesNotExist && !FileIsExist(mDirectory + mCSVFileName))
+    if (!mCreateIfFileDoesNotExist && !FileIsExist(mDirectory + mCSVFileName, mUsingCommon ? FILE_COMMON : 0))
     {
         Print("File: ", mDirectory + mCSVFileName, " does not exist");
         mStopTryingToOpenFile = true;
@@ -112,6 +119,8 @@ bool CSVRecordWriter::Open()
     if (mFileHandle == INVALID_HANDLE)
     {
         Print("Failed to open file: ", mDirectory + mCSVFileName, ". Error: ", GetLastError());
+        mStopTryingToOpenFile = true;
+
         return false;
     }
 

@@ -106,12 +106,12 @@ void StartOfDayTimeRangeBreakout::PlaceOrders()
     double entry = 0.0;
     double stopLoss = 0.0;
 
-    if (SetupType() == OP_BUY)
+    if (SetupType() == SignalType::Bullish)
     {
         entry = CurrentTick().Ask();
         stopLoss = mTRB.RangeLow();
     }
-    else if (SetupType() == OP_SELL)
+    else if (SetupType() == SignalType::Bearish)
     {
         entry = CurrentTick().Bid();
         stopLoss = mTRB.RangeHigh();

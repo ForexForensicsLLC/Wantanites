@@ -48,7 +48,7 @@ void EconomicCalendarHelper::ReadEvents(string calendar, datetime utcStart, date
                                         List<string> *&titles, List<string> *&symbols, List<int> *&impacts, bool ignoreDuplicateTimes)
 {
     CSVRecordWriter<TRecord> *csvRecordWriter = new CSVRecordWriter<TRecord>(Directory() + calendar + EventPath(utcCurrent), EventsDocument(),
-                                                                             true, false, false);
+                                                                             true, false, false, true);
     csvRecordWriter.SeekToStart();
 
     TRecord *record = new TRecord();
