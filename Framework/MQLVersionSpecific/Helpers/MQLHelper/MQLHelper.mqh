@@ -24,6 +24,8 @@ public:
 
     static long CurrentChartID();
 
+    static string GetSymbolFromCustomChartName(string customChartName);
+
     static bool GetLowest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &lowIndex);
     static bool GetHighest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &highIndex);
 
@@ -56,6 +58,17 @@ static double MQLHelper::Bid(string symbol)
 static long MQLHelper::CurrentChartID()
 {
     return VersionSpecificMQLHelper::CurrentChartID();
+}
+
+static string MQLHelper::GetSymbolFromCustomChartName(string customChartName)
+{
+    int index = StringFind(customChartName, "tickstory");
+    if (index != -1)
+    {
+        return StringSubstr(customChartName, 0, index - 1);
+    }
+
+    return customChartName;
 }
 /**
  * @brief

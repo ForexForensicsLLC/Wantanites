@@ -25,6 +25,8 @@ public:
     List<string> *mEconomicEventSymbols;
     List<int> *mEconomicEventImpacts;
 
+    string mEconomicCalendarSymbol;
+
     bool mLoadedEventsForToday;
     bool mDuringNews;
 
@@ -72,6 +74,8 @@ FeatureEngineering::FeatureEngineering(CSVRecordWriter<FeatureEngineeringEntryTr
 
     mHAT = new HeikinAshiTracker();
 
+    mEconomicCalendarSymbol = MQLHelper::GetSymbolFromCustomChartName(EntrySymbol());
+
     mLoadedEventsForToday = false;
     mDuringNews = false;
 
@@ -89,7 +93,7 @@ void FeatureEngineering::PreRun()
 {
     if (!mLoadedEventsForToday)
     {
-        string calendar = "EventsAndCandles/" + EntrySymbol();
+        string calendar = "EventsAndCandles/" + mEconomicCalendarSymbol;
         EASetupHelper::GetEconomicEventsForDate<FeatureEngineering, EconomicEventAndCandleRecord>(this, calendar, TimeGMT(), false);
 
         mLoadedEventsForToday = true;

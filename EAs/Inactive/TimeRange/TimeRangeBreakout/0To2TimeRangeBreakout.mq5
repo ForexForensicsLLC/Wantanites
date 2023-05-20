@@ -41,6 +41,9 @@ double MaxSpreadPips = 3;
 double StopLossPaddingPips = 0;
 double MaxSlippage = 3;
 
+int handle;
+double buffer[];
+
 int OnInit()
 {
     if (!EAInitHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
@@ -60,7 +63,7 @@ int OnInit()
                                                MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
     TRBSells.AddTradingSession(TS);
 
-    iCustom(Symbol(), Period(), "NewsEmulation");
+    handle = iCustom(Symbol(), Period(), "NewsEmulation");
     // iCustom(Symbol(), Period(), "InDepthAnalysis");
     // iCustom(Symbol(), Period(), "ProfitTracking");
     // iCustom(Symbol(), Period(), "FeatureEngineering");
@@ -84,6 +87,8 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
+    int copy = CopyBuffer(handle, 0, 0, 1, buffer);
+
     TRBBuys.Run();
     TRBSells.Run();
 }

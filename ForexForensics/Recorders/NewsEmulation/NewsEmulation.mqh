@@ -20,6 +20,8 @@ public:
     List<string> *mEconomicEventSymbols;
     List<int> *mEconomicEventImpacts;
 
+    string mEconomicCalendarSymbol;
+
     bool mLoadedEventsForToday;
     bool mDuringNews;
 
@@ -61,6 +63,7 @@ NewsEmulation::NewsEmulation(CSVRecordWriter<ForexForensicsEntryTradeRecord> *&e
 {
     mEconomicEvents = new ObjectList<EconomicEvent>();
 
+    mEconomicCalendarSymbol = MQLHelper::GetSymbolFromCustomChartName(EntrySymbol());
     mLoadedEventsForToday = false;
     mDuringNews = false;
 
@@ -76,7 +79,7 @@ void NewsEmulation::PreRun()
 {
     if (!mLoadedEventsForToday)
     {
-        string calendar = "EventsAndCandles/" + "USDJPY";
+        string calendar = "EventsAndCandles/" + mEconomicCalendarSymbol;
         EASetupHelper::GetEconomicEventsForDate<NewsEmulation, EconomicEventAndCandleRecord>(this, calendar, TimeGMT());
 
         mLoadedEventsForToday = true;
