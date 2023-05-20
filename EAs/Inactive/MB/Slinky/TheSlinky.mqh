@@ -196,7 +196,7 @@ void TheSlinky::CheckInvalidateSetup()
     // }
 }
 
-void TheSlinky::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void TheSlinky::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     // RecordError(-2);
     EAHelper::InvalidateSetup<TheSlinky>(this, deletePendingOrder, false, error);
@@ -224,7 +224,7 @@ bool TheSlinky::Confirmation()
 
     bool zoneIsHolding = false;
     int zoneIsHolingError = EAHelper::MostRecentMBZoneIsHolding<TheSlinky>(this, mSetupMBT, mFirstMBInSetupNumber, zoneIsHolding);
-    if (zoneIsHolingError != ERR_NO_ERROR)
+    if (zoneIsHolingError != Errors::NO_ERROR)
     {
         InvalidateSetup(true);
         return false;

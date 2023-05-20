@@ -183,7 +183,7 @@ void StackIntoTrades::CheckInvalidateSetup()
     }
 }
 
-void StackIntoTrades::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void StackIntoTrades::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<StackIntoTrades>(this, deletePendingOrder, false, error);
     mFirstMBInSetupNumber = EMPTY;

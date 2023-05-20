@@ -164,7 +164,7 @@ void MBInnerBreak::CheckInvalidateSetup()
     }
 }
 
-void MBInnerBreak::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void MBInnerBreak::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<MBInnerBreak>(this, deletePendingOrder, false, error);
     mFirstMBInSetupNumber = EMPTY;

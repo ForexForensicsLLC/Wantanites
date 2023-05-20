@@ -85,7 +85,7 @@ void PriceRange::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void PriceRange::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void PriceRange::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<PriceRange>(this, deletePendingOrder, mStopTrading, error);
 }

@@ -8,11 +8,13 @@
 #property version "1.00"
 #property strict
 
+#include <Wantanites\Framework\Helpers\DateTimeHelper.mqh>
+
 class MinROCFromTimeStamp
 {
 private:
     string mSymbol;
-    int mTimeFrame;
+    ENUM_TIMEFRAMES mTimeFrame;
 
     int mServerHourStartTime;
     int mServerHourEndTime;
@@ -34,7 +36,6 @@ private:
     string mOpenPriceDrawingName;
     string mMinROCAchievedDrawingName;
 
-    // Tested
     void Update();
 
     void Reset();
@@ -45,7 +46,8 @@ public:
     // ==========================================================================
     // Constructor / destructor
     // ==========================================================================
-    MinROCFromTimeStamp(string symbol, int timeFrame, int serverHourStartTime, int serverHourEndTime, int serverMinuteStartTime, int serverMinuteEndTime, double minROCPercent);
+    MinROCFromTimeStamp(string symbol, ENUM_TIMEFRAMES timeFrame, int serverHourStartTime, int serverHourEndTime, int serverMinuteStartTime, int serverMinuteEndTime,
+                        double minROCPercent);
     ~MinROCFromTimeStamp();
 
     // ==========================================================================
@@ -53,28 +55,18 @@ public:
     // ==========================================================================
     bool HadMinROC() { return mHadMinROC; }
     string Symbol() { return mSymbol; }
-    int TimeFrame() { return mTimeFrame; }
+    ENUM_TIMEFRAMES TimeFrame() { return mTimeFrame; }
 
     // ==========================================================================
     // Computed Properties
     // ==========================================================================
-    // Tested
-    // CallsUpdate
     double OpenPrice();
-
-    // Tested
-    // CallsUpdate
     datetime MinROCAchievedTime();
-
-    // Tested
-    // CallsUpdate
     bool CrossedOpenPriceAfterMinROC();
 
     // ==========================================================================
     // Display Methods
     // ==========================================================================
-    // Tested
-    // CallsUpdate
     void Draw();
 };
 /*
@@ -128,11 +120,13 @@ void MinROCFromTimeStamp::Update()
 
 bool MinROCFromTimeStamp::DuringTime()
 {
-    int currentTime = (Hour() * 59) + Minute();
+    MqlDateTime mqlTime = DateTimeHelper::CurrentTime();
+
+    int currentTime = (mqlTime.hour * 59) + mqlTime.min;
     int startTime = (mServerHourStartTime * 59) + mServerMinuteStartTime;
     int endTime = (mServerHourEndTime * 59) + mServerMinuteEndTime;
 
-    return currentTime >= startTime && currentTime < endTime && DayOfWeek() < 6;
+    return currentTime >= startTime && currentTime < endTime && mqlTime.day_of_week < 6;
 }
 
 void MinROCFromTimeStamp::Reset()
@@ -179,7 +173,8 @@ void MinROCFromTimeStamp::DeleteObjects()
  * @param serverMinuteEndTime
  * @param minROCPercnet
  */
-MinROCFromTimeStamp::MinROCFromTimeStamp(string symbol, int timeFrame, int serverHourStartTime, int serverHourEndTime, int serverMinuteStartTime, int serverMinuteEndTime, double minROCPercnet)
+MinROCFromTimeStamp::MinROCFromTimeStamp(string symbol, ENUM_TIMEFRAMES timeFrame, int serverHourStartTime, int serverHourEndTime, int serverMinuteStartTime,
+                                         int serverMinuteEndTime, double minROCPercnet)
 {
     mSymbol = symbol;
     mTimeFrame = timeFrame;

@@ -8,9 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Helpers\OrderHelper.mqh>
+#include <Wantanites\Framework\Utilities\PipConverter.mqh>
 #include <Wantanites\Framework\Helpers\FileHelper.mqh>
-
 #include <Wantanites\Framework\Constants\ConstantValues.mqh>
 
 class RecordColumns
@@ -27,18 +26,24 @@ public:
     int RowNumber;
 
     int MagicNumber;
-    int TicketNumber;
+    ulong TicketNumber;
     string Symbol;
-    int EntryTimeFrame; // Needed for TotalMovePips() and PotentialRR()
+    ENUM_TIMEFRAMES EntryTimeFrame; // Needed for TotalMovePips() and PotentialRR()
 
-    string OrderType;
+    string OrderDirection;
     double AccountBalanceBefore;
     double Lots;
     datetime EntryTime;
+    double ExpectedEntryPrice;
     double EntryPrice;
     double EntrySlippage;
     double OriginalStopLoss;
+
     bool DuringNews;
+    int NewsImpact;
+    int DayOfWeek;
+    string Outcome;
+
     string EntryImage;
     string HigherTimeFrameEntryImage;
     string LowerTimeFrameEntryImage;
@@ -72,24 +77,30 @@ RecordColumns::RecordColumns()
 
     RowNumber = ConstantValues::UnsetString;
 
-    MagicNumber = EMPTY;
-    TicketNumber = EMPTY;
+    MagicNumber = ConstantValues::EmptyInt;
+    TicketNumber = ConstantValues::EmptyInt;
     Symbol = ConstantValues::UnsetString;
-    EntryTimeFrame = EMPTY;
+    EntryTimeFrame = Period();
 
-    OrderType = ConstantValues::UnsetString;
+    OrderDirection = ConstantValues::UnsetString;
     AccountBalanceBefore = ConstantValues::EmptyDouble;
     Lots = ConstantValues::EmptyDouble;
     EntryTime = 0;
+    ExpectedEntryPrice = ConstantValues::EmptyDouble;
     EntryPrice = ConstantValues::EmptyDouble;
     EntrySlippage = ConstantValues::EmptyDouble;
     OriginalStopLoss = ConstantValues::EmptyDouble;
+
     DuringNews = false;
+    NewsImpact = ConstantValues::EmptyInt;
+    DayOfWeek = ConstantValues::EmptyInt;
+    Outcome = ConstantValues::UnsetString;
+
     EntryImage = ConstantValues::UnsetString;
     HigherTimeFrameEntryImage = ConstantValues::UnsetString;
     LowerTimeFrameEntryImage = ConstantValues::UnsetString;
 
-    NewTicketNumber = EMPTY;
+    NewTicketNumber = ConstantValues::EmptyInt;
     ExpectedPartialRR = ConstantValues::EmptyDouble;
     ActualPartialRR = ConstantValues::EmptyDouble;
 
@@ -113,10 +124,10 @@ double RecordColumns::TotalMovePips()
     if (mTotalMovePips == -1.0)
     {
         double furthestPoint;
-        if (OrderType == "Buy")
+        if (OrderDirection == "Buy")
         {
             int entryIndex = iBarShift(Symbol, EntryTimeFrame, EntryTime, true);
-            if (entryIndex == EMPTY)
+            if (entryIndex == ConstantValues::EmptyInt)
             {
                 mTotalMovePips = 0.0;
                 return mTotalMovePips;
@@ -128,12 +139,12 @@ double RecordColumns::TotalMovePips()
                 return mTotalMovePips;
             }
 
-            mTotalMovePips = NormalizeDouble(OrderHelper::RangeToPips((furthestPoint - EntryPrice)), 2);
+            mTotalMovePips = NormalizeDouble(PipConverter::PointsToPips((furthestPoint - EntryPrice)), 2);
         }
-        else if (OrderType == "Sell")
+        else if (OrderDirection == "Sell")
         {
             int entryIndex = iBarShift(Symbol, EntryTimeFrame, EntryTime, true);
-            if (entryIndex == EMPTY)
+            if (entryIndex == ConstantValues::EmptyInt)
             {
                 mTotalMovePips = 0.0;
                 return mTotalMovePips;
@@ -145,7 +156,7 @@ double RecordColumns::TotalMovePips()
                 return mTotalMovePips;
             }
 
-            mTotalMovePips = NormalizeDouble(OrderHelper::RangeToPips((EntryPrice - furthestPoint)), 2);
+            mTotalMovePips = NormalizeDouble(PipConverter::PointsToPips((EntryPrice - furthestPoint)), 2);
         }
     }
 
@@ -163,13 +174,13 @@ double RecordColumns::PotentialRR()
         }
 
         double totalMovePips = TotalMovePips();
-        if (OrderType == "Buy")
+        if (OrderDirection == "Buy")
         {
-            mPotentialRR = NormalizeDouble(totalMovePips / (OrderHelper::RangeToPips(EntryPrice - OriginalStopLoss)), 2);
+            mPotentialRR = NormalizeDouble(totalMovePips / (PipConverter::PointsToPips(EntryPrice - OriginalStopLoss)), 2);
         }
-        else if (OrderType == "Sell")
+        else if (OrderDirection == "Sell")
         {
-            mPotentialRR = NormalizeDouble(totalMovePips / (OrderHelper::RangeToPips(OriginalStopLoss - EntryPrice)), 2);
+            mPotentialRR = NormalizeDouble(totalMovePips / (PipConverter::PointsToPips(OriginalStopLoss - EntryPrice)), 2);
         }
     }
 
@@ -189,11 +200,11 @@ double RecordColumns::RRSecured()
         return -99;
     }
 
-    if (OrderType == "Buy")
+    if (OrderDirection == "Buy")
     {
         mRRSecured = (EntryPrice - ExitPrice) / (EntryPrice - OriginalStopLoss);
     }
-    else if (OrderType == "Sell")
+    else if (OrderDirection == "Sell")
     {
         mRRSecured = (ExitPrice - EntryPrice) / (OriginalStopLoss - EntryPrice);
     }

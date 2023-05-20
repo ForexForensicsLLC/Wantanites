@@ -230,7 +230,7 @@ void TinyMBOutsideSecond::CheckInvalidateSetup()
     // }
 }
 
-void TinyMBOutsideSecond::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void TinyMBOutsideSecond::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<TinyMBOutsideSecond>(this, deletePendingOrder, false, error);
 

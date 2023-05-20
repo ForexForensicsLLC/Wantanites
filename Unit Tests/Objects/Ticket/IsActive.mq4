@@ -70,7 +70,7 @@ int MarketOrderIsActive(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     ticket.SetNewTicket(ticketNumber);
 
     int selectError = ticket.SelectIfOpen("Testing If Activated");
-    if (selectError != ERR_NO_ERROR)
+    if (selectError != Errors::NO_ERROR)
     {
         return selectError;
     }
@@ -78,7 +78,7 @@ int MarketOrderIsActive(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     ut.PendingRecord.AdditionalInformation = "Type: " + IntegerToString(OrderType()) + " Close Time: " + IntegerToString(OrderCloseTime());
 
     int activeError = ticket.IsActive(actual);
-    if (activeError != ERR_NO_ERROR)
+    if (activeError != Errors::NO_ERROR)
     {
         return activeError;
     }
@@ -102,7 +102,7 @@ int PendingOrderIsNotActive(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actua
     ticket.SetNewTicket(ticketNumber);
 
     int selectError = ticket.SelectIfOpen("Testing If Activated");
-    if (selectError != ERR_NO_ERROR)
+    if (selectError != Errors::NO_ERROR)
     {
         return selectError;
     }
@@ -110,7 +110,7 @@ int PendingOrderIsNotActive(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actua
     ut.PendingRecord.AdditionalInformation = "Type: " + IntegerToString(OrderType()) + " Close Time: " + IntegerToString(OrderCloseTime());
 
     int activeError = ticket.IsActive(actual);
-    if (activeError != ERR_NO_ERROR)
+    if (activeError != Errors::NO_ERROR)
     {
         return activeError;
     }

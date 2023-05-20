@@ -59,12 +59,12 @@ int OnInit()
     BullishMBNoErrorsUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Bullish MB No Errors", "No Errors Are Returned When Getting The Entry Price For A Bullish MB",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        ERR_NO_ERROR, BullishMBNoErrors);
+        Errors::NO_ERROR, BullishMBNoErrors);
 
     BearishMBNoErrorsUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Bearish MB No Errors", "No Errors Are Returned When Getting The Entry Price For A Bearish MB",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        ERR_NO_ERROR, BearishMBNoErrors);
+        Errors::NO_ERROR, BearishMBNoErrors);
 
     BullishMBEmptyRetracementUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Bullish MB Empty Reracement", "Should Return Empty Retracement Error",
@@ -278,7 +278,7 @@ int BullishMBCorrectEntryPrice(int &actual)
     double spreadPips = 0.0;
 
     int entryPriceError = OrderHelper::GetEntryPriceForStopOrderForPendingMBValidation(spreadPips, setupType, MBT, entryPrice);
-    if (entryPriceError != ERR_NO_ERROR)
+    if (entryPriceError != Errors::NO_ERROR)
     {
         return entryPriceError;
     }
@@ -304,7 +304,7 @@ int BearishMBCorrectEntryPrice(int &actual)
     double spreadPips = 0.0;
 
     int entryPriceError = OrderHelper::GetEntryPriceForStopOrderForPendingMBValidation(spreadPips, setupType, MBT, entryPrice);
-    if (entryPriceError != ERR_NO_ERROR)
+    if (entryPriceError != Errors::NO_ERROR)
     {
         return entryPriceError;
     }
@@ -337,7 +337,7 @@ int CorrectWithSpreadBullish(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut
     double spreadPips = 10.0;
 
     int entryPriceError = OrderHelper::GetEntryPriceForStopOrderForPendingMBValidation(spreadPips, setupType, MBT, entryPrice);
-    if (entryPriceError != ERR_NO_ERROR)
+    if (entryPriceError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -370,7 +370,7 @@ int CorrectWithSpreadBearish(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> &ut
     double spreadPips = 10.0;
 
     int entryPriceError = OrderHelper::GetEntryPriceForStopOrderForPendingMBValidation(spreadPips, setupType, MBT, entryPrice);
-    if (entryPriceError != ERR_NO_ERROR)
+    if (entryPriceError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }

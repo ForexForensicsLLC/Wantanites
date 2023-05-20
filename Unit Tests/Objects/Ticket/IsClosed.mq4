@@ -71,7 +71,7 @@ int IsClosed(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     ticket.Close();
 
     int isClosedError = ticket.IsClosed(actual);
-    if (isClosedError != ERR_NO_ERROR)
+    if (isClosedError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
@@ -94,7 +94,7 @@ int IsNotClosed(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     ticket.SetNewTicket(ticketNumber);
 
     int isClosedError = ticket.IsClosed(actual);
-    if (isClosedError != ERR_NO_ERROR)
+    if (isClosedError != Errors::NO_ERROR)
     {
         return Results::UNIT_TEST_DID_NOT_RUN;
     }

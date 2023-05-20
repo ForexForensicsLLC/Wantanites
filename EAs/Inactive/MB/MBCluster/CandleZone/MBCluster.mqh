@@ -288,7 +288,7 @@ void MBCluster::CheckInvalidateSetup()
     }
 }
 
-void MBCluster::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void MBCluster::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<MBCluster>(this, deletePendingOrder, false, error);
 

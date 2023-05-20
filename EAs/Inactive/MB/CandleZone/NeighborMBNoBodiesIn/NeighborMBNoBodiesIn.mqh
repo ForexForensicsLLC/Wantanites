@@ -250,7 +250,7 @@ void CandleZone::CheckInvalidateSetup()
     }
 }
 
-void CandleZone::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void CandleZone::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<CandleZone>(this, deletePendingOrder, false, error);
 

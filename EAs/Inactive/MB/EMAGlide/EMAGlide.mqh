@@ -164,7 +164,7 @@ void MBEMAGlide::CheckInvalidateSetup()
     }
 }
 
-void MBEMAGlide::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void MBEMAGlide::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     mFirstMBInSetupNumber = EMPTY;
     EAHelper::InvalidateSetup<MBEMAGlide>(this, deletePendingOrder, mStopTrading, error);

@@ -115,7 +115,7 @@ int ZeroOtherEAOrders(int &actual)
         return GetLastError();
     }
 
-    if (otherEAOrdersErrors != ERR_NO_ERROR)
+    if (otherEAOrdersErrors != Errors::NO_ERROR)
     {
         return otherEAOrdersErrors;
     }
@@ -170,7 +170,7 @@ int MultipleOrdersFromOneEA(int &actual)
         return GetLastError();
     }
 
-    if (otherEAOrdersErrors != ERR_NO_ERROR)
+    if (otherEAOrdersErrors != Errors::NO_ERROR)
     {
         return otherEAOrdersErrors;
     }
@@ -224,7 +224,7 @@ int MultipleOrdersFromMultipleEAs(int &actual)
         return GetLastError();
     }
 
-    if (otherEAOrdersErrors != ERR_NO_ERROR)
+    if (otherEAOrdersErrors != Errors::NO_ERROR)
     {
         return otherEAOrdersErrors;
     }

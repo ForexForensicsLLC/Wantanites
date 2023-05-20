@@ -164,7 +164,7 @@ void Wyckoff::CheckInvalidateSetup()
     }
 }
 
-void Wyckoff::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void Wyckoff::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<Wyckoff>(this, deletePendingOrder, false, error);
 }
@@ -179,7 +179,7 @@ bool Wyckoff::Confirmation()
 
     bool hasConfirmation;
     int error = EAHelper::DojiInsideMostRecentMBsHoldingZone<Wyckoff>(this, mSetupMBT, mSetupMBT.MBsCreated() - 1, hasConfirmation);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return false;
     }
@@ -222,7 +222,7 @@ bool Wyckoff::MoveToPreviousSetupTickets(Ticket &ticket)
 {
     bool isActive;
     int activeError = ticket.IsActive(isActive);
-    if (activeError != ERR_NO_ERROR)
+    if (activeError != Errors::NO_ERROR)
     {
         return false;
     }

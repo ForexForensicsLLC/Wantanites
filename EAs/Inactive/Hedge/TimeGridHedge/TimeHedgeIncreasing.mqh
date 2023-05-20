@@ -130,7 +130,7 @@ void TimeHedge::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void TimeHedge::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void TimeHedge::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<TimeHedge>(this, deletePendingOrder, mStopTrading, error);
 }

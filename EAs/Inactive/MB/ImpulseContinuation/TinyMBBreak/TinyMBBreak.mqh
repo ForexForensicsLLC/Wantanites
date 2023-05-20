@@ -216,7 +216,7 @@ void ImpulseContinuation::CheckInvalidateSetup()
     }
 }
 
-void ImpulseContinuation::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void ImpulseContinuation::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<ImpulseContinuation>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBConfirmation<ImpulseContinuation>(this, false);

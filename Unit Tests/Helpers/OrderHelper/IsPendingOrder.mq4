@@ -105,7 +105,7 @@ int OpBuyIsNotPending(bool &actual)
         actual = true;
 
         int pendingOrderError = OrderHelper::IsPendingOrder(ticket, actual);
-        if (pendingOrderError != ERR_NO_ERROR)
+        if (pendingOrderError != Errors::NO_ERROR)
         {
             return pendingOrderError;
         }
@@ -130,7 +130,7 @@ int OpSellIsNotPending(bool &actual)
         actual = true;
 
         int pendingOrderError = OrderHelper::IsPendingOrder(ticket, actual);
-        if (pendingOrderError != ERR_NO_ERROR)
+        if (pendingOrderError != Errors::NO_ERROR)
         {
             return pendingOrderError;
         }
@@ -158,7 +158,7 @@ int OpBuyStopIsPending(bool &actual)
         actual = false;
 
         int pendingOrderError = OrderHelper::IsPendingOrder(ticket, actual);
-        if (pendingOrderError != ERR_NO_ERROR)
+        if (pendingOrderError != Errors::NO_ERROR)
         {
             return pendingOrderError;
         }
@@ -186,7 +186,7 @@ int OpSellStopIsPending(bool &actual)
         actual = false;
 
         int pendingOrderError = OrderHelper::IsPendingOrder(ticket, actual);
-        if (pendingOrderError != ERR_NO_ERROR)
+        if (pendingOrderError != Errors::NO_ERROR)
         {
             return pendingOrderError;
         }
@@ -214,7 +214,7 @@ int OpBuyLimitIsPending(bool &actual)
         actual = false;
 
         int pendingOrderError = OrderHelper::IsPendingOrder(ticket, actual);
-        if (pendingOrderError != ERR_NO_ERROR)
+        if (pendingOrderError != Errors::NO_ERROR)
         {
             return pendingOrderError;
         }
@@ -242,7 +242,7 @@ int OpSellLimitIsPending(bool &actual)
         actual = false;
 
         int pendingOrderError = OrderHelper::IsPendingOrder(ticket, actual);
-        if (pendingOrderError != ERR_NO_ERROR)
+        if (pendingOrderError != Errors::NO_ERROR)
         {
             return pendingOrderError;
         }

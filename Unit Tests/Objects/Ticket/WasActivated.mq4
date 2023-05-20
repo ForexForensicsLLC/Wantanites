@@ -106,7 +106,7 @@ int WasActivated(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     SetVariables(ticket, entryPrice, activated, reset);
 
     int selectError = ticket.SelectIfOpen("Testing If Activated");
-    if (selectError != ERR_NO_ERROR)
+    if (selectError != Errors::NO_ERROR)
     {
         reset = true;
         return selectError;
@@ -136,7 +136,7 @@ int WasNotActivated(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     SetVariables(ticket, entryPrice, activated, reset);
 
     int selectError = ticket.SelectIfOpen("Testing If Activated");
-    if (selectError != ERR_NO_ERROR)
+    if (selectError != Errors::NO_ERROR)
     {
         reset = true;
         return selectError;

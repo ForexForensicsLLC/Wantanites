@@ -194,7 +194,7 @@ void MBRun::CheckInvalidateSetup()
     }
 }
 
-void MBRun::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void MBRun::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<MBRun>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<MBRun>(this, false);

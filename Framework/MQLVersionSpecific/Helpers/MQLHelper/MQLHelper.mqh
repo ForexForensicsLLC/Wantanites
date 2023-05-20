@@ -8,8 +8,6 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites/Framework/Constants/Index.mqh>
-
 #ifdef __MQL4__
 #include <Wantanites/Framework/MQLVersionSpecific/Helpers/MQLHelper/MQL4Helper.mqh>
 #endif
@@ -24,23 +22,27 @@ public:
     static double Ask(string symbol);
     static double Bid(string symbol);
 
-    static bool GetLowest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, out int &lowIndex);
-    static bool GetHighest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, out int &highIndex);
+    static long CurrentChartID();
 
-    static bool GetLowestIndexBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, out int &lowIndex);
-    static bool GetHighestIndexBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, out int &highIndex);
+    static string GetSymbolFromCustomChartName(string customChartName);
 
-    static bool GetLowestLow(string symbol, ENUM_TIMEFRAMES timeFrame, int count, int startIndex, bool inclusive, out double &low);
-    static bool GetHighestHigh(string symbol, ENUM_TIMEFRAMES timeFrame, int count, int startIndex, bool inclusive, out double &high);
+    static bool GetLowest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &lowIndex);
+    static bool GetHighest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &highIndex);
 
-    static bool GetLowestLowBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &high);
-    static bool GetHighestHighBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &high);
+    static bool GetLowestIndexBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, int &lowIndex);
+    static bool GetHighestIndexBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, int &highIndex);
 
-    static bool GetHighestBodyBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &highestBody);
-    static bool GetLowestBodyBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &lowestBody);
+    static bool GetLowestLow(string symbol, ENUM_TIMEFRAMES timeFrame, int count, int startIndex, bool inclusive, double &low);
+    static bool GetHighestHigh(string symbol, ENUM_TIMEFRAMES timeFrame, int count, int startIndex, bool inclusive, double &high);
 
-    static bool GetHighestBodyIndexBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, out int &highestBodyIndex);
-    static bool GetLowestBodyIndexBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, out int &lowestBodyIndex);
+    static bool GetLowestLowBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, double &high);
+    static bool GetHighestHighBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, double &high);
+
+    static bool GetHighestBodyBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, double &highestBody);
+    static bool GetLowestBodyBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, double &lowestBody);
+
+    static bool GetHighestBodyIndexBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, int &highestBodyIndex);
+    static bool GetLowestBodyIndexBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, int &lowestBodyIndex);
 };
 
 static double MQLHelper::Ask(string symbol)
@@ -51,6 +53,22 @@ static double MQLHelper::Ask(string symbol)
 static double MQLHelper::Bid(string symbol)
 {
     return SymbolInfoDouble(symbol, SYMBOL_BID);
+}
+
+static long MQLHelper::CurrentChartID()
+{
+    return VersionSpecificMQLHelper::CurrentChartID();
+}
+
+static string MQLHelper::GetSymbolFromCustomChartName(string customChartName)
+{
+    int index = StringFind(customChartName, "tickstory");
+    if (index != -1)
+    {
+        return StringSubstr(customChartName, 0, index - 1);
+    }
+
+    return customChartName;
 }
 /**
  * @brief
@@ -65,17 +83,17 @@ static double MQLHelper::Bid(string symbol)
  * @return true
  * @return false
  */
-static bool MQLHelper::GetLowest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, out int &lowIndex)
+static bool MQLHelper::GetLowest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &lowIndex)
 {
-    return MQLVersionSpecificHelper::GetLowest(symbol, timeFrame, mode, count, startIndex, inclusive, lowIndex);
+    return VersionSpecificMQLHelper::GetLowest(symbol, timeFrame, mode, count, startIndex, inclusive, lowIndex);
 }
 
-static bool MQLHelper::GetHighest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, out int &highIndex)
+static bool MQLHelper::GetHighest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &highIndex)
 {
-    return MQLVersionSpecificHelper::GetHighest(symbol, timeFrame, mode, count, startIndex, inclusive, highIndex);
+    return VersionSpecificMQLHelper::GetHighest(symbol, timeFrame, mode, count, startIndex, inclusive, highIndex);
 }
 
-static bool MQLHelper::GetLowestIndexBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, out int &lowIndex)
+static bool MQLHelper::GetLowestIndexBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, int &lowIndex)
 {
     if (rightIndex > leftIndex)
     {
@@ -90,7 +108,7 @@ static bool MQLHelper::GetLowestIndexBetween(string symbol, ENUM_TIMEFRAMES time
     return true;
 }
 
-static bool MQLHelper::GetHighestIndexBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, out int &highIndex)
+static bool MQLHelper::GetHighestIndexBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, int &highIndex)
 {
     if (rightIndex > leftIndex)
     {
@@ -105,7 +123,7 @@ static bool MQLHelper::GetHighestIndexBetween(string symbol, ENUM_TIMEFRAMES tim
     return true;
 }
 
-static bool MQLHelper::GetLowestLow(string symbol, ENUM_TIMEFRAMES timeFrame, int count, int startIndex, bool inclusive, out double &low)
+static bool MQLHelper::GetLowestLow(string symbol, ENUM_TIMEFRAMES timeFrame, int count, int startIndex, bool inclusive, double &low)
 {
     int lowestIndex = -1;
     if (!MQLHelper::GetLowest(symbol, timeFrame, MODE_LOW, count, startIndex, inclusive, lowestIndex))
@@ -117,7 +135,7 @@ static bool MQLHelper::GetLowestLow(string symbol, ENUM_TIMEFRAMES timeFrame, in
     return true;
 }
 
-static bool MQLHelper::GetHighestHigh(string symbol, ENUM_TIMEFRAMES timeFrame, int count, int startIndex, bool inclusive, out double &high)
+static bool MQLHelper::GetHighestHigh(string symbol, ENUM_TIMEFRAMES timeFrame, int count, int startIndex, bool inclusive, double &high)
 {
     int highestIndex = -1;
     if (!MQLHelper::GetHighest(symbol, timeFrame, MODE_HIGH, count, startIndex, inclusive, highestIndex))
@@ -129,7 +147,7 @@ static bool MQLHelper::GetHighestHigh(string symbol, ENUM_TIMEFRAMES timeFrame, 
     return true;
 }
 
-static bool MQLHelper::GetLowestLowBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &low)
+static bool MQLHelper::GetLowestLowBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, double &low)
 {
     if (rightIndex > leftIndex)
     {
@@ -144,7 +162,7 @@ static bool MQLHelper::GetLowestLowBetween(string symbol, ENUM_TIMEFRAMES timeFr
     return true;
 }
 
-static bool MQLHelper::GetHighestHighBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &high)
+static bool MQLHelper::GetHighestHighBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, double &high)
 {
     if (rightIndex > leftIndex)
     {
@@ -160,7 +178,7 @@ static bool MQLHelper::GetHighestHighBetween(string symbol, ENUM_TIMEFRAMES time
 }
 
 /// @brief This will return the highest body at the given time. If you are running on every tick it could give inaccurate results
-static bool MQLHelper::GetHighestBodyBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &highestBody)
+static bool MQLHelper::GetHighestBodyBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, double &highestBody)
 {
     if (rightIndex > leftIndex)
     {
@@ -184,7 +202,7 @@ static bool MQLHelper::GetHighestBodyBetween(string symbol, ENUM_TIMEFRAMES time
 }
 
 /// @brief This will return the lowest body at the given time. If you are running on every tick it could give inaccurate results
-static bool MQLHelper::GetLowestBodyBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, out double &lowestBody)
+static bool MQLHelper::GetLowestBodyBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, double &lowestBody)
 {
     if (rightIndex > leftIndex)
     {
@@ -207,7 +225,7 @@ static bool MQLHelper::GetLowestBodyBetween(string symbol, ENUM_TIMEFRAMES timeF
     return true;
 }
 
-static bool MQLHelper::GetHighestBodyIndexBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, out int &highestBodyIndex)
+static bool MQLHelper::GetHighestBodyIndexBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, int &highestBodyIndex)
 {
     if (rightIndex > leftIndex)
     {
@@ -238,7 +256,7 @@ static bool MQLHelper::GetHighestBodyIndexBetween(string symbol, ENUM_TIMEFRAMES
     return true;
 }
 
-static bool MQLHelper::GetLowestBodyIndexBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, out int &lowestBodyIndex)
+static bool MQLHelper::GetLowestBodyIndexBetween(string symbol, ENUM_TIMEFRAMES timeFrame, int leftIndex, int rightIndex, bool inclusive, int &lowestBodyIndex)
 {
     if (rightIndex > leftIndex)
     {

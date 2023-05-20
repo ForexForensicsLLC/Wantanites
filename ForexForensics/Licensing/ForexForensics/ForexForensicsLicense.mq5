@@ -11,7 +11,7 @@
 #property indicator_chart_window
 #property indicator_buffers 0
 
-#include <Wantanites\Framework\Objects\Licenses\License.mqh>
+#include <Wantanites\Framework\Objects\DataObjects\License.mqh>
 
 input string LicenseKey = "";
 

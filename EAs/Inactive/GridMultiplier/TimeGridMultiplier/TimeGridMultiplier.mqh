@@ -156,7 +156,7 @@ void TimeGridMultiplier::CheckInvalidateSetup()
     }
 }
 
-void TimeGridMultiplier::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void TimeGridMultiplier::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<TimeGridMultiplier>(this, deletePendingOrder, mStopTrading, error);
 

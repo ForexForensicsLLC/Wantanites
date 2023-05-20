@@ -18,6 +18,7 @@ public:
     static int EAStates::ATTEMPTING_TO_MANAGE_ORDER;
     static int EAStates::CHECKING_TICKET;
     static int EAStates::SETTING_ACTIVE_TICKETS;
+    static int EAStates::GETTING_CURRENT_TICK;
 
     // 8100s Are For Order Related States
     static int EAStates::CHECKING_IF_PENDING_ORDER;
@@ -37,6 +38,8 @@ public:
     static int EAStates::SETTING_OPEN_DATA_ON_TICKET;
     static int EAStates::CHECKING_TO_PARTIAL;
     static int EAStates::CHECKING_COVERING_COMMISSIONS;
+    static int EAStates::MODIFYING_ORDER;
+    static int EAStates::SEARCHING_FOR_PARTIALED_TICKET;
 
     // 8200s Are For Setup Related States
     static int EAStates::CHECKING_FOR_SETUP;
@@ -71,6 +74,7 @@ static int EAStates::RESETING = 8002;
 static int EAStates::ATTEMPTING_TO_MANAGE_ORDER = 8003;
 static int EAStates::CHECKING_TICKET = 8004;
 static int EAStates::SETTING_ACTIVE_TICKETS = 8005;
+static int EAStates::GETTING_CURRENT_TICK = 8006;
 
 // 8100s Are For Order Related States
 static int EAStates::CHECKING_IF_PENDING_ORDER = 8100;
@@ -91,6 +95,8 @@ static int EAStates::CHECKING_TO_PARTIAL = 8114;
 static int EAStates::COUNTING_OTHER_EA_ORDERS = 8115;
 static int EAStates::MOVING_TO_BREAK_EVEN = 8116;
 static int EAStates::CHECKING_COVERING_COMMISSIONS = 8117;
+static int EAStates::MODIFYING_ORDER = 8118;
+static int EAStates::SEARCHING_FOR_PARTIALED_TICKET = 8119;
 
 // 8200s Are For Setup Related States
 static int EAStates::CHECKING_FOR_SETUP = 8200;

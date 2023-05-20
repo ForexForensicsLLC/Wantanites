@@ -24,10 +24,12 @@ private:
     static string EventPath(datetime date);
     static string EventsDocument() { return "Events.Events.csv"; }
 
+    template <typename TRecord>
     static void ReadEvents(string calendar, datetime utcStart, datetime utcEnd, datetime utcCurrent, ObjectList<EconomicEvent> *&economicEvents, List<string> *&titles,
                            List<string> *&symbols, List<int> *&impacts, bool ignoreDuplicateTimes);
 
 public:
+    template <typename TRecord>
     static void GetEventsBetween(string calendar, datetime utcStart, datetime utcEnd, ObjectList<EconomicEvent> *&economicEvents, List<string> *&titles,
                                  List<string> *&symbols, List<int> *&impacts, bool ignoreDuplicateTimes);
 };
@@ -35,18 +37,21 @@ public:
 // returns a string in the format of /yyyy/MM/dd
 string EconomicCalendarHelper::EventPath(datetime date)
 {
-    return "/" + IntegerToString(TimeYear(date)) + "/" +
-           DateTimeHelper::FormatAsTwoDigits(TimeMonth(date)) + "/" +
-           DateTimeHelper::FormatAsTwoDigits(TimeDay(date)) + "/";
+    MqlDateTime dt = DateTimeHelper::ToMQLDateTime(date);
+    return "/" + IntegerToString(dt.year) + "/" +
+           DateTimeHelper::FormatAsTwoDigits(dt.mon) + "/" +
+           DateTimeHelper::FormatAsTwoDigits(dt.day) + "/";
 }
 
+template <typename TRecord>
 void EconomicCalendarHelper::ReadEvents(string calendar, datetime utcStart, datetime utcEnd, datetime utcCurrent, ObjectList<EconomicEvent> *&economicEvents,
                                         List<string> *&titles, List<string> *&symbols, List<int> *&impacts, bool ignoreDuplicateTimes)
 {
-    CSVRecordWriter<EconomicEventRecord> *csvRecordWriter = new CSVRecordWriter<EconomicEventRecord>(Directory() + calendar + EventPath(utcCurrent), EventsDocument(), false);
+    CSVRecordWriter<TRecord> *csvRecordWriter = new CSVRecordWriter<TRecord>(Directory() + calendar + EventPath(utcCurrent), EventsDocument(),
+                                                                             true, false, false, true);
     csvRecordWriter.SeekToStart();
 
-    EconomicEventRecord *record = new EconomicEventRecord();
+    TRecord *record = new TRecord();
     while (!FileIsEnding(csvRecordWriter.FileHandle()))
     {
         record.ReadRow(csvRecordWriter.FileHandle());
@@ -105,13 +110,14 @@ void EconomicCalendarHelper::ReadEvents(string calendar, datetime utcStart, date
     delete csvRecordWriter;
 }
 
+template <typename TRecord>
 void EconomicCalendarHelper::GetEventsBetween(string calendar, datetime utcStart, datetime utcEnd, ObjectList<EconomicEvent> *&economicEvents, List<string> *&titles,
                                               List<string> *&symbols, List<int> *&impacts, bool ignoreDuplicateTimes = true)
 {
     datetime currentDate = utcStart;
-    while (TimeDay(currentDate) < TimeDay(utcEnd))
+    while (DateTimeHelper::ToDay(currentDate) < DateTimeHelper::ToDay(utcEnd))
     {
-        ReadEvents(calendar, utcStart, utcEnd, currentDate, economicEvents, titles, symbols, impacts, ignoreDuplicateTimes);
+        ReadEvents<TRecord>(calendar, utcStart, utcEnd, currentDate, economicEvents, titles, symbols, impacts, ignoreDuplicateTimes);
         currentDate += (60 * 60 * 24); // add one day in seconds
     }
 }

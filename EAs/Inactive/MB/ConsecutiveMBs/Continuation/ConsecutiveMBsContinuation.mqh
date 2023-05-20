@@ -165,7 +165,7 @@ void CMBsContinuation::CheckInvalidateSetup()
     }
 }
 
-void CMBsContinuation::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void CMBsContinuation::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<CMBsContinuation>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<CMBsContinuation>(this, false);

@@ -58,7 +58,7 @@ int OnInit()
     NoErrorsUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "No Errors", "Returns No Errors When Retrieving Entry Price",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        ERR_NO_ERROR, NoErrors);
+        Errors::NO_ERROR, NoErrors);
 
     CorrectEntryPriceForBullishMBUnitTest = new IntUnitTest<BeforeAndAfterImagesUnitTestRecord>(
         Directory, "Correct Entry Price For Bullish MB", "Returns The Correct Entry Price For A Stop Order On The Break Of A Bullish MB",
@@ -167,7 +167,7 @@ int CorrectEntryPriceForBullishMB(int &actual)
     double entryPrice = 0.0;
 
     int error = OrderHelper::GetEntryPriceForStopOrderForBreakOfMB(spreadPips, tempMBState.Number(), MBT, entryPrice);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -204,7 +204,7 @@ int CorrectEntryPriceForBearishMB(int &actual)
     double entryPrice = 0.0;
 
     int error = OrderHelper::GetEntryPriceForStopOrderForBreakOfMB(spreadPips, tempMBState.Number(), MBT, entryPrice);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -248,7 +248,7 @@ int CorrectEntryWithSpreadAndPaddingBullish(IntUnitTest<BeforeAndAfterImagesUnit
     double entryPrice = 0.0;
 
     int error = OrderHelper::GetEntryPriceForStopOrderForBreakOfMB(spreadPips, tempMBState.Number(), MBT, entryPrice);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }
@@ -292,7 +292,7 @@ int CorrectEntryWithSpreadAndPaddingBearish(IntUnitTest<BeforeAndAfterImagesUnit
     double entryPrice = 0.0;
 
     int error = OrderHelper::GetEntryPriceForStopOrderForBreakOfMB(spreadPips, tempMBState.Number(), MBT, entryPrice);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         return error;
     }

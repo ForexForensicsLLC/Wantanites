@@ -142,7 +142,7 @@ void NasMorningBreak::CheckInvalidateSetup()
     }
 }
 
-void NasMorningBreak::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void NasMorningBreak::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<NasMorningBreak>(this, deletePendingOrder, mStopTrading, error);
     mLastFractalTime = 0;

@@ -192,7 +192,7 @@ void SMAccDistInZone::CheckInvalidateSetup()
     }
 }
 
-void SMAccDistInZone::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void SMAccDistInZone::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     mFirstMBInSetupNumber = EMPTY;
 
@@ -304,7 +304,7 @@ void SMAccDistInZone::ManageCurrentPendingSetupTicket()
     }
 
     int error = mCurrentSetupTicket.SelectIfOpen("Managing Order");
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         RecordError(-55);
     }

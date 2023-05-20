@@ -16,15 +16,15 @@ class MB : public MBState
 private:
     void InternalCheckAddZones(int startingIndex, int endingIndex, bool calculatingOnCurrentCandle);
     bool IsDuplicateZone(double imbalanceEntry, double imbalanceExit);
-    bool PendingZoneIsOverlappingOtherZone(int type, int startIndex, double imbalanceExit);
+    bool PendingZoneIsOverlappingOtherZone(SignalType type, int startIndex, double imbalanceExit);
     bool PendingDemandZoneWasMitigated(int startIndex, int endingIndex, int entryOffset, double imbalanceEntry);
     bool PendingSupplyZoneWasMitigated(int startIndex, int endingIndex, int entryOffset, double imbalanceEntry);
 
 public:
     // --- Constructors / Destructors ----------
-    MB(bool isPending, string symbol, ENUM_TIMEFRAMES timeFrame, int number, int type, CandlePart brokenBy, datetime startDateTime, datetime endDateTime, datetime highDateTime,
-       datetime lowDateTime, int maxZones, CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB, bool allowMitigatedZones, bool allowOverlappingZones, color mbColor,
-       color zoneColor);
+    MB(bool isPending, string symbol, ENUM_TIMEFRAMES timeFrame, int number, SignalType type, CandlePart brokenBy, datetime startDateTime, datetime endDateTime,
+       datetime highDateTime, datetime lowDateTime, int maxZones, CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB, bool allowMitigatedZones,
+       bool allowOverlappingZones, color mbColor, color zoneColor);
     ~MB();
 
     void StartTime(datetime time) { mStartDateTime = time; }
@@ -44,7 +44,7 @@ public:
 // GOES LEFT TO RIGHT
 void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool calculatingOnCurrentCandle)
 {
-    if (mType == OP_BUY)
+    if (mType == SignalType::Bullish)
     {
         if (calculatingOnCurrentCandle)
         {
@@ -58,11 +58,11 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool calculat
             if (currentImbalance)
             {
                 // Zone variables that get set depending on the zone
-                int startIndex = EMPTY;
+                int startIndex = ConstantValues::EmptyInt;
                 double imbalanceEntry = -1.0;
                 double imbalanceExit = -1.0;
                 string description = "";
-                int entryOffset = EMPTY;
+                int entryOffset = ConstantValues::EmptyInt;
 
                 // Open, Close, High, Low of the previous 3 bars
                 double indexOpen = iOpen(mSymbol, mTimeFrame, i);
@@ -175,7 +175,7 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool calculat
                     continue;
                 }
 
-                bool isOverlappingZone = PendingZoneIsOverlappingOtherZone(OP_BUY, startIndex, imbalanceExit);
+                bool isOverlappingZone = PendingZoneIsOverlappingOtherZone(SignalType::Bullish, startIndex, imbalanceExit);
                 if (isOverlappingZone && !mAllowOverlappingZones)
                 {
                     continue;
@@ -232,7 +232,7 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool calculat
             }
         }
     }
-    else if (mType == OP_SELL)
+    else if (mType == SignalType::Bearish)
     {
         if (calculatingOnCurrentCandle)
         {
@@ -247,11 +247,11 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool calculat
             if (currentImbalance)
             {
                 // Zone variables that get set depending on the zone
-                int startIndex = EMPTY;
+                int startIndex = ConstantValues::EmptyInt;
                 double imbalanceEntry = -1.0;
                 double imbalanceExit = -1.0;
                 string description = "";
-                int entryOffset = EMPTY;
+                int entryOffset = ConstantValues::EmptyInt;
 
                 // Open, Close, High, Low of the previous 3 bars
                 double indexOpen = iOpen(mSymbol, mTimeFrame, i);
@@ -364,7 +364,7 @@ void MB::InternalCheckAddZones(int startingIndex, int endingIndex, bool calculat
                     continue;
                 }
 
-                bool isOverlappingZone = PendingZoneIsOverlappingOtherZone(OP_SELL, startIndex, imbalanceExit);
+                bool isOverlappingZone = PendingZoneIsOverlappingOtherZone(SignalType::Bearish, startIndex, imbalanceExit);
                 if (isOverlappingZone && !mAllowOverlappingZones)
                 {
                     continue;
@@ -438,7 +438,7 @@ bool MB::IsDuplicateZone(double imbalanceEntry, double imbalanceExit)
 
 bool MB::PendingDemandZoneWasMitigated(int startIndex, int endingIndex, int entryOffset, double imbalanceEntry)
 {
-    int firstIndexAboveZone = EMPTY;
+    int firstIndexAboveZone = ConstantValues::EmptyInt;
     for (int j = startIndex - entryOffset; j >= 0; j--)
     {
         if (iHigh(mSymbol, mTimeFrame, j) > imbalanceEntry)
@@ -459,7 +459,7 @@ bool MB::PendingDemandZoneWasMitigated(int startIndex, int endingIndex, int entr
 
 bool MB::PendingSupplyZoneWasMitigated(int startIndex, int endingIndex, int entryOffset, double imbalanceEntry)
 {
-    int firstIndexAboveZone = EMPTY;
+    int firstIndexAboveZone = ConstantValues::EmptyInt;
     for (int j = startIndex - entryOffset; j >= 0; j--)
     {
         if (iLow(mSymbol, mTimeFrame, j) < imbalanceEntry)
@@ -478,14 +478,14 @@ bool MB::PendingSupplyZoneWasMitigated(int startIndex, int endingIndex, int entr
     return highestPriceAfterValidation >= imbalanceEntry;
 }
 
-bool MB::PendingZoneIsOverlappingOtherZone(int type, int startIndex, double imbalanceExit)
+bool MB::PendingZoneIsOverlappingOtherZone(SignalType type, int startIndex, double imbalanceExit)
 {
     for (int i = 0; i < mZones.Size(); i++)
     {
         // Add one to this to prevent consecutive zones from forming
         if (startIndex + 1 >= mZones[i].StartIndex() ||
-            (type == OP_BUY && imbalanceExit < mZones[i].EntryPrice()) ||
-            (type == OP_SELL && imbalanceExit > mZones[i].EntryPrice()))
+            (type == SignalType::Bullish && imbalanceExit < mZones[i].EntryPrice()) ||
+            (type == SignalType::Bearish && imbalanceExit > mZones[i].EntryPrice()))
         {
             return true;
         }
@@ -504,9 +504,9 @@ bool MB::PendingZoneIsOverlappingOtherZone(int type, int startIndex, double imba
 
 */
 // --------- Constructor / Destructor --------
-MB::MB(bool isPending, string symbol, ENUM_TIMEFRAMES timeFrame, int number, int type, CandlePart brokenBy, datetime startDateTime, datetime endDateTime, datetime highDateTime,
-       datetime lowDateTime, int maxZones, CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB, bool allowMitigatedZones, bool allowOverlappingZones, color mbColor,
-       color zoneColor)
+MB::MB(bool isPending, string symbol, ENUM_TIMEFRAMES timeFrame, int number, SignalType type, CandlePart brokenBy, datetime startDateTime, datetime endDateTime,
+       datetime highDateTime, datetime lowDateTime, int maxZones, CandlePart zonesBrokenBy, ZonePartInMB requiredZonePartInMB, bool allowMitigatedZones,
+       bool allowOverlappingZones, color mbColor, color zoneColor)
 {
     mIsPending = isPending;
     mSymbol = symbol;
@@ -527,7 +527,7 @@ MB::MB(bool isPending, string symbol, ENUM_TIMEFRAMES timeFrame, int number, int
 
     mGlobalStartIsBroken = false;
 
-    mSetupZoneNumber = EMPTY;
+    mSetupZoneNumber = ConstantValues::EmptyInt;
     mInsideSetupZone = Status::NOT_CHECKED;
     mPushedFurtherIntoSetupZone = Status::NOT_CHECKED;
 
@@ -568,8 +568,8 @@ void MB::CheckPendingZones(int barIndex)
         }
         // remove mitigated zones
         else if (!mAllowMitigatedZones &&
-                 ((mType == OP_BUY && PendingDemandZoneWasMitigated(mZones[i].StartIndex(), mZones[i].EndIndex(), mZones[i].EntryOffset(), mZones[i].EntryPrice())) ||
-                  (mType == OP_SELL && PendingSupplyZoneWasMitigated(mZones[i].StartIndex(), mZones[i].EndIndex(), mZones[i].EntryOffset(), mZones[i].EntryPrice()))))
+                 ((mType == SignalType::Bullish && PendingDemandZoneWasMitigated(mZones[i].StartIndex(), mZones[i].EndIndex(), mZones[i].EntryOffset(), mZones[i].EntryPrice())) ||
+                  (mType == SignalType::Bearish && PendingSupplyZoneWasMitigated(mZones[i].StartIndex(), mZones[i].EndIndex(), mZones[i].EntryOffset(), mZones[i].EntryPrice()))))
         {
             mZones.Remove(i);
         }
@@ -584,7 +584,7 @@ void MB::CheckPendingZones(int barIndex)
 
 void MB::CheckAddZones()
 {
-    int startIndex = mType == OP_BUY ? LowIndex() : HighIndex();
+    int startIndex = mType == SignalType::Bullish ? LowIndex() : HighIndex();
     InternalCheckAddZones(startIndex, EndIndex(), false);
 }
 // Checks for  zones that occur after the MB

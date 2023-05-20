@@ -45,9 +45,9 @@ void PartialTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = false
 
 void PartialTradeRecord::ReadRow(int fileHandle)
 {
-    MagicNumber = StrToInteger(FileReadString(fileHandle));
-    TicketNumber = StrToInteger(FileReadString(fileHandle));
-    NewTicketNumber = StrToInteger(FileReadString(fileHandle));
-    ExpectedPartialRR = StrToDouble(FileReadString(fileHandle));
-    ActualPartialRR = StrToDouble(FileReadString(fileHandle));
+    MagicNumber = StringToInteger(FileReadString(fileHandle));
+    TicketNumber = StringToInteger(FileReadString(fileHandle));
+    NewTicketNumber = StringToInteger(FileReadString(fileHandle));
+    ExpectedPartialRR = StringToDouble(FileReadString(fileHandle));
+    ActualPartialRR = StringToDouble(FileReadString(fileHandle));
 }

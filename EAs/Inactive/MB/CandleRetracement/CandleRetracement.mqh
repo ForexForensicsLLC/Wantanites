@@ -312,7 +312,7 @@ void CandleRetracement::CheckInvalidateSetup()
     }
 }
 
-void CandleRetracement::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void CandleRetracement::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<CandleRetracement>(this, deletePendingOrder, false, error);
     mLocalStructureTime = 0;

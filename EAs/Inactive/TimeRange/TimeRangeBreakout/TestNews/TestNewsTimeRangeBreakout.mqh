@@ -9,16 +9,13 @@
 #property strict
 
 #include <Wantanites\Framework\Objects\DataObjects\EA.mqh>
-#include <Wantanites\Framework\Helpers\EAHelper.mqh>
 #include <Wantanites\Framework\Constants\MagicNumbers.mqh>
-
 #include <Wantanites\Framework\Objects\Indicators\Time\TimeRangeBreakout.mqh>
 
 class TestNewsTimeRangeBreakout : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     TimeRangeBreakout *mTRB;
-
     ObjectList<EconomicEvent> *mEconomicEvents;
 
     List<string> *mEconomicEventTitles;
@@ -53,7 +50,7 @@ public:
     virtual void RecordTicketOpenData(Ticket &ticket);
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
-    virtual void RecordError(int error, string additionalInformation);
+    virtual void RecordError(string methodName, int error, string additionalInformation);
     virtual bool ShouldReset();
     virtual void Reset();
 };
@@ -69,8 +66,8 @@ TestNewsTimeRangeBreakout::TestNewsTimeRangeBreakout(int magicNumber, int setupT
     mLoadedEventsForToday = false;
     mDuringNews = false;
 
-    EAHelper::FindSetPreviousAndCurrentSetupTickets<TestNewsTimeRangeBreakout>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<TestNewsTimeRangeBreakout, SingleTimeFrameEntryTradeRecord>(this);
+    EAInitHelper::FindSetPreviousAndCurrentSetupTickets<TestNewsTimeRangeBreakout>(this);
+    EAInitHelper::SetPreviousSetupTicketsOpenData<TestNewsTimeRangeBreakout, SingleTimeFrameEntryTradeRecord>(this);
 }
 
 TestNewsTimeRangeBreakout::~TestNewsTimeRangeBreakout()
@@ -112,13 +109,13 @@ void TestNewsTimeRangeBreakout::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
-    if (LastDay() != Day())
+    if (LastDay() != DateTimeHelper::CurrentDay())
     {
         InvalidateSetup(true);
     }
 }
 
-void TestNewsTimeRangeBreakout::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void TestNewsTimeRangeBreakout::InvalidateSetup(bool deletePendingOrder, int error = 0)
 {
     EAHelper::InvalidateSetup<TestNewsTimeRangeBreakout>(this, deletePendingOrder, mStopTrading, error);
 }
@@ -135,38 +132,38 @@ void TestNewsTimeRangeBreakout::PlaceOrders()
     double stopLoss = 0.0;
     mRiskPercent = 1;
 
-    if (SetupType() == OP_BUY)
+    if (SetupType() == SignalType::Bullish)
     {
         entry = CurrentTick().Ask();
         stopLoss = mTRB.RangeLow();
 
         if (mDuringNews)
         {
-            entry += OrderHelper::PipsToRange(newsPips);
+            entry += PipConverter::PipsToPoints(newsPips);
             mRiskPercent = (entry - stopLoss) / (CurrentTick().Ask() - stopLoss);
 
-            EAHelper::PlaceStopOrder<TestNewsTimeRangeBreakout>(this, entry, stopLoss);
+            EAOrderHelper::PlaceStopOrder<TestNewsTimeRangeBreakout>(this, entry, stopLoss);
         }
         else
         {
-            EAHelper::PlaceMarketOrder<TestNewsTimeRangeBreakout>(this, entry, stopLoss);
+            EAOrderHelper::PlaceMarketOrder<TestNewsTimeRangeBreakout>(this, entry, stopLoss);
         }
     }
-    else if (SetupType() == OP_SELL)
+    else if (SetupType() == SignalType::Bearish)
     {
         entry = CurrentTick().Bid();
         stopLoss = mTRB.RangeHigh();
 
         if (mDuringNews)
         {
-            entry -= OrderHelper::PipsToRange(newsPips);
+            entry -= PipConverter::PipsToPoints(newsPips);
             mRiskPercent = (entry - stopLoss) / (CurrentTick().Ask() - stopLoss);
 
-            EAHelper::PlaceStopOrder<TestNewsTimeRangeBreakout>(this, entry, stopLoss);
+            EAOrderHelper::PlaceStopOrder<TestNewsTimeRangeBreakout>(this, entry, stopLoss);
         }
         else
         {
-            EAHelper::PlaceMarketOrder<TestNewsTimeRangeBreakout>(this, entry, stopLoss);
+            EAOrderHelper::PlaceMarketOrder<TestNewsTimeRangeBreakout>(this, entry, stopLoss);
         }
     }
 
@@ -197,7 +194,8 @@ void TestNewsTimeRangeBreakout::ManagePreviousSetupTicket(Ticket &ticket)
 void TestNewsTimeRangeBreakout::CheckCurrentSetupTicket(Ticket &ticket)
 {
     // close if we are down 1%
-    if ((AccountEquity() - AccountBalance()) / AccountBalance() * 100 <= -1)
+    double balance = AccountInfoDouble(ACCOUNT_BALANCE);
+    if ((AccountInfoDouble(ACCOUNT_EQUITY) - balance) / balance * 100 <= -1)
     {
         ticket.Close();
     }
@@ -218,12 +216,12 @@ void TestNewsTimeRangeBreakout::RecordTicketPartialData(Ticket &partialedTicket,
 
 void TestNewsTimeRangeBreakout::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameExitTradeRecord<TestNewsTimeRangeBreakout>(this, ticket, Period());
+    EAHelper::RecordSingleTimeFrameExitTradeRecord<TestNewsTimeRangeBreakout>(this, ticket, EntryTimeFrame());
 }
 
-void TestNewsTimeRangeBreakout::RecordError(int error, string additionalInformation = "")
+void TestNewsTimeRangeBreakout::RecordError(string methodName, int error, string additionalInformation = "")
 {
-    EAHelper::RecordSingleTimeFrameErrorRecord<TestNewsTimeRangeBreakout>(this, error, additionalInformation);
+    EAHelper::RecordSingleTimeFrameErrorRecord<TestNewsTimeRangeBreakout>(this, methodName, error, additionalInformation);
 }
 
 bool TestNewsTimeRangeBreakout::ShouldReset()
@@ -238,5 +236,5 @@ void TestNewsTimeRangeBreakout::Reset()
     mDuringNews = false;
 
     mEconomicEvents.Clear();
-    EAHelper::CloseAllCurrentAndPreviousSetupTickets<TestNewsTimeRangeBreakout>(this);
+    EAOrderHelper::CloseAllCurrentAndPreviousSetupTickets<TestNewsTimeRangeBreakout>(this);
 }

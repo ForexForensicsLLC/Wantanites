@@ -130,7 +130,7 @@ void OpenOutside::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void OpenOutside::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void OpenOutside::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<OpenOutside>(this, deletePendingOrder, false, error);
 }

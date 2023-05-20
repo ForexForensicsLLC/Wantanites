@@ -161,7 +161,7 @@ void LiquidationMB::CheckSetSetup()
 
         bool zoneIsHolding = false;
         int error = EAHelper::LiquidationMBZoneIsHolding<LiquidationMB>(this, mSetupMBT, mFirstMBInSetupNumber, mSecondMBInSetupNumber, zoneIsHolding);
-        if (error != ERR_NO_ERROR)
+        if (error != Errors::NO_ERROR)
         {
             EAHelper::InvalidateSetup<LiquidationMB>(this, true, false);
             return;
@@ -339,7 +339,7 @@ void LiquidationMB::CheckInvalidateSetup()
 
     bool zoneIsHolding = false;
     int error = EAHelper::LiquidationMBZoneIsHolding<LiquidationMB>(this, mSetupMBT, mFirstMBInSetupNumber, mSecondMBInSetupNumber, zoneIsHolding);
-    if (error != ERR_NO_ERROR || !zoneIsHolding)
+    if (error != Errors::NO_ERROR || !zoneIsHolding)
     {
         InvalidateSetup(true, error);
         return;
@@ -366,7 +366,7 @@ void LiquidationMB::CheckInvalidateSetup()
     }
 }
 
-void LiquidationMB::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void LiquidationMB::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::ResetLiquidationMBSetup<LiquidationMB>(this, false);
     EAHelper::InvalidateSetup<LiquidationMB>(this, deletePendingOrder, false, error);

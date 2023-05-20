@@ -137,7 +137,7 @@ int CheckSetup(bool allowWicks, bool shouldBeBelowDemandZone, double &entryPrice
     entryPrice = tempZoneState.EntryPrice();
     exitPrice = tempZoneState.ExitPrice();
 
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 
 int AllowWicksIsAboveDemandZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
@@ -146,7 +146,7 @@ int AllowWicksIsAboveDemandZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &a
     double exitPrice;
 
     int result = CheckSetup(true, false, entryPrice, exitPrice);
-    if (result != ERR_NO_ERROR)
+    if (result != Errors::NO_ERROR)
     {
         return result;
     }
@@ -164,7 +164,7 @@ int AllowWicksIsBelowDemandZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &a
     double exitPrice;
 
     int result = CheckSetup(true, true, entryPrice, exitPrice);
-    if (result != ERR_NO_ERROR)
+    if (result != Errors::NO_ERROR)
     {
         return result;
     }
@@ -182,7 +182,7 @@ int DoNotAllowWicksIsAboveDemandZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bo
     double exitPrice;
 
     int result = CheckSetup(false, false, entryPrice, exitPrice);
-    if (result != ERR_NO_ERROR)
+    if (result != Errors::NO_ERROR)
     {
         return result;
     }
@@ -200,7 +200,7 @@ int DoNotAllowWicksIsBelowDemandZone(BoolUnitTest<DefaultUnitTestRecord> &ut, bo
     double exitPrice;
 
     int result = CheckSetup(false, true, entryPrice, exitPrice);
-    if (result != ERR_NO_ERROR)
+    if (result != Errors::NO_ERROR)
     {
         return result;
     }

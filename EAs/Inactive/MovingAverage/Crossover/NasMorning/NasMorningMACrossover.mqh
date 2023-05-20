@@ -103,7 +103,7 @@ void NasMorningCrossover::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void NasMorningCrossover::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void NasMorningCrossover::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<NasMorningCrossover>(this, deletePendingOrder, mStopTrading, error);
 }

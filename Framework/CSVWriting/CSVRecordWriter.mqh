@@ -16,6 +16,7 @@ class CSVRecordWriter
 protected:
     string mDirectory;
     string mCSVFileName;
+    bool mUsingCommon;
     bool mCreateIfFileDoesNotExist;
     bool mStopTryingToOpenFile;
 
@@ -24,12 +25,14 @@ protected:
 
     int mRowCount;
 
-    void CheckWriteHeaders(TRecord &record);
+    int mFileOperation;
+
+    void CheckWriteHeaders();
     void Init();
     void CountRows();
 
 public:
-    CSVRecordWriter(string directory, string csvFileName, bool createIfFileDoesNotExist);
+    CSVRecordWriter(string directory, string csvFileName, bool read, bool write, bool createIfFileDoesNotExist, bool useCommon);
     ~CSVRecordWriter();
 
     string Directory() { return mDirectory; }
@@ -44,12 +47,31 @@ public:
 };
 
 template <typename TRecord>
-CSVRecordWriter::CSVRecordWriter(string directory, string csvFileName, bool createIfFileDoesNotExist = true)
+CSVRecordWriter::CSVRecordWriter(string directory, string csvFileName, bool read = true, bool write = true, bool createIfFileDoesNotExist = true, bool useCommon = false)
 {
     mDirectory = directory;
     mCSVFileName = csvFileName;
     mCreateIfFileDoesNotExist = createIfFileDoesNotExist;
     mStopTryingToOpenFile = false;
+
+    if (read && write)
+    {
+        mFileOperation = FILE_READ | FILE_WRITE;
+    }
+    else if (read)
+    {
+        mFileOperation = FILE_READ;
+    }
+    else if (write)
+    {
+        mFileOperation = FILE_WRITE;
+    }
+
+    if (useCommon)
+    {
+        mUsingCommon = true;
+        mFileOperation = mFileOperation | FILE_COMMON;
+    }
 
     mFileIsOpen = false;
     mFileHandle = INVALID_HANDLE;
@@ -73,6 +95,8 @@ void CSVRecordWriter::Init()
 
     mRowCount = 1;
     CountRows();
+
+    CheckWriteHeaders();
 }
 
 template <typename TRecord>
@@ -83,7 +107,7 @@ bool CSVRecordWriter::Open()
         return false;
     }
 
-    if (!mCreateIfFileDoesNotExist && !FileIsExist(mDirectory + mCSVFileName))
+    if (!mCreateIfFileDoesNotExist && !FileIsExist(mDirectory + mCSVFileName, mUsingCommon ? FILE_COMMON : 0))
     {
         Print("File: ", mDirectory + mCSVFileName, " does not exist");
         mStopTryingToOpenFile = true;
@@ -91,10 +115,12 @@ bool CSVRecordWriter::Open()
         return false;
     }
 
-    mFileHandle = FileOpen(mDirectory + mCSVFileName, FILE_CSV | FILE_READ | FILE_WRITE, ConstantValues::CSVDelimiter);
+    mFileHandle = FileOpen(mDirectory + mCSVFileName, FILE_CSV | mFileOperation, ConstantValues::CSVDelimiter);
     if (mFileHandle == INVALID_HANDLE)
     {
         Print("Failed to open file: ", mDirectory + mCSVFileName, ". Error: ", GetLastError());
+        mStopTryingToOpenFile = true;
+
         return false;
     }
 
@@ -164,12 +190,21 @@ void CSVRecordWriter::CountRows()
 }
 
 template <typename TRecord>
-void CSVRecordWriter::CheckWriteHeaders(TRecord &record)
+void CSVRecordWriter::CheckWriteHeaders()
 {
+    SeekToStart();
+
     if (FileTell(mFileHandle) == 0)
     {
+        TRecord *record = new TRecord();
         record.WriteHeaders(mFileHandle);
         mRowCount += 1;
+
+        delete record;
+    }
+    else
+    {
+        Print("Didn't write headers. FileTell Value: ", FileTell(mFileHandle));
     }
 }
 
@@ -191,7 +226,6 @@ void CSVRecordWriter::WriteRecord(TRecord &record)
         return;
     }
 
-    CheckWriteHeaders(record);
     FileWriteString(mFileHandle, "\n");
 
     record.RowNumber = mRowCount;

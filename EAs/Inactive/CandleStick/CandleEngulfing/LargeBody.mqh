@@ -158,7 +158,7 @@ void LargeBody::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void LargeBody::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void LargeBody::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<LargeBody>(this, deletePendingOrder, mStopTrading, error);
 }

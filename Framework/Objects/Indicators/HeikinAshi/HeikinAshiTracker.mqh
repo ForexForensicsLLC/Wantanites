@@ -8,8 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Objects\ObjectList.mqh>
-#include <Wantanites\Framework\Objects\HeikinAshiCandle.mqh>
+#include <Wantanites\Framework\Objects\Indicators\HeikinAshi\HeikinAshiCandle.mqh>
 
 class HeikinAshiTracker
 {
@@ -22,7 +21,7 @@ private:
     void Update();
     void Calculate(int barIndex);
 
-    void CreateHeikinAshiCandle(int type, int index, double open, double close, double high, double low);
+    void CreateHeikinAshiCandle(SignalType type, int index, double open, double close, double high, double low);
 
 public:
     HeikinAshiTracker();
@@ -30,6 +29,9 @@ public:
 
     // --BEWARE-- this will be off by one in respect to the current actual bar index i.e [0] will be for the 1st previous bar
     HeikinAshiCandle *operator[](int index);
+
+    int PreviousConsecutiveBullishCandles();
+    int PreviousConsecutiveBearishCandles();
 };
 
 HeikinAshiTracker::HeikinAshiTracker()
@@ -69,7 +71,7 @@ void HeikinAshiTracker::Update()
 
 void HeikinAshiTracker::Calculate(int barIndex)
 {
-    int type = EMPTY;
+    SignalType type;
     double barOpen = iOpen(Symbol(), Period(), barIndex);
     double barClose = iClose(Symbol(), Period(), barIndex);
     double barHigh = iHigh(Symbol(), Period(), barIndex);
@@ -83,22 +85,22 @@ void HeikinAshiTracker::Calculate(int barIndex)
     // first candle, can't use previous to calculate so i'll just set it to whatever the actual bar is
     if (ArraySize(mCandles) == 0)
     {
-        type = barOpen > barClose ? OP_SELL : OP_BUY;
+        type = barOpen > barClose ? SignalType::Bearish : SignalType::Bullish;
         CreateHeikinAshiCandle(type, barIndex, barOpen, barClose, barHigh, barLow);
     }
     else
     {
-        heikinAshiOpen = NormalizeDouble((mCandles[0].Open() + mCandles[0].Close()) / 2, Digits);
-        heikinAshiClose = NormalizeDouble((barOpen + barClose + barHigh + barLow) / 4, Digits);
+        heikinAshiOpen = NormalizeDouble((mCandles[0].Open() + mCandles[0].Close()) / 2, Digits());
+        heikinAshiClose = NormalizeDouble((barOpen + barClose + barHigh + barLow) / 4, Digits());
         heikinAshiHigh = MathMax(barHigh, MathMax(heikinAshiOpen, heikinAshiClose));
         heikinAshiLow = MathMin(barLow, MathMin(heikinAshiOpen, heikinAshiClose));
-        type = heikinAshiOpen > heikinAshiClose ? OP_SELL : OP_BUY;
+        type = heikinAshiOpen > heikinAshiClose ? SignalType::Bearish : SignalType::Bullish;
 
         CreateHeikinAshiCandle(type, barIndex, heikinAshiOpen, heikinAshiClose, heikinAshiHigh, heikinAshiLow);
     }
 }
 
-void HeikinAshiTracker::CreateHeikinAshiCandle(int type, int index, double open, double close, double high, double low)
+void HeikinAshiTracker::CreateHeikinAshiCandle(SignalType type, int index, double open, double close, double high, double low)
 {
     // this only works because I don't calculate on tick, just on completed bars
     HeikinAshiCandle *candle = new HeikinAshiCandle(type, index, open, close, high, low);
@@ -106,4 +108,40 @@ void HeikinAshiTracker::CreateHeikinAshiCandle(int type, int index, double open,
     ArrayResize(mCandles, ArraySize(mCandles) + 1);
     ArrayCopy(mCandles, mCandles, 1, 0);
     mCandles[0] = candle;
+}
+
+int HeikinAshiTracker::PreviousConsecutiveBullishCandles()
+{
+    Update();
+
+    int consecutiveCandles = 0;
+    for (int i = 0; i < ArraySize(mCandles); i++)
+    {
+        if (mCandles[i].Type() == SignalType::Bearish)
+        {
+            break;
+        }
+
+        consecutiveCandles += 1;
+    }
+
+    return consecutiveCandles;
+}
+
+int HeikinAshiTracker::PreviousConsecutiveBearishCandles()
+{
+    Update();
+
+    int consecutiveCandles = 0;
+    for (int i = 0; i < ArraySize(mCandles); i++)
+    {
+        if (mCandles[i].Type() == SignalType::Bullish)
+        {
+            break;
+        }
+
+        consecutiveCandles += 1;
+    }
+
+    return consecutiveCandles;
 }

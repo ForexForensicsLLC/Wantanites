@@ -148,7 +148,7 @@ void TinyMBTapIn::CheckInvalidateSetup()
     }
 }
 
-void TinyMBTapIn::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void TinyMBTapIn::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<TinyMBTapIn>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<TinyMBTapIn>(this, false);

@@ -130,7 +130,7 @@ void KataraSingleMB::CheckSetSetup()
     {
         bool isTrue = false;
         int error = EAHelper::LiquidationMBZoneIsHolding<KataraSingleMB>(this, mSetupMBT, mFirstMBInSetupNumber, mSecondMBInSetupNumber, isTrue);
-        if (error != ERR_NO_ERROR)
+        if (error != Errors::NO_ERROR)
         {
             EAHelper::InvalidateSetup<KataraSingleMB>(this, true, false);
             EAHelper::ResetLiquidationMBSetup<KataraSingleMB>(this, false);
@@ -281,7 +281,7 @@ void KataraSingleMB::CheckInvalidateSetup()
     // mCheckInvalidateSetupMBsCreated = mConfirmationMBT.MBsCreated();
 }
 
-void KataraSingleMB::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void KataraSingleMB::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     // if (mInvalidateSetupMBsCreated < mConfirmationMBT.MBsCreated())
     // {
@@ -308,7 +308,7 @@ bool KataraSingleMB::Confirmation()
     // }
     bool hasConfirmation = false;
     int error = EAHelper::MostRecentMBZoneIsHolding<KataraSingleMB>(this, mConfirmationMBT, mFirstMBInConfirmationNumber, hasConfirmation);
-    if (error != ERR_NO_ERROR)
+    if (error != Errors::NO_ERROR)
     {
         EAHelper::InvalidateSetup<KataraSingleMB>(this, true, false);
         EAHelper::ResetSingleMBConfirmation<KataraSingleMB>(this, false);

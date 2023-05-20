@@ -116,7 +116,7 @@ int CheckSetup(int type, bool mbShouldBeBroken)
         return Results::UNIT_TEST_DID_NOT_RUN;
     }
 
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 
 int CheckIsBroken(int type, int &mbNumber)
@@ -155,7 +155,7 @@ int CheckIsBroken(int type, int &mbNumber)
     }
 
     mbNumber = EMPTY;
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 
 int BullishIsBroken(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
@@ -163,7 +163,7 @@ int BullishIsBroken(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     static int mbNumber = EMPTY;
 
     int result = CheckIsBroken(OP_BUY, mbNumber);
-    if (result != ERR_NO_ERROR)
+    if (result != Errors::NO_ERROR)
     {
         return result;
     }
@@ -180,7 +180,7 @@ int BearishIsBroken(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     static int mbNumber = EMPTY;
 
     int result = CheckIsBroken(OP_SELL, mbNumber);
-    if (result != ERR_NO_ERROR)
+    if (result != Errors::NO_ERROR)
     {
         return result;
     }
@@ -195,7 +195,7 @@ int BearishIsBroken(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 int BullishIsNotBroken(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 {
     int result = CheckSetup(OP_BUY, false);
-    if (result != ERR_NO_ERROR)
+    if (result != Errors::NO_ERROR)
     {
         return result;
     }
@@ -210,7 +210,7 @@ int BullishIsNotBroken(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 int BearishIsNotBroken(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
 {
     int result = CheckSetup(OP_SELL, false);
-    if (result != ERR_NO_ERROR)
+    if (result != Errors::NO_ERROR)
     {
         return result;
     }

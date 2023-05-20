@@ -159,7 +159,7 @@ void NewsClearMBs::CheckInvalidateSetup()
     }
 }
 
-void NewsClearMBs::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void NewsClearMBs::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     mFirstMBInSetupNumber = EMPTY;
     EAHelper::InvalidateSetup<NewsClearMBs>(this, deletePendingOrder, mStopTrading, error);

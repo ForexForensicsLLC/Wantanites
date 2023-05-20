@@ -31,11 +31,11 @@ public:
 
 MBEntryTradeRecord::MBEntryTradeRecord() : SingleTimeFrameEntryTradeRecord()
 {
-    MBWidth = -1.0;
-    MBHeight = -1.0;
-    PendingMBHeight = 1.0;
-    PendingMBWidth = EMPTY;
-    PercentOfPendingMBInPrevious = -1.0;
+    MBWidth = ConstantValues::EmptyDouble;
+    MBHeight = ConstantValues::EmptyDouble;
+    PendingMBHeight = ConstantValues::EmptyDouble;
+    PendingMBWidth = ConstantValues::EmptyInt;
+    PercentOfPendingMBInPrevious = -ConstantValues::EmptyDouble;
 }
 
 MBEntryTradeRecord::~MBEntryTradeRecord()
@@ -59,9 +59,9 @@ void MBEntryTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = false
 {
     SingleTimeFrameEntryTradeRecord::WriteRecord(fileHandle, true);
     FileHelper::WriteDouble(fileHandle, RRToMBValidation, 2);
-    FileHelper::WriteDouble(fileHandle, MBHeight, Digits);
+    FileHelper::WriteDouble(fileHandle, MBHeight, Digits());
     FileHelper::WriteInteger(fileHandle, MBWidth);
-    FileHelper::WriteDouble(fileHandle, PendingMBHeight, Digits);
+    FileHelper::WriteDouble(fileHandle, PendingMBHeight, Digits());
     FileHelper::WriteInteger(fileHandle, PendingMBWidth);
     FileHelper::WriteDouble(fileHandle, PercentOfPendingMBInPrevious, 2);
     FileHelper::WriteInteger(fileHandle, MBCount);

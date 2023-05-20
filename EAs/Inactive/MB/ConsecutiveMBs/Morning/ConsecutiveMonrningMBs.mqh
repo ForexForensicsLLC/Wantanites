@@ -171,7 +171,7 @@ void ConsecutiveMonrningMBs::CheckInvalidateSetup()
     }
 }
 
-void ConsecutiveMonrningMBs::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void ConsecutiveMonrningMBs::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     mFirstMBInSetupNumber = EMPTY;
     EAHelper::InvalidateSetup<ConsecutiveMonrningMBs>(this, deletePendingOrder, mStopTrading, error);

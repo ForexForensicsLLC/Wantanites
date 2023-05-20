@@ -325,7 +325,7 @@ void FractalSuperTrendPullback::CheckInvalidateSetup()
     // }
 }
 
-void FractalSuperTrendPullback::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void FractalSuperTrendPullback::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<FractalSuperTrendPullback>(this, deletePendingOrder, mStopTrading, error);
 

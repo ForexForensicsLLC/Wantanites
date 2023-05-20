@@ -12,9 +12,12 @@
 #property indicator_buffers 0
 
 #include <Wantanites\Framework\Objects\Indicators\MB\MBTracker.mqh>
-#include <Wantanites\Framework\Objects\Licenses\License.mqh>
+#include <Wantanites\Framework\Objects\DataObjects\License.mqh>
 
 string ButtonName = "ClearButton";
+
+input string InitSettings = "------ Init -------"; // -
+input int BarStart = 400;                          // Bars Back to Start Calculating From (-1=All Bars)
 
 input string StructureSettings = "------- Structure ---------"; // -
 input int StructureBoxesToTrack = 10;
@@ -45,15 +48,16 @@ input color PendingSupplyZone = clrAqua;
 
 input string Licensing = "------ Licensing -------"; // -
 input string LicenseKey = "";
+input bool ShouldRun = true;
 
 MBTracker *MBT;
 
 int OnInit()
 {
-    MBT = new MBTracker(false, Symbol(), (ENUM_TIMEFRAMES)Period(), StructureBoxesToTrack, MinCandlesInStructure, StructureValidatedBy, StructureBrokenBy, ShowPendingStructure,
-                        MaxZonesInStructure, AllowZonesAfterStructureValidation, ZonesBrokenBy, RequiredZonePartInStructure, AllowMitigatedZones, AllowOverlappingZones,
-                        ShowPendingZones, PendingZonesBrokenBy, AllowPendingMitigatedZones, AllowPendingOverlappingZones, BullishStructure, BearishStructure, DemandZone,
-                        SupplyZone, PendingDemandZone, PendingSupplyZone);
+    MBT = new MBTracker(false, Symbol(), Period(), BarStart, StructureBoxesToTrack, MinCandlesInStructure, StructureValidatedBy, StructureBrokenBy,
+                        ShowPendingStructure, MaxZonesInStructure, AllowZonesAfterStructureValidation, ZonesBrokenBy, RequiredZonePartInStructure, AllowMitigatedZones,
+                        AllowOverlappingZones, ShowPendingZones, PendingZonesBrokenBy, AllowPendingMitigatedZones, AllowPendingOverlappingZones, BullishStructure,
+                        BearishStructure, DemandZone, SupplyZone, PendingDemandZone, PendingSupplyZone);
 
     if (LicenseKey != "")
     {
@@ -69,6 +73,7 @@ void OnDeinit(const int reason)
 {
     ObjectsDeleteAll(ChartID(), LicenseObjects::SmartMoney);
     ObjectsDeleteAll(ChartID(), ButtonName);
+
     delete MBT;
 }
 
@@ -83,7 +88,11 @@ int OnCalculate(const int rates_total,
                 const long &volume[],
                 const int &spread[])
 {
-    MBT.Draw();
+    if (ShouldRun)
+    {
+        MBT.Draw();
+    }
+
     return (rates_total);
 }
 

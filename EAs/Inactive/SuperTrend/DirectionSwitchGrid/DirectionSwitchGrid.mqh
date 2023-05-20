@@ -182,7 +182,7 @@ void DirectionSwitchGrid::CheckInvalidateSetup()
     }
 }
 
-void DirectionSwitchGrid::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void DirectionSwitchGrid::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<DirectionSwitchGrid>(this, deletePendingOrder, mStopTrading, error);
 

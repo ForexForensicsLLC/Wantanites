@@ -37,12 +37,12 @@ int OnInit()
     SelectOpBuyOpenOrderNoErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "Op Buy No Error", "Should Return No Errors When Selecting An OP Buy Open Order",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        ERR_NO_ERROR, SelectOpBuyOpenOrderNoError);
+        Errors::NO_ERROR, SelectOpBuyOpenOrderNoError);
 
     SelectOpBuyStopOpenOrderNoErrorUnitTest = new IntUnitTest<DefaultUnitTestRecord>(
         Directory, "Op Buy Stop No Error", "Should Return No Errors When Selecting An OP Buy Stop Open Order",
         NumberOfAsserts, AssertCooldown, RecordScreenShot, RecordErrors,
-        ERR_NO_ERROR, SelectOpBuyStopOpenOrderNoError);
+        Errors::NO_ERROR, SelectOpBuyStopOpenOrderNoError);
 
     SelectOpBuyClosedOrderHasErrorUnitTest = new BoolUnitTest<DefaultUnitTestRecord>(
         Directory, "OP Buy Has Error", "Should Return Order Is Closed Error When Selecting An OP Buy Closed Order",

@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Helpers\DateTimeHelper.mqh>
 #include <Wantanites\Framework\Helpers\FileHelper.mqh>
+#include <Wantanites\Framework\Helpers\DateTimeHelper.mqh>
 #include <Wantanites\Framework\CSVWriting\CSVRecordTypes\ObjectRecords\EconomicEventRecord.mqh>
 
 class EconomicEventAndCandleRecord : public EconomicEventRecord
@@ -43,17 +43,17 @@ void EconomicEventAndCandleRecord::WriteHeaders(int fileHandle, bool writeDelimi
 void EconomicEventAndCandleRecord::WriteRecord(int fileHandle, bool writeDelimiter = false)
 {
     EconomicEventRecord::WriteRecord(fileHandle, true);
-    FileHelper::WriteDouble(fileHandle, Open, Digits);
-    FileHelper::WriteDouble(fileHandle, Close, Digits);
-    FileHelper::WriteDouble(fileHandle, High, Digits);
-    FileHelper::WriteDouble(fileHandle, Low, Digits, writeDelimiter);
+    FileHelper::WriteDouble(fileHandle, Open, Digits());
+    FileHelper::WriteDouble(fileHandle, Close, Digits());
+    FileHelper::WriteDouble(fileHandle, High, Digits());
+    FileHelper::WriteDouble(fileHandle, Low, Digits(), writeDelimiter);
 }
 
 void EconomicEventAndCandleRecord::ReadRow(int fileHandle)
 {
     EconomicEventRecord::ReadRow(fileHandle);
-    Open = StrToDouble(FileReadString(fileHandle));
-    Close = StrToDouble(FileReadString(fileHandle));
-    High = StrToDouble(FileReadString(fileHandle));
-    Low = StrToDouble(FileReadString(fileHandle));
+    Open = StringToDouble(FileReadString(fileHandle));
+    Close = StringToDouble(FileReadString(fileHandle));
+    High = StringToDouble(FileReadString(fileHandle));
+    Low = StringToDouble(FileReadString(fileHandle));
 }

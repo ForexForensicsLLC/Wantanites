@@ -132,7 +132,7 @@ void TimeGrid::CheckInvalidateSetup()
     }
 }
 
-void TimeGrid::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void TimeGrid::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<TimeGrid>(this, deletePendingOrder, mStopTrading, error);
 }

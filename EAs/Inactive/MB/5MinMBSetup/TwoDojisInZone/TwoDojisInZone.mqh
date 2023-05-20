@@ -177,7 +177,7 @@ void TwoDojisInZone::CheckInvalidateSetup()
     }
 }
 
-void TwoDojisInZone::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void TwoDojisInZone::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<TwoDojisInZone>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<TwoDojisInZone>(this, false);

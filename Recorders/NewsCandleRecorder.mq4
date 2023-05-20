@@ -8,8 +8,8 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Helpers\ObjectHelpers\EconomicCalendarHelper.mqh>
 #include <Wantanites\Framework\CSVWriting\CSVRecordWriter.mqh>
+#include <Wantanites\Framework\Helpers\ObjectHelpers\EconomicCalendarHelper.mqh>
 #include <Wantanites\Framework\CSVWriting\CSVRecordTypes\ObjectRecords\EconomicEventAndCandleRecord.mqh>
 
 #include <Wantanites\Framework\Helpers\DateTimeHelper.mqh>
@@ -37,6 +37,7 @@ int OnInit()
 
 void OnDeinit(const int reason)
 {
+    delete Events;
     delete Symbols;
     delete Titles;
     delete Impacts;

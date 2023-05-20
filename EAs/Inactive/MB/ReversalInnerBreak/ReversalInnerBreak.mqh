@@ -142,7 +142,7 @@ void ReversalInnerBreak::CheckInvalidateSetup()
     }
 }
 
-void ReversalInnerBreak::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void ReversalInnerBreak::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<ReversalInnerBreak>(this, deletePendingOrder, false, error);
     mFirstMBInSetupNumber = EMPTY;

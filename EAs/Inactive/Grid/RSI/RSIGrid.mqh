@@ -134,7 +134,7 @@ void RSIGrid::CheckInvalidateSetup()
     }
 }
 
-void RSIGrid::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void RSIGrid::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<RSIGrid>(this, deletePendingOrder, mStopTrading, error);
 

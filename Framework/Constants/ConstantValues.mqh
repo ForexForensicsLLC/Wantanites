@@ -11,12 +11,15 @@
 class ConstantValues
 {
 public:
-    static double EmptyDouble;
+    static const int EmptyInt;
+    static const double EmptyDouble;
 
-    static string UnsetString;
-    static string CSVDelimiter;
+    static const string UnsetString;
+    static const string CSVDelimiter;
 };
 
-static double ConstantValues::EmptyDouble = -1.0;
-static string ConstantValues::UnsetString = "EMPTY";
-static string ConstantValues::CSVDelimiter = ",";
+static const int ConstantValues::EmptyInt = -1;
+static const double ConstantValues::EmptyDouble = -1.0;
+
+static const string ConstantValues::UnsetString = "EMPTY";
+static const string ConstantValues::CSVDelimiter = ",";

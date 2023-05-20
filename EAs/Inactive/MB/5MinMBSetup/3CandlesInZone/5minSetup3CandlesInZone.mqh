@@ -168,7 +168,7 @@ void ThreeCandlesInZone::CheckInvalidateSetup()
     }
 }
 
-void ThreeCandlesInZone::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void ThreeCandlesInZone::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<ThreeCandlesInZone>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<ThreeCandlesInZone>(this, false);

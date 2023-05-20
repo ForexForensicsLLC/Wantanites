@@ -290,7 +290,7 @@ void LiquidationGap::CheckInvalidateSetup()
     }
 }
 
-void LiquidationGap::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void LiquidationGap::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<LiquidationGap>(this, deletePendingOrder, false, error);
 

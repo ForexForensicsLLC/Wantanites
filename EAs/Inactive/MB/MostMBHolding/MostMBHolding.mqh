@@ -181,7 +181,7 @@ void MostMBHolding::CheckInvalidateSetup()
     }
 }
 
-void MostMBHolding::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void MostMBHolding::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<MostMBHolding>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<MostMBHolding>(this, false);

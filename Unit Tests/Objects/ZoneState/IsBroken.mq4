@@ -123,7 +123,7 @@ int CheckSetup(int type, bool zoneShouldBeBroken, double &entryPrice, double &ex
     entryPrice = tempZoneState.EntryPrice();
     exitPrice = tempZoneState.ExitPrice();
 
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 
 int BullishIsBroken(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
@@ -132,7 +132,7 @@ int BullishIsBroken(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     double exitPrice;
 
     int result = CheckSetup(OP_BUY, true, entryPrice, exitPrice);
-    if (result != ERR_NO_ERROR)
+    if (result != Errors::NO_ERROR)
     {
         return result;
     }
@@ -150,7 +150,7 @@ int BearishIsBroken(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     double exitPrice;
 
     int result = CheckSetup(OP_SELL, true, entryPrice, exitPrice);
-    if (result != ERR_NO_ERROR)
+    if (result != Errors::NO_ERROR)
     {
         return result;
     }
@@ -168,7 +168,7 @@ int BullishIsNotBroken(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     double exitPrice;
 
     int result = CheckSetup(OP_BUY, false, entryPrice, exitPrice);
-    if (result != ERR_NO_ERROR)
+    if (result != Errors::NO_ERROR)
     {
         return result;
     }
@@ -186,7 +186,7 @@ int BearishIsNotBroken(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     double exitPrice;
 
     int result = CheckSetup(OP_SELL, false, entryPrice, exitPrice);
-    if (result != ERR_NO_ERROR)
+    if (result != Errors::NO_ERROR)
     {
         return result;
     }

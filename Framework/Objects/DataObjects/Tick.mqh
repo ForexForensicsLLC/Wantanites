@@ -83,7 +83,7 @@ datetime Tick::Time()
 {
     if (!IsValid())
     {
-        return EMPTY;
+        return ConstantValues::EmptyInt;
     }
 
     return mTick.time;

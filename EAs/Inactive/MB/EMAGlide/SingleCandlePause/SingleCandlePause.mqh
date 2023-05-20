@@ -285,7 +285,7 @@ void SingleCandlePause::CheckInvalidateSetup()
     }
 }
 
-void SingleCandlePause::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void SingleCandlePause::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<SingleCandlePause>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<SingleCandlePause>(this, false);

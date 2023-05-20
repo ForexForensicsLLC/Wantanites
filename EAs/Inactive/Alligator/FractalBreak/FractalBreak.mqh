@@ -276,7 +276,7 @@ void FractalBreak::CheckInvalidateSetup()
     }
 }
 
-void FractalBreak::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void FractalBreak::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<FractalBreak>(this, deletePendingOrder, false, error);
 

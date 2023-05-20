@@ -138,7 +138,7 @@ void ClearMBsAtTime::CheckInvalidateSetup()
     }
 }
 
-void ClearMBsAtTime::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void ClearMBsAtTime::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     mFirstMBInSetupNumber = EMPTY;
     EAHelper::InvalidateSetup<ClearMBsAtTime>(this, deletePendingOrder, mStopTrading, error);

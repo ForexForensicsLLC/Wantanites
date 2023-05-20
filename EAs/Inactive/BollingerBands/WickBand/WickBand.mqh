@@ -155,7 +155,7 @@ void WickBand::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void WickBand::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void WickBand::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<WickBand>(this, deletePendingOrder, false, error);
 }

@@ -44,24 +44,24 @@ void DefaultEntryTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter = 
     FileHelper::WriteInteger(fileHandle, MagicNumber);
     FileHelper::WriteInteger(fileHandle, TicketNumber);
     FileHelper::WriteString(fileHandle, Symbol);
-    FileHelper::WriteString(fileHandle, OrderType);
+    FileHelper::WriteString(fileHandle, OrderDirection);
     FileHelper::WriteDouble(fileHandle, AccountBalanceBefore, 2);
     FileHelper::WriteDouble(fileHandle, Lots, 2);
-    FileHelper::WriteDouble(fileHandle, EntryPrice, Digits);
-    FileHelper::WriteDouble(fileHandle, EntrySlippage, Digits);
-    FileHelper::WriteDouble(fileHandle, OriginalStopLoss, Digits, writeDelimiter);
+    FileHelper::WriteDouble(fileHandle, EntryPrice, Digits());
+    FileHelper::WriteDouble(fileHandle, EntrySlippage, Digits());
+    FileHelper::WriteDouble(fileHandle, OriginalStopLoss, Digits(), writeDelimiter);
 }
 
 void DefaultEntryTradeRecord::ReadRow(int fileHandle)
 {
     EntryTime = FileReadDatetime(fileHandle);
-    MagicNumber = StrToInteger(FileReadString(fileHandle));
-    TicketNumber = StrToInteger(FileReadString(fileHandle));
+    MagicNumber = StringToInteger(FileReadString(fileHandle));
+    TicketNumber = StringToInteger(FileReadString(fileHandle));
     Symbol = FileReadString(fileHandle);
-    OrderType = FileReadString(fileHandle);
-    AccountBalanceBefore = StrToDouble(FileReadString(fileHandle));
-    Lots = StrToDouble(FileReadString(fileHandle));
-    EntryPrice = StrToDouble(FileReadString(fileHandle));
-    EntrySlippage = StrToDouble(FileReadString(fileHandle));
-    OriginalStopLoss = StrToDouble(FileReadString(fileHandle));
+    OrderDirection = FileReadString(fileHandle);
+    AccountBalanceBefore = StringToDouble(FileReadString(fileHandle));
+    Lots = StringToDouble(FileReadString(fileHandle));
+    EntryPrice = StringToDouble(FileReadString(fileHandle));
+    EntrySlippage = StringToDouble(FileReadString(fileHandle));
+    OriginalStopLoss = StringToDouble(FileReadString(fileHandle));
 }

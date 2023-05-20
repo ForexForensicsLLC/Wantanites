@@ -122,7 +122,7 @@ int CheckSetup(int type, bool zoneShouldBeHolding, int &mbEndIndex)
 
     mbEndIndex = tempMBState.EndIndex();
 
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 
 int BullishIsHolding(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
@@ -130,7 +130,7 @@ int BullishIsHolding(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     int mbEndIndex;
 
     int result = CheckSetup(OP_BUY, true, mbEndIndex);
-    if (result != ERR_NO_ERROR)
+    if (result != Errors::NO_ERROR)
     {
         return result;
     }
@@ -147,7 +147,7 @@ int BearishIsHolding(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     int mbEndIndex;
 
     int result = CheckSetup(OP_SELL, true, mbEndIndex);
-    if (result != ERR_NO_ERROR)
+    if (result != Errors::NO_ERROR)
     {
         return result;
     }
@@ -164,7 +164,7 @@ int BullishIsNotHolding(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     int mbEndIndex;
 
     int result = CheckSetup(OP_BUY, false, mbEndIndex);
-    if (result != ERR_NO_ERROR)
+    if (result != Errors::NO_ERROR)
     {
         return result;
     }
@@ -181,7 +181,7 @@ int BearishIsNotHolding(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     int mbEndIndex;
 
     int result = CheckSetup(OP_SELL, false, mbEndIndex);
-    if (result != ERR_NO_ERROR)
+    if (result != Errors::NO_ERROR)
     {
         return result;
     }

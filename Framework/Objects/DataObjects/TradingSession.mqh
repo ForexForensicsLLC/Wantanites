@@ -11,17 +11,6 @@
 #include <Wantanites\Framework\Helpers\DateTimeHelper.mqh>
 #include <Wantanites\Framework\Objects\DataStructures\List.mqh>
 
-enum DayOfWeekEnum
-{
-    Sunday = 0,
-    Monday,
-    Tuesday,
-    Wednesday,
-    Thursday,
-    Friday,
-    Saturday
-};
-
 class TradingSession
 {
 private:
@@ -66,7 +55,7 @@ public:
 
     void ExcludeDay(DayOfWeekEnum day);
 
-    int StartIndex(string symbol, int timeFrame);
+    int StartIndex(string symbol, ENUM_TIMEFRAMES timeFrame);
 
     bool CurrentlyWithinSession();
 };
@@ -75,8 +64,8 @@ TradingSession::TradingSession()
 {
     mTradeAllDay = true;
 
-    AddHourMinuteSession(EMPTY, EMPTY, EMPTY, EMPTY);
-    AddMonthDaySession(EMPTY, EMPTY, EMPTY, EMPTY);
+    AddHourMinuteSession(ConstantValues::EmptyInt, ConstantValues::EmptyInt, ConstantValues::EmptyInt, ConstantValues::EmptyInt);
+    AddMonthDaySession(ConstantValues::EmptyInt, ConstantValues::EmptyInt, ConstantValues::EmptyInt, ConstantValues::EmptyInt);
 
     mExcludedDays = new List<int>();
     mExcludedDays.Add(DayOfWeekEnum::Sunday);
@@ -139,15 +128,15 @@ void TradingSession::ExcludeDay(DayOfWeekEnum dayOfWeek)
     }
 }
 
-int TradingSession::StartIndex(string symbol, int timeFrame)
+int TradingSession::StartIndex(string symbol, ENUM_TIMEFRAMES timeFrame)
 {
-    datetime startTime = StringToTime(HourStart() + ":" + MinuteStart());
+    datetime startTime = StringToTime(IntegerToString(HourStart()) + ":" + IntegerToString(MinuteStart()));
     return iBarShift(symbol, timeFrame, startTime);
 }
 
 bool TradingSession::CurrentlyWithinSession()
 {
-    if (mExcludedDays.Contains(DayOfWeek()))
+    if (mExcludedDays.Contains(DateTimeHelper::CurrentDayOfWeek()))
     {
         return false;
     }
@@ -163,22 +152,26 @@ bool TradingSession::CurrentlyWithinSession()
 bool TradingSession::WithinDayMonthYear()
 {
     // we don't care about day / month if any are empty
-    if (mDayStart == EMPTY || mMonthStart == EMPTY || mExclusiveDayEnd == EMPTY || mExclusiveMonthEnd == EMPTY)
+    if (mDayStart == ConstantValues::EmptyInt ||
+        mMonthStart == ConstantValues::EmptyInt ||
+        mExclusiveDayEnd == ConstantValues::EmptyInt ||
+        mExclusiveMonthEnd == ConstantValues::EmptyInt)
     {
         return true;
     }
 
-    datetime startTime = DateTimeHelper::DayMonthYearToDateTime(mDayStart, mMonthStart, Year());
+    int currentYear = DateTimeHelper::CurrentYear();
+    datetime startTime = DateTimeHelper::DayMonthYearToDateTime(mDayStart, mMonthStart, currentYear);
     datetime endTime = 0;
 
     bool rolloverYear = (mExclusiveMonthEnd < mMonthStart) || (mMonthStart == mExclusiveMonthEnd && mExclusiveDayEnd < mDayStart);
     if (rolloverYear)
     {
-        endTime = DateTimeHelper::DayMonthYearToDateTime(mExclusiveDayEnd, mExclusiveMonthEnd, Year() + 1);
+        endTime = DateTimeHelper::DayMonthYearToDateTime(mExclusiveDayEnd, mExclusiveMonthEnd, currentYear + 1);
     }
     else
     {
-        endTime = DateTimeHelper::DayMonthYearToDateTime(mExclusiveDayEnd, mExclusiveMonthEnd, Year());
+        endTime = DateTimeHelper::DayMonthYearToDateTime(mExclusiveDayEnd, mExclusiveMonthEnd, currentYear);
     }
 
     return TimeCurrent() >= startTime && TimeCurrent() < endTime;
@@ -187,13 +180,17 @@ bool TradingSession::WithinDayMonthYear()
 bool TradingSession::WithinHourMinute()
 {
     // we don't care about hour / minute if any are empty
-    if (mHourStart == EMPTY || mMinuteStart == EMPTY || mExclusiveHourEnd == EMPTY || mExclusiveMinuteEnd == EMPTY)
+    if (mHourStart == ConstantValues::EmptyInt ||
+        mMinuteStart == ConstantValues::EmptyInt ||
+        mExclusiveHourEnd == ConstantValues::EmptyInt ||
+        mExclusiveMinuteEnd == ConstantValues::EmptyInt)
     {
         return true;
     }
 
-    datetime startTime = DateTimeHelper::HourMinuteToDateTime(mHourStart, mMinuteStart, Day());
-    datetime endTime = DateTimeHelper::HourMinuteToDateTime(mExclusiveHourEnd, mExclusiveMinuteEnd, Day());
+    int currentDay = DateTimeHelper::CurrentDay();
+    datetime startTime = DateTimeHelper::HourMinuteToDateTime(mHourStart, mMinuteStart, currentDay);
+    datetime endTime = DateTimeHelper::HourMinuteToDateTime(mExclusiveHourEnd, mExclusiveMinuteEnd, currentDay);
 
     bool rolloverDay = (mExclusiveHourEnd < mHourStart) || (mHourStart == mExclusiveHourEnd && mExclusiveMinuteEnd < mMinuteStart);
     if (rolloverDay)

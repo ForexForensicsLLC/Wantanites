@@ -141,7 +141,7 @@ void CandleStallBreak::CheckInvalidateSetup()
     }
 }
 
-void CandleStallBreak::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void CandleStallBreak::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<CandleStallBreak>(this, deletePendingOrder, false, error);
     mFirstMBInSetupNumber = EMPTY;

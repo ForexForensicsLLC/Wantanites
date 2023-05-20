@@ -117,7 +117,7 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
     {
         bool isTrue = false;
         int setupError = SetupHelper::BrokeMBRangeStart(secondMBNumber - 1, MBT, isTrue);
-        if (setupError != ERR_NO_ERROR || isTrue)
+        if (setupError != Errors::NO_ERROR || isTrue)
         {
             reset = true;
             return Results::UNIT_TEST_DID_NOT_RUN;
@@ -128,7 +128,7 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
     {
         bool isTrue = false;
         int setupError = SetupHelper::BrokeMBRangeStart(thirdMBNumber, MBT, isTrue);
-        if (setupError != ERR_NO_ERROR || isTrue)
+        if (setupError != Errors::NO_ERROR || isTrue)
         {
             reset = true;
             return Results::UNIT_TEST_DID_NOT_RUN;
@@ -166,7 +166,7 @@ int SetSetupVariables(int type, int &secondMBNumber, int &thirdMBNumber, int &se
         thirdMBNumber = thirdTempMBState.Number();
     }
 
-    return ERR_NO_ERROR;
+    return Errors::NO_ERROR;
 }
 
 bool PastCooldown(datetime cooldown)
@@ -200,7 +200,7 @@ int HasBullishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     static int count = 0;
 
     int setVariablesError = SetSetupVariables(OP_BUY, secondMBNumber, thirdMBNumber, setupType, reset, cooldown, count);
-    if (setVariablesError != ERR_NO_ERROR)
+    if (setVariablesError != Errors::NO_ERROR)
     {
         return setVariablesError;
     }
@@ -232,7 +232,7 @@ int HasBullishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + IntegerToString(count));
 
     int setupError = SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(secondMBNumber - 1, secondMBNumber, MBT, actual);
-    if (setupError != ERR_NO_ERROR)
+    if (setupError != Errors::NO_ERROR)
     {
         reset = true;
         return setupError;
@@ -252,7 +252,7 @@ int HasBearishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     static int count = 0;
 
     int setVariablesError = SetSetupVariables(OP_SELL, secondMBNumber, thirdMBNumber, setupType, reset, cooldown, count);
-    if (setVariablesError != ERR_NO_ERROR)
+    if (setVariablesError != Errors::NO_ERROR)
     {
         return setVariablesError;
     }
@@ -284,7 +284,7 @@ int HasBearishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actual)
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + IntegerToString(count));
 
     int setupError = SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(secondMBNumber - 1, secondMBNumber, MBT, actual);
-    if (setupError != ERR_NO_ERROR)
+    if (setupError != Errors::NO_ERROR)
     {
         reset = true;
         return setupError;
@@ -304,7 +304,7 @@ int DoesNotHaveBullishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actua
     static int count = 0;
 
     int setVariablesError = SetSetupVariables(OP_BUY, secondMBNumber, thirdMBNumber, setupType, reset, cooldown, count);
-    if (setVariablesError != ERR_NO_ERROR)
+    if (setVariablesError != Errors::NO_ERROR)
     {
         return setVariablesError;
     }
@@ -336,7 +336,7 @@ int DoesNotHaveBullishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actua
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + IntegerToString(count));
 
     int setupError = SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(secondMBNumber - 1, secondMBNumber, MBT, actual);
-    if (setupError != ERR_NO_ERROR)
+    if (setupError != Errors::NO_ERROR)
     {
         reset = true;
         return setupError;
@@ -356,7 +356,7 @@ int DoesNotHaveBearishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actua
     static int count = 0;
 
     int setVariablesError = SetSetupVariables(OP_SELL, secondMBNumber, thirdMBNumber, setupType, reset, cooldown, count);
-    if (setVariablesError != ERR_NO_ERROR)
+    if (setVariablesError != Errors::NO_ERROR)
     {
         return setVariablesError;
     }
@@ -388,7 +388,7 @@ int DoesNotHaveBearishSetup(BoolUnitTest<DefaultUnitTestRecord> &ut, bool &actua
     ut.PendingRecord.Image = ScreenShotHelper::TryTakeScreenShot(ut.Directory(), "_" + IntegerToString(count));
 
     int setupError = SetupHelper::FirstMBAfterLiquidationOfSecondPlusHoldingZone(secondMBNumber - 1, secondMBNumber, MBT, actual);
-    if (setupError != ERR_NO_ERROR)
+    if (setupError != Errors::NO_ERROR)
     {
         reset = true;
         return setupError;

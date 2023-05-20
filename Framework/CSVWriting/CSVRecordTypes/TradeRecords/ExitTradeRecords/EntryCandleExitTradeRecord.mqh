@@ -51,8 +51,8 @@ void EntryCandleExitTradeRecord::WriteRecord(int fileHandle, bool writeDelimiter
 void EntryCandleExitTradeRecord::ReadRow(int fileHandle)
 {
     DefaultExitTradeRecord::ReadRow(fileHandle);
-    CandleOpen = StrToDouble(FileReadString(fileHandle));
-    CandleClose = StrToDouble(FileReadString(fileHandle));
-    CandleHigh = StrToDouble(FileReadString(fileHandle));
-    CandleLow = StrToDouble(FileReadString(fileHandle));
+    CandleOpen = StringToDouble(FileReadString(fileHandle));
+    CandleClose = StringToDouble(FileReadString(fileHandle));
+    CandleHigh = StringToDouble(FileReadString(fileHandle));
+    CandleLow = StringToDouble(FileReadString(fileHandle));
 }

@@ -8,9 +8,7 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Constants\ExecutionErrors.mqh>
-#include <Wantanites\Framework\Constants\TerminalErrors.mqh>
-
+#include <Wantanites\Framework\Constants\Errors.mqh>
 #include <Wantanites\Framework\Objects\Indicators\MB\MBTracker.mqh>
 
 class EAErrorHelper

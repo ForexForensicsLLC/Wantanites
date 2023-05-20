@@ -124,7 +124,7 @@ void LongWick::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void LongWick::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void LongWick::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<LongWick>(this, deletePendingOrder, mStopTrading, error);
 }

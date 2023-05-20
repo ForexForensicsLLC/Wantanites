@@ -151,7 +151,7 @@ void WickZone::CheckInvalidateSetup()
     }
 }
 
-void WickZone::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void WickZone::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<WickZone>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<WickZone>(this, false);

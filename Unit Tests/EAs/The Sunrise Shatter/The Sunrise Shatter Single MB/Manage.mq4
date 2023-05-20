@@ -136,7 +136,7 @@ int CheckingToEditStopLossState(IntUnitTest<BeforeAndAfterImagesUnitTestRecord> 
 
     bool isActive = false;
     int isActiveError = ticket.IsActive(isActive);
-    if (isActiveError != ERR_NO_ERROR)
+    if (isActiveError != Errors::NO_ERROR)
     {
         return isActiveError;
     }
@@ -170,7 +170,7 @@ int CheckingToTrailStopLossState(IntUnitTest<BeforeAndAfterImagesUnitTestRecord>
 
     bool isActive = false;
     int isActiveError = ticket.IsActive(isActive);
-    if (isActiveError != ERR_NO_ERROR)
+    if (isActiveError != Errors::NO_ERROR)
     {
         return isActiveError;
     }

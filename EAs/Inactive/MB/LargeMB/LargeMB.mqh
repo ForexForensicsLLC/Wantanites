@@ -191,7 +191,7 @@ void LargeMB::CheckInvalidateSetup()
     }
 }
 
-void LargeMB::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void LargeMB::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<LargeMB>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<LargeMB>(this, false);

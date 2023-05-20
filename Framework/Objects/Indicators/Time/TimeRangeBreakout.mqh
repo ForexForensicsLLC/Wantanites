@@ -65,7 +65,7 @@ TimeRangeBreakout::TimeRangeBreakout(int rangeHourStartTime, int rangeMinuteStar
     mObjectNamePrefix = "TimeRangeBreakout";
 
     mBarsCalculated = 0;
-    mLastDay = Day();
+    mLastDay = DateTimeHelper::CurrentDay();
 
     mRangeHourStartTime = rangeHourStartTime;
     mRangeMinuteStartTime = rangeMinuteStartTime;
@@ -132,10 +132,11 @@ void TimeRangeBreakout::Update()
 
 void TimeRangeBreakout::Calculate(int barIndex)
 {
-    if (Day() != mLastDay)
+    int currentDay = DateTimeHelper::CurrentDay();
+    if (currentDay != mLastDay)
     {
         Reset();
-        mLastDay = Day();
+        mLastDay = currentDay;
     }
 
     datetime validTime = iTime(Symbol(), Period(), barIndex);
@@ -185,8 +186,9 @@ void TimeRangeBreakout::Calculate(int barIndex)
 
 void TimeRangeBreakout::Reset()
 {
-    mRangeStartTime = DateTimeHelper::HourMinuteToDateTime(mRangeHourStartTime, mRangeMinuteStartTime, Day());
-    mRangeEndTime = DateTimeHelper::HourMinuteToDateTime(mRangeHourEndTime, mRangeMinuteEndTime, Day());
+    int currentDay = DateTimeHelper::CurrentDay();
+    mRangeStartTime = DateTimeHelper::HourMinuteToDateTime(mRangeHourStartTime, mRangeMinuteStartTime, currentDay);
+    mRangeEndTime = DateTimeHelper::HourMinuteToDateTime(mRangeHourEndTime, mRangeMinuteEndTime, currentDay);
 
     mUpdateRangeStart = true;
     mUpdateRangeEnd = true;
@@ -229,9 +231,10 @@ void TimeRangeBreakout::Draw()
 
     if (mRangeHigh > 0 && mUpdateRangeHigh)
     {
+        datetime tomorrow = TimeCurrent() + (60 * 60 * 24);
         ObjectDelete(NULL, mObjectNamePrefix + "_high");
 
-        ObjectCreate(NULL, mObjectNamePrefix + "_high", OBJ_TREND, 0, mRangeStartTime, mRangeHigh, mRangeEndTime, mRangeHigh);
+        ObjectCreate(NULL, mObjectNamePrefix + "_high", OBJ_TREND, 0, mRangeStartTime, mRangeHigh, tomorrow, mRangeHigh);
         ObjectSetInteger(NULL, mObjectNamePrefix + "_high", OBJPROP_COLOR, clrBlue);
         ObjectSetInteger(NULL, mObjectNamePrefix + "_high", OBJPROP_WIDTH, 2);
 
@@ -240,9 +243,10 @@ void TimeRangeBreakout::Draw()
 
     if (mRangeLow > 0 && mUpdateRangeLow)
     {
+        datetime tomorrow = TimeCurrent() + (60 * 60 * 24);
         ObjectDelete(NULL, mObjectNamePrefix + "_low");
 
-        ObjectCreate(NULL, mObjectNamePrefix + "_low", OBJ_TREND, 0, mRangeStartTime, mRangeLow, mRangeEndTime, mRangeLow);
+        ObjectCreate(NULL, mObjectNamePrefix + "_low", OBJ_TREND, 0, mRangeStartTime, mRangeLow, tomorrow, mRangeLow);
         ObjectSetInteger(NULL, mObjectNamePrefix + "_low", OBJPROP_COLOR, clrBlue);
         ObjectSetInteger(NULL, mObjectNamePrefix + "_low", OBJPROP_WIDTH, 2);
 

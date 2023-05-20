@@ -174,7 +174,7 @@ void PrimeMembership::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void PrimeMembership::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void PrimeMembership::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<PrimeMembership>(this, deletePendingOrder, false, error);
 }
@@ -701,7 +701,7 @@ bool PrimeMembership::MoveToPreviousSetupTickets(Ticket &ticket)
     mLastState = -3;
     // bool wasActivated = false;
     // int activeError = mCurrentSetupTicket.WasActivated(wasActivated);
-    // if (activeError != ERR_NO_ERROR)
+    // if (activeError != Errors::NO_ERROR)
     // {
     //     RecordError(activeError);
     //     return false;

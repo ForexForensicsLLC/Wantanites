@@ -181,7 +181,7 @@ void EntryRulesMB::CheckInvalidateSetup()
     }
 }
 
-void EntryRulesMB::InvalidateSetup(bool deletePendingOrder, int error = ERR_NO_ERROR)
+void EntryRulesMB::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
     EAHelper::InvalidateSetup<EntryRulesMB>(this, deletePendingOrder, false, error);
     EAHelper::ResetSingleMBSetup<EntryRulesMB>(this, false);
