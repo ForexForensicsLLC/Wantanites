@@ -87,13 +87,12 @@ int OnInit()
     TRBSells.AddTradingSession(TS);
 
     LicensedAccountNumbers = new List<int>();
-    IsLicensedAccount = true;
-    // IsLicensedAccount = LicensedAccountNumbers.Contains(AccountInfoInteger(ACCOUNT_LOGIN));
-    // if (!IsLicensedAccount)
-    // {
-    //     LM = new LicenseManager();
-    //     LM.AddLicense(Licenses::SmartMoney);
-    // }
+    IsLicensedAccount = LicensedAccountNumbers.Contains(AccountInfoInteger(ACCOUNT_LOGIN));
+    if (!IsLicensedAccount)
+    {
+        LM = new LicenseManager();
+        LM.AddLicense(Licenses::SmartMoney);
+    }
 
     return (INIT_SUCCEEDED);
 }
@@ -120,10 +119,8 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    if (IsLicensedAccount)
+    if (IsLicensedAccount || MQLHelper::InBacktester())
     {
-        iCustom(Symbol(), Period(), "FeatureEngineering", 0, 0);
-
         TRBBuys.Run();
         TRBSells.Run();
     }

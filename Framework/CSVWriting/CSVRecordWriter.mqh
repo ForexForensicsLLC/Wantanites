@@ -10,6 +10,13 @@
 
 #include <Wantanites\Framework\Constants\ConstantValues.mqh>
 
+// either we are writing a completly new csv or only reading an existing one
+enum FileOperation
+{
+    WritingNew,
+    ReadingExisting
+};
+
 template <typename TRecord>
 class CSVRecordWriter
 {
@@ -32,7 +39,7 @@ protected:
     void CountRows();
 
 public:
-    CSVRecordWriter(string directory, string csvFileName, bool read, bool write, bool createIfFileDoesNotExist, bool useCommon);
+    CSVRecordWriter(string directory, string csvFileName, FileOperation fileOperation, bool createIfFileDoesNotExist, bool useCommon);
     ~CSVRecordWriter();
 
     string Directory() { return mDirectory; }
@@ -47,24 +54,22 @@ public:
 };
 
 template <typename TRecord>
-CSVRecordWriter::CSVRecordWriter(string directory, string csvFileName, bool read = true, bool write = true, bool createIfFileDoesNotExist = true, bool useCommon = false)
+CSVRecordWriter::CSVRecordWriter(string directory, string csvFileName, FileOperation fileOperation = FileOperation::WritingNew, bool createIfFileDoesNotExist = true,
+                                 bool useCommon = false)
 {
     mDirectory = directory;
     mCSVFileName = csvFileName;
     mCreateIfFileDoesNotExist = createIfFileDoesNotExist;
     mStopTryingToOpenFile = false;
 
-    if (read && write)
+    if (fileOperation == FileOperation::WritingNew)
     {
         mFileOperation = FILE_READ | FILE_WRITE;
     }
-    else if (read)
+    else
     {
-        mFileOperation = FILE_READ;
-    }
-    else if (write)
-    {
-        mFileOperation = FILE_WRITE;
+        // this should be fine as long as I only every read in csvs that were created from MT4
+        mFileOperation = FILE_READ | FILE_ANSI;
     }
 
     if (useCommon)

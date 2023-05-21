@@ -24,6 +24,8 @@ public:
 
     static long CurrentChartID();
 
+    static bool InBacktester();
+
     static string GetSymbolFromCustomChartName(string customChartName);
 
     static bool GetLowest(string symbol, ENUM_TIMEFRAMES timeFrame, int mode, int count, int startIndex, bool inclusive, int &lowIndex);
@@ -58,6 +60,11 @@ static double MQLHelper::Bid(string symbol)
 static long MQLHelper::CurrentChartID()
 {
     return VersionSpecificMQLHelper::CurrentChartID();
+}
+
+static bool MQLHelper::InBacktester()
+{
+    return MQLInfoInteger(MQL_TESTER);
 }
 
 static string MQLHelper::GetSymbolFromCustomChartName(string customChartName)
