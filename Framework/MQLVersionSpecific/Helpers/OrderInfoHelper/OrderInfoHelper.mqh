@@ -24,6 +24,7 @@ public:
     static int GetAllActiveTickets(List<int> &ticketNumbers);
     static int FindActiveTicketsByMagicNumber(int magicNumber, int &tickets[]);
     static int FindNewTicketAfterPartial(int magicNumber, double openPrice, datetime orderOpenTime, int &ticket);
+    static double GetTotalLotsForSymbolAndDirection(string symbol, TicketType type);
 };
 
 int OrderInfoHelper::TotalCurrentOrders()
@@ -49,4 +50,9 @@ int OrderInfoHelper::FindActiveTicketsByMagicNumber(int magicNumber, int &ticket
 int OrderInfoHelper::FindNewTicketAfterPartial(int magicNumber, double openPrice, datetime orderOpenTime, int &ticket)
 {
     return VersionSpecificOrderInfoHelper::FindNewTicketAfterPartial(magicNumber, openPrice, orderOpenTime, ticket);
+}
+
+static double OrderInfoHelper::GetTotalLotsForSymbolAndDirection(string symbol, TicketType type)
+{
+    return VersionSpecificOrderInfoHelper::GetTotalLotsForSymbolAndDirection(symbol, type);
 }

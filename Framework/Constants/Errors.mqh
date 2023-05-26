@@ -55,6 +55,7 @@ public:
     static int Errors::UNABLE_TO_RETRIEVE_VALUE_FOR_CHECKER;
     static int Errors::WRONG_TYPE;
     static int Errors::EMPTY_TICKET;
+    static int Errors::STOP_LOSS_TOO_SMALL;
 
     // 6200s Are for MQL Extension Errors
     static int Errors::COULD_NOT_RETRIEVE_LOW;
@@ -127,6 +128,7 @@ static int Errors::ORDER_IS_CLOSED = 6103;
 static int Errors::UNABLE_TO_RETRIEVE_VALUE_FOR_CHECKER = 6104;
 static int Errors::WRONG_TYPE = 6105;
 static int Errors::EMPTY_TICKET = 6106;
+static int Errors::STOP_LOSS_TOO_SMALL = 6107;
 
 // 6200s Are for MQL Extension Errors
 static int Errors::COULD_NOT_RETRIEVE_LOW = 6200;

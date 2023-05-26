@@ -18,7 +18,7 @@
 class TradeManager : public VersionSpecificTradeManager
 {
 private:
-    bool StopLossPastEntry(TicketType ticketType, double entryPrice, double stopLoss);
+    int CheckStopLoss(TicketType ticketType, double entryPrice, double stopLoss);
 
 public:
     TradeManager(ulong magicNumber, ulong slippage);
@@ -41,19 +41,24 @@ TradeManager::~TradeManager()
 {
 }
 
-bool TradeManager::StopLossPastEntry(TicketType ticketType, double entryPrice, double stopLoss)
+int TradeManager::CheckStopLoss(TicketType ticketType, double entryPrice, double stopLoss)
 {
     if ((ticketType == TicketType::Buy || ticketType == TicketType::BuyLimit || ticketType == TicketType::BuyStop) && stopLoss >= entryPrice)
     {
-        return true;
+        return Errors::STOPLOSS_PAST_ENTRY;
     }
 
     if ((ticketType == TicketType::Sell || ticketType == TicketType::SellLimit || ticketType == TicketType::SellStop) && stopLoss <= entryPrice)
     {
-        return true;
+        return Errors::STOPLOSS_PAST_ENTRY;
     }
 
-    return false;
+    if (MathAbs(entryPrice - stopLoss) <= SymbolInfoInteger(Symbol(), SYMBOL_TRADE_STOPS_LEVEL))
+    {
+        return Errors::STOP_LOSS_TOO_SMALL;
+    }
+
+    return Errors::NO_ERROR;
 }
 
 double TradeManager::CleanLotSize(double dirtyLotSize)
@@ -83,9 +88,10 @@ int TradeManager::PlaceMarketOrder(TicketType ticketType, double lots, double en
 
     if (stopLoss > 0.0)
     {
-        if (StopLossPastEntry(ticketType, entryPrice, stopLoss))
+        int error = CheckStopLoss(ticketType, entryPrice, stopLoss);
+        if (error != Errors::NO_ERROR)
         {
-            return Errors::STOPLOSS_PAST_ENTRY;
+            return error;
         }
     }
 
@@ -102,9 +108,10 @@ int TradeManager::PlaceLimitOrder(TicketType ticketType, double lots, double ent
 
     if (stopLoss > 0.0)
     {
-        if (StopLossPastEntry(ticketType, entryPrice, stopLoss))
+        int error = CheckStopLoss(ticketType, entryPrice, stopLoss);
+        if (error != Errors::NO_ERROR)
         {
-            return Errors::STOPLOSS_PAST_ENTRY;
+            return error;
         }
     }
 
@@ -132,9 +139,10 @@ int TradeManager::PlaceStopOrder(TicketType ticketType, double lots, double entr
 
     if (stopLoss > 0.0)
     {
-        if (StopLossPastEntry(ticketType, entryPrice, stopLoss))
+        int error = CheckStopLoss(ticketType, entryPrice, stopLoss);
+        if (error != Errors::NO_ERROR)
         {
-            return Errors::STOPLOSS_PAST_ENTRY;
+            return error;
         }
     }
 

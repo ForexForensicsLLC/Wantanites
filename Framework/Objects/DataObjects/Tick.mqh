@@ -8,6 +8,8 @@
 #property version "1.00"
 #property strict
 
+#include <Wantanites\Framework\Helpers\MailHelper.mqh>
+
 enum TickStatus
 {
     Invalid,
@@ -50,9 +52,7 @@ bool Tick::IsValid()
 {
     if (mStatus == TickStatus::Invalid)
     {
-        SendMail("Invalid Tick", "Time: " + TimeToString(TimeCurrent()));
-        Print("Invalid Tick at ", TimeToString(TimeCurrent()));
-
+        MailHelper::Send("Invalid Tick", "Time: " + TimeToString(TimeCurrent()));
         return false;
     }
 

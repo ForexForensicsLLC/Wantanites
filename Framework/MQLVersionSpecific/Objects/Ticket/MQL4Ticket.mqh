@@ -8,6 +8,7 @@
 #property version "1.00"
 #property strict
 
+#include <Wantanites\Framework\Helpers\MailHelper.mqh>
 #include <Wantanites\Framework\MQLVersionSpecific\Objects\Ticket\BaseTicket.mqh>
 
 class Ticket : public BaseTicket
@@ -62,11 +63,11 @@ int Ticket::SelectIfOpen(string action)
             if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
             {
                 int error = GetLastError();
-                SendMail("Failed To Select Open Order By Position When " + action,
-                         "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
-                             "Current Index: " + IntegerToString(i) + "\n" +
-                             "Current Ticket: " + IntegerToString(mNumber) + "\n" +
-                             "Error: " + IntegerToString(error));
+                MailHelper::Send("Failed To Select Open Order By Position When " + action,
+                                 "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
+                                     "Current Index: " + IntegerToString(i) + "\n" +
+                                     "Current Ticket: " + IntegerToString(mNumber) + "\n" +
+                                     "Error: " + IntegerToString(error));
 
                 return error;
             }
@@ -102,11 +103,11 @@ int Ticket::SelectIfClosed(string action)
             if (!OrderSelect(i, SELECT_BY_POS, MODE_HISTORY))
             {
                 int error = GetLastError();
-                SendMail("Failed To Select Closed Order By Position When " + action,
-                         "Total Orders: " + IntegerToString(OrdersHistoryTotal()) + "\n" +
-                             "Current Index: " + IntegerToString(i) + "\n" +
-                             "Current Ticket: " + IntegerToString(mNumber) + "\n" +
-                             "Error: " + IntegerToString(error));
+                MailHelper::Send("Failed To Select Closed Order By Position When " + action,
+                                 "Total Orders: " + IntegerToString(OrdersHistoryTotal()) + "\n" +
+                                     "Current Index: " + IntegerToString(i) + "\n" +
+                                     "Current Ticket: " + IntegerToString(mNumber) + "\n" +
+                                     "Error: " + IntegerToString(error));
 
                 return error;
             }
@@ -142,9 +143,9 @@ int Ticket::MagicNumber()
     int selectError = SelectTicket("Retrieving Magic Number");
     if (selectError != Errors::NO_ERROR)
     {
-        SendMail("Unable To Retrieve Magic Number",
-                 "Error: " + IntegerToString(selectError) + "\n" +
-                     "Ticket Number: " + IntegerToString(mNumber));
+        MailHelper::Send("Unable To Retrieve Magic Number",
+                         "Error: " + IntegerToString(selectError) + "\n" +
+                             "Ticket Number: " + IntegerToString(mNumber));
 
         return ConstantValues::EmptyInt;
     }
@@ -163,9 +164,9 @@ TicketType Ticket::Type()
     int selectError = SelectTicket("Getting Type");
     if (selectError != Errors::NO_ERROR)
     {
-        SendMail("Unable To Retrieve Type",
-                 "Error: " + IntegerToString(selectError) + "\n" +
-                     "Ticket Number: " + IntegerToString(mNumber));
+        MailHelper::Send("Unable To Retrieve Type",
+                         "Error: " + IntegerToString(selectError) + "\n" +
+                             "Ticket Number: " + IntegerToString(mNumber));
 
         return TicketType::Empty;
     }
@@ -203,9 +204,9 @@ double Ticket::OpenPrice()
     int selectError = SelectTicket("Retrieving Open Price");
     if (selectError != Errors::NO_ERROR)
     {
-        SendMail("Unable To Retrieve Open Price",
-                 "Error: " + IntegerToString(selectError) + "\n" +
-                     "Ticket Number: " + IntegerToString(mNumber));
+        MailHelper::Send("Unable To Retrieve Open Price",
+                         "Error: " + IntegerToString(selectError) + "\n" +
+                             "Ticket Number: " + IntegerToString(mNumber));
 
         return ConstantValues::EmptyDouble;
     }
@@ -224,9 +225,9 @@ datetime Ticket::OpenTime()
     int selectError = SelectTicket("Retrieving Open Time");
     if (selectError != Errors::NO_ERROR)
     {
-        SendMail("Unable To Retrieve Open Time",
-                 "Error: " + IntegerToString(selectError) + "\n" +
-                     "Ticket Number: " + IntegerToString(mNumber));
+        MailHelper::Send("Unable To Retrieve Open Time",
+                         "Error: " + IntegerToString(selectError) + "\n" +
+                             "Ticket Number: " + IntegerToString(mNumber));
 
         return 0;
     }
@@ -245,9 +246,9 @@ double Ticket::LotSize()
     int selectError = SelectTicket("Retrieving Lot Size");
     if (selectError != Errors::NO_ERROR)
     {
-        SendMail("Unable To Retrieve Lot Size",
-                 "Error: " + IntegerToString(selectError) + "\n" +
-                     "Ticket Number: " + IntegerToString(mNumber));
+        MailHelper::Send("Unable To Retrieve Lot Size",
+                         "Error: " + IntegerToString(selectError) + "\n" +
+                             "Ticket Number: " + IntegerToString(mNumber));
 
         return ConstantValues::EmptyDouble;
     }
@@ -261,9 +262,9 @@ double Ticket::CurrentStopLoss()
     int selectError = SelectTicket("Retrieving Current StopLoss");
     if (selectError != Errors::NO_ERROR)
     {
-        SendMail("Unable To Retrieve Current StopLoss",
-                 "Error: " + IntegerToString(selectError) + "\n" +
-                     "Ticket Number: " + IntegerToString(mNumber));
+        MailHelper::Send("Unable To Retrieve Current StopLoss",
+                         "Error: " + IntegerToString(selectError) + "\n" +
+                             "Ticket Number: " + IntegerToString(mNumber));
 
         return ConstantValues::EmptyDouble;
     }
@@ -281,9 +282,9 @@ double Ticket::ClosePrice()
     int selectError = SelectIfClosed("Retrieving Close Price");
     if (selectError != Errors::NO_ERROR)
     {
-        SendMail("Unable To Retrieve Close Price",
-                 "Error: " + IntegerToString(selectError) + "\n" +
-                     "Ticket Number: " + IntegerToString(mNumber));
+        MailHelper::Send("Unable To Retrieve Close Price",
+                         "Error: " + IntegerToString(selectError) + "\n" +
+                             "Ticket Number: " + IntegerToString(mNumber));
 
         return ConstantValues::EmptyDouble;
     }
@@ -302,9 +303,9 @@ datetime Ticket::CloseTime()
     int selectError = SelectIfClosed("Retrieving Close Time");
     if (selectError != Errors::NO_ERROR)
     {
-        SendMail("Unable To Retrieve Close Time",
-                 "Error: " + IntegerToString(selectError) + "\n" +
-                     "Ticket Number: " + IntegerToString(mNumber));
+        MailHelper::Send("Unable To Retrieve Close Time",
+                         "Error: " + IntegerToString(selectError) + "\n" +
+                             "Ticket Number: " + IntegerToString(mNumber));
 
         return 0;
     }
@@ -318,9 +319,9 @@ double Ticket::TakeProfit()
     int selectError = SelectTicket("Retrieving Take Profit");
     if (selectError != Errors::NO_ERROR)
     {
-        SendMail("Unable To Retrieve Take Profit",
-                 "Error: " + IntegerToString(selectError) + "\n" +
-                     "Ticket Number: " + IntegerToString(mNumber));
+        MailHelper::Send("Unable To Retrieve Take Profit",
+                         "Error: " + IntegerToString(selectError) + "\n" +
+                             "Ticket Number: " + IntegerToString(mNumber));
 
         return ConstantValues::EmptyDouble;
     }
@@ -333,9 +334,9 @@ datetime Ticket::Expiration()
     int selectError = SelectTicket("Retrieving Expiration");
     if (selectError != Errors::NO_ERROR)
     {
-        SendMail("Unable To Retrieve Expiration",
-                 "Error: " + IntegerToString(selectError) + "\n" +
-                     "Ticket Number: " + IntegerToString(mNumber));
+        MailHelper::Send("Unable To Retrieve Expiration",
+                         "Error: " + IntegerToString(selectError) + "\n" +
+                             "Ticket Number: " + IntegerToString(mNumber));
 
         return EMPTY;
     }
@@ -348,9 +349,9 @@ double Ticket::Profit()
     int selectError = SelectTicket("Retrieving Profit");
     if (selectError != Errors::NO_ERROR)
     {
-        SendMail("Unable To Retrieve Profit",
-                 "Error: " + IntegerToString(selectError) + "\n" +
-                     "Ticket Number: " + IntegerToString(mNumber));
+        MailHelper::Send("Unable To Retrieve Profit",
+                         "Error: " + IntegerToString(selectError) + "\n" +
+                             "Ticket Number: " + IntegerToString(mNumber));
 
         return ConstantValues::EmptyDouble;
     }
@@ -368,9 +369,9 @@ double Ticket::Commission()
     int selectError = SelectTicket("Retrieving Commission");
     if (selectError != Errors::NO_ERROR)
     {
-        SendMail("Unable To Retrieve Commission",
-                 "Error: " + IntegerToString(selectError) + "\n" +
-                     "Ticket Number: " + IntegerToString(mNumber));
+        MailHelper::Send("Unable To Retrieve Commission",
+                         "Error: " + IntegerToString(selectError) + "\n" +
+                             "Ticket Number: " + IntegerToString(mNumber));
 
         return ConstantValues::EmptyDouble;
     }

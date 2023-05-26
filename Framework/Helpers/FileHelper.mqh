@@ -8,6 +8,7 @@
 #property version "1.00"
 #property strict
 
+#include <Wantanites\Framework\Helpers\MailHelper.mqh>
 #include <Wantanites\Framework\Constants\ConstantValues.mqh>
 
 enum TimeFormat
@@ -37,9 +38,9 @@ public:
 template <typename T>
 static void FileHelper::SendFailedFileWriteEmail(string type, T value)
 {
-    SendMail("Failed To Write " + type + " to File",
-             "Value: " + value + "\n" +
-                 "Error: " + IntegerToString(GetLastError()));
+    MailHelper::Send("Failed To Write " + type + " to File",
+                     "Value: " + value + "\n" +
+                         "Error: " + IntegerToString(GetLastError()));
 }
 
 static void FileHelper::WriteDelimiter(int fileHandle)

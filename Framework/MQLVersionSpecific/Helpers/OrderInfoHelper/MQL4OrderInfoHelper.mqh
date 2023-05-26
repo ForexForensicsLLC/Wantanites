@@ -8,6 +8,8 @@
 #property version "1.00"
 #property strict
 
+#include <Wantanites\Framework\Helpers\MailHelper.mqh>
+
 class VersionSpecificOrderInfoHelper
 {
 public:
@@ -17,6 +19,7 @@ public:
     static int GetAllActiveTickets(List<int> &ticketNumbers);
     static int FindActiveTicketsByMagicNumber(int magicNumber, int &tickets[]);
     static int FindNewTicketAfterPartial(int magicNumber, double openPrice, datetime orderOpenTime, int &ticket);
+    static double GetTotalLotsForSymbolAndDirection(string symbol, TicketType type);
 };
 
 static int VersionSpecificOrderInfoHelper::TotalCurrentOrders()
@@ -33,10 +36,10 @@ int VersionSpecificOrderInfoHelper::CountOtherEAOrders(bool todayOnly, List<int>
         if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
         {
             int error = GetLastError();
-            SendMail("Failed To Select Open Order By Position When Countint Other EA Orders",
-                     "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
-                         "Current Order Index: " + IntegerToString(i) + "\n" +
-                         IntegerToString(error));
+            MailHelper::Send("Failed To Select Open Order By Position When Counting Other EA Orders",
+                             "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
+                                 "Current Order Index: " + IntegerToString(i) + "\n" +
+                                 IntegerToString(error));
             return error;
         }
 
@@ -85,10 +88,10 @@ int VersionSpecificOrderInfoHelper::FindActiveTicketsByMagicNumber(int magicNumb
         if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
         {
             int error = GetLastError();
-            SendMail("Failed To Select Open Order By Position When Finding Active Ticks",
-                     "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
-                         "Current Order Index: " + IntegerToString(i) + "\n" +
-                         IntegerToString(error));
+            MailHelper::Send("Failed To Select Open Order By Position When Finding Active Ticks",
+                             "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
+                                 "Current Order Index: " + IntegerToString(i) + "\n" +
+                                 IntegerToString(error));
             return error;
         }
 
@@ -110,10 +113,10 @@ int VersionSpecificOrderInfoHelper::FindNewTicketAfterPartial(int magicNumber, d
         if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
         {
             error = GetLastError();
-            SendMail("Failed To Select Order",
-                     "Error: " + IntegerToString(error) + "\n" +
-                         "Position: " + IntegerToString(i) + "\n" +
-                         "Total Tickets: " + IntegerToString(OrdersTotal()));
+            MailHelper::Send("Failed To Select Order",
+                             "Error: " + IntegerToString(error) + "\n" +
+                                 "Position: " + IntegerToString(i) + "\n" +
+                                 "Total Tickets: " + IntegerToString(OrdersTotal()));
 
             continue;
         }
@@ -143,4 +146,53 @@ int VersionSpecificOrderInfoHelper::FindNewTicketAfterPartial(int magicNumber, d
     }
 
     return error;
+}
+
+double VersionSpecificOrderInfoHelper::GetTotalLotsForSymbolAndDirection(string symbol, TicketType type)
+{
+    double totalLots = 0;
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+        {
+            int error = GetLastError();
+            MailHelper::Send("Failed To Select Open Order By Position When Getting total lots",
+                             "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
+                                 "Current Order Index: " + IntegerToString(i) + "\n" +
+                                 IntegerToString(error));
+            return error;
+        }
+
+        if (OrderSymbol() != symbol)
+        {
+            continue;
+        }
+
+        int orderType = OrderType();
+        switch (type)
+        {
+        case TicketType::Buy:
+        case TicketType::BuyStop:
+        case TicketType::BuyLimit:
+            if (orderType == OP_BUY || orderType == OP_BUYSTOP || orderType == OP_BUYLIMIT)
+            {
+                totalLots += OrderLots();
+            }
+
+            break;
+        case TicketType::Sell:
+        case TicketType::SellStop:
+        case TicketType::SellLimit:
+            if (orderType == OP_SELL || orderType == OP_SELLSTOP || orderType == OP_SELLLIMIT)
+            {
+                totalLots += OrderLots();
+            }
+
+            break;
+        default:
+            break;
+        }
+    }
+
+    return totalLots;
 }
