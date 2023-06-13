@@ -9,6 +9,7 @@
 #property strict
 
 #include <Wantanites\Framework\Types\TicketTypes.mqh>
+#include <Wantanites\Framework\MQLVersionSpecific\Utilities\TypeConverter\TypeConverter.mqh>
 
 class VersionSpecificTradeManager
 {
@@ -19,6 +20,8 @@ private:
 protected:
     VersionSpecificTradeManager(ulong magicNumber, ulong slippage);
     ~VersionSpecificTradeManager();
+
+    virtual bool LotSizeIsInvalid(TicketType type, double entryPrice, double lotSize);
 
     virtual int PlaceMarketOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
     virtual int PlaceLimitOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
@@ -34,6 +37,24 @@ VersionSpecificTradeManager::VersionSpecificTradeManager(ulong magicNumber, ulon
 }
 
 VersionSpecificTradeManager::~VersionSpecificTradeManager() {}
+
+bool VersionSpecificTradeManager::LotSizeIsInvalid(TicketType type, double entryPrice, double lotSize)
+{
+    int orderType;
+    if (!TypeConverter::TicketTypeToOrderType(type, orderType))
+    {
+        return true;
+    }
+
+    double freeMargin = AccountFreeMarginCheck(Symbol(), orderType, lotSize);
+    if (freeMargin <= 0)
+    {
+        Print("Not enough money to place order with a lotsize of ", lotSize);
+        return true;
+    }
+
+    return false;
+}
 
 int VersionSpecificTradeManager::PlaceMarketOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
 {

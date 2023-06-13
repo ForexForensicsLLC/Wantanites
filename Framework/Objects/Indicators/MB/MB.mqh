@@ -537,14 +537,13 @@ MB::MB(bool isPending, string symbol, ENUM_TIMEFRAMES timeFrame, int number, Sig
     mAllowMitigatedZones = allowMitigatedZones;
     mAllowOverlappingZones = allowOverlappingZones;
 
-    mName = "MB" + IntegerToString(type) + ": " + IntegerToString(timeFrame) + "_" + IntegerToString(number);
+    mName = "Structure" + IntegerToString(type) + ": " + IntegerToString(timeFrame) + "_" + IntegerToString(number);
     mDrawn = false;
     mMBColor = mbColor;
     mZoneColor = zoneColor;
 
     mHasImpulseValidation = Status::NOT_CHECKED;
 
-    // ArrayResize(mZones, maxZones);
     mZones = new ObjectList<Zone>();
 }
 

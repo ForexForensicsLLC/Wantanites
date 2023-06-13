@@ -5,7 +5,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2022, MetaQuotes Software Corp."
 #property link "https://www.mql5.com"
-#property version "1.00"
+#property version "1.01"
 #property strict
 
 #include <Wantanites/Framework/Helpers/MailHelper.mqh>
@@ -38,15 +38,12 @@ StartOfDayTimeRangeBreakout *TRBSells;
 
 // UJ
 input double MaxSpreadPips = 3;
-double StopLossPaddingPips = 0;
+input double StopLossPaddingPips = 1; // ExtraStopLossPips, Should be 0
 double MaxSlippage = 3;
 
 int OnInit()
 {
-    if (!EAInitHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
-    {
-        return INIT_PARAMETERS_INCORRECT;
-    }
+    MailHelper::Disable();
 
     TS = new TradingSession();
     TS.AddHourMinuteSession(2, 0, 23, 0);

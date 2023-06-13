@@ -15,6 +15,8 @@
 #include <Wantanites\Framework\MQLVersionSpecific\Objects\TradeManager\MQL5TradeManager.mqh>
 #endif
 
+#include <Wantanites\Framework\Utilities\PipConverter.mqh>
+
 class TradeManager : public VersionSpecificTradeManager
 {
 private:
@@ -53,7 +55,11 @@ int TradeManager::CheckStopLoss(TicketType ticketType, double entryPrice, double
         return Errors::STOPLOSS_PAST_ENTRY;
     }
 
-    if (MathAbs(entryPrice - stopLoss) <= SymbolInfoInteger(Symbol(), SYMBOL_TRADE_STOPS_LEVEL))
+    double tickSize = SymbolInfoDouble(Symbol(), SYMBOL_TRADE_TICK_SIZE);
+    double normalised_price = round(MathAbs(entryPrice - stopLoss) / tickSize) * tickSize;
+    int minStopLoss = SymbolInfoInteger(Symbol(), SYMBOL_TRADE_STOPS_LEVEL);
+
+    if (minStopLoss > 0 && normalised_price <= (minStopLoss * _Point))
     {
         return Errors::STOP_LOSS_TOO_SMALL;
     }
@@ -81,6 +87,11 @@ double TradeManager::CleanLotSize(double dirtyLotSize)
 
 int TradeManager::PlaceMarketOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
 {
+    if (VersionSpecificTradeManager::LotSizeIsInvalid(ticketType, entryPrice, lots))
+    {
+        return Errors::INVALID_LOT_SIZE;
+    }
+
     if (ticketType != TicketType::Buy && ticketType != TicketType::Sell)
     {
         return Errors::WRONG_ORDER_TYPE;
@@ -101,6 +112,11 @@ int TradeManager::PlaceMarketOrder(TicketType ticketType, double lots, double en
 
 int TradeManager::PlaceLimitOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
 {
+    if (VersionSpecificTradeManager::LotSizeIsInvalid(ticketType, entryPrice, lots))
+    {
+        return Errors::INVALID_LOT_SIZE;
+    }
+
     if (ticketType != TicketType::BuyLimit && ticketType != TicketType::SellLimit)
     {
         return Errors::WRONG_ORDER_TYPE;
@@ -132,6 +148,11 @@ int TradeManager::PlaceLimitOrder(TicketType ticketType, double lots, double ent
 
 int TradeManager::PlaceStopOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
 {
+    if (VersionSpecificTradeManager::LotSizeIsInvalid(ticketType, entryPrice, lots))
+    {
+        return Errors::INVALID_LOT_SIZE;
+    }
+
     if (ticketType != TicketType::BuyStop && ticketType != TicketType::SellStop)
     {
         return Errors::WRONG_ORDER_TYPE;

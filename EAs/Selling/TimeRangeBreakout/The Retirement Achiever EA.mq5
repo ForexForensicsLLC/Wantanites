@@ -38,7 +38,7 @@ StartOfDayTimeRangeBreakout *TRBSells;
 
 // UJ
 input double MaxSpreadPips = 3;
-double StopLossPaddingPips = 0;
+input double StopLossPaddingPips = 1; // ExtraStopLossPips, Should be 0
 double MaxSlippage = 3;
 
 int OnInit()

@@ -18,7 +18,7 @@ class EAOrderHelper
     // Helper Methdos
     // =========================================================================
 
-    static bool PastAllowedMaxTotalLotSize(string symbol, TicketType type, double lotSize);
+    static bool LotSizeIsInvalid(string symbol, TicketType type, double lotSize);
     static double GetLotSizeForRiskPercent(string symbol, double stopLossPips, double riskPercent);
     static void CheckBreakLotSizeUp(string symbol, double originalLotSize, int &numberOfOrders, double &lotSizeToUse);
 
@@ -142,13 +142,18 @@ public:
                |_|
 
 */
-bool EAOrderHelper::PastAllowedMaxTotalLotSize(string symbol, TicketType type, double lotSize)
+bool EAOrderHelper::LotSizeIsInvalid(string symbol, TicketType type, double lotSize)
 {
+    // make sure we are not about to go over the max allowed lots for a single symbol at once
     double maxLots = SymbolInfoDouble(symbol, SYMBOL_VOLUME_LIMIT);
     if (maxLots > 0)
     {
         double totalLots = OrderInfoHelper::GetTotalLotsForSymbolAndDirection(symbol, type);
-        return lotSize + totalLots > maxLots;
+        if (lotSize + totalLots > maxLots)
+        {
+            Print("Lotsize: ", lotSize, " would go over the max allowed lot size for this symbol");
+            return true;
+        }
     }
 
     return false;
@@ -309,7 +314,7 @@ static void EAOrderHelper::PlaceMarketOrder(TEA &ea, double entryPrice, double s
         lotSize = GetLotSizeForRiskPercent(ea.EntrySymbol(), PipConverter::PointsToPips(MathAbs(entryPrice - stopLoss)), ea.RiskPercent());
     }
 
-    if (PastAllowedMaxTotalLotSize(ea.EntrySymbol(), ticketType, lotSize))
+    if (LotSizeIsInvalid(ea.EntrySymbol(), ticketType, lotSize))
     {
         return;
     }
@@ -382,7 +387,7 @@ static void EAOrderHelper::PlaceLimitOrder(TEA &ea, double entryPrice, double st
         lotSize = GetLotSizeForRiskPercent(ea.EntrySymbol(), PipConverter::PointsToPips(MathAbs(entryPrice - stopLoss)), ea.RiskPercent());
     }
 
-    if (PastAllowedMaxTotalLotSize(ea.EntrySymbol(), limitType, lotSize))
+    if (LotSizeIsInvalid(ea.EntrySymbol(), limitType, lotSize))
     {
         return;
     }
@@ -455,7 +460,7 @@ static void EAOrderHelper::PlaceStopOrder(TEA &ea, double entryPrice, double sto
         lotSize = GetLotSizeForRiskPercent(ea.EntrySymbol(), PipConverter::PointsToPips(MathAbs(entryPrice - stopLoss)), ea.RiskPercent());
     }
 
-    if (PastAllowedMaxTotalLotSize(ea.EntrySymbol(), stopType, lotSize))
+    if (LotSizeIsInvalid(ea.EntrySymbol(), stopType, lotSize))
     {
         return;
     }

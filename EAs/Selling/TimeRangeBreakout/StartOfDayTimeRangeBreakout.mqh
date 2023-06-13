@@ -65,6 +65,7 @@ StartOfDayTimeRangeBreakout::~StartOfDayTimeRangeBreakout()
 
 void StartOfDayTimeRangeBreakout::PreRun()
 {
+    mTRB.Draw();
 }
 
 bool StartOfDayTimeRangeBreakout::AllowedToTrade()
@@ -108,12 +109,12 @@ void StartOfDayTimeRangeBreakout::PlaceOrders()
     if (SetupType() == SignalType::Bullish)
     {
         entry = CurrentTick().Ask();
-        stopLoss = mTRB.RangeLow();
+        stopLoss = mTRB.RangeLow() - PipConverter::PipsToPoints(StopLossPaddingPips());
     }
     else if (SetupType() == SignalType::Bearish)
     {
         entry = CurrentTick().Bid();
-        stopLoss = mTRB.RangeHigh();
+        stopLoss = mTRB.RangeHigh() + PipConverter::PipsToPoints(StopLossPaddingPips());
     }
 
     EAOrderHelper::PlaceMarketOrder<StartOfDayTimeRangeBreakout>(this, entry, stopLoss);

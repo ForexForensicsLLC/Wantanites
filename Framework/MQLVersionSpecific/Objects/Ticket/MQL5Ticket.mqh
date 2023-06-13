@@ -616,6 +616,29 @@ int Ticket::Close()
         return openSelectError;
     }
 
+    MqlTick currentTick;
+    SymbolInfoTick(Symbol(), currentTick);
+    int freezeLevel = SymbolInfoInteger(Symbol(), SYMBOL_TRADE_FREEZE_LEVEL);
+
+    double sl = CurrentStopLoss();
+    if (sl != ConstantValues::EmptyDouble)
+    {
+        double marketPrice = ConstantValues::EmptyDouble;
+        if (sl < OpenPrice())
+        {
+            marketPrice = currentTick.bid;
+        }
+        else
+        {
+            marketPrice = currentTick.ask;
+        }
+
+        if (MathAbs(marketPrice - sl) <= freezeLevel * _Point)
+        {
+            return Errors::MARKET_TOO_CLOSE_TO_SL;
+        }
+    }
+
     if (mStatus == TicketStatus::Pending)
     {
         if (!mTrade.OrderDelete(mNumber))
