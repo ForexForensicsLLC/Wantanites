@@ -23,9 +23,9 @@ static void EAErrorHelper::RecordFailedMBRetrievalError(TEA &ea, MBTracker *&mbt
 {
     if (error == -1)
     {
-        error = TerminalErrors::MB_DOES_NOT_EXIST;
+        error = Errors::MB_DOES_NOT_EXIST;
     }
 
     string additionalInfo = "Total MBs: " + mbt.MBsCreated() + " MB Number: " + mbNumber + ". You're probably not resetting the MB Number.";
-    ea.RecordError(TerminalErrors::MB_DOES_NOT_EXIST, additionalInfo);
+    ea.RecordError(Errors::MB_DOES_NOT_EXIST, additionalInfo);
 }
