@@ -74,7 +74,7 @@ void DojiInZone::PreRun()
     {
         double profit = mCurrentSetupTickets[0].Profit();
         color clr = profit > 0 ? clrLime : clrMagenta;
-        string text = "$" + DoubleToString(profit);
+        string text = StringFormat("$%.2f", profit);
 
         if (ObjectFind(ChartID(), mProfitObjectName) < 0)
         {
@@ -196,7 +196,7 @@ void DojiInZone::CheckCurrentSetupTicket(Ticket &ticket)
 {
     // Make sure we are only ever losing how much we intend to risk, even if we entered at a worse price due to slippage
     double accountBalance = AccountInfoDouble(ACCOUNT_BALANCE);
-    if ((AccountInfoDouble(ACCOUNT_EQUITY) - accountBalance) / accountBalance * 100 <= -RiskPercent())
+    if ((AccountInfoDouble(ACCOUNT_EQUITY) - accountBalance) / accountBalance * 100 <= (-RiskPercent() / 2))
     {
         ticket.Close();
     }
