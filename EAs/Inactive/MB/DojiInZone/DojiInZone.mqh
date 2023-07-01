@@ -72,7 +72,12 @@ void DojiInZone::PreRun()
     mMBT.Draw();
     if (mCurrentSetupTickets.Size() > 0)
     {
-        double profit = mCurrentSetupTickets[0].Profit();
+        double profit = 0.0;
+        for (int i = 0; i < mCurrentSetupTickets.Size(); i++)
+        {
+            profit += mCurrentSetupTickets[i].Profit();
+        }
+
         color clr = profit > 0 ? clrLime : clrMagenta;
         string text = StringFormat("$%.2f", profit);
 
@@ -166,20 +171,29 @@ void DojiInZone::PlaceOrders()
     EAOrderHelper::PlaceMarketOrder<DojiInZone>(this, entry, stopLoss);
 }
 
+void DojiInZone::PreManageTickets()
+{
+    double profit = 0.0;
+    for (int i = 0; i < mCurrentSetupTickets.Size(); i++)
+    {
+        profit += mCurrentSetupTickets[i].Profit();
+    }
+
+    double profitTarget = AccountInfoDouble(ACCOUNT_BALANCE) * 0.01;
+    if (profit > profitTarget)
+    {
+        for (int i = 0; i < mCurrentSetupTickets.Size(); i++)
+        {
+            mCurrentSetupTickets[i].Close();
+        }
+    }
+}
+
 void DojiInZone::ManageCurrentPendingSetupTicket(Ticket &ticket)
 {
 }
 
 void DojiInZone::ManageCurrentActiveSetupTicket(Ticket &ticket)
-{
-    double profitTarget = AccountInfoDouble(ACCOUNT_BALANCE) * 0.01;
-    if (ticket.Profit() > profitTarget)
-    {
-        ticket.Close();
-    }
-}
-
-void DojiInZone::PreManageTickets()
 {
 }
 
