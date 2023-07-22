@@ -85,6 +85,8 @@ int OnInit()
                         AllowOverlappingZones, ShowPendingZones, PendingZonesBrokenBy, AllowPendingMitigatedZones, AllowPendingOverlappingZones, BullishStructure,
                         BearishStructure, DemandZone, SupplyZone, PendingDemandZone, PendingSupplyZone);
 
+    MBT.Draw();
+
     DIZBuys = new DojiInZone(-1, SignalType::Bullish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
                              MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, MBT);
     DIZBuys.AddTradingSession(TS);

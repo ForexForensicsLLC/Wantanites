@@ -57,7 +57,7 @@ DojiInZone::DojiInZone(int magicNumber, int setupType, int maxCurrentSetupTrades
     mMBT = mbt;
 
     mFirstMBInSetup = ConstantValues::EmptyInt;
-    mProfitObjectName = "ProfitLabel";
+    mProfitObjectName = "ProfitLabel" + (setupType == SignalType::Bearish ? "Bearish" : "Bullish");
 
     EAInitHelper::FindSetPreviousAndCurrentSetupTickets<DojiInZone>(this);
     EAInitHelper::SetPreviousSetupTicketsOpenData<DojiInZone, SingleTimeFrameEntryTradeRecord>(this);
@@ -210,7 +210,7 @@ void DojiInZone::CheckCurrentSetupTicket(Ticket &ticket)
 {
     // Make sure we are only ever losing how much we intend to risk, even if we entered at a worse price due to slippage
     double accountBalance = AccountInfoDouble(ACCOUNT_BALANCE);
-    if ((AccountInfoDouble(ACCOUNT_EQUITY) - accountBalance) / accountBalance * 100 <= (-RiskPercent() / 2))
+    if ((AccountInfoDouble(ACCOUNT_EQUITY) - accountBalance) / accountBalance * 100 <= -RiskPercent())
     {
         ticket.Close();
     }
