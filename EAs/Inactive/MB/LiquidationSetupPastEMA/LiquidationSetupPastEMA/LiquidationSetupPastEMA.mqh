@@ -8,17 +8,12 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\EA\EA.mqh>
-#include <Wantanites\Framework\Helpers\EAHelper.mqh>
+#include <Wantanites\Framework\Objects\DataObjects\EA.mqh>
 #include <Wantanites\Framework\Constants\MagicNumbers.mqh>
 
 class LiquidationMB : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
-    string mEntrySymbol;
-    int mEntryTimeFrame;
-
-    int mBarCount;
     int mLastEntryMB;
 
     MBTracker *mSetupMBT;
@@ -50,27 +45,28 @@ public:
     ~LiquidationMB();
 
     virtual double RiskPercent() { return mRiskPercent; }
+    double EMA(int index);
 
-    virtual void Run();
+    virtual void PreRun();
     virtual bool AllowedToTrade();
     virtual void CheckSetSetup();
     virtual void CheckInvalidateSetup();
     virtual void InvalidateSetup(bool deletePendingOrder, int error);
     virtual bool Confirmation();
     virtual void PlaceOrders();
-    virtual void ManageCurrentPendingSetupTicket();
-    virtual void ManageCurrentActiveSetupTicket();
+    virtual void PreManageTickets();
+    virtual void ManageCurrentPendingSetupTicket(Ticket &ticket);
+    virtual void ManageCurrentActiveSetupTicket(Ticket &ticket);
     virtual bool MoveToPreviousSetupTickets(Ticket &ticket);
-    virtual void ManagePreviousSetupTicket(int ticketIndex);
-    virtual void CheckCurrentSetupTicket();
-    virtual void CheckPreviousSetupTicket(int ticketIndex);
-    virtual void RecordTicketOpenData();
+    virtual void ManagePreviousSetupTicket(Ticket &ticket);
+    virtual void CheckCurrentSetupTicket(Ticket &ticket);
+    virtual void CheckPreviousSetupTicket(Ticket &ticket);
+    virtual void RecordTicketOpenData(Ticket &ticket);
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
-    virtual void RecordError(int error, string additionalInformation);
+    virtual void RecordError(string methodName, int error, string additionalInformation);
+    virtual bool ShouldReset();
     virtual void Reset();
-
-    double EMA(int index);
 };
 
 LiquidationMB::LiquidationMB(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
@@ -78,10 +74,6 @@ LiquidationMB::LiquidationMB(int magicNumber, int setupType, int maxCurrentSetup
                              CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&setupMBT, LiquidationSetupTracker *&lst)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
-    mEntrySymbol = Symbol();
-    mEntryTimeFrame = Period();
-
-    mBarCount = 0;
     mLastEntryMB = EMPTY;
 
     mSetupMBT = setupMBT;
@@ -108,34 +100,33 @@ LiquidationMB::LiquidationMB(int magicNumber, int setupType, int maxCurrentSetup
 
     mLargestAccountBalance = 100000;
 
-    EAHelper::FindSetPreviousAndCurrentSetupTickets<LiquidationMB>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<LiquidationMB, PartialTradeRecord>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<LiquidationMB, SingleTimeFrameEntryTradeRecord>(this);
+    EAInitHelper::FindSetPreviousAndCurrentSetupTickets<LiquidationMB>(this);
+    EAInitHelper::UpdatePreviousSetupTicketsRRAcquried<LiquidationMB, PartialTradeRecord>(this);
+    EAInitHelper::SetPreviousSetupTicketsOpenData<LiquidationMB, SingleTimeFrameEntryTradeRecord>(this);
 }
 
 double LiquidationMB::EMA(int index)
 {
-    return iMA(mEntrySymbol, mEntryTimeFrame, 100, 0, MODE_EMA, PRICE_CLOSE, index);
+    return IndicatorHelper::MovingAverage(EntrySymbol(), EntryTimeFrame(), 100, 0, MODE_EMA, PRICE_CLOSE, index);
 }
 
 LiquidationMB::~LiquidationMB()
 {
 }
 
-void LiquidationMB::Run()
+void LiquidationMB::PreRun()
 {
-    EAHelper::RunDrawMBT<LiquidationMB>(this, mSetupMBT);
-    mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
+    mSetupMBT.Draw();
 }
 
 bool LiquidationMB::AllowedToTrade()
 {
-    return EAHelper::BelowSpread<LiquidationMB>(this) && EAHelper::WithinTradingSession<LiquidationMB>(this);
+    return EARunHelper::BelowSpread<LiquidationMB>(this) && EARunHelper::WithinTradingSession<LiquidationMB>(this);
 }
 
 void LiquidationMB::CheckSetSetup()
 {
-    if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
+    if (iBars(EntrySymbol(), EntryTimeFrame()) <= BarCount())
     {
         return;
     }
@@ -145,7 +136,7 @@ void LiquidationMB::CheckSetSetup()
         return;
     }
 
-    if (EAHelper::CheckSetLiquidationMBSetup<LiquidationMB>(this, mLST, mFirstMBInSetupNumber, mSecondMBInSetupNumber, mLiquidationMBInSetupNumber))
+    if (EASetupHelper::CheckSetLiquidationMBSetup<LiquidationMB>(this, mLST, mFirstMBInSetupNumber, mSecondMBInSetupNumber, mLiquidationMBInSetupNumber))
     {
         MBState *firstMBInSetup;
         if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, firstMBInSetup))
@@ -160,10 +151,10 @@ void LiquidationMB::CheckSetSetup()
         }
 
         bool zoneIsHolding = false;
-        int error = EAHelper::LiquidationMBZoneIsHolding<LiquidationMB>(this, mSetupMBT, mFirstMBInSetupNumber, mSecondMBInSetupNumber, zoneIsHolding);
+        int error = EASetupHelper::LiquidationMBZoneIsHolding<LiquidationMB>(this, mSetupMBT, mFirstMBInSetupNumber, mSecondMBInSetupNumber, zoneIsHolding);
         if (error != Errors::NO_ERROR)
         {
-            EAHelper::InvalidateSetup<LiquidationMB>(this, true, false);
+            EASetupHelper::InvalidateSetup<LiquidationMB>(this, true, false);
             return;
         }
 
@@ -182,10 +173,10 @@ void LiquidationMB::CheckSetSetup()
                 return;
             }
 
-            if (mSetupType == OP_BUY)
+            if (SetupType() == OP_BUY)
             {
                 // make sure first mb is above ema
-                double firstMBLow = iLow(mEntrySymbol, mEntryTimeFrame, firstMBInSetup.LowIndex());
+                double firstMBLow = iLow(EntrySymbol(), EntryTimeFrame(), firstMBInSetup.LowIndex());
                 double firstMBEMA = EMA(firstMBInSetup.LowIndex());
                 if (firstMBLow < firstMBEMA)
                 {
@@ -193,7 +184,7 @@ void LiquidationMB::CheckSetSetup()
                 }
 
                 // make sure second mb is above ema
-                double secondMBLow = iLow(mEntrySymbol, mEntryTimeFrame, secondMBInSetup.LowIndex());
+                double secondMBLow = iLow(EntrySymbol(), EntryTimeFrame(), secondMBInSetup.LowIndex());
                 double secondMBEMA = EMA(secondMBInSetup.LowIndex());
                 if (secondMBLow < secondMBEMA)
                 {
@@ -201,7 +192,7 @@ void LiquidationMB::CheckSetSetup()
                 }
 
                 // make sure liq mb is above ema
-                double liqMBLow = iLow(mEntrySymbol, mEntryTimeFrame, liquidationMBInSetup.LowIndex());
+                double liqMBLow = iLow(EntrySymbol(), EntryTimeFrame(), liquidationMBInSetup.LowIndex());
                 double liqMBEMA = EMA(liquidationMBInSetup.LowIndex());
                 if (liqMBLow < liqMBEMA)
                 {
@@ -209,7 +200,7 @@ void LiquidationMB::CheckSetSetup()
                 }
 
                 int lowestIndex = EMPTY;
-                if (!MQLHelper::GetLowestIndexBetween(mEntrySymbol, mEntryTimeFrame, firstMBInSetup.EndIndex() - 1, 1, true, lowestIndex))
+                if (!MQLHelper::GetLowestIndexBetween(EntrySymbol(), EntryTimeFrame(), firstMBInSetup.EndIndex() - 1, 1, true, lowestIndex))
                 {
                     return;
                 }
@@ -221,13 +212,13 @@ void LiquidationMB::CheckSetSetup()
                 }
 
                 // make sure low is above ema
-                if (iLow(mEntrySymbol, mEntryTimeFrame, lowestIndex) < EMA(lowestIndex))
+                if (iLow(EntrySymbol(), EntryTimeFrame(), lowestIndex) < EMA(lowestIndex))
                 {
                     return;
                 }
 
                 // make sure we broke above
-                if (iClose(mEntrySymbol, mEntryTimeFrame, 1) < iHigh(mEntrySymbol, mEntryTimeFrame, 2))
+                if (iClose(EntrySymbol(), EntryTimeFrame(), 1) < iHigh(EntrySymbol(), EntryTimeFrame(), 2))
                 {
                     return;
                 }
@@ -239,13 +230,13 @@ void LiquidationMB::CheckSetSetup()
                 }
 
                 mHasSetup = true;
-                mZoneCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 2);
+                mZoneCandleTime = iTime(EntrySymbol(), EntryTimeFrame(), 2);
                 mMostRecentMB = mSetupMBT.MBsCreated() - 1;
             }
-            else if (mSetupType == OP_SELL)
+            else if (SetupType() == OP_SELL)
             {
                 // make sure first mb is above ema
-                double firstMBHigh = iHigh(mEntrySymbol, mEntryTimeFrame, firstMBInSetup.HighIndex());
+                double firstMBHigh = iHigh(EntrySymbol(), EntryTimeFrame(), firstMBInSetup.HighIndex());
                 double firstMBEMA = EMA(firstMBInSetup.HighIndex());
                 if (firstMBHigh > firstMBEMA)
                 {
@@ -253,7 +244,7 @@ void LiquidationMB::CheckSetSetup()
                 }
 
                 // make sure second mb is above ema
-                double secondMBHigh = iHigh(mEntrySymbol, mEntryTimeFrame, secondMBInSetup.HighIndex());
+                double secondMBHigh = iHigh(EntrySymbol(), EntryTimeFrame(), secondMBInSetup.HighIndex());
                 double secondMBEMA = EMA(secondMBInSetup.HighIndex());
                 if (secondMBHigh > secondMBEMA)
                 {
@@ -261,7 +252,7 @@ void LiquidationMB::CheckSetSetup()
                 }
 
                 // make sure third mb is above ema
-                double liqMBHigh = iHigh(mEntrySymbol, mEntryTimeFrame, liquidationMBInSetup.HighIndex());
+                double liqMBHigh = iHigh(EntrySymbol(), EntryTimeFrame(), liquidationMBInSetup.HighIndex());
                 double liqMBEMA = EMA(liquidationMBInSetup.HighIndex());
                 if (liqMBHigh > liqMBEMA)
                 {
@@ -269,7 +260,7 @@ void LiquidationMB::CheckSetSetup()
                 }
 
                 int highestIndex = EMPTY;
-                if (!MQLHelper::GetHighestIndexBetween(mEntrySymbol, mEntryTimeFrame, firstMBInSetup.EndIndex() - 1, 1, true, highestIndex))
+                if (!MQLHelper::GetHighestIndexBetween(EntrySymbol(), EntryTimeFrame(), firstMBInSetup.EndIndex() - 1, 1, true, highestIndex))
                 {
                     return;
                 }
@@ -281,13 +272,13 @@ void LiquidationMB::CheckSetSetup()
                 }
 
                 // make sure high is below ema
-                if (iHigh(mEntrySymbol, mEntryTimeFrame, highestIndex) > EMA(highestIndex))
+                if (iHigh(EntrySymbol(), EntryTimeFrame(), highestIndex) > EMA(highestIndex))
                 {
                     return;
                 }
 
                 // make sure we broke below a candle
-                if (iClose(mEntrySymbol, mEntryTimeFrame, 1) > iLow(mEntrySymbol, mEntryTimeFrame, 2))
+                if (iClose(EntrySymbol(), EntryTimeFrame(), 1) > iLow(EntrySymbol(), EntryTimeFrame(), 2))
                 {
                     return;
                 }
@@ -299,7 +290,7 @@ void LiquidationMB::CheckSetSetup()
                 }
 
                 mHasSetup = true;
-                mZoneCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 2);
+                mZoneCandleTime = iTime(EntrySymbol(), EntryTimeFrame(), 2);
                 mMostRecentMB = mSetupMBT.MBsCreated() - 1;
             }
         }
@@ -310,7 +301,7 @@ void LiquidationMB::CheckInvalidateSetup()
 {
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 
-    if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
+    if (iBars(EntrySymbol(), EntryTimeFrame()) <= BarCount())
     {
         return;
     }
@@ -322,7 +313,7 @@ void LiquidationMB::CheckInvalidateSetup()
     }
 
     // Start of Setup TF Liquidation
-    if (EAHelper::CheckBrokeMBRangeStart<LiquidationMB>(this, mSetupMBT, mFirstMBInSetupNumber))
+    if (EASetupHelper::CheckBrokeMBRangeStart<LiquidationMB>(this, mSetupMBT, mFirstMBInSetupNumber))
     {
         // Cancel any pending orders since the setup didn't hold
         InvalidateSetup(true);
@@ -330,7 +321,7 @@ void LiquidationMB::CheckInvalidateSetup()
     }
 
     // End of Setup TF Liquidation
-    if (EAHelper::CheckBrokeMBRangeStart<LiquidationMB>(this, mSetupMBT, mLiquidationMBInSetupNumber))
+    if (EASetupHelper::CheckBrokeMBRangeStart<LiquidationMB>(this, mSetupMBT, mLiquidationMBInSetupNumber))
     {
         // don't cancel any pending orders since the setup held and continued
         InvalidateSetup(false);
@@ -338,27 +329,27 @@ void LiquidationMB::CheckInvalidateSetup()
     }
 
     bool zoneIsHolding = false;
-    int error = EAHelper::LiquidationMBZoneIsHolding<LiquidationMB>(this, mSetupMBT, mFirstMBInSetupNumber, mSecondMBInSetupNumber, zoneIsHolding);
+    int error = EASetupHelper::LiquidationMBZoneIsHolding<LiquidationMB>(this, mSetupMBT, mFirstMBInSetupNumber, mSecondMBInSetupNumber, zoneIsHolding);
     if (error != Errors::NO_ERROR || !zoneIsHolding)
     {
         InvalidateSetup(true, error);
         return;
     }
 
-    int zoneCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mZoneCandleTime);
-    if (mSetupType == OP_BUY)
+    int zoneCandleIndex = iBarShift(EntrySymbol(), EntryTimeFrame(), mZoneCandleTime);
+    if (SetupType() == OP_BUY)
     {
         // invalidate if we broke below our candle zone with a body
-        if (MathMin(iOpen(mEntrySymbol, mEntryTimeFrame, 1), iClose(mEntrySymbol, mEntryTimeFrame, 1)) < iLow(mEntrySymbol, mEntryTimeFrame, zoneCandleIndex))
+        if (MathMin(iOpen(EntrySymbol(), EntryTimeFrame(), 1), iClose(EntrySymbol(), EntryTimeFrame(), 1)) < iLow(EntrySymbol(), EntryTimeFrame(), zoneCandleIndex))
         {
             InvalidateSetup(true);
             return;
         }
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
         // invalidate if we broke above our candle zone with a body
-        if (MathMax(iOpen(mEntrySymbol, mEntryTimeFrame, 1), iClose(mEntrySymbol, mEntryTimeFrame, 1)) > iHigh(mEntrySymbol, mEntryTimeFrame, zoneCandleIndex))
+        if (MathMax(iOpen(EntrySymbol(), EntryTimeFrame(), 1), iClose(EntrySymbol(), EntryTimeFrame(), 1)) > iHigh(EntrySymbol(), EntryTimeFrame(), zoneCandleIndex))
         {
             InvalidateSetup(true);
             return;
@@ -368,15 +359,15 @@ void LiquidationMB::CheckInvalidateSetup()
 
 void LiquidationMB::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
 {
-    EAHelper::ResetLiquidationMBSetup<LiquidationMB>(this, false);
-    EAHelper::InvalidateSetup<LiquidationMB>(this, deletePendingOrder, false, error);
+    EASetupHelper::ResetLiquidationMBSetup<LiquidationMB>(this, false);
+    EASetupHelper::InvalidateSetup<LiquidationMB>(this, deletePendingOrder, false, error);
 }
 
 bool LiquidationMB::Confirmation()
 {
     bool hasTicket = mCurrentSetupTicket.Number() != EMPTY;
 
-    if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
+    if (iBars(EntrySymbol(), EntryTimeFrame()) <= BarCount())
     {
         return hasTicket;
     }
@@ -387,7 +378,7 @@ bool LiquidationMB::Confirmation()
         return false;
     }
 
-    int zoneCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mZoneCandleTime);
+    int zoneCandleIndex = iBarShift(EntrySymbol(), EntryTimeFrame(), mZoneCandleTime);
 
     // make sure we actually had a decent push up after the inital break
     if (zoneCandleIndex < 5)
@@ -395,15 +386,15 @@ bool LiquidationMB::Confirmation()
         return false;
     }
 
-    if (mSetupType == OP_BUY)
+    if (SetupType() == OP_BUY)
     {
         bool pushedUpAfterInitialBreak = false;
         for (int i = zoneCandleIndex - 1; i >= 1; i--)
         {
             // need to have a bearish candle break a previuos one, heading back into the candle zone in order for it to be considered a
             // decent push back in
-            if (CandleStickHelper::IsBearish(mEntrySymbol, mEntryTimeFrame, i) &&
-                MathMin(iOpen(mEntrySymbol, mEntryTimeFrame, i), iClose(mEntrySymbol, mEntryTimeFrame, i)) < iLow(mEntrySymbol, mEntryTimeFrame, i + 1))
+            if (CandleStickHelper::IsBearish(EntrySymbol(), EntryTimeFrame(), i) &&
+                MathMin(iOpen(EntrySymbol(), EntryTimeFrame(), i), iClose(EntrySymbol(), EntryTimeFrame(), i)) < iLow(EntrySymbol(), EntryTimeFrame(), i + 1))
             {
                 pushedUpAfterInitialBreak = true;
                 break;
@@ -416,21 +407,21 @@ bool LiquidationMB::Confirmation()
         }
 
         // need a body break above our previous candle while within the candle zone
-        if (iLow(mEntrySymbol, mEntryTimeFrame, 2) < iHigh(mEntrySymbol, mEntryTimeFrame, zoneCandleIndex) &&
-            iClose(mEntrySymbol, mEntryTimeFrame, 1) > iHigh(mEntrySymbol, mEntryTimeFrame, 2))
+        if (iLow(EntrySymbol(), EntryTimeFrame(), 2) < iHigh(EntrySymbol(), EntryTimeFrame(), zoneCandleIndex) &&
+            iClose(EntrySymbol(), EntryTimeFrame(), 1) > iHigh(EntrySymbol(), EntryTimeFrame(), 2))
         {
             return true;
         }
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
         bool pushedDownAfterInitialBreak = false;
         for (int i = zoneCandleIndex - 1; i >= 1; i--)
         {
             // need to have a bullish candle break a previuos one, heading back into the candle zone in order for it to be considered a
             // decent push back in
-            if (CandleStickHelper::IsBullish(mEntrySymbol, mEntryTimeFrame, i) &&
-                MathMax(iOpen(mEntrySymbol, mEntryTimeFrame, i), iClose(mEntrySymbol, mEntryTimeFrame, i)) > iHigh(mEntrySymbol, mEntryTimeFrame, i + 1))
+            if (CandleStickHelper::IsBullish(EntrySymbol(), EntryTimeFrame(), i) &&
+                MathMax(iOpen(EntrySymbol(), EntryTimeFrame(), i), iClose(EntrySymbol(), EntryTimeFrame(), i)) > iHigh(EntrySymbol(), EntryTimeFrame(), i + 1))
             {
                 pushedDownAfterInitialBreak = true;
                 break;
@@ -442,8 +433,8 @@ bool LiquidationMB::Confirmation()
             return false;
         }
         // need a body break below our previous candle while within the candle zone
-        if (iHigh(mEntrySymbol, mEntryTimeFrame, 2) > iLow(mEntrySymbol, mEntryTimeFrame, zoneCandleIndex) &&
-            iClose(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, 2))
+        if (iHigh(EntrySymbol(), EntryTimeFrame(), 2) > iLow(EntrySymbol(), EntryTimeFrame(), zoneCandleIndex) &&
+            iClose(EntrySymbol(), EntryTimeFrame(), 1) < iLow(EntrySymbol(), EntryTimeFrame(), 2))
         {
             return true;
         }
@@ -454,192 +445,170 @@ bool LiquidationMB::Confirmation()
 
 void LiquidationMB::PlaceOrders()
 {
-    if (mCurrentSetupTicket.Number() != EMPTY)
+    if (!mCurrentSetupTickets.IsEmpty())
     {
-        return;
-    }
-
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
-    {
-        RecordError(GetLastError());
         return;
     }
 
     double entry = 0.0;
     double stopLoss = 0.0;
 
-    if (mSetupType == OP_BUY)
+    if (SetupType() == OP_BUY)
     {
-        double lowest = MathMin(iLow(mEntrySymbol, mEntryTimeFrame, 2), iLow(mEntrySymbol, mEntryTimeFrame, 1));
+        double lowest = MathMin(iLow(EntrySymbol(), EntryTimeFrame(), 2), iLow(EntrySymbol(), EntryTimeFrame(), 1));
 
-        entry = iHigh(mEntrySymbol, mEntryTimeFrame, 1) + OrderHelper::PipsToRange(mMaxSpreadPips + mEntryPaddingPips);
+        entry = iHigh(EntrySymbol(), EntryTimeFrame(), 1) + OrderHelper::PipsToRange(mMaxSpreadPips + mEntryPaddingPips);
         stopLoss = MathMin(lowest - OrderHelper::PipsToRange(mMinStopLossPips), entry - OrderHelper::PipsToRange(mMinStopLossPips));
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
-        double highest = MathMax(iHigh(mEntrySymbol, mEntryTimeFrame, 2), iHigh(mEntrySymbol, mEntryTimeFrame, 1));
-        entry = iLow(mEntrySymbol, mEntryTimeFrame, 1) - OrderHelper::PipsToRange(mEntryPaddingPips);
+        double highest = MathMax(iHigh(EntrySymbol(), EntryTimeFrame(), 2), iHigh(EntrySymbol(), EntryTimeFrame(), 1));
+        entry = iLow(EntrySymbol(), EntryTimeFrame(), 1) - OrderHelper::PipsToRange(mEntryPaddingPips);
 
         stopLoss = MathMax(highest + OrderHelper::PipsToRange(mStopLossPaddingPips + mMaxSpreadPips), entry + OrderHelper::PipsToRange(mMinStopLossPips));
     }
 
     EAHelper::PlaceStopOrder<LiquidationMB>(this, entry, stopLoss);
 
-    if (mCurrentSetupTicket.Number() != EMPTY)
+    if (!mCurrentSetupTickets.IsEmpty())
     {
-        mEntryCandleTime = iTime(mEntrySymbol, mEntryTimeFrame, 1);
+        mEntryCandleTime = iTime(EntrySymbol(), EntryTimeFrame(), 1);
     }
 }
 
-void LiquidationMB::ManageCurrentPendingSetupTicket()
+void LiquidationMB::PreManageTickets()
+{
+}
+
+void LiquidationMB::ManageCurrentPendingSetupTicket(Ticket &ticket)
 {
     mBrokeEntryIndex = false;
 
-    int entryCandleIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
-    if (mCurrentSetupTicket.Number() == EMPTY)
+    int entryCandleIndex = iBarShift(EntrySymbol(), EntryTimeFrame(), mEntryCandleTime);
+    if (SetupType() == OP_BUY && entryCandleIndex > 1)
     {
-        return;
-    }
-
-    if (mSetupType == OP_BUY && entryCandleIndex > 1)
-    {
-        if (iLow(mEntrySymbol, mEntryTimeFrame, 1) < iLow(mEntrySymbol, mEntryTimeFrame, entryCandleIndex))
+        if (iLow(EntrySymbol(), EntryTimeFrame(), 1) < iLow(EntrySymbol(), EntryTimeFrame(), entryCandleIndex))
         {
             InvalidateSetup(true);
         }
     }
-    else if (mSetupType == OP_SELL && entryCandleIndex > 1)
+    else if (SetupType() == OP_SELL && entryCandleIndex > 1)
     {
-        if (iHigh(mEntrySymbol, mEntryTimeFrame, 1) > iHigh(mEntrySymbol, mEntryTimeFrame, entryCandleIndex))
+        if (iHigh(EntrySymbol(), EntryTimeFrame(), 1) > iHigh(EntrySymbol(), EntryTimeFrame(), entryCandleIndex))
         {
             InvalidateSetup(true);
         }
     }
 }
 
-void LiquidationMB::ManageCurrentActiveSetupTicket()
+void LiquidationMB::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
-    if (mCurrentSetupTicket.Number() == EMPTY)
-    {
-        return;
-    }
-
-    int selectError = mCurrentSetupTicket.SelectIfOpen("Stuff");
+    int selectError = ticket.SelectIfOpen("Stuff");
     if (TerminalErrors::IsTerminalError(selectError))
     {
         RecordError(selectError);
         return;
     }
 
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
-    {
-        RecordError(GetLastError());
-        return;
-    }
-
-    int entryIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mEntryCandleTime);
+    int entryIndex = iBarShift(EntrySymbol(), EntryTimeFrame(), mEntryCandleTime);
     bool movedPips = false;
 
-    if (mSetupType == OP_BUY)
+    if (SetupType() == OP_BUY)
     {
         if (!mBrokeEntryIndex)
         {
             for (int i = entryIndex - 1; i >= 0; i--)
             {
-                if (iLow(mEntrySymbol, mEntryTimeFrame, i) < iLow(mEntrySymbol, mEntryTimeFrame, entryIndex))
+                if (iLow(EntrySymbol(), EntryTimeFrame(), i) < iLow(EntrySymbol(), EntryTimeFrame(), entryIndex))
                 {
                     mBrokeEntryIndex = true;
                 }
             }
         }
 
-        if (mBrokeEntryIndex && currentTick.bid >= OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
+        if (mBrokeEntryIndex && CurrentTick().Bid() >= OrderOpenPrice() + PipConverter::PipsToPoints(mBEAdditionalPips))
         {
-            mCurrentSetupTicket.Close();
+            ticket.Close();
             return;
         }
 
         // get too close to our entry after 10 candles and coming back
         if (entryIndex >= 10)
         {
-            if (mLastManagedBid > OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips) &&
-                currentTick.bid <= OrderOpenPrice() + OrderHelper::PipsToRange(mBEAdditionalPips))
+            if (mLastManagedBid > OrderOpenPrice() + PipConverter::PipsToPoints(mBEAdditionalPips) &&
+                CurrentTick().Bid() <= OrderOpenPrice() + PipConverter::PipsToPoints(mBEAdditionalPips))
             {
-                mCurrentSetupTicket.Close();
+                ticket.Close();
                 return;
             }
         }
 
-        movedPips = currentTick.bid - OrderOpenPrice() >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
+        movedPips = CurrentTick().Bid() - OrderOpenPrice() >= PipConverter::PipsToPoints(mPipsToWaitBeforeBE);
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == OP_SELL)
     {
         if (!mBrokeEntryIndex)
         {
             for (int i = entryIndex - 1; i >= 0; i--)
             {
                 // change to any break lower within our entry
-                if (iHigh(mEntrySymbol, mEntryTimeFrame, i) > iHigh(mEntrySymbol, mEntryTimeFrame, entryIndex))
+                if (iHigh(EntrySymbol(), EntryTimeFrame(), i) > iHigh(EntrySymbol(), EntryTimeFrame(), entryIndex))
                 {
                     mBrokeEntryIndex = true;
                 }
             }
         }
 
-        if (mBrokeEntryIndex && currentTick.ask <= OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
+        if (mBrokeEntryIndex && CurrentTick().Ask() <= OrderOpenPrice() - PipConverter::PipsToPoints(mBEAdditionalPips))
         {
-            mCurrentSetupTicket.Close();
+            ticket.Close();
             return;
         }
 
         // get too close to our entry after 10 candles and coming back
         if (entryIndex >= 10)
         {
-            if (mLastManagedAsk < OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips) &&
-                currentTick.ask >= OrderOpenPrice() - OrderHelper::PipsToRange(mBEAdditionalPips))
+            if (mLastManagedAsk < OrderOpenPrice() - PipConverter::PipsToPoints(mBEAdditionalPips) &&
+                CurrentTick().Ask() >= OrderOpenPrice() - PipConverter::PipsToPoints(mBEAdditionalPips))
             {
-                mCurrentSetupTicket.Close();
+                ticket.Close();
                 return;
             }
         }
 
-        movedPips = OrderOpenPrice() - currentTick.ask >= OrderHelper::PipsToRange(mPipsToWaitBeforeBE);
+        movedPips = OrderOpenPrice() - CurrentTick().Ask() >= PipConverter::PipsToPoints(mPipsToWaitBeforeBE);
     }
 
     if (movedPips)
     {
-        EAHelper::MoveToBreakEvenAsSoonAsPossible<LiquidationMB>(this, mBEAdditionalPips);
+        EAOrderHelper::MoveTicketToBreakEven<LiquidationMB>(this, ticket, mBEAdditionalPips);
     }
 
-    mLastManagedAsk = currentTick.ask;
-    mLastManagedBid = currentTick.bid;
+    mLastManagedAsk = CurrentTick().Ask();
+    mLastManagedBid = CurrentTick().Bid();
 }
 
 bool LiquidationMB::MoveToPreviousSetupTickets(Ticket &ticket)
 {
-    return EAHelper::TicketStopLossIsMovedToBreakEven<LiquidationMB>(this, ticket);
+    return EAOrderHelper::TicketStopLossIsMovedToBreakEven<LiquidationMB>(this, ticket);
 }
 
-void LiquidationMB::ManagePreviousSetupTicket(int ticketIndex)
+void LiquidationMB::ManagePreviousSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckPartialTicket<LiquidationMB>(this, mPreviousSetupTickets[ticketIndex]);
+    EAOrderHelper::CheckPartialTicket<LiquidationMB>(this, ticket);
 }
 
-void LiquidationMB::CheckCurrentSetupTicket()
+void LiquidationMB::CheckCurrentSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckCurrentSetupTicket<LiquidationMB>(this);
 }
 
-void LiquidationMB::CheckPreviousSetupTicket(int ticketIndex)
+void LiquidationMB::CheckPreviousSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckPreviousSetupTicket<LiquidationMB>(this, ticketIndex);
 }
 
-void LiquidationMB::RecordTicketOpenData()
+void LiquidationMB::RecordTicketOpenData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameEntryTradeRecord<LiquidationMB>(this);
+    EAHelper::RecordSingleTimeFrameEntryTradeRecord<LiquidationMB>(this, ticket);
 }
 
 void LiquidationMB::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
@@ -649,12 +618,17 @@ void LiquidationMB::RecordTicketPartialData(Ticket &partialedTicket, int newTick
 
 void LiquidationMB::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameExitTradeRecord<LiquidationMB>(this, ticket, mEntryTimeFrame);
+    EAHelper::RecordSingleTimeFrameExitTradeRecord<LiquidationMB>(this, ticket, EntryTimeFrame());
 }
 
-void LiquidationMB::RecordError(int error, string additionalInformation = "")
+void LiquidationMB::RecordError(string methodName, int error, string additionalInformation = "")
 {
-    EAHelper::RecordSingleTimeFrameErrorRecord<LiquidationMB>(this, error, additionalInformation);
+    EAHelper::RecordSingleTimeFrameErrorRecord<LiquidationMB>(this, methodName, error, additionalInformation);
+}
+
+bool LiquidationMB::ShouldReset()
+{
+    return false;
 }
 
 void LiquidationMB::Reset()
