@@ -824,7 +824,7 @@ static void EAOrderHelper::MoveTicketToBreakEven(TEA &ea, Ticket &ticket, double
         return;
     }
 
-    double additionalPrice = PipsConverter::PipsToPoints(additionalPips);
+    double additionalPrice = PipConverter::PipsToPoints(additionalPips);
     double newPrice = 0.0;
     if (type == TicketType::Buy)
     {
@@ -845,7 +845,7 @@ static void EAOrderHelper::MoveTicketToBreakEven(TEA &ea, Ticket &ticket, double
 
     ea.mLastState = EAStates::MODIFYING_ORDER;
 
-    int error = ea.mTM.OrderModify(ticket.Number(), ticket.OpenPrice(), newPrice, ticket.TakeProfit(), ticket.ExpirationTime());
+    int error = ea.mTM.ModifyOrder(ticket.Number(), ticket.OpenPrice(), newPrice, ticket.TakeProfit(), ticket.Expiration());
     if (error != Errors::NO_ERROR)
     {
         ea.RecordError(__FUNCTION__, error);
@@ -1322,7 +1322,7 @@ static void EAOrderHelper::CheckPartialTicket(TEA &ea, Ticket &ticket)
         lotsToPartial = ea.mTM.CleanLotSize(currentTicketLots * ticket.mPartials[0].PercentAsDecimal());
     }
 
-    int partialError = ticket.Partial(currentPrice, lotsToPartial);
+    int partialError = ticket.ClosePartial(currentPrice, lotsToPartial);
     if (partialError != Errors::NO_ERROR)
     {
         ea.RecordError(__FUNCTION__, partialError);

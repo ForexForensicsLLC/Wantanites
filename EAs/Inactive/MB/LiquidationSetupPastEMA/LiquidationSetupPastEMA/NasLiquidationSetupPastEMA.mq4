@@ -10,25 +10,13 @@
 
 #include <Wantanites/Framework/Constants/MagicNumbers.mqh>
 #include <Wantanites/Framework/Constants/SymbolConstants.mqh>
-#include <Wantanites/EAs/Active/LiquidationSetupPastEMA/LiquidationSetupPastEMA.mqh>
-
-string ForcedSymbol = "NAS100";
-int ForcedTimeFrame = 1;
+#include <Wantanites/Framework/Objects/Indicators/MB/EASetup.mqh>
+#include <Wantanites/EAs/Inactive/MB/LiquidationSetupPastEMA/LiquidationSetupPastEMA/LiquidationSetupPastEMA.mqh>
 
 // --- EA Inputs ---
 double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
-
-// -- MBTracker Inputs
-int MBsToTrack = 10;
-int MaxZonesInMB = 5;
-bool AllowMitigatedZones = false;
-bool AllowZonesAfterMBValidation = true;
-bool AllowWickBreaks = true;
-bool OnlyZonesInMB = true;
-bool PrintErrors = false;
-bool CalculateOnTick = false;
 
 string StrategyName = "LiquidationSetupPastEMA/";
 string EAName = "Nas/";
@@ -40,7 +28,7 @@ CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<Partial
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-MBTracker *SetupMBT;
+TradingSession *TS;
 
 LiquidationSetupTracker *LSTBuys;
 LiquidationSetupTracker *LSTSells;
@@ -60,16 +48,12 @@ double CloseRR = 20;
 
 int OnInit()
 {
-    if (!EAHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
-    {
-        return INIT_PARAMETERS_INCORRECT;
-    }
+    TS = new TradingSession();
+    TS.AddHourMinuteSession(16, 30, 23, 0);
 
-    SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
-
-    LSTBuys = new LiquidationSetupTracker(OP_BUY, SetupMBT);
-    LMBBuys = new LiquidationMB(MagicNumbers::NasLiquidationMBBuys, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
-                                ErrorWriter, SetupMBT, LSTBuys);
+    LSTBuys = new LiquidationSetupTracker(SignalType::Bullish, MBT);
+    LMBBuys = new LiquidationMB(-1, SignalType::Bullish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
+                                ErrorWriter, MBT, LSTBuys);
     LMBBuys.SetPartialCSVRecordWriter(PartialWriter);
     LMBBuys.AddPartial(1000, 100);
 
@@ -79,11 +63,11 @@ int OnInit()
     LMBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     LMBBuys.mBEAdditionalPips = BEAdditionalPips;
 
-    LMBBuys.AddTradingSession(16, 30, 23, 0);
+    LMBBuys.AddTradingSession(TS);
 
-    LSTSells = new LiquidationSetupTracker(OP_SELL, SetupMBT);
-    LMBSells = new LiquidationMB(MagicNumbers::NasLiquidationMBSells, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
-                                 ErrorWriter, SetupMBT, LSTSells);
+    LSTSells = new LiquidationSetupTracker(SignalType::Bearish, MBT);
+    LMBSells = new LiquidationMB(-1, SignalType::Bearish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
+                                 ErrorWriter, MBT, LSTSells);
     LMBSells.SetPartialCSVRecordWriter(PartialWriter);
     LMBSells.AddPartial(1000, 100);
 
@@ -93,14 +77,14 @@ int OnInit()
     LMBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     LMBSells.mBEAdditionalPips = BEAdditionalPips;
 
-    LMBSells.AddTradingSession(16, 30, 23, 0);
+    LMBSells.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete SetupMBT;
+    delete MBT;
 
     delete LSTBuys;
     delete LSTSells;
