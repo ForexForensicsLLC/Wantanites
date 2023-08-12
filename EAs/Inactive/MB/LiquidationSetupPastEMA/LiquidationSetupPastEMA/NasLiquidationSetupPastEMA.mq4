@@ -14,7 +14,7 @@
 #include <Wantanites/EAs/Inactive/MB/LiquidationSetupPastEMA/LiquidationSetupPastEMA/LiquidationSetupPastEMA.mqh>
 
 // --- EA Inputs ---
-double RiskPercent = 1;
+double RiskPercent = 0.1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
@@ -49,7 +49,8 @@ double CloseRR = 20;
 int OnInit()
 {
     TS = new TradingSession();
-    TS.AddHourMinuteSession(16, 30, 23, 0);
+    // TS.AddHourMinuteSession(16, 30, 23, 0);
+    TS.AddHourMinuteSession(0, 0, 23, 59);
 
     LSTBuys = new LiquidationSetupTracker(SignalType::Bullish, MBT);
     LMBBuys = new LiquidationMB(-1, SignalType::Bullish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,

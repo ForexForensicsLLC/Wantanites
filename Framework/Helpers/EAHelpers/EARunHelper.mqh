@@ -23,6 +23,9 @@ public:
     template <typename TEA>
     static void Run(TEA &ea);
 
+    template <typename TEA>
+    static void ShowOpenTicketProfit(TEA &ea);
+
 private:
     template <typename TEA>
     static void ManagePreviousSetupTickets(TEA &ea);
@@ -125,6 +128,45 @@ static void EARunHelper::Run(TEA &ea)
                     ea.mCurrentSetupTickets.RemoveWhere<TTicketNumberLocator, int>(Ticket::EqualsTicketNumber, ea.mCurrentSetupTickets[i].Number());
                 }
             }
+        }
+    }
+}
+
+template <typename TEA>
+static void EARunHelper::ShowOpenTicketProfit(TEA &ea)
+{
+    string profitObjectName = "ProfitLabel" + (ea.SetupType() == SignalType::Bearish ? "Bearish" : "Bullish");
+    if (ea.mCurrentSetupTickets.Size() > 0)
+    {
+        double profit = 0.0;
+        for (int i = 0; i < ea.mCurrentSetupTickets.Size(); i++)
+        {
+            profit += ea.mCurrentSetupTickets[i].Profit();
+        }
+
+        color clr = profit > 0 ? clrLime : clrMagenta;
+        string text = StringFormat("$%.2f", profit);
+
+        if (ObjectFind(ChartID(), profitObjectName) < 0)
+        {
+            if (!ObjectCreate(ChartID(), profitObjectName, OBJ_LABEL, 0, 0, 0))
+            {
+                Print("Failed to create obj. ", GetLastError());
+                return;
+            }
+
+            ObjectSet(profitObjectName, OBJPROP_CORNER, CORNER_RIGHT_UPPER);
+            ObjectSet(profitObjectName, OBJPROP_XDISTANCE, 20);
+            ObjectSet(profitObjectName, OBJPROP_YDISTANCE, 20);
+        }
+
+        ObjectSetText(profitObjectName, text, 20, "Times New Roman", clr);
+    }
+    else
+    {
+        if (ObjectFind(ChartID(), profitObjectName) >= 0)
+        {
+            ObjectDelete(ChartID(), profitObjectName);
         }
     }
 }

@@ -117,6 +117,7 @@ LiquidationMB::~LiquidationMB()
 void LiquidationMB::PreRun()
 {
     mSetupMBT.Draw();
+    EARunHelper::ShowOpenTicketProfit<LiquidationMB>(this);
 }
 
 bool LiquidationMB::AllowedToTrade()
@@ -138,6 +139,11 @@ void LiquidationMB::CheckSetSetup()
 
     if (EASetupHelper::CheckSetLiquidationMBSetup<LiquidationMB>(this, mLST, mFirstMBInSetupNumber, mSecondMBInSetupNumber, mLiquidationMBInSetupNumber))
     {
+        if (mFirstMBInSetupNumber == 23)
+        {
+            return;
+        }
+
         MBState *firstMBInSetup;
         if (!mSetupMBT.GetMB(mFirstMBInSetupNumber, firstMBInSetup))
         {
@@ -145,10 +151,10 @@ void LiquidationMB::CheckSetSetup()
         }
 
         // make sure first mb isn't too small
-        if (firstMBInSetup.StartIndex() - firstMBInSetup.EndIndex() < 10)
-        {
-            return;
-        }
+        // if (firstMBInSetup.StartIndex() - firstMBInSetup.EndIndex() < 10)
+        // {
+        //     return;
+        // }
 
         bool zoneIsHolding = false;
         int error = EASetupHelper::LiquidationMBZoneIsHolding<LiquidationMB>(this, mSetupMBT, mFirstMBInSetupNumber, mSecondMBInSetupNumber, zoneIsHolding);
@@ -206,10 +212,10 @@ void LiquidationMB::CheckSetSetup()
                 }
 
                 // need to break within 3 candles of our lowest
-                if (lowestIndex > 3)
-                {
-                    return;
-                }
+                // if (lowestIndex > 3)
+                // {
+                //     return;
+                // }
 
                 // make sure low is above ema
                 if (iLow(EntrySymbol(), EntryTimeFrame(), lowestIndex) < EMA(lowestIndex))
@@ -218,16 +224,16 @@ void LiquidationMB::CheckSetSetup()
                 }
 
                 // make sure we broke above
-                if (iClose(EntrySymbol(), EntryTimeFrame(), 1) < iHigh(EntrySymbol(), EntryTimeFrame(), 2))
-                {
-                    return;
-                }
+                // if (iClose(EntrySymbol(), EntryTimeFrame(), 1) < iHigh(EntrySymbol(), EntryTimeFrame(), 2))
+                // {
+                //     return;
+                // }
 
                 // make sure we have a decent sized setup / mbs aren't too small
-                if (firstMBInSetup.EndIndex() <= minBreakLength)
-                {
-                    return;
-                }
+                // if (firstMBInSetup.EndIndex() <= minBreakLength)
+                // {
+                //     return;
+                // }
 
                 mHasSetup = true;
                 mZoneCandleTime = iTime(EntrySymbol(), EntryTimeFrame(), 2);
@@ -266,10 +272,10 @@ void LiquidationMB::CheckSetSetup()
                 }
 
                 // need to break within 3 candles of our highest
-                if (highestIndex > 3)
-                {
-                    return;
-                }
+                // if (highestIndex > 3)
+                // {
+                //     return;
+                // }
 
                 // make sure high is below ema
                 if (iHigh(EntrySymbol(), EntryTimeFrame(), highestIndex) > EMA(highestIndex))
@@ -278,16 +284,16 @@ void LiquidationMB::CheckSetSetup()
                 }
 
                 // make sure we broke below a candle
-                if (iClose(EntrySymbol(), EntryTimeFrame(), 1) > iLow(EntrySymbol(), EntryTimeFrame(), 2))
-                {
-                    return;
-                }
+                // if (iClose(EntrySymbol(), EntryTimeFrame(), 1) > iLow(EntrySymbol(), EntryTimeFrame(), 2))
+                // {
+                //     return;
+                // }
 
                 // make sure we have a decent sized setup / mbs aren't too small
-                if (firstMBInSetup.EndIndex() <= minBreakLength)
-                {
-                    return;
-                }
+                // if (firstMBInSetup.EndIndex() <= minBreakLength)
+                // {
+                //     return;
+                // }
 
                 mHasSetup = true;
                 mZoneCandleTime = iTime(EntrySymbol(), EntryTimeFrame(), 2);
@@ -336,25 +342,25 @@ void LiquidationMB::CheckInvalidateSetup()
         return;
     }
 
-    int zoneCandleIndex = iBarShift(EntrySymbol(), EntryTimeFrame(), mZoneCandleTime);
-    if (SetupType() == SignalType::Bullish)
-    {
-        // invalidate if we broke below our candle zone with a body
-        if (MathMin(iOpen(EntrySymbol(), EntryTimeFrame(), 1), iClose(EntrySymbol(), EntryTimeFrame(), 1)) < iLow(EntrySymbol(), EntryTimeFrame(), zoneCandleIndex))
-        {
-            InvalidateSetup(true);
-            return;
-        }
-    }
-    else if (SetupType() == SignalType::Bearish)
-    {
-        // invalidate if we broke above our candle zone with a body
-        if (MathMax(iOpen(EntrySymbol(), EntryTimeFrame(), 1), iClose(EntrySymbol(), EntryTimeFrame(), 1)) > iHigh(EntrySymbol(), EntryTimeFrame(), zoneCandleIndex))
-        {
-            InvalidateSetup(true);
-            return;
-        }
-    }
+    // int zoneCandleIndex = iBarShift(EntrySymbol(), EntryTimeFrame(), mZoneCandleTime);
+    // if (SetupType() == SignalType::Bullish)
+    // {
+    //     // invalidate if we broke below our candle zone with a body
+    //     if (MathMin(iOpen(EntrySymbol(), EntryTimeFrame(), 1), iClose(EntrySymbol(), EntryTimeFrame(), 1)) < iLow(EntrySymbol(), EntryTimeFrame(), zoneCandleIndex))
+    //     {
+    //         InvalidateSetup(true);
+    //         return;
+    //     }
+    // }
+    // else if (SetupType() == SignalType::Bearish)
+    // {
+    //     // invalidate if we broke above our candle zone with a body
+    //     if (MathMax(iOpen(EntrySymbol(), EntryTimeFrame(), 1), iClose(EntrySymbol(), EntryTimeFrame(), 1)) > iHigh(EntrySymbol(), EntryTimeFrame(), zoneCandleIndex))
+    //     {
+    //         InvalidateSetup(true);
+    //         return;
+    //     }
+    // }
 }
 
 void LiquidationMB::InvalidateSetup(bool deletePendingOrder, int error = 0)
@@ -368,12 +374,11 @@ void LiquidationMB::InvalidateSetup(bool deletePendingOrder, int error = 0)
 
 bool LiquidationMB::Confirmation()
 {
-    bool hasTicket = !mCurrentSetupTickets.IsEmpty();
-
-    if (iBars(EntrySymbol(), EntryTimeFrame()) <= BarCount())
-    {
-        return hasTicket;
-    }
+    // bool hasTicket = !mCurrentSetupTickets.IsEmpty();
+    // if (iBars(EntrySymbol(), EntryTimeFrame()) <= BarCount())
+    // {
+    //     return hasTicket;
+    // }
 
     if (mSetupMBT.MBsCreated() - 1 != mMostRecentMB)
     {
@@ -381,208 +386,233 @@ bool LiquidationMB::Confirmation()
         return false;
     }
 
-    int zoneCandleIndex = iBarShift(EntrySymbol(), EntryTimeFrame(), mZoneCandleTime);
+    return (SetupType() == SignalType::Bullish && CandleStickHelper::LowerWickLength(EntrySymbol(), EntryTimeFrame(), 0) > PipConverter::PipsToPoints(0.5)) ||
+           (SetupType() == SignalType::Bearish && CandleStickHelper::UpperWickLength(EntrySymbol(), EntryTimeFrame(), 0) > PipConverter::PipsToPoints(0.5));
 
-    // make sure we actually had a decent push up after the inital break
-    if (zoneCandleIndex < 5)
-    {
-        return false;
-    }
+    // int zoneCandleIndex = iBarShift(EntrySymbol(), EntryTimeFrame(), mZoneCandleTime);
 
-    if (SetupType() == SignalType::Bullish)
-    {
-        bool pushedUpAfterInitialBreak = false;
-        for (int i = zoneCandleIndex - 1; i >= 1; i--)
-        {
-            // need to have a bearish candle break a previuos one, heading back into the candle zone in order for it to be considered a
-            // decent push back in
-            if (CandleStickHelper::IsBearish(EntrySymbol(), EntryTimeFrame(), i) &&
-                MathMin(iOpen(EntrySymbol(), EntryTimeFrame(), i), iClose(EntrySymbol(), EntryTimeFrame(), i)) < iLow(EntrySymbol(), EntryTimeFrame(), i + 1))
-            {
-                pushedUpAfterInitialBreak = true;
-                break;
-            }
-        }
+    // // make sure we actually had a decent push up after the inital break
+    // if (zoneCandleIndex < 5)
+    // {
+    //     return false;
+    // }
 
-        if (!pushedUpAfterInitialBreak)
-        {
-            return false;
-        }
+    // if (SetupType() == SignalType::Bullish)
+    // {
+    //     bool pushedUpAfterInitialBreak = false;
+    //     for (int i = zoneCandleIndex - 1; i >= 1; i--)
+    //     {
+    //         // need to have a bearish candle break a previuos one, heading back into the candle zone in order for it to be considered a
+    //         // decent push back in
+    //         if (CandleStickHelper::IsBearish(EntrySymbol(), EntryTimeFrame(), i) &&
+    //             MathMin(iOpen(EntrySymbol(), EntryTimeFrame(), i), iClose(EntrySymbol(), EntryTimeFrame(), i)) < iLow(EntrySymbol(), EntryTimeFrame(), i + 1))
+    //         {
+    //             pushedUpAfterInitialBreak = true;
+    //             break;
+    //         }
+    //     }
 
-        // need a body break above our previous candle while within the candle zone
-        if (iLow(EntrySymbol(), EntryTimeFrame(), 2) < iHigh(EntrySymbol(), EntryTimeFrame(), zoneCandleIndex) &&
-            iClose(EntrySymbol(), EntryTimeFrame(), 1) > iHigh(EntrySymbol(), EntryTimeFrame(), 2))
-        {
-            return true;
-        }
-    }
-    else if (SetupType() == SignalType::Bearish)
-    {
-        bool pushedDownAfterInitialBreak = false;
-        for (int i = zoneCandleIndex - 1; i >= 1; i--)
-        {
-            // need to have a bullish candle break a previuos one, heading back into the candle zone in order for it to be considered a
-            // decent push back in
-            if (CandleStickHelper::IsBullish(EntrySymbol(), EntryTimeFrame(), i) &&
-                MathMax(iOpen(EntrySymbol(), EntryTimeFrame(), i), iClose(EntrySymbol(), EntryTimeFrame(), i)) > iHigh(EntrySymbol(), EntryTimeFrame(), i + 1))
-            {
-                pushedDownAfterInitialBreak = true;
-                break;
-            }
-        }
+    //     if (!pushedUpAfterInitialBreak)
+    //     {
+    //         return false;
+    //     }
 
-        if (!pushedDownAfterInitialBreak)
-        {
-            return false;
-        }
-        // need a body break below our previous candle while within the candle zone
-        if (iHigh(EntrySymbol(), EntryTimeFrame(), 2) > iLow(EntrySymbol(), EntryTimeFrame(), zoneCandleIndex) &&
-            iClose(EntrySymbol(), EntryTimeFrame(), 1) < iLow(EntrySymbol(), EntryTimeFrame(), 2))
-        {
-            return true;
-        }
-    }
+    //     // need a body break above our previous candle while within the candle zone
+    //     if (iLow(EntrySymbol(), EntryTimeFrame(), 2) < iHigh(EntrySymbol(), EntryTimeFrame(), zoneCandleIndex) &&
+    //         iClose(EntrySymbol(), EntryTimeFrame(), 1) > iHigh(EntrySymbol(), EntryTimeFrame(), 2))
+    //     {
+    //         return true;
+    //     }
+    // }
+    // else if (SetupType() == SignalType::Bearish)
+    // {
+    //     bool pushedDownAfterInitialBreak = false;
+    //     for (int i = zoneCandleIndex - 1; i >= 1; i--)
+    //     {
+    //         // need to have a bullish candle break a previuos one, heading back into the candle zone in order for it to be considered a
+    //         // decent push back in
+    //         if (CandleStickHelper::IsBullish(EntrySymbol(), EntryTimeFrame(), i) &&
+    //             MathMax(iOpen(EntrySymbol(), EntryTimeFrame(), i), iClose(EntrySymbol(), EntryTimeFrame(), i)) > iHigh(EntrySymbol(), EntryTimeFrame(), i + 1))
+    //         {
+    //             pushedDownAfterInitialBreak = true;
+    //             break;
+    //         }
+    //     }
 
-    return hasTicket;
+    //     if (!pushedDownAfterInitialBreak)
+    //     {
+    //         return false;
+    //     }
+    //     // need a body break below our previous candle while within the candle zone
+    //     if (iHigh(EntrySymbol(), EntryTimeFrame(), 2) > iLow(EntrySymbol(), EntryTimeFrame(), zoneCandleIndex) &&
+    //         iClose(EntrySymbol(), EntryTimeFrame(), 1) < iLow(EntrySymbol(), EntryTimeFrame(), 2))
+    //     {
+    //         return true;
+    //     }
+    // }
+
+    // return hasTicket;
 }
 
 void LiquidationMB::PlaceOrders()
 {
-    if (!mCurrentSetupTickets.IsEmpty())
-    {
-        return;
-    }
-
     double entry = 0.0;
     double stopLoss = 0.0;
 
     if (SetupType() == SignalType::Bullish)
     {
-        double lowest = MathMin(iLow(EntrySymbol(), EntryTimeFrame(), 2), iLow(EntrySymbol(), EntryTimeFrame(), 1));
-
-        entry = iHigh(EntrySymbol(), EntryTimeFrame(), 1) + PipConverter::PipsToPoints(mMaxSpreadPips + mEntryPaddingPips);
-        stopLoss = MathMin(lowest - PipConverter::PipsToPoints(mMinStopLossPips), entry - PipConverter::PipsToPoints(mMinStopLossPips));
+        entry = CurrentTick().Ask();
+        stopLoss = MathMin(iLow(EntrySymbol(), EntryTimeFrame(), 0), CurrentTick().Bid() - PipConverter::PipsToPoints(3));
     }
     else if (SetupType() == SignalType::Bearish)
     {
-        double highest = MathMax(iHigh(EntrySymbol(), EntryTimeFrame(), 2), iHigh(EntrySymbol(), EntryTimeFrame(), 1));
-        entry = iLow(EntrySymbol(), EntryTimeFrame(), 1) - PipConverter::PipsToPoints(mEntryPaddingPips);
-
-        stopLoss = MathMax(highest + PipConverter::PipsToPoints(mStopLossPaddingPips + mMaxSpreadPips), entry + PipConverter::PipsToPoints(mMinStopLossPips));
+        entry = CurrentTick().Bid();
+        stopLoss = MathMax(iHigh(EntrySymbol(), EntryTimeFrame(), 0), CurrentTick().Ask() + PipConverter::PipsToPoints(3));
     }
 
-    EAOrderHelper::PlaceStopOrder<LiquidationMB>(this, entry, stopLoss);
+    EAOrderHelper::PlaceMarketOrder<LiquidationMB>(this, entry, stopLoss);
 
-    if (!mCurrentSetupTickets.IsEmpty())
-    {
-        mEntryCandleTime = iTime(EntrySymbol(), EntryTimeFrame(), 1);
-    }
+    // if (SetupType() == SignalType::Bullish)
+    // {
+    //     double lowest = MathMin(iLow(EntrySymbol(), EntryTimeFrame(), 2), iLow(EntrySymbol(), EntryTimeFrame(), 1));
+
+    //     entry = iHigh(EntrySymbol(), EntryTimeFrame(), 1) + PipConverter::PipsToPoints(mMaxSpreadPips + mEntryPaddingPips);
+    //     stopLoss = MathMin(lowest - PipConverter::PipsToPoints(mMinStopLossPips), entry - PipConverter::PipsToPoints(mMinStopLossPips));
+    // }
+    // else if (SetupType() == SignalType::Bearish)
+    // {
+    //     double highest = MathMax(iHigh(EntrySymbol(), EntryTimeFrame(), 2), iHigh(EntrySymbol(), EntryTimeFrame(), 1));
+    //     entry = iLow(EntrySymbol(), EntryTimeFrame(), 1) - PipConverter::PipsToPoints(mEntryPaddingPips);
+
+    //     stopLoss = MathMax(highest + PipConverter::PipsToPoints(mStopLossPaddingPips + mMaxSpreadPips), entry + PipConverter::PipsToPoints(mMinStopLossPips));
+    // }
+
+    // EAOrderHelper::PlaceStopOrder<LiquidationMB>(this, entry, stopLoss);
+
+    // if (!mCurrentSetupTickets.IsEmpty())
+    // {
+    //     mEntryCandleTime = iTime(EntrySymbol(), EntryTimeFrame(), 1);
+    // }
 }
 
 void LiquidationMB::PreManageTickets()
 {
+    double profit = 0.0;
+    for (int i = 0; i < mCurrentSetupTickets.Size(); i++)
+    {
+        profit += mCurrentSetupTickets[i].Profit();
+    }
+
+    double profitTarget = AccountInfoDouble(ACCOUNT_BALANCE) * 0.01;
+    if (profit > profitTarget)
+    {
+        for (int i = 0; i < mCurrentSetupTickets.Size(); i++)
+        {
+            mCurrentSetupTickets[i].Close();
+        }
+    }
 }
 
 void LiquidationMB::ManageCurrentPendingSetupTicket(Ticket &ticket)
 {
     mBrokeEntryIndex = false;
 
-    int entryCandleIndex = iBarShift(EntrySymbol(), EntryTimeFrame(), mEntryCandleTime);
-    if (SetupType() == SignalType::Bullish && entryCandleIndex > 1)
-    {
-        if (iLow(EntrySymbol(), EntryTimeFrame(), 1) < iLow(EntrySymbol(), EntryTimeFrame(), entryCandleIndex))
-        {
-            InvalidateSetup(true);
-        }
-    }
-    else if (SetupType() == SignalType::Bearish && entryCandleIndex > 1)
-    {
-        if (iHigh(EntrySymbol(), EntryTimeFrame(), 1) > iHigh(EntrySymbol(), EntryTimeFrame(), entryCandleIndex))
-        {
-            InvalidateSetup(true);
-        }
-    }
+    // int entryCandleIndex = iBarShift(EntrySymbol(), EntryTimeFrame(), mEntryCandleTime);
+    // if (SetupType() == SignalType::Bullish && entryCandleIndex > 1)
+    // {
+    //     if (iLow(EntrySymbol(), EntryTimeFrame(), 1) < iLow(EntrySymbol(), EntryTimeFrame(), entryCandleIndex))
+    //     {
+    //         InvalidateSetup(true);
+    //     }
+    // }
+    // else if (SetupType() == SignalType::Bearish && entryCandleIndex > 1)
+    // {
+    //     if (iHigh(EntrySymbol(), EntryTimeFrame(), 1) > iHigh(EntrySymbol(), EntryTimeFrame(), entryCandleIndex))
+    //     {
+    //         InvalidateSetup(true);
+    //     }
+    // }
 }
 
 void LiquidationMB::ManageCurrentActiveSetupTicket(Ticket &ticket)
 {
-    int entryIndex = iBarShift(EntrySymbol(), EntryTimeFrame(), mEntryCandleTime);
-    bool movedPips = false;
+    // int entryIndex = iBarShift(EntrySymbol(), EntryTimeFrame(), mEntryCandleTime);
+    // bool movedPips = false;
 
-    double openPrice = ticket.OpenPrice();
-    if (SetupType() == SignalType::Bullish)
-    {
-        if (!mBrokeEntryIndex)
-        {
-            for (int i = entryIndex - 1; i >= 0; i--)
-            {
-                if (iLow(EntrySymbol(), EntryTimeFrame(), i) < iLow(EntrySymbol(), EntryTimeFrame(), entryIndex))
-                {
-                    mBrokeEntryIndex = true;
-                }
-            }
-        }
+    // double openPrice = ticket.OpenPrice();
+    // if (SetupType() == SignalType::Bullish)
+    // {
+    //     if (!mBrokeEntryIndex)
+    //     {
+    //         for (int i = entryIndex - 1; i >= 0; i--)
+    //         {
+    //             if (iLow(EntrySymbol(), EntryTimeFrame(), i) < iLow(EntrySymbol(), EntryTimeFrame(), entryIndex))
+    //             {
+    //                 mBrokeEntryIndex = true;
+    //             }
+    //         }
+    //     }
 
-        if (mBrokeEntryIndex && CurrentTick().Bid() >= openPrice + PipConverter::PipsToPoints(mBEAdditionalPips))
-        {
-            ticket.Close();
-            return;
-        }
+    //     if (mBrokeEntryIndex && CurrentTick().Bid() >= openPrice + PipConverter::PipsToPoints(mBEAdditionalPips))
+    //     {
+    //         ticket.Close();
+    //         return;
+    //     }
 
-        // get too close to our entry after 10 candles and coming back
-        if (entryIndex >= 10)
-        {
-            if (mLastManagedBid > openPrice + PipConverter::PipsToPoints(mBEAdditionalPips) &&
-                CurrentTick().Bid() <= openPrice + PipConverter::PipsToPoints(mBEAdditionalPips))
-            {
-                ticket.Close();
-                return;
-            }
-        }
+    //     // get too close to our entry after 10 candles and coming back
+    //     if (entryIndex >= 10)
+    //     {
+    //         if (mLastManagedBid > openPrice + PipConverter::PipsToPoints(mBEAdditionalPips) &&
+    //             CurrentTick().Bid() <= openPrice + PipConverter::PipsToPoints(mBEAdditionalPips))
+    //         {
+    //             ticket.Close();
+    //             return;
+    //         }
+    //     }
 
-        movedPips = CurrentTick().Bid() - openPrice >= PipConverter::PipsToPoints(mPipsToWaitBeforeBE);
-    }
-    else if (SetupType() == SignalType::Bearish)
-    {
-        if (!mBrokeEntryIndex)
-        {
-            for (int i = entryIndex - 1; i >= 0; i--)
-            {
-                // change to any break lower within our entry
-                if (iHigh(EntrySymbol(), EntryTimeFrame(), i) > iHigh(EntrySymbol(), EntryTimeFrame(), entryIndex))
-                {
-                    mBrokeEntryIndex = true;
-                }
-            }
-        }
+    //     movedPips = CurrentTick().Bid() - openPrice >= PipConverter::PipsToPoints(mPipsToWaitBeforeBE);
+    // }
+    // else if (SetupType() == SignalType::Bearish)
+    // {
+    //     if (!mBrokeEntryIndex)
+    //     {
+    //         for (int i = entryIndex - 1; i >= 0; i--)
+    //         {
+    //             // change to any break lower within our entry
+    //             if (iHigh(EntrySymbol(), EntryTimeFrame(), i) > iHigh(EntrySymbol(), EntryTimeFrame(), entryIndex))
+    //             {
+    //                 mBrokeEntryIndex = true;
+    //             }
+    //         }
+    //     }
 
-        if (mBrokeEntryIndex && CurrentTick().Ask() <= openPrice - PipConverter::PipsToPoints(mBEAdditionalPips))
-        {
-            ticket.Close();
-            return;
-        }
+    //     if (mBrokeEntryIndex && CurrentTick().Ask() <= openPrice - PipConverter::PipsToPoints(mBEAdditionalPips))
+    //     {
+    //         ticket.Close();
+    //         return;
+    //     }
 
-        // get too close to our entry after 10 candles and coming back
-        if (entryIndex >= 10)
-        {
-            if (mLastManagedAsk < openPrice - PipConverter::PipsToPoints(mBEAdditionalPips) &&
-                CurrentTick().Ask() >= openPrice - PipConverter::PipsToPoints(mBEAdditionalPips))
-            {
-                ticket.Close();
-                return;
-            }
-        }
+    //     // get too close to our entry after 10 candles and coming back
+    //     if (entryIndex >= 10)
+    //     {
+    //         if (mLastManagedAsk < openPrice - PipConverter::PipsToPoints(mBEAdditionalPips) &&
+    //             CurrentTick().Ask() >= openPrice - PipConverter::PipsToPoints(mBEAdditionalPips))
+    //         {
+    //             ticket.Close();
+    //             return;
+    //         }
+    //     }
 
-        movedPips = openPrice - CurrentTick().Ask() >= PipConverter::PipsToPoints(mPipsToWaitBeforeBE);
-    }
+    //     movedPips = openPrice - CurrentTick().Ask() >= PipConverter::PipsToPoints(mPipsToWaitBeforeBE);
+    // }
 
-    if (movedPips)
-    {
-        EAOrderHelper::MoveTicketToBreakEven<LiquidationMB>(this, ticket, mBEAdditionalPips);
-    }
+    // if (movedPips)
+    // {
+    //     EAOrderHelper::MoveTicketToBreakEven<LiquidationMB>(this, ticket, mBEAdditionalPips);
+    // }
 
-    mLastManagedAsk = CurrentTick().Ask();
-    mLastManagedBid = CurrentTick().Bid();
+    // mLastManagedAsk = CurrentTick().Ask();
+    // mLastManagedBid = CurrentTick().Bid();
 }
 
 bool LiquidationMB::MoveToPreviousSetupTickets(Ticket &ticket)
@@ -592,7 +622,7 @@ bool LiquidationMB::MoveToPreviousSetupTickets(Ticket &ticket)
 
 void LiquidationMB::ManagePreviousSetupTicket(Ticket &ticket)
 {
-    EAOrderHelper::CheckPartialTicket<LiquidationMB>(this, ticket);
+    // EAOrderHelper::CheckPartialTicket<LiquidationMB>(this, ticket);
 }
 
 void LiquidationMB::CheckCurrentSetupTicket(Ticket &ticket)
