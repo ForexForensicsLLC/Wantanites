@@ -160,7 +160,7 @@ static void EARunHelper::ShowOpenTicketProfit(TEA &ea)
             ObjectSet(profitObjectName, OBJPROP_YDISTANCE, 20);
         }
 
-        ObjectSetText(profitObjectName, text, 20, "Times New Roman", clr);
+        ObjectSetText(profitObjectName, text, 30, "Times New Roman", clr);
     }
     else
     {
