@@ -78,6 +78,9 @@ public:
     template <typename TEA>
     static bool GetCandleLowForEconomicEvent(TEA &ea, double &low, int candleIndex);
 
+    template <typename TEA>
+    static bool TradeWillWin(TEA &ea, TicketType type, double entry, double stopLoss, double close);
+
     // =========================================================================
     // Check Invalidate Setup
     // =========================================================================
@@ -1056,6 +1059,42 @@ static bool EASetupHelper::GetCandleLowForEconomicEvent(TEA &ea, double &low, in
     }
 
     low = ConstantValues::EmptyDouble;
+    return false;
+}
+
+template <typename TEA>
+static bool TradeWillWin(TEA &ea, TicketType type, double entry, double stopLoss, double close)
+{
+    ObjectList<CandleStick> *candleSticks = CandleStickTracker::GetTodaysCandleSticks();
+    if (type == TicketType::Buy || type == TicketType::BuyStop || type == TicketType::BuyLimit)
+    {
+        for (int i = 0; i < candleSticks.Size(); i++)
+        {
+            if (candleSticks[i].Low() <= stopLoss)
+            {
+                return false;
+            }
+            else if (candleSticks[i].High() >= close)
+            {
+                return true;
+            }
+        }
+    }
+    else if (type == TicketType::Sell || type == TicketType::SellStop || type == TicketType::SellLimit)
+    {
+        for (int i = 0; i < candleSticks.Size(); i++)
+        {
+            if (candleSticks[i].High() >= stopLoss)
+            {
+                return false;
+            }
+            else if (candleSticks[i].Low() <= close)
+            {
+                return true;
+            }
+        }
+    }
+
     return false;
 }
 
