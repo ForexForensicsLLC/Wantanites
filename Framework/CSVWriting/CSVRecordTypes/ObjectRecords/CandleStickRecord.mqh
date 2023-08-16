@@ -10,11 +10,12 @@
 
 #include <Wantanites\Framework\Helpers\FileHelper.mqh>
 #include <Wantanites\Framework\Helpers\DateTimeHelper.mqh>
+#include <Wantanites\Framework\CSVWriting\CSVRecordTypes\TradeRecords\RecordColumns.mqh>
 
-class CandleStickRecord
+class CandleStickRecord : public RecordColumns
 {
 public:
-    datetime StartTime;
+    datetime Date;
     double Open;
     double Close;
     double High;
@@ -34,7 +35,7 @@ CandleStickRecord::~CandleStickRecord() {}
 
 void CandleStickRecord::WriteHeaders(int fileHandle, bool writeDelimiter = false)
 {
-    FileHelper::WriteString(fileHandle, "Start Time");
+    FileHelper::WriteString(fileHandle, "Date");
     FileHelper::WriteString(fileHandle, "Open");
     FileHelper::WriteString(fileHandle, "Close");
     FileHelper::WriteString(fileHandle, "High");
@@ -42,7 +43,7 @@ void CandleStickRecord::WriteHeaders(int fileHandle, bool writeDelimiter = false
 }
 void CandleStickRecord::WriteRecord(int fileHandle, bool writeDelimiter = false)
 {
-    FileHelper::WriteDateTime(fileHandle, StartTime, TimeFormat::MQL); // write in MQL format since we are going to have to read the values in at some point
+    FileHelper::WriteDateTime(fileHandle, Date, TimeFormat::MQL); // write in MQL format since we are going to have to read the values in at some point
     FileHelper::WriteDouble(fileHandle, Open, Digits());
     FileHelper::WriteDouble(fileHandle, Close, Digits());
     FileHelper::WriteDouble(fileHandle, High, Digits());
@@ -51,7 +52,7 @@ void CandleStickRecord::WriteRecord(int fileHandle, bool writeDelimiter = false)
 
 void CandleStickRecord::ReadRow(int fileHandle)
 {
-    StartTime = FileReadDatetime(fileHandle);
+    Date = FileReadDatetime(fileHandle);
     Open = StringToDouble(FileReadString(fileHandle));
     Close = StringToDouble(FileReadString(fileHandle));
     High = StringToDouble(FileReadString(fileHandle));

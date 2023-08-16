@@ -13,16 +13,16 @@
 
 #include <Wantanites\Framework\Helpers\DateTimeHelper.mqh>
 
-string Directory = "CandleStickRecords/";
+string Directory = "CandleStickRecords/" + Symbol() + "/";
 string CSVName = IntegerToString(Period()) + ".csv";
-CSVRecordWriter<EconomicEventAndCandleRecord> *CandleStickWriter;
+CSVRecordWriter<CandleStickRecord> *CandleStickWriter;
 
 int BarCount;
 
 int OnInit()
 {
     BarCount = 0;
-    CSVRecordWriter<CandleStickRecord> *CandleStickWriter = new CSVRecordWriter<CandleStickRecord>(Directory, CSVName);
+    CandleStickWriter = new CSVRecordWriter<CandleStickRecord>(Directory, CSVName);
 
     return (INIT_SUCCEEDED);
 }
@@ -40,10 +40,10 @@ void OnTick()
         CandleStickRecord *record = new CandleStickRecord();
 
         record.Date = iTime(Symbol(), Period(), 1);
-        record.Open = iTime(Symbol(), Period(), 1);
-        record.Close = iTime(Symbol(), Period(), 1);
-        record.High = iTime(Symbol(), Period(), 1);
-        record.Low = iTime(Symbol(), Period(), 1);
+        record.Open = iOpen(Symbol(), Period(), 1);
+        record.Close = iClose(Symbol(), Period(), 1);
+        record.High = iHigh(Symbol(), Period(), 1);
+        record.Low = iLow(Symbol(), Period(), 1);
 
         CandleStickWriter.WriteRecord(record);
         delete record;

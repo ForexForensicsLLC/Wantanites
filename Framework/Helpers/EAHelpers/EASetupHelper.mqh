@@ -79,7 +79,7 @@ public:
     static bool GetCandleLowForEconomicEvent(TEA &ea, double &low, int candleIndex);
 
     template <typename TEA>
-    static bool TradeWillWin(TEA &ea, TicketType type, double entry, double stopLoss, double close);
+    static bool TradeWillWin(TEA &ea, datetime entryTime, double entry, double stopLoss, double close);
 
     // =========================================================================
     // Check Invalidate Setup
@@ -1063,14 +1063,18 @@ static bool EASetupHelper::GetCandleLowForEconomicEvent(TEA &ea, double &low, in
 }
 
 template <typename TEA>
-static bool TradeWillWin(TEA &ea, TicketType type, double entry, double stopLoss, double close)
+static bool EASetupHelper::TradeWillWin(TEA &ea, datetime entryTime, double entry, double stopLoss, double close)
 {
     ObjectList<CandleStick> *candleSticks = CandleStickTracker::GetTodaysCandleSticks();
-    if (type == TicketType::Buy || type == TicketType::BuyStop || type == TicketType::BuyLimit)
+    if (ea.SetupType() == SignalType::Bullish)
     {
         for (int i = 0; i < candleSticks.Size(); i++)
         {
-            if (candleSticks[i].Low() <= stopLoss)
+            if (candleSticks[i].Date() <= entryTime)
+            {
+                continue;
+            }
+            else if (candleSticks[i].Low() <= stopLoss)
             {
                 return false;
             }
@@ -1080,11 +1084,15 @@ static bool TradeWillWin(TEA &ea, TicketType type, double entry, double stopLoss
             }
         }
     }
-    else if (type == TicketType::Sell || type == TicketType::SellStop || type == TicketType::SellLimit)
+    else if (ea.SetupType() == SignalType::Bearish)
     {
         for (int i = 0; i < candleSticks.Size(); i++)
         {
-            if (candleSticks[i].High() >= stopLoss)
+            if (candleSticks[i].Date() <= entryTime)
+            {
+                continue;
+            }
+            else if (candleSticks[i].High() >= stopLoss)
             {
                 return false;
             }

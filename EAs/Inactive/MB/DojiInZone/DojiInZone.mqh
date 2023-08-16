@@ -70,39 +70,7 @@ DojiInZone::~DojiInZone()
 void DojiInZone::PreRun()
 {
     mMBT.Draw();
-    if (mCurrentSetupTickets.Size() > 0)
-    {
-        double profit = 0.0;
-        for (int i = 0; i < mCurrentSetupTickets.Size(); i++)
-        {
-            profit += mCurrentSetupTickets[i].Profit();
-        }
-
-        color clr = profit > 0 ? clrLime : clrMagenta;
-        string text = StringFormat("$%.2f", profit);
-
-        if (ObjectFind(ChartID(), mProfitObjectName) < 0)
-        {
-            if (!ObjectCreate(ChartID(), mProfitObjectName, OBJ_LABEL, 0, 0, 0))
-            {
-                Print("Failed to create obj. ", GetLastError());
-                return;
-            }
-
-            ObjectSet(mProfitObjectName, OBJPROP_CORNER, CORNER_RIGHT_UPPER);
-            ObjectSet(mProfitObjectName, OBJPROP_XDISTANCE, 20);
-            ObjectSet(mProfitObjectName, OBJPROP_YDISTANCE, 20);
-        }
-
-        ObjectSetText(mProfitObjectName, text, 20, "Times New Roman", clr);
-    }
-    else
-    {
-        if (ObjectFind(ChartID(), mProfitObjectName) >= 0)
-        {
-            ObjectDelete(ChartID(), mProfitObjectName);
-        }
-    }
+    EARunHelper::ShowOpenTicketProfit<DojiInZone>(this);
 }
 
 bool DojiInZone::AllowedToTrade()

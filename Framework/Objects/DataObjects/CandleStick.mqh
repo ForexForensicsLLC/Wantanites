@@ -20,6 +20,8 @@ private:
     double mLow;
 
 public:
+    CandleStick();
+    CandleStick(CandleStick &cs);
     CandleStick(CandleStickRecord &record);
     CandleStick(datetime date, double open, double close, double high, double low);
     ~CandleStick();
@@ -32,6 +34,19 @@ public:
     double High() { return mHigh; }
     double Low() { return mLow; }
 };
+
+CandleStick::CandleStick()
+{
+}
+
+CandleStick::CandleStick(CandleStick &cs)
+{
+    mDate = cs.Date();
+    mOpen = cs.Open();
+    mClose = cs.Close();
+    mHigh = cs.High();
+    mLow = cs.Low();
+}
 
 CandleStick::CandleStick(CandleStickRecord &record)
 {

@@ -8,63 +8,44 @@
 #property version "1.00"
 #property strict
 
+#include <Wantanites/EAs/Inactive/MB/WickZone/WickZone.mqh>
 #include <Wantanites/Framework/Constants/SymbolConstants.mqh>
-#include <Wantanites/EAs/Inactive/WickZone/WickZone.mqh>
+#include <Wantanites/Framework/Objects/Indicators/MB/EASetup.mqh>
 
 // --- EA Inputs ---
-double RiskPercent = 0.01;
+double RiskPercent = 0.1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-// -- MBTracker Inputs
-int MBsToTrack = 10;
-int MaxZonesInMB = 5;
-bool AllowMitigatedZones = false;
-bool AllowZonesAfterMBValidation = true;
-bool AllowWickBreaks = true;
-bool OnlyZonesInMB = true;
-bool PrintErrors = false;
-bool CalculateOnTick = false;
-
 string StrategyName = "WickZone/";
-string EAName = "Dow/";
+string EAName = "";
 string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
-CSVRecordWriter<MBEntryTradeRecord> *EntryWriter = new CSVRecordWriter<MBEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
+CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
 CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>(Directory + "Partials/", "Partials.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-MBTracker *SetupMBT;
-
 WickZone *WZBuys;
 WickZone *WZSells;
 
-// Dow
-double MaxSpreadPips = SymbolConstants::DowSpreadPips;
+TradingSession *TS;
+
+double MaxSpreadPips = 10;
 double EntryPaddingPips = 0;
 double MinStopLossPips = 35;
-double StopLossPaddingPips = 5;
+double StopLossPaddingPips = 0;
 double PipsToWaitBeforeBE = 50;
-double BEAdditionalPips = SymbolConstants::DowSlippagePips;
-double CloseRR = 10;
-
-// Nas
-// double MaxSpreadPips = SymbolConstants::NasSpreadPips;
-// double EntryPaddingPips = 20;
-// double MinStopLossPips = 350;
-// double StopLossPaddingPips = 0;
-// double PipsToWaitBeforeBE = 1000;
-// double BEAdditionalPips = SymbolConstants::NasSlippagePips;
-// double CloseRR = 10;
+double BEAdditionalPips = 0;
+double CloseRR = 3;
 
 int OnInit()
 {
-    SetupMBT = new MBTracker(Symbol(), Period(), MBsToTrack, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
+    TS = new TradingSession();
 
-    WZBuys = new WickZone(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                          ExitWriter, ErrorWriter, SetupMBT);
+    WZBuys = new WickZone(-1, SignalType::Bullish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                          ExitWriter, ErrorWriter, MBT);
 
     WZBuys.SetPartialCSVRecordWriter(PartialWriter);
     WZBuys.AddPartial(CloseRR, 100);
@@ -74,10 +55,10 @@ int OnInit()
     WZBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     WZBuys.mBEAdditionalPips = BEAdditionalPips;
 
-    WZBuys.AddTradingSession(16, 30, 17, 15);
+    WZBuys.AddTradingSession(TS);
 
-    WZSells = new WickZone(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                           ExitWriter, ErrorWriter, SetupMBT);
+    WZSells = new WickZone(-2, SignalType::Bearish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                           ExitWriter, ErrorWriter, MBT);
     WZSells.SetPartialCSVRecordWriter(PartialWriter);
     WZSells.AddPartial(CloseRR, 100);
 
@@ -86,14 +67,14 @@ int OnInit()
     WZSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     WZSells.mBEAdditionalPips = BEAdditionalPips;
 
-    WZSells.AddTradingSession(16, 30, 17, 15);
+    WZSells.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete SetupMBT;
+    delete MBT;
 
     delete WZBuys;
     delete WZSells;

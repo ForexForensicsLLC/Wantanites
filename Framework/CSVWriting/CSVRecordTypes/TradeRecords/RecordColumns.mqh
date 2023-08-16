@@ -8,9 +8,10 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\Utilities\PipConverter.mqh>
 #include <Wantanites\Framework\Helpers\FileHelper.mqh>
+#include <Wantanites\Framework\Utilities\PipConverter.mqh>
 #include <Wantanites\Framework\Constants\ConstantValues.mqh>
+#include <Wantanites\Framework\MQLVersionSpecific\Helpers\MQLHelper\MQLHelper.mqh>
 
 class RecordColumns
 {

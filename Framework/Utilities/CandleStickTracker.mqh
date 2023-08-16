@@ -14,23 +14,32 @@
 #include <Wantanites\Framework\Objects\DataObjects\CandleStick.mqh>
 #include <Wantanites\Framework\Objects\DataStructures\ObjectList.mqh>
 
-static class CandleStickTracker
+class CandleStickTracker
 {
 private:
-    int mCurrentDay;
-    ObjectList<CandleStick> *mTodaysCandleSticks;
-    CSVRecordWriter<CandleStickRecord> *mCandleStickWriter;
+    static int mCurrentDay;
+    static ObjectList<CandleStick> *mTodaysCandleSticks;
+    static CSVRecordWriter<CandleStickRecord> *mCandleStickWriter;
 
-    string Directory() { return "CandleStickRecords/"; }
+    static string Directory() { return "CandleStickRecords/" + Symbol() + "/"; }
 
-    void Update();
-    void ReadTodaysCandleSticks();
-
-    CandleStickTracker();
+    static void Update();
+    static void ReadTodaysCandleSticks();
+    ~CandleStickTracker();
 
 public:
-    ObjectList<CandleStick> *GetTodaysCandleSticks();
+    static ObjectList<CandleStick> *GetTodaysCandleSticks();
 };
+
+int CandleStickTracker::mCurrentDay = ConstantValues::EmptyInt;
+ObjectList<CandleStick> *CandleStickTracker::mTodaysCandleSticks = new ObjectList<CandleStick>();
+CSVRecordWriter<CandleStickRecord> *CandleStickTracker::mCandleStickWriter = new CSVRecordWriter<CandleStickRecord>(Directory(), IntegerToString(Period()) + ".csv", FileOperation::ReadingExisting, false, false);
+
+CandleStickTracker::~CandleStickTracker()
+{
+    delete mTodaysCandleSticks;
+    delete mCandleStickWriter;
+}
 
 void CandleStickTracker::Update()
 {
@@ -51,7 +60,7 @@ void CandleStickTracker::ReadTodaysCandleSticks()
 
     while (!FileIsEnding(mCandleStickWriter.FileHandle()))
     {
-        record.ReadRow();
+        record.ReadRow(mCandleStickWriter.FileHandle());
         MqlDateTime dt = DateTimeHelper::ToMQLDateTime(record.Date);
 
         if (dt.day < mCurrentDay)
@@ -66,13 +75,8 @@ void CandleStickTracker::ReadTodaysCandleSticks()
         CandleStick *cs = new CandleStick(record);
         mTodaysCandleSticks.Add(cs);
     }
-}
 
-CandleStickTracker::CandleStickTracker()
-{
-    mCurrentDay = ConstantValues::EmptyInt;
-    mTodaysCandleSticks = new ObjectList<CandleStick>();
-    mCandleStickWriter = new CSVRecordWriter<CandleStickRecord>(Directory(), IntegerToString(Period()) + ".csv", FileOperation::ReadingExisting, false, false);
+    delete record;
 }
 
 ObjectList<CandleStick> *CandleStickTracker::GetTodaysCandleSticks()
