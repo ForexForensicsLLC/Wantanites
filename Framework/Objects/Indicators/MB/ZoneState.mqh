@@ -271,6 +271,7 @@ void ZoneState::Draw()
     ObjectSetInteger(MQLHelper::CurrentChartID(), mName, OBJPROP_FILL, !mIsPending);
     ObjectSetInteger(MQLHelper::CurrentChartID(), mName, OBJPROP_SELECTED, false);
     ObjectSetInteger(MQLHelper::CurrentChartID(), mName, OBJPROP_SELECTABLE, false);
+    ObjectSetString(MQLHelper::CurrentChartID(), mName, OBJPROP_TEXT, mDescription);
 
     if (mIsPending)
     {

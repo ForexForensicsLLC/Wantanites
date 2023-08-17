@@ -70,7 +70,13 @@ void HTFZoneLTFDoji::PreRun()
     for (int i = 0; i < ObjectsTotal(); i++)
     {
         string name = ObjectName(i);
-        if (StringFind(name, "Zone") == -1)
+        string description = ObjectGetString(MQLHelper::CurrentChartID(), name, OBJPROP_TEXT);
+        if (ObjectType(name) != OBJ_RECTANGLE)
+        {
+            continue;
+        }
+
+        if (StringFind(description, "Zone") == -1)
         {
             double priceOne = ObjectGet(name, OBJPROP_PRICE1);
             double priceTwo = ObjectGet(name, OBJPROP_PRICE2);
@@ -81,6 +87,11 @@ void HTFZoneLTFDoji::PreRun()
             // demand zone
             if (CurrentTick().Ask() > priceOne && CurrentTick().Ask() > priceTwo)
             {
+                if (SetupType() == SignalType::Bearish)
+                {
+                    continue;
+                }
+
                 if (priceOne > priceTwo)
                 {
                     entryPrice = priceOne;
@@ -95,6 +106,11 @@ void HTFZoneLTFDoji::PreRun()
             // supply zone
             else if (CurrentTick().Ask() < priceOne && CurrentTick().Ask() < priceTwo)
             {
+                if (SetupType() == SignalType::Bullish)
+                {
+                    continue;
+                }
+
                 if (priceOne < priceTwo)
                 {
                     entryPrice = priceOne;
@@ -108,19 +124,20 @@ void HTFZoneLTFDoji::PreRun()
             }
 
             color zoneClr = SetupType() == SignalType::Bullish ? clrLimeGreen : clrRed;
-            Zone *zone = new Zone(false, EntrySymbol(), EntryTimeFrame(), 0, i, SetupType(), "",
+            Zone *zone = new Zone(true, EntrySymbol(), EntryTimeFrame(), 0, i, SetupType(), "Zone",
                                   ObjectGet(name, OBJPROP_TIME1),
                                   entryPrice,
                                   ObjectGet(name, OBJPROP_TIME2),
                                   exitPrice,
                                   0, CandlePart::Body, zoneClr);
 
+            zone.Draw();
             mZones.Add(zone);
 
-            ObjectSetInteger(MQLHelper::CurrentChartID(), name, OBJPROP_WIDTH, 1);
-            ObjectSetInteger(MQLHelper::CurrentChartID(), name, OBJPROP_STYLE, STYLE_DASH);
-            ObjectSetInteger(MQLHelper::CurrentChartID(), name, OBJPROP_FILL, false);
-            ObjectSetInteger(MQLHelper::CurrentChartID(), name, OBJPROP_BACK, true);
+            ObjectSetString(MQLHelper::CurrentChartID(), name, OBJPROP_TEXT, "Zone");
+            // ObjectSetInteger(MQLHelper::CurrentChartID(), name, OBJPROP_STYLE, STYLE_DASH);
+            // ObjectSetInteger(MQLHelper::CurrentChartID(), name, OBJPROP_FILL, false);
+            // ObjectSetInteger(MQLHelper::CurrentChartID(), name, OBJPROP_BACK, true);
         }
     }
 }
@@ -137,11 +154,23 @@ void HTFZoneLTFDoji::CheckSetSetup()
 
 void HTFZoneLTFDoji::CheckInvalidateSetup()
 {
-    for (int i = 0; i < mZones.Size(); i++)
+    if (iBars(EntrySymbol(), EntryTimeFrame()) <= BarCount())
     {
-        if (mZones[i].IsBroken())
+        return;
+    }
+
+    if (ObjectsTotal() <= 0)
+    {
+        mZones.Clear();
+    }
+    else
+    {
+        for (int i = 0; i < mZones.Size(); i++)
         {
-            mZones.Remove(i);
+            if (mZones[i].IsBroken())
+            {
+                mZones.Remove(i);
+            }
         }
     }
 
@@ -184,6 +213,8 @@ bool HTFZoneLTFDoji::Confirmation()
     }
 
     bool dojiInZone = false;
+
+    // TODO: Add checks for overall candle size i.e. make sure its more of a doji and not a huge body that liquidated the candle before it
     if (SetupType() == SignalType::Bullish)
     {
         dojiInZone = SetupHelper::HammerCandleStickPattern(EntrySymbol(), mLowerTimeFrame, 1) &&
