@@ -15,6 +15,7 @@ class VersionSpecificOrderInfoHelper
 public:
     static int TotalCurrentOrders();
 
+    static int CountTradesTakenToday(int magicNumber, int &tradeCount);
     static int CountOtherEAOrders(bool todayOnly, List<int> &magicNumbers, int &orderCount);
     static int GetAllActiveTickets(List<int> &ticketNumbers);
     static int FindActiveTicketsByMagicNumber(int magicNumber, int &tickets[]);
@@ -27,8 +28,41 @@ static int VersionSpecificOrderInfoHelper::TotalCurrentOrders()
     return OrdersTotal() + PositionsTotal();
 }
 
+static int VersionSpecificOrderInfoHelper::CountTradesTakenToday(int magicNumber, int &tradeCount)
+{
+    List<int> *magicNumbers = new List<int>();
+    magicNumber.Add(magicNumber);
+
+    int error = CountOtherEAOrders(true, magicNumber, tradeCount);
+    delete magicNumber;
+
+    if (error != Errors::NO_ERROR)
+    {
+        return error;
+    }
+
+    datetime startOfToay = DateTimeHelper::DayMonthYearToDateTime(DateTimeHelper::CurrentDay(), DateTimeHelper::CurrentMonth(), DateTimeHelper::CurrentYear());
+    if (!HistorySelect(startOfToday, TimeCurrent()))
+    {
+        return error;
+    }
+
+    for (int i = 0; i < HistoryDealsTotal(); i++)
+    {
+        ulong ticket = HistoryDealGetTicket(i);
+        if (HistoryDealGetInteger(ticket, DEAL_MAGIC) == magicNumber)
+        {
+            tradeCount += 1;
+        }
+    }
+
+    return error;
+}
+
 static int VersionSpecificOrderInfoHelper::CountOtherEAOrders(bool todayOnly, List<int> &magicNumbers, int &orderCount)
 {
+    orderCount = 0;
+
     // pending orders
     for (int i = 0; i < OrdersTotal(); i++)
     {

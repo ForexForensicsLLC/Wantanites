@@ -50,6 +50,7 @@ public:
     static bool IsDayLightSavings(datetime dt);
     static MqlDateTime GetNthDayOfWeekForMonthAndYear(int nth, DayOfWeekEnum dayOfWeek, int month, int year);
 
+    static bool DateIsToday(datetime dateTime);
     static bool DateIsDuringCandleIndex(string symbol, ENUM_TIMEFRAMES timeFrame, datetime date, int candleIndex);
 };
 
@@ -276,4 +277,10 @@ static bool DateTimeHelper::DateIsDuringCandleIndex(string symbol, ENUM_TIMEFRAM
     datetime exactBarTime = currentBarTime - (currentBarTime % secondsPerCandle); // get exact bar time
 
     return MathAbs(date - exactBarTime) < secondsPerCandle;
+}
+
+static bool DateTimeHelper::DateIsToday(datetime dateTime)
+{
+    MqlDateTime mqlDateTime = ToMQLDateTime(dateTime);
+    return mqldateTime.year == CurrentYear() && mqlDateTime.mon == CurrentMonth() && mqlDateTime.day == CurrentDay();
 }

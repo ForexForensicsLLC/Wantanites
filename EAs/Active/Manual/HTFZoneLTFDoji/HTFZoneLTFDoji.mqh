@@ -16,6 +16,8 @@ class HTFZoneLTFDoji : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTr
 public:
     ENUM_TIMEFRAMES mLowerTimeFrame;
     double mMinWickPips;
+
+    int mCurrentTradeOnZone;
     ObjectList<Zone> *mZones;
 
 public:
@@ -53,6 +55,7 @@ HTFZoneLTFDoji::HTFZoneLTFDoji(int magicNumber, int setupType, int maxCurrentSet
                                CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
+    mCurrentTradeOnZone = ConstantValues::EmptyInt;
     mZones = new ObjectList<Zone>();
 
     EAInitHelper::FindSetPreviousAndCurrentSetupTickets<HTFZoneLTFDoji>(this);
@@ -124,7 +127,7 @@ void HTFZoneLTFDoji::PreRun()
             }
 
             color zoneClr = SetupType() == SignalType::Bullish ? clrLimeGreen : clrRed;
-            Zone *zone = new Zone(true, EntrySymbol(), EntryTimeFrame(), 0, i, SetupType(), "Zone",
+            Zone *zone = new Zone(false, EntrySymbol(), EntryTimeFrame(), 0, i, SetupType(), "Zone",
                                   ObjectGet(name, OBJPROP_TIME1),
                                   entryPrice,
                                   ObjectGet(name, OBJPROP_TIME2),
@@ -135,9 +138,6 @@ void HTFZoneLTFDoji::PreRun()
             mZones.Add(zone);
 
             ObjectSetString(MQLHelper::CurrentChartID(), name, OBJPROP_TEXT, "Zone");
-            // ObjectSetInteger(MQLHelper::CurrentChartID(), name, OBJPROP_STYLE, STYLE_DASH);
-            // ObjectSetInteger(MQLHelper::CurrentChartID(), name, OBJPROP_FILL, false);
-            // ObjectSetInteger(MQLHelper::CurrentChartID(), name, OBJPROP_BACK, true);
         }
     }
 }
@@ -226,6 +226,7 @@ bool HTFZoneLTFDoji::Confirmation()
                      CandleStickHelper::UpperWickLength(EntrySymbol(), mLowerTimeFrame, 1) >= PipConverter::PipsToPoints(mMinWickPips);
     }
 
+    mCurrentTradeOnZone = holdingZone.Number();
     return dojiInZone;
 }
 
@@ -295,6 +296,15 @@ void HTFZoneLTFDoji::RecordTicketPartialData(Ticket &partialedTicket, int newTic
 void HTFZoneLTFDoji::RecordTicketCloseData(Ticket &ticket)
 {
     EARecordHelper::RecordSingleTimeFrameExitTradeRecord<HTFZoneLTFDoji>(this, ticket);
+
+    for (int i = 0; i < mZones.Size(); i++)
+    {
+        if (mZones[i].Number() == mCurrentTradeOnZone)
+        {
+            mZones.Remove(i);
+            mCurrentTradeOnZone = ConstantValues::EmptyInt;
+        }
+    }
 }
 
 void HTFZoneLTFDoji::RecordError(string methodName, int error, string additionalInformation = "")
@@ -304,7 +314,7 @@ void HTFZoneLTFDoji::RecordError(string methodName, int error, string additional
 
 bool HTFZoneLTFDoji::ShouldReset()
 {
-    return false;
+    return LastDay() != DateTimeHelper::CurrentDay();
 }
 
 void HTFZoneLTFDoji::Reset()

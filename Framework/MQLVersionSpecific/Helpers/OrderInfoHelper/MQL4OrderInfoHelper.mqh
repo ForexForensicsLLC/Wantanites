@@ -9,12 +9,14 @@
 #property strict
 
 #include <Wantanites\Framework\Helpers\MailHelper.mqh>
+#include <Wantanites\Framework\Helpers\DateTimeHelper.mqh>
 
 class VersionSpecificOrderInfoHelper
 {
 public:
     static int TotalCurrentOrders();
 
+    static int CountTradesTakenToday(int magicNumber, int &tradeCount);
     static int CountOtherEAOrders(bool todayOnly, List<int> &magicNumbers, int &orderCount);
     static int GetAllActiveTickets(List<int> &ticketNumbers);
     static int FindActiveTicketsByMagicNumber(int magicNumber, int &tickets[]);
@@ -25,6 +27,45 @@ public:
 static int VersionSpecificOrderInfoHelper::TotalCurrentOrders()
 {
     return OrdersTotal();
+}
+
+int VersionSpecificOrderInfoHelper::CountTradesTakenToday(int magicNumber, int &tradeCount)
+{
+    tradeCount = 0;
+
+    List<int> *magicNumbers = new List<int>();
+    magicNumbers.Add(magicNumber);
+    int error = CountOtherEAOrders(true, magicNumbers, tradeCount);
+    if (error != Errors::NO_ERROR)
+    {
+        return error;
+    }
+
+    for (int i = 0; i < OrdersHistoryTotal(); i++)
+    {
+        if (!OrderSelect(i, SELECT_BY_POS, MODE_HISTORY))
+        {
+            error = GetLastError();
+            MailHelper::Send("Failed To Select previous Order By Position When Counting Trades For Today",
+                             "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
+                                 "Current Order Index: " + IntegerToString(i) + "\n" +
+                                 IntegerToString(error));
+            return error;
+        }
+
+        if (OrderMagicNumber() != magicNumber)
+        {
+            continue;
+        }
+
+        datetime openDate = OrderOpenTime();
+        if (DateTimeHelper::DateIsToday(openDate))
+        {
+            tradeCount += 1;
+        }
+    }
+
+    return Errors::NO_ERROR;
 }
 
 int VersionSpecificOrderInfoHelper::CountOtherEAOrders(bool todayOnly, List<int> &magicNumbers, int &orderCount)
@@ -48,7 +89,7 @@ int VersionSpecificOrderInfoHelper::CountOtherEAOrders(bool todayOnly, List<int>
             if (OrderMagicNumber() == magicNumbers[j])
             {
                 datetime openDate = OrderOpenTime();
-                if (todayOnly && (TimeYear(openDate) != Year() || TimeMonth(openDate) != Month() || TimeDay(openDate) != Day()))
+                if (todayOnly && DateTimeHelper::DateIsToday(openDate))
                 {
                     continue;
                 }

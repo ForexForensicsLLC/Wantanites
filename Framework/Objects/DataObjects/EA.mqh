@@ -36,6 +36,7 @@ private:
     string mEntrySymbol;
     ENUM_TIMEFRAMES mEntryTimeFrame;
 
+    int mMaxTradesPerDay;
     int mMaxTradesForEAGroup;
 
 public:
@@ -54,7 +55,6 @@ public:
     bool mHasSetup;
     bool mWasReset;
 
-    int mMaxTradesPerDay;
     double mRiskPercent;
     double mMaxSpreadPips;
     double mStopLossPaddingPips;
@@ -77,6 +77,7 @@ public:
     int MagicNumber() { return mMagicNumber; }
     SignalType SetupType() { return mSetupType; }
     double StopLossPaddingPips() { return mStopLossPaddingPips; }
+    int MaxTradesPerDay() { return mMaxTradesPerDay; }
     int MaxTradesForEAGroup() { return mMaxTradesForEAGroup; }
 
     string EntrySymbol() { return mEntrySymbol; }

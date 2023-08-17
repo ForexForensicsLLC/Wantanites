@@ -20,6 +20,7 @@ class OrderInfoHelper
 public:
     static int TotalCurrentOrders();
 
+    static int CountTradesTakenToday(int magicNumber, int &tradeCount);
     static int CountOtherEAOrders(bool todayOnly, List<int> &magicNumber, int &orderCount);
     static int GetAllActiveTickets(List<int> &ticketNumbers);
     static int FindActiveTicketsByMagicNumber(int magicNumber, int &tickets[]);
@@ -30,6 +31,11 @@ public:
 int OrderInfoHelper::TotalCurrentOrders()
 {
     return VersionSpecificOrderInfoHelper::TotalCurrentOrders();
+}
+
+static int OrderInfoHelper::CountTradesTakenToday(int magicNumber, int &tradeCount)
+{
+    return VersionSpecificOrderInfoHelper::CountOtherEAOrders(magicNumber, tradeCount);
 }
 
 int OrderInfoHelper::CountOtherEAOrders(bool todayOnly, List<int> &magicNumbers, int &orderCount)

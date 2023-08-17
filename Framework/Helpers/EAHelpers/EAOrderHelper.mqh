@@ -213,9 +213,26 @@ static bool EAOrderHelper::PrePlaceOrderChecks(TEA &ea)
 {
     ea.mLastState = EAStates::CHECKING_TO_PLACE_ORDER;
 
-    if (ea.mCurrentSetupTicket.Number() != ConstantValues::EmptyInt)
+    if (!ea.mCurrentSetupTickets.IsEmpty())
     {
         return false;
+    }
+
+    if (ea.MaxTradesPerDay() != ConstantValues::EmptyInt)
+    {
+        int trades = 0;
+        int error = OrderInfoHelper::CountTradesTakenToday(ea.MagicNumber(), trades);
+        if (ordersError != Errors::NO_ERROR)
+        {
+            ea.InvalidateSetup(false, ordersError);
+            return false;
+        }
+
+        if (orders >= ea.MaxTradesPerDay())
+        {
+            ea.InvalidateSetup(false);
+            return false;
+        }
     }
 
     ea.mLastState = EAStates::COUNTING_OTHER_EA_ORDERS;
