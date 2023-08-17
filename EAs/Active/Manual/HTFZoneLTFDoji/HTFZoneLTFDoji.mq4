@@ -13,9 +13,9 @@
 #include <Wantanites/EAs/Active/Manual/HTFZoneLTFDoji/HTFZoneLTFDoji.mqh>
 
 // --- EA Inputs ---
-double RiskPercent = 0.5;
-int MaxCurrentSetupTradesAtOnce = 1;
-int MaxTradesPerDay = 5;
+double RiskPercent = 1;
+int MaxCurrentSetupTradesAtOnce = 3;
+int MaxTradesPerDay = 3;
 
 string StrategyName = "Manual/";
 string EAName = "HTFZoneLTFDoji/";
@@ -35,9 +35,8 @@ ENUM_TIMEFRAMES LowerTimeFrame = PERIOD_H1;
 double MinWickPips = 5;
 
 // UJ
-double MaxSpreadPips = 3;
+double MaxSpreadPips = 8;
 double StopLossPaddingPips = 0;
-double MaxSlippage = 3;
 
 int OnInit()
 {

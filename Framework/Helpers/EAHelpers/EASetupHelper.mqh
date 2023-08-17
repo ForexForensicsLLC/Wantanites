@@ -133,6 +133,8 @@ public:
     template <typename TEA>
     static bool PriceIsFurtherThanPercentIntoHoldingZone(TEA &ea, MBTracker *&mbt, int mbNumber, double price, double percentAsDecimal);
     template <typename TEA>
+    static bool CandleIsInZone(TEA &ea, Zone &zone, int candleIndex, bool furthest = false);
+    template <typename TEA>
     static bool CandleIsInZone(TEA &ea, MBTracker *mbt, int mbNumber, int candleIndex, bool furthest);
     template <typename TEA>
     static bool CandleIsInPendingZone(TEA &ea, MBTracker *&mbt, SignalType mbType, int candleIndex, bool furthest);
@@ -1247,7 +1249,13 @@ static bool EASetupHelper::CandleIsInZone(TEA &ea, MBTracker *mbt, int mbNumber,
         return false;
     }
 
-    int zoneStart = tempZoneState.StartIndex() - tempZoneState.EntryOffset() - 1;
+    return CandleIsInZone(ea, tempZoneState, candleIndex, furthest);
+}
+
+template <typename TEA>
+static bool EASetupHelper::CandleIsInZone(TEA &ea, Zone &zone, int candleIndex, bool furthest = false)
+{
+    int zoneStart = zone.StartIndex() - zone.EntryOffset() - 1;
 
     // don't count the candle if it is the zone or before it
     if (candleIndex >= zoneStart)
@@ -1256,9 +1264,9 @@ static bool EASetupHelper::CandleIsInZone(TEA &ea, MBTracker *mbt, int mbNumber,
     }
 
     bool isTrue = false;
-    if (tempMBState.Type() == SignalType::Bullish)
+    if (ea.SetupType() == SignalType::Bullish)
     {
-        isTrue = tempZoneState.CandleIsInZone(candleIndex);
+        isTrue = zone.CandleIsInZone(candleIndex);
 
         if (furthest)
         {
@@ -1272,9 +1280,9 @@ static bool EASetupHelper::CandleIsInZone(TEA &ea, MBTracker *mbt, int mbNumber,
             isTrue = isTrue && lowestIndex == candleIndex;
         }
     }
-    else if (tempMBState.Type() == SignalType::Bearish)
+    else if (ea.SetupType() == SignalType::Bearish)
     {
-        isTrue = tempZoneState.CandleIsInZone(candleIndex);
+        isTrue = zone.CandleIsInZone(candleIndex);
 
         if (furthest)
         {

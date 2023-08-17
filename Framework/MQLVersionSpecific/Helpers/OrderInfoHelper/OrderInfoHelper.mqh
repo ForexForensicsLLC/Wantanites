@@ -35,7 +35,7 @@ int OrderInfoHelper::TotalCurrentOrders()
 
 static int OrderInfoHelper::CountTradesTakenToday(int magicNumber, int &tradeCount)
 {
-    return VersionSpecificOrderInfoHelper::CountOtherEAOrders(magicNumber, tradeCount);
+    return VersionSpecificOrderInfoHelper::CountTradesTakenToday(magicNumber, tradeCount);
 }
 
 int OrderInfoHelper::CountOtherEAOrders(bool todayOnly, List<int> &magicNumbers, int &orderCount)

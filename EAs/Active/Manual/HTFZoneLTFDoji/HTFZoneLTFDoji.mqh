@@ -18,7 +18,9 @@ public:
     double mMinWickPips;
 
     int mCurrentTradeOnZone;
+
     ObjectList<Zone> *mZones;
+    Dictionary<string, int> *mObjectNameZoneNumbers;
 
 public:
     HTFZoneLTFDoji(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
@@ -56,7 +58,9 @@ HTFZoneLTFDoji::HTFZoneLTFDoji(int magicNumber, int setupType, int maxCurrentSet
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mCurrentTradeOnZone = ConstantValues::EmptyInt;
+
     mZones = new ObjectList<Zone>();
+    mObjectNameZoneNumbers = new Dictionary<string, int>();
 
     EAInitHelper::FindSetPreviousAndCurrentSetupTickets<HTFZoneLTFDoji>(this);
     EAInitHelper::SetPreviousSetupTicketsOpenData<HTFZoneLTFDoji, SingleTimeFrameEntryTradeRecord>(this);
@@ -65,6 +69,7 @@ HTFZoneLTFDoji::HTFZoneLTFDoji(int magicNumber, int setupType, int maxCurrentSet
 HTFZoneLTFDoji::~HTFZoneLTFDoji()
 {
     delete mZones;
+    delete mObjectNameZoneNumbers;
 }
 
 void HTFZoneLTFDoji::PreRun()
@@ -138,6 +143,7 @@ void HTFZoneLTFDoji::PreRun()
             mZones.Add(zone);
 
             ObjectSetString(MQLHelper::CurrentChartID(), name, OBJPROP_TEXT, "Zone");
+            mObjectNameZoneNumbers.Add(name, i);
         }
     }
 }
@@ -159,18 +165,19 @@ void HTFZoneLTFDoji::CheckInvalidateSetup()
         return;
     }
 
-    if (ObjectsTotal() <= 0)
+    for (int i = 0; i < mObjectNameZoneNumbers.Size(); i++)
     {
-        mZones.Clear();
-    }
-    else
-    {
-        for (int i = 0; i < mZones.Size(); i++)
+        if (ObjectFind(MQLHelper::CurrentChartID(), mObjectNameZoneNumbers.GetKey(i)) < 0)
         {
-            if (mZones[i].IsBroken())
-            {
-                mZones.Remove(i);
-            }
+            mZones.RemoveWhere<TZoneNumberLocator, int>(Zone::LocateByNumber, mObjectNameZoneNumbers.GetValue(i));
+        }
+    }
+
+    for (int i = mZones.Size() - 1; i >= 0; i--)
+    {
+        if (mZones[i].IsBroken())
+        {
+            mZones.Remove(i);
         }
     }
 
@@ -208,6 +215,11 @@ bool HTFZoneLTFDoji::Confirmation()
     }
 
     if (!hasHoldingZone)
+    {
+        return false;
+    }
+
+    if (!EASetupHelper::CandleIsInZone<HTFZoneLTFDoji>(this, holdingZone, 1, true))
     {
         return false;
     }
@@ -314,7 +326,7 @@ void HTFZoneLTFDoji::RecordError(string methodName, int error, string additional
 
 bool HTFZoneLTFDoji::ShouldReset()
 {
-    return LastDay() != DateTimeHelper::CurrentDay();
+    return false;
 }
 
 void HTFZoneLTFDoji::Reset()

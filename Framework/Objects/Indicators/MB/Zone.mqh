@@ -13,6 +13,8 @@
 class Zone : public ZoneState
 {
 public:
+    typedef bool (*TZoneNumberLocator)(Zone &, int);
+
     Zone();           // only used for default constructor in ObjectList
     Zone(Zone &zone); // only here for copy constructor in ObjectList
     Zone(bool isPending, string symbol, ENUM_TIMEFRAMES timeFrame, int mbNumber, int zoneNumber, SignalType type, string description, datetime startDateTime,
@@ -22,6 +24,8 @@ public:
     void EndTime(datetime time) { mEndDateTime = time; }
 
     void UpdateDrawnObject();
+
+    static bool LocateByNumber(Zone &zone, int number);
 };
 Zone::Zone() {}
 
@@ -80,4 +84,9 @@ void Zone::UpdateDrawnObject()
 
         ChartRedraw();
     }
+}
+
+static bool Zone::LocateByNumber(Zone &zone, int number)
+{
+    return zone.Number() == number;
 }

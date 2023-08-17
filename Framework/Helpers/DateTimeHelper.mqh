@@ -282,5 +282,5 @@ static bool DateTimeHelper::DateIsDuringCandleIndex(string symbol, ENUM_TIMEFRAM
 static bool DateTimeHelper::DateIsToday(datetime dateTime)
 {
     MqlDateTime mqlDateTime = ToMQLDateTime(dateTime);
-    return mqldateTime.year == CurrentYear() && mqlDateTime.mon == CurrentMonth() && mqlDateTime.day == CurrentDay();
+    return mqlDateTime.year == CurrentYear() && mqlDateTime.mon == CurrentMonth() && mqlDateTime.day == CurrentDay();
 }

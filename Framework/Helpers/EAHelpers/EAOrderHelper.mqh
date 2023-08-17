@@ -222,13 +222,14 @@ static bool EAOrderHelper::PrePlaceOrderChecks(TEA &ea)
     {
         int trades = 0;
         int error = OrderInfoHelper::CountTradesTakenToday(ea.MagicNumber(), trades);
-        if (ordersError != Errors::NO_ERROR)
+        if (error != Errors::NO_ERROR)
         {
-            ea.InvalidateSetup(false, ordersError);
+            ea.InvalidateSetup(false);
+            ea.RecordError(__FUNCTION__, error);
             return false;
         }
 
-        if (orders >= ea.MaxTradesPerDay())
+        if (trades >= ea.MaxTradesPerDay())
         {
             ea.InvalidateSetup(false);
             return false;
@@ -243,7 +244,9 @@ static bool EAOrderHelper::PrePlaceOrderChecks(TEA &ea)
         int ordersError = OrderInfoHelper::CountOtherEAOrders(true, ea.mEAGroupMagicNumbers, orders);
         if (ordersError != Errors::NO_ERROR)
         {
-            ea.InvalidateSetup(false, ordersError);
+            ea.InvalidateSetup(false);
+            ea.RecordError(__FUNCTION__, ordersError);
+
             return false;
         }
 
@@ -311,6 +314,11 @@ template <typename TEA>
 static void EAOrderHelper::PlaceMarketOrder(TEA &ea, double entryPrice, double stopLoss, double lotSize = 0.0, double takeProfit = 0.0,
                                             TicketType orderTypeOverride = TicketType::Empty)
 {
+    if (!PrePlaceOrderChecks(ea))
+    {
+        return;
+    }
+
     ea.mLastState = EAStates::PLACING_ORDER;
 
     TicketType ticketType = orderTypeOverride;
@@ -384,6 +392,11 @@ template <typename TEA>
 static void EAOrderHelper::PlaceLimitOrder(TEA &ea, double entryPrice, double stopLoss, double lotSize = 0.0, bool fallbackMarketOrder = false,
                                            double maxMarketOrderSlippage = 0.0, TicketType orderTypeOverride = TicketType::Empty)
 {
+    if (!PrePlaceOrderChecks(ea))
+    {
+        return;
+    }
+
     ea.mLastState = EAStates::PLACING_ORDER;
 
     TicketType limitType = orderTypeOverride;
@@ -457,6 +470,11 @@ template <typename TEA>
 static void EAOrderHelper::PlaceStopOrder(TEA &ea, double entryPrice, double stopLoss, double lotSize = 0.0, double takeProfit = 0.0, bool fallbackMarketOrder = false,
                                           double maxMarketOrderSlippage = 0.0, TicketType orderTypeOverride = TicketType::Empty)
 {
+    if (!PrePlaceOrderChecks(ea))
+    {
+        return;
+    }
+
     ea.mLastState = EAStates::PLACING_ORDER;
 
     TicketType stopType = orderTypeOverride;
@@ -635,16 +653,6 @@ static int EAOrderHelper::GetStopLossForStopOrderForBreakOfMB(double paddingPips
 template <typename TEA>
 static void EAOrderHelper::PlaceStopOrderForPendingMBValidation(TEA &ea, MBTracker *&mbt, double lotSize = 0.0)
 {
-    TicketType ticketType = TicketType::Empty;
-    if (ea.SetupType() == SignalType::Bullish)
-    {
-        ticketType = TicketType::BuyStop;
-    }
-    else if (ea.SetupType() == SignalType::Bearish)
-    {
-        ticketType = TicketType::SellStop;
-    }
-
     double entryPrice = 0.0;
     int entryPriceError = GetEntryPriceForStopOrderForPendingMBValidation(spreadPips, mbt.GetNthMostRecentMBsType(0), mbt, entryPrice);
     if (entryPriceError != Errors::NO_ERROR)
@@ -659,15 +667,7 @@ static void EAOrderHelper::PlaceStopOrderForPendingMBValidation(TEA &ea, MBTrack
         return stopLossError;
     }
 
-    if (lotSize == 0.0)
-    {
-        lotSize = GetLotSizeForRiskPercent(ea.EntrySymbol(), PipConverter::PointsToPips(MathAbs(entryPrice - stopLoss)), ea.RiskPercent());
-    }
-
-    int ticketNumber = ConstantValues::EmptyInt;
-    int error = ea.mTM.PlaceStopOrder(ticketType, lotSize, entryPrice, stopLoss, 0, ticketNumber);
-
-    PostPlaceOrderChecks<TEA>(ea, __FUNCTION__, ticketNumber, error, ticketType, entryPrice, stopLoss, lotSize, 0);
+    PlaceStopOrder(ea, entryPrice, stopLoss, lotSize);
 }
 
 template <typename TEA>
@@ -693,25 +693,7 @@ static void EAOrderHelper::PlaceStopOrderForBreakOfMB(TEA &ea, MBTracker *&mbt, 
         return stopLossError;
     }
 
-    TicketType ticketType = TicketType::Empty;
-    if (tempMBState.Type() == SignalType::Bullish)
-    {
-        ticketType = TicketType::SellStop;
-    }
-    else if (tempMBState.Type() == SignalType::Bearish)
-    {
-        ticketType = TicketType::BuyStop;
-    }
-
-    if (lotSize == 0.0)
-    {
-        lotSize = GetLotSizeForRiskPercent(ea.EntrySymbol(), PipConverter::PointsToPips(MathAbs(entryPrice - stopLoss)), ea.RiskPercent());
-    }
-
-    int ticketNumber = ConstantValues::EmptyInt;
-    int orderPlaceError = ea.mTM.PlaceStopOrder(ticketType, lotSize, entryPrice, stopLoss, 0, ticketNumber);
-
-    PostPlaceOrderChecks<TEA>(ea, __FUNCTION__, ticketNumber, orderPlaceError, ticketType, entryPrice, stopLoss, lotSize, 0);
+    PlaceStopOrder(ea, entryPrice, stopLoss, lotSize);
 }
 
 template <typename TEA>
@@ -721,39 +703,19 @@ static void EAOrderHelper::PlaceStopOrderForCandelBreak(TEA &ea, int entryCandle
     double entryPrice;
     double stopLoss;
 
-    TicketType type = ticketType;
-    if (type == TicketType::Empty)
-    {
-        if (ea.SetupType() == SignalType::Bullish)
-        {
-            type = TicketType::BuyStop;
-        }
-        else if (ea.SetupType() == SignalType::Bearish)
-        {
-            type = TicketType::SellStop;
-        }
-    }
-
-    if (type == TicketType::BuyStop)
+    if (ea.SetupType() == SignalType::Bullish)
     {
         entryPrice = iHigh(symbol, timeFrame, entryCandleIndex);
         stopLoss = iLow(symbol, timeFrame, stopLossCandleIndex);
     }
-    else if (type == TicketType::SellStop)
+    else if (ea.SetupType() == SignalType::Bearish)
     {
+
         entryPrice = iLow(symbol, timeFrame, entryCandleIndex);
         stopLoss = iHigh(symbol, timeFrame, stopLossCandleIndex);
     }
 
-    if (lotSize == 0.0)
-    {
-        lotSize = GetLotSizeForPercentRisk(PipConverter::PointsToPips(MathAbs(entryPrice - stopLoss)), riskPercent);
-    }
-
-    int ticketNumber = ConstantValues::EmptyInt;
-    int orderPlaceError = ea.mTM.PlaceStopOrder(type, lots, entryPrice, stopLoss, takeProfit, ticketNumber);
-
-    PostPlaceOrderChecks<TEA>(ea, __FUNCTION__, ticketNumber, orderPlaceError, ticketType, entryPrice, stopLoss, lotSize, takeProfit);
+    PlaceStopOrder(ea, entryPrice, stopLoss, lotSize, takeProfit, false, 0.0, ticketType);
 }
 
 template <typename TEA>
