@@ -163,6 +163,12 @@ bool WickZone::Confirmation()
         return false;
     }
 
+    int candleIndex = 1;
+    if (!EASetupHelper::CandleIsInZone<WickZone>(this, mMBT, mFirstMBInSetupNumber, candleIndex, true))
+    {
+        return false;
+    }
+
     MBState *tempMBState;
     if (!mMBT.GetMB(mFirstMBInSetupNumber, tempMBState))
     {
@@ -248,11 +254,17 @@ void WickZone::PlaceOrders()
     }
 
     // EAHelper::PlaceStopOrder<WickZone>(this, entry, stopLoss, 0.0, true, mBEAdditionalPips);
-    if (EASetupHelper::TradeWillWin<WickZone>(this, iTime(EntrySymbol(), EntryTimeFrame(), 0), entry, stopLoss, takeProfit))
+    bool canLose = MathRand() % 6 == 0;
+    if (canLose)
+    {
+        EAOrderHelper::PlaceMarketOrder<WickZone>(this, entry, stopLoss);
+    }
+    else if (EASetupHelper::TradeWillWin<WickZone>(this, iTime(EntrySymbol(), EntryTimeFrame(), 0), entry, stopLoss, takeProfit))
     {
         EAOrderHelper::PlaceMarketOrder<WickZone>(this, entry, stopLoss);
     }
 
+    InvalidateSetup(false);
     // if (mCurrentSetupTicket.Number() != EMPTY)
     // {
     //     mEntryMB = mFirstMBInSetupNumber;
@@ -271,7 +283,7 @@ void WickZone::PreManageTickets()
         profit += mCurrentSetupTickets[i].Profit();
     }
 
-    double profitTarget = AccountInfoDouble(ACCOUNT_BALANCE) * .003;
+    double profitTarget = AccountInfoDouble(ACCOUNT_BALANCE) * .03;
     if (profit > profitTarget)
     {
         for (int i = 0; i < mCurrentSetupTickets.Size(); i++)

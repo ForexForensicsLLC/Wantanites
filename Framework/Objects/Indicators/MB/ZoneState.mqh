@@ -43,6 +43,7 @@ protected:
 
 public:
     // --- Getters ---
+    string ObjectName() { return mName; }
     string DisplayName() { return "Zone"; }
     string Symbol() { return mSymbol; }
     ENUM_TIMEFRAMES TimeFrame() { return mTimeFrame; }
@@ -271,7 +272,6 @@ void ZoneState::Draw()
     ObjectSetInteger(MQLHelper::CurrentChartID(), mName, OBJPROP_FILL, !mIsPending);
     ObjectSetInteger(MQLHelper::CurrentChartID(), mName, OBJPROP_SELECTED, false);
     ObjectSetInteger(MQLHelper::CurrentChartID(), mName, OBJPROP_SELECTABLE, false);
-    ObjectSetString(MQLHelper::CurrentChartID(), mName, OBJPROP_TEXT, mDescription);
 
     if (mIsPending)
     {

@@ -13,7 +13,7 @@
 #include <Wantanites/Framework/Objects/Indicators/MB/EASetup.mqh>
 
 // --- EA Inputs ---
-double RiskPercent = 0.1;
+double RiskPercent = 1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
@@ -42,6 +42,7 @@ double CloseRR = 3;
 
 int OnInit()
 {
+    MathSrand(GetTickCount());
     TS = new TradingSession();
 
     WZBuys = new WickZone(-1, SignalType::Bullish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,

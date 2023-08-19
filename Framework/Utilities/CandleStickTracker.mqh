@@ -47,7 +47,6 @@ void CandleStickTracker::Update()
     if (day != mCurrentDay)
     {
         mCurrentDay = day;
-
         mTodaysCandleSticks.Clear();
         ReadTodaysCandleSticks();
     }
@@ -56,18 +55,29 @@ void CandleStickTracker::Update()
 void CandleStickTracker::ReadTodaysCandleSticks()
 {
     CandleStickRecord *record = new CandleStickRecord();
-    mCandleStickWriter.SeekToStart();
+    // mCandleStickWriter.SeekToStart();
+
+    int currentYear = DateTimeHelper::CurrentYear();
+    int currentMonth = DateTimeHelper::CurrentMonth();
+    int currentDay = DateTimeHelper::CurrentDay();
 
     while (!FileIsEnding(mCandleStickWriter.FileHandle()))
     {
         record.ReadRow(mCandleStickWriter.FileHandle());
-        MqlDateTime dt = DateTimeHelper::ToMQLDateTime(record.Date);
 
-        if (dt.day < mCurrentDay)
+        // first record is an invalid one, just skip it
+        if (record.Open == 0)
         {
             continue;
         }
-        else if (dt.day > mCurrentDay)
+
+        MqlDateTime dt = DateTimeHelper::ToMQLDateTime(record.Date);
+
+        if ((dt.year < currentYear) || (dt.year == currentYear && dt.mon < currentMonth) || (dt.year == currentYear && dt.mon == currentMonth && dt.day < currentDay))
+        {
+            continue;
+        }
+        else if ((dt.year > currentYear) || (dt.year == currentYear && dt.mon > currentMonth) || (dt.year == currentYear && dt.mon == currentMonth && dt.day > currentDay))
         {
             break;
         }

@@ -133,9 +133,9 @@ public:
     template <typename TEA>
     static bool PriceIsFurtherThanPercentIntoHoldingZone(TEA &ea, MBTracker *&mbt, int mbNumber, double price, double percentAsDecimal);
     template <typename TEA>
-    static bool CandleIsInZone(TEA &ea, Zone &zone, int candleIndex, bool furthest = false);
+    static bool CandleIsInZone(TEA &ea, ZoneState &zone, int candleIndex, bool furthest = false);
     template <typename TEA>
-    static bool CandleIsInZone(TEA &ea, MBTracker *mbt, int mbNumber, int candleIndex, bool furthest);
+    static bool CandleIsInZone(TEA &ea, MBTracker *&mbt, int mbNumber, int candleIndex, bool furthest);
     template <typename TEA>
     static bool CandleIsInPendingZone(TEA &ea, MBTracker *&mbt, SignalType mbType, int candleIndex, bool furthest);
 };
@@ -1234,7 +1234,7 @@ static bool EASetupHelper::PriceIsFurtherThanPercentIntoHoldingZone(TEA &ea, MBT
 }
 
 template <typename TEA>
-static bool EASetupHelper::CandleIsInZone(TEA &ea, MBTracker *mbt, int mbNumber, int candleIndex, bool furthest = false)
+static bool EASetupHelper::CandleIsInZone(TEA &ea, MBTracker *&mbt, int mbNumber, int candleIndex, bool furthest = false)
 {
     MBState *tempMBState;
     if (!mbt.GetMB(mbNumber, tempMBState))
@@ -1253,7 +1253,7 @@ static bool EASetupHelper::CandleIsInZone(TEA &ea, MBTracker *mbt, int mbNumber,
 }
 
 template <typename TEA>
-static bool EASetupHelper::CandleIsInZone(TEA &ea, Zone &zone, int candleIndex, bool furthest = false)
+static bool EASetupHelper::CandleIsInZone(TEA &ea, ZoneState &zone, int candleIndex, bool furthest = false)
 {
     int zoneStart = zone.StartIndex() - zone.EntryOffset() - 1;
 

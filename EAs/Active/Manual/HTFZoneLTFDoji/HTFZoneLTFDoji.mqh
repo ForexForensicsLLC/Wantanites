@@ -142,7 +142,9 @@ void HTFZoneLTFDoji::PreRun()
             zone.Draw();
             mZones.Add(zone);
 
+            ObjectSetString(MQLHelper::CurrentChartID(), zone.ObjectName(), OBJPROP_TEXT, "Zone");
             ObjectSetString(MQLHelper::CurrentChartID(), name, OBJPROP_TEXT, "Zone");
+
             mObjectNameZoneNumbers.Add(name, i);
         }
     }
