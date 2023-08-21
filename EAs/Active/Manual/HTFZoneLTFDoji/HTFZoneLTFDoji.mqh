@@ -84,7 +84,14 @@ void HTFZoneLTFDoji::PreRun()
             continue;
         }
 
-        if (StringFind(description, "Zone") == -1)
+        // Already watching zone
+        if (StringFind(description, "Watching") >= 0)
+        {
+            continue;
+        }
+
+        // Need to watch zone
+        if (StringFind(description, "Watch") >= 0)
         {
             double priceOne = ObjectGet(name, OBJPROP_PRICE1);
             double priceTwo = ObjectGet(name, OBJPROP_PRICE2);
@@ -92,9 +99,12 @@ void HTFZoneLTFDoji::PreRun()
             double entryPrice = ConstantValues::EmptyDouble;
             double exitPrice = ConstantValues::EmptyDouble;
 
+            string direction = "";
+
             // demand zone
             if (CurrentTick().Ask() > priceOne && CurrentTick().Ask() > priceTwo)
             {
+                direction = "Buys";
                 if (SetupType() == SignalType::Bearish)
                 {
                     continue;
@@ -114,6 +124,7 @@ void HTFZoneLTFDoji::PreRun()
             // supply zone
             else if (CurrentTick().Ask() < priceOne && CurrentTick().Ask() < priceTwo)
             {
+                direction = "Sells";
                 if (SetupType() == SignalType::Bullish)
                 {
                     continue;
@@ -132,7 +143,7 @@ void HTFZoneLTFDoji::PreRun()
             }
 
             color zoneClr = SetupType() == SignalType::Bullish ? clrLimeGreen : clrRed;
-            Zone *zone = new Zone(false, EntrySymbol(), EntryTimeFrame(), 0, i, SetupType(), "Zone",
+            Zone *zone = new Zone(false, EntrySymbol(), EntryTimeFrame(), 0, i, SetupType(), "Watching",
                                   ObjectGet(name, OBJPROP_TIME1),
                                   entryPrice,
                                   ObjectGet(name, OBJPROP_TIME2),
@@ -142,8 +153,9 @@ void HTFZoneLTFDoji::PreRun()
             zone.Draw();
             mZones.Add(zone);
 
-            ObjectSetString(MQLHelper::CurrentChartID(), zone.ObjectName(), OBJPROP_TEXT, "Zone");
-            ObjectSetString(MQLHelper::CurrentChartID(), name, OBJPROP_TEXT, "Zone");
+            string newDescription = "Watching for " + direction;
+            ObjectSetText(zone.ObjectName(), newDescription, 10);
+            ObjectSetText(name, newDescription);
 
             mObjectNameZoneNumbers.Add(name, i);
         }

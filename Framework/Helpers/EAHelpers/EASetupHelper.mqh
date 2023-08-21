@@ -1067,7 +1067,8 @@ static bool EASetupHelper::GetCandleLowForEconomicEvent(TEA &ea, double &low, in
 template <typename TEA>
 static bool EASetupHelper::TradeWillWin(TEA &ea, datetime entryTime, double stopLoss, double takeProfit)
 {
-    return ea.mCST.PriceReachesXBeforeY(entryTime, ea.SetupType(), takeProfit, stopLoss);
+    MqlDateTime requestedDate = DateTimeHelper::ToMQLDateTime(entryTime);
+    return ea.mCST.PriceReachesXBeforeY(requestedDate, ea.SetupType(), takeProfit, stopLoss);
 }
 
 template <typename TEA>

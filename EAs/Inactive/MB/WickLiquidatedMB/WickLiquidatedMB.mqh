@@ -9,12 +9,13 @@
 #property strict
 
 #include <Wantanites\Framework\Objects\DataObjects\EA.mqh>
-#include <Wantanites\Framework\Utilities\CandleStickTracker.mqh>
+#include <Wantanites\Framework\Objects\Indicators\Candle\CandleStickTracker.mqh>
 
 class WickLiquidatedMB : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
     MBTracker *mMBT;
+    CandleStickTracker *mCST;
 
     int mFirstMBInSetupNumber;
     datetime mLiquidatedMBCandleTime;
@@ -41,7 +42,7 @@ public:
 public:
     WickLiquidatedMB(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                      CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                     CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&mbt);
+                     CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&mbt, CandleStickTracker *&cst);
     ~WickLiquidatedMB();
 
     virtual double RiskPercent();
@@ -70,10 +71,12 @@ public:
 
 WickLiquidatedMB::WickLiquidatedMB(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                                    CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                                   CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&mbt)
+                                   CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, MBTracker *&mbt, CandleStickTracker *&cst)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mMBT = mbt;
+    mCST = cst;
+
     mFirstMBInSetupNumber = ConstantValues::EmptyInt;
     mLiquidatedMBCandleTime = 0;
 
@@ -303,7 +306,7 @@ void WickLiquidatedMB::PlaceOrders()
     {
         EAOrderHelper::PlaceMarketOrder<WickLiquidatedMB>(this, entry, stopLoss);
     }
-    else if (EASetupHelper::TradeWillWin<WickLiquidatedMB>(this, iTime(EntrySymbol(), EntryTimeFrame(), 0), entry, stopLoss, takeProfit))
+    else if (EASetupHelper::TradeWillWin<WickLiquidatedMB>(this, iTime(EntrySymbol(), EntryTimeFrame(), 0), stopLoss, takeProfit))
     {
         EAOrderHelper::PlaceMarketOrder<WickLiquidatedMB>(this, entry, stopLoss);
     }

@@ -29,6 +29,8 @@ CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<S
 
 TradingSession *TS;
 
+CandleStickTracker *CST;
+
 WickLiquidatedMB *WLMBBuys;
 WickLiquidatedMB *WLMBSells;
 
@@ -44,9 +46,10 @@ double CloseRR = 3;
 int OnInit()
 {
     TS = new TradingSession();
+    CST = new CandleStickTracker();
 
     WLMBBuys = new WickLiquidatedMB(-1, SignalType::Bullish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                    ExitWriter, ErrorWriter, MBT);
+                                    ExitWriter, ErrorWriter, MBT, CST);
 
     WLMBBuys.SetPartialCSVRecordWriter(PartialWriter);
     WLMBBuys.AddPartial(CloseRR, 100);
@@ -60,7 +63,7 @@ int OnInit()
     WLMBBuys.AddTradingSession(TS);
 
     WLMBSells = new WickLiquidatedMB(-2, SignalType::Bearish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                     ExitWriter, ErrorWriter, MBT);
+                                     ExitWriter, ErrorWriter, MBT, CST);
     WLMBSells.SetPartialCSVRecordWriter(PartialWriter);
     WLMBSells.AddPartial(CloseRR, 100);
 
@@ -78,6 +81,7 @@ int OnInit()
 void OnDeinit(const int reason)
 {
     delete MBT;
+    delete CST;
 
     delete WLMBBuys;
     delete WLMBSells;

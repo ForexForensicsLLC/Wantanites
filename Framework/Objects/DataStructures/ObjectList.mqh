@@ -149,13 +149,6 @@ void ObjectList::Clear(bool deleteObjects = true)
             delete this[i];
         }
     }
-    else
-    {
-        for (int i = 0; i < Size(); i++)
-        {
-            this[i] = NULL;
-        }
-    }
 
     ArrayResize(mItems, 0);
 }

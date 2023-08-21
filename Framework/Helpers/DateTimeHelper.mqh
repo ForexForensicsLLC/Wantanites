@@ -34,6 +34,7 @@ public:
     static int CurrentDayOfWeek();
 
     static MqlDateTime ToMQLDateTime(datetime dt);
+    static datetime ToDatetime(MqlDateTime &mqldt);
 
     static int Day(datetime dt);
     static int Month(datetime dt);
@@ -140,6 +141,11 @@ static MqlDateTime DateTimeHelper::ToMQLDateTime(datetime dt)
     TimeToStruct(dt, mqldt);
 
     return mqldt;
+}
+
+static datetime DateTimeHelper::ToDatetime(MqlDateTime &mqldt)
+{
+    return StructToTime(mqldt);
 }
 
 static int DateTimeHelper::Day(datetime dt)
