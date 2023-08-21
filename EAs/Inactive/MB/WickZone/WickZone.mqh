@@ -105,6 +105,7 @@ double WickZone::RiskPercent()
 
 void WickZone::PreRun()
 {
+    EARunHelper::ShowOpenTicketProfit<WickZone>(this);
     mMBT.Draw();
 }
 
@@ -254,16 +255,16 @@ void WickZone::PlaceOrders()
     }
 
     // EAHelper::PlaceStopOrder<WickZone>(this, entry, stopLoss, 0.0, true, mBEAdditionalPips);
-    bool canLose = MathRand() % 6 == 0;
-    if (canLose)
-    {
-        EAOrderHelper::PlaceMarketOrder<WickZone>(this, entry, stopLoss);
-    }
-    else if (EASetupHelper::TradeWillWin<WickZone>(this, iTime(EntrySymbol(), EntryTimeFrame(), 0), entry, stopLoss, takeProfit))
-    {
-        EAOrderHelper::PlaceMarketOrder<WickZone>(this, entry, stopLoss);
-    }
+    // bool canLose = MathRand() % 6 == 0;
+    // if (canLose)
+    // {
+    //     EAOrderHelper::PlaceMarketOrder<WickZone>(this, entry, stopLoss);
+    // }
+    // else if (EASetupHelper::TradeWillWin<WickZone>(this, iTime(EntrySymbol(), EntryTimeFrame(), 0), entry, stopLoss, takeProfit))
+    // {
+    // }
 
+    EAOrderHelper::PlaceMarketOrder<WickZone>(this, entry, stopLoss);
     InvalidateSetup(false);
     // if (mCurrentSetupTicket.Number() != EMPTY)
     // {

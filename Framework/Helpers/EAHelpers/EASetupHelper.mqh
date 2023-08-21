@@ -79,7 +79,7 @@ public:
     static bool GetCandleLowForEconomicEvent(TEA &ea, double &low, int candleIndex);
 
     template <typename TEA>
-    static bool TradeWillWin(TEA &ea, datetime entryTime, double entry, double stopLoss, double close);
+    static bool TradeWillWin(TEA &ea, datetime entryTime, double stopLoss, double takeProfit);
 
     // =========================================================================
     // Check Invalidate Setup
@@ -1065,47 +1065,9 @@ static bool EASetupHelper::GetCandleLowForEconomicEvent(TEA &ea, double &low, in
 }
 
 template <typename TEA>
-static bool EASetupHelper::TradeWillWin(TEA &ea, datetime entryTime, double entry, double stopLoss, double close)
+static bool EASetupHelper::TradeWillWin(TEA &ea, datetime entryTime, double stopLoss, double takeProfit)
 {
-    ObjectList<CandleStick> *candleSticks = CandleStickTracker::GetTodaysCandleSticks();
-    if (ea.SetupType() == SignalType::Bullish)
-    {
-        for (int i = 0; i < candleSticks.Size(); i++)
-        {
-            if (candleSticks[i].Date() <= entryTime)
-            {
-                continue;
-            }
-            else if (candleSticks[i].Low() <= stopLoss)
-            {
-                return false;
-            }
-            else if (candleSticks[i].High() >= close)
-            {
-                return true;
-            }
-        }
-    }
-    else if (ea.SetupType() == SignalType::Bearish)
-    {
-        for (int i = 0; i < candleSticks.Size(); i++)
-        {
-            if (candleSticks[i].Date() <= entryTime)
-            {
-                continue;
-            }
-            else if (candleSticks[i].High() >= stopLoss)
-            {
-                return false;
-            }
-            else if (candleSticks[i].Low() <= close)
-            {
-                return true;
-            }
-        }
-    }
-
-    return false;
+    return ea.mCST.PriceReachesXBeforeY(entryTime, ea.SetupType(), takeProfit, stopLoss);
 }
 
 template <typename TEA>

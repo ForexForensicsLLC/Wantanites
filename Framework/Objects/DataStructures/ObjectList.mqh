@@ -43,7 +43,7 @@ public:
     void Remove(int index);
 
     // removes all items from the list
-    void Clear();
+    void Clear(bool deleteObjects);
 
     template <typename U, typename V>
     void RemoveWhere(U locator, V value);
@@ -140,11 +140,21 @@ void ObjectList::Remove(int index)
 }
 
 template <typename T>
-void ObjectList::Clear()
+void ObjectList::Clear(bool deleteObjects = true)
 {
-    for (int i = 0; i < Size(); i++)
+    if (deleteObjects)
     {
-        delete this[i];
+        for (int i = 0; i < Size(); i++)
+        {
+            delete this[i];
+        }
+    }
+    else
+    {
+        for (int i = 0; i < Size(); i++)
+        {
+            this[i] = NULL;
+        }
     }
 
     ArrayResize(mItems, 0);

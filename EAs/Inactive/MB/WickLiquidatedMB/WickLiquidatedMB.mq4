@@ -9,25 +9,16 @@
 #property strict
 
 #include <Wantanites/Framework/Constants/SymbolConstants.mqh>
-#include <Wantanites/EAs/Inactive/WickLiquidatedMB/WickLiquidatedMB.mqh>
+#include <Wantanites/Framework/Objects/Indicators/MB/EASetup.mqh>
+#include <Wantanites/EAs/Inactive/MB/WickLiquidatedMB/WickLiquidatedMB.mqh>
 
 // --- EA Inputs ---
-double RiskPercent = 1;
+double RiskPercent = .1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-// -- MBTracker Inputs
-int MBsToTrack = 10;
-int MaxZonesInMB = 0;
-bool AllowMitigatedZones = false;
-bool AllowZonesAfterMBValidation = true;
-bool AllowWickBreaks = true;
-bool OnlyZonesInMB = true;
-bool PrintErrors = false;
-bool CalculateOnTick = false;
-
 string StrategyName = "WickLiquidatedMB/";
-string EAName = "Dow/";
+string EAName = "";
 string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
@@ -36,7 +27,7 @@ CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<Partial
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-MBTracker *SetupMBT;
+TradingSession *TS;
 
 WickLiquidatedMB *WLMBBuys;
 WickLiquidatedMB *WLMBSells;
@@ -45,17 +36,17 @@ double MinMBHeight = 10;
 double MaxSpreadPips = SymbolConstants::DowSpreadPips;
 double EntryPaddingPips = 0;
 double MinStopLossPips = 0;
-double StopLossPaddingPips = 2;
-double PipsToWaitBeforeBE = 40;
-double BEAdditionalPips = 2;
-double CloseRR = 20;
+double StopLossPaddingPips = 0;
+double PipsToWaitBeforeBE = 5;
+double BEAdditionalPips = 1;
+double CloseRR = 3;
 
 int OnInit()
 {
-    SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, OnlyZonesInMB, PrintErrors, CalculateOnTick);
+    TS = new TradingSession();
 
-    WLMBBuys = new WickLiquidatedMB(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                    ExitWriter, ErrorWriter, SetupMBT);
+    WLMBBuys = new WickLiquidatedMB(-1, SignalType::Bullish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                    ExitWriter, ErrorWriter, MBT);
 
     WLMBBuys.SetPartialCSVRecordWriter(PartialWriter);
     WLMBBuys.AddPartial(CloseRR, 100);
@@ -66,10 +57,10 @@ int OnInit()
     WLMBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     WLMBBuys.mBEAdditionalPips = BEAdditionalPips;
 
-    WLMBBuys.AddTradingSession(13, 0, 23, 0);
+    WLMBBuys.AddTradingSession(TS);
 
-    WLMBSells = new WickLiquidatedMB(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                     ExitWriter, ErrorWriter, SetupMBT);
+    WLMBSells = new WickLiquidatedMB(-2, SignalType::Bearish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                     ExitWriter, ErrorWriter, MBT);
     WLMBSells.SetPartialCSVRecordWriter(PartialWriter);
     WLMBSells.AddPartial(CloseRR, 100);
 
@@ -79,14 +70,14 @@ int OnInit()
     WLMBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
     WLMBSells.mBEAdditionalPips = BEAdditionalPips;
 
-    WLMBSells.AddTradingSession(13, 0, 23, 0);
+    WLMBSells.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete SetupMBT;
+    delete MBT;
 
     delete WLMBBuys;
     delete WLMBSells;

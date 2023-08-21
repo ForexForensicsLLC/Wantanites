@@ -34,7 +34,12 @@ public:
     static int CurrentDayOfWeek();
 
     static MqlDateTime ToMQLDateTime(datetime dt);
-    static int ToDay(datetime dt);
+
+    static int Day(datetime dt);
+    static int Month(datetime dt);
+    static int Year(datetime dt);
+
+    static void AddDays(int days, datetime &dt);
 
     static datetime HourMinuteToDateTime(int hour, int minute, int day);
     static datetime DayMonthYearToDateTime(int day, int month, int year);
@@ -137,12 +142,33 @@ static MqlDateTime DateTimeHelper::ToMQLDateTime(datetime dt)
     return mqldt;
 }
 
-static int DateTimeHelper::ToDay(datetime dt)
+static int DateTimeHelper::Day(datetime dt)
 {
     MqlDateTime mqldt;
     TimeToStruct(dt, mqldt);
 
     return mqldt.day;
+}
+
+static int DateTimeHelper::Month(datetime dt)
+{
+    MqlDateTime mqldt;
+    TimeToStruct(dt, mqldt);
+
+    return mqldt.mon;
+}
+
+static int DateTimeHelper::Year(datetime dt)
+{
+    MqlDateTime mqldt;
+    TimeToStruct(dt, mqldt);
+
+    return mqldt.year;
+}
+
+static void DateTimeHelper::AddDays(int days, datetime &dt)
+{
+    dt += days * 86400;
 }
 
 datetime DateTimeHelper::HourMinuteToDateTime(int hour, int minute, int day)

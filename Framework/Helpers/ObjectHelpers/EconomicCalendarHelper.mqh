@@ -115,7 +115,7 @@ void EconomicCalendarHelper::GetEventsBetween(string calendar, datetime utcStart
                                               List<string> *&symbols, List<int> *&impacts, bool ignoreDuplicateTimes = true)
 {
     datetime currentDate = utcStart;
-    while (DateTimeHelper::ToDay(currentDate) < DateTimeHelper::ToDay(utcEnd))
+    while (DateTimeHelper::Day(currentDate) < DateTimeHelper::Day(utcEnd))
     {
         ReadEvents<TRecord>(calendar, utcStart, utcEnd, currentDate, economicEvents, titles, symbols, impacts, ignoreDuplicateTimes);
         currentDate += (60 * 60 * 24); // add one day in seconds

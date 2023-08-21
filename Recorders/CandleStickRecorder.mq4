@@ -13,27 +13,34 @@
 
 #include <Wantanites\Framework\Helpers\DateTimeHelper.mqh>
 
-string Directory = "CandleStickRecords/" + Symbol() + "/";
-string CSVName = IntegerToString(Period()) + ".csv";
-CSVRecordWriter<CandleStickRecord> *CandleStickWriter;
-
+CSVRecordWriter<CandleStickRecord> *Writer;
 int BarCount;
+int CurrentDay;
 
 int OnInit()
 {
     BarCount = 0;
-    CandleStickWriter = new CSVRecordWriter<CandleStickRecord>(Directory, CSVName);
+    CurrentDay = Day();
+
+    InitWriter();
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete CandleStickWriter;
 }
 
 void OnTick()
 {
+    if (Day() != CurrentDay)
+    {
+        delete Writer;
+        InitWriter();
+
+        CurrentDay = Day();
+    }
+
     int bars = iBars(Symbol(), Period());
     if (bars > BarCount)
     {
@@ -45,9 +52,18 @@ void OnTick()
         record.High = iHigh(Symbol(), Period(), 1);
         record.Low = iLow(Symbol(), Period(), 1);
 
-        CandleStickWriter.WriteRecord(record);
+        Writer.WriteRecord(record);
+
         delete record;
 
         BarCount = bars;
     }
+}
+
+void InitWriter()
+{
+    string Directory = "CandleStickRecords/" + Symbol() + "/" + Period() + "/";
+    string CSVName = IntegerToString(Year()) + "/" + IntegerToString(Month()) + "/" + IntegerToString(Day()) + ".csv";
+
+    Writer = new CSVRecordWriter<CandleStickRecord>(Directory, CSVName);
 }
