@@ -14,7 +14,6 @@
 class HTFZoneLTFDoji : public EA<SingleTimeFrameEntryTradeRecord, EmptyPartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
-    ENUM_TIMEFRAMES mLowerTimeFrame;
     double mMinWickPips;
 
     int mCurrentTradeOnZone;
@@ -23,7 +22,7 @@ public:
     Dictionary<string, int> *mObjectNameZoneNumbers;
 
 public:
-    HTFZoneLTFDoji(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+    HTFZoneLTFDoji(string entrySymbol, ENUM_TIMEFRAMES entryTimeFrame, int magicNumber, SignalType setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                    CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
                    CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter);
     ~HTFZoneLTFDoji();
@@ -52,10 +51,10 @@ public:
     virtual void Reset();
 };
 
-HTFZoneLTFDoji::HTFZoneLTFDoji(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+HTFZoneLTFDoji::HTFZoneLTFDoji(string entrySymbol, ENUM_TIMEFRAMES entryTimeFrame, int magicNumber, SignalType setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                                CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
                                CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter)
-    : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
+    : EA(entrySymbol, entryTimeFrame, magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mCurrentTradeOnZone = ConstantValues::EmptyInt;
 
@@ -243,13 +242,13 @@ bool HTFZoneLTFDoji::Confirmation()
     // TODO: Add checks for overall candle size i.e. make sure its more of a doji and not a huge body that liquidated the candle before it
     if (SetupType() == SignalType::Bullish)
     {
-        dojiInZone = SetupHelper::HammerCandleStickPattern(EntrySymbol(), mLowerTimeFrame, 1) &&
-                     CandleStickHelper::LowerWickLength(EntrySymbol(), mLowerTimeFrame, 1) >= PipConverter::PipsToPoints(mMinWickPips);
+        dojiInZone = SetupHelper::HammerCandleStickPattern(EntrySymbol(), EntryTimeFrame(), 1) &&
+                     CandleStickHelper::LowerWickLength(EntrySymbol(), EntryTimeFrame(), 1) >= PipConverter::PipsToPoints(mMinWickPips);
     }
     else if (SetupType() == SignalType::Bearish)
     {
-        dojiInZone = SetupHelper::ShootingStarCandleStickPattern(EntrySymbol(), mLowerTimeFrame, 1) &&
-                     CandleStickHelper::UpperWickLength(EntrySymbol(), mLowerTimeFrame, 1) >= PipConverter::PipsToPoints(mMinWickPips);
+        dojiInZone = SetupHelper::ShootingStarCandleStickPattern(EntrySymbol(), EntryTimeFrame(), 1) &&
+                     CandleStickHelper::UpperWickLength(EntrySymbol(), EntryTimeFrame(), 1) >= PipConverter::PipsToPoints(mMinWickPips);
     }
 
     mCurrentTradeOnZone = holdingZone.Number();

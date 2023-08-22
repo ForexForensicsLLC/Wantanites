@@ -19,7 +19,7 @@ int MaxTradesPerDay = 3;
 
 string StrategyName = "Manual/";
 string EAName = "HTFZoneLTFDoji/";
-string SetupTypeName = "";
+string SetupTypeName = Symbol() + "/";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -31,7 +31,6 @@ TradingSession *TS;
 HTFZoneLTFDoji *BuyEA;
 HTFZoneLTFDoji *SellEA;
 
-ENUM_TIMEFRAMES LowerTimeFrame = PERIOD_H1;
 double MinWickPips = 5;
 
 // UJ
@@ -42,18 +41,14 @@ int OnInit()
 {
     TS = new TradingSession();
 
-    BuyEA = new HTFZoneLTFDoji(-1, SignalType::Bullish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
+    BuyEA = new HTFZoneLTFDoji(Symbol(), PERIOD_H1, -1, SignalType::Bullish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
                                MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
-    BuyEA.mLowerTimeFrame = LowerTimeFrame;
     BuyEA.mMinWickPips = MinWickPips;
-
     BuyEA.AddTradingSession(TS);
 
-    SellEA = new HTFZoneLTFDoji(-2, SignalType::Bearish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
+    SellEA = new HTFZoneLTFDoji(Symbol(), PERIOD_H1, -2, SignalType::Bearish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips,
                                 MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
-    SellEA.mLowerTimeFrame = LowerTimeFrame;
     SellEA.mMinWickPips = MinWickPips;
-
     SellEA.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
