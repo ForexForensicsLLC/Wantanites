@@ -18,7 +18,7 @@ public:
     static int CountTradesTakenToday(int magicNumber, int &tradeCount);
     static int CountOtherEAOrders(bool todayOnly, List<int> &magicNumbers, int &orderCount);
     static int GetAllActiveTickets(List<int> &ticketNumbers);
-    static int FindActiveTicketsByMagicNumber(int magicNumber, int &tickets[]);
+    static int FindActiveTicketsByMagicNumber(int magicNumber, string symbol, int &tickets[]);
     static int FindNewTicketAfterPartial(int magicNumber, double openPrice, datetime orderOpenTime, int &ticket);
     static double GetTotalLotsForSymbolAndDirection(string symbol, TicketType type);
 };
@@ -164,7 +164,7 @@ static int VersionSpecificOrderInfoHelper::GetAllActiveTickets(List<int> &ticket
     return Errors::NO_ERROR;
 }
 
-static int VersionSpecificOrderInfoHelper::FindActiveTicketsByMagicNumber(int magicNumber, int &tickets[])
+static int VersionSpecificOrderInfoHelper::FindActiveTicketsByMagicNumber(int magicNumber, string symbol, int &tickets[])
 {
     // pending orders
     for (int i = 0; i < OrdersTotal(); i++)
@@ -183,6 +183,11 @@ static int VersionSpecificOrderInfoHelper::FindActiveTicketsByMagicNumber(int ma
                                  "Current Order Index: " + IntegerToString(i) + "\n" +
                                  IntegerToString(error));
             return error;
+        }
+
+        if (OrderGetString(ORDER_SYMBOL) != symbol)
+        {
+            continue;
         }
 
         if (OrderGetInteger(ORDER_MAGIC) == magicNumber)
