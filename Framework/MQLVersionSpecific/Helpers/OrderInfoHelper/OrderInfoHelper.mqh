@@ -24,7 +24,7 @@ public:
     static int CountOtherEAOrders(bool todayOnly, List<int> &magicNumber, int &orderCount);
     static int GetAllActiveTickets(List<int> &ticketNumbers);
     static int FindActiveTicketsByMagicNumber(int magicNumber, string symbol, int &tickets[]);
-    static int FindNewTicketAfterPartial(int magicNumber, double openPrice, datetime orderOpenTime, int &ticket);
+    static int FindNewTicketAfterPartial(int magicNumber, string symbol, double openPrice, datetime orderOpenTime, int &ticket);
     static double GetTotalLotsForSymbolAndDirection(string symbol, TicketType type);
 };
 
@@ -53,9 +53,9 @@ int OrderInfoHelper::FindActiveTicketsByMagicNumber(int magicNumber, string symb
     return VersionSpecificOrderInfoHelper::FindActiveTicketsByMagicNumber(magicNumber, symbol, tickets);
 }
 
-int OrderInfoHelper::FindNewTicketAfterPartial(int magicNumber, double openPrice, datetime orderOpenTime, int &ticket)
+int OrderInfoHelper::FindNewTicketAfterPartial(int magicNumber, string symbol, double openPrice, datetime orderOpenTime, int &ticket)
 {
-    return VersionSpecificOrderInfoHelper::FindNewTicketAfterPartial(magicNumber, openPrice, orderOpenTime, ticket);
+    return VersionSpecificOrderInfoHelper::FindNewTicketAfterPartial(magicNumber, symbol, openPrice, orderOpenTime, ticket);
 }
 
 static double OrderInfoHelper::GetTotalLotsForSymbolAndDirection(string symbol, TicketType type)

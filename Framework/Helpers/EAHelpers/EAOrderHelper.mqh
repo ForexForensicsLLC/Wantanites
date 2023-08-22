@@ -1319,7 +1319,7 @@ static void EAOrderHelper::CheckPartialTicket(TEA &ea, Ticket &ticket)
     {
         ea.mLastState = EAStates::SEARCHING_FOR_PARTIALED_TICKET;
 
-        int searchError = OrderInfoHelper::FindNewTicketAfterPartial(ea.MagicNumber(), ticket.OpenPrice(), ticket.OpenTime(), newTicket);
+        int searchError = OrderInfoHelper::FindNewTicketAfterPartial(ea.MagicNumber(), ea.EntrySymbol(), ticket.OpenPrice(), ticket.OpenTime(), newTicket);
         if (searchError != Errors::NO_ERROR)
         {
             ea.RecordError(__FUNCTION__, searchError);

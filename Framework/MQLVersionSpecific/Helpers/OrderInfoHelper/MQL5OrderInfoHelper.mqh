@@ -19,7 +19,7 @@ public:
     static int CountOtherEAOrders(bool todayOnly, List<int> &magicNumbers, int &orderCount);
     static int GetAllActiveTickets(List<int> &ticketNumbers);
     static int FindActiveTicketsByMagicNumber(int magicNumber, string symbol, int &tickets[]);
-    static int FindNewTicketAfterPartial(int magicNumber, double openPrice, datetime orderOpenTime, int &ticket);
+    static int FindNewTicketAfterPartial(int magicNumber, string symbol, double openPrice, datetime orderOpenTime, int &ticket);
     static double GetTotalLotsForSymbolAndDirection(string symbol, TicketType type);
 };
 
@@ -221,7 +221,7 @@ static int VersionSpecificOrderInfoHelper::FindActiveTicketsByMagicNumber(int ma
     return Errors::NO_ERROR;
 }
 
-static int VersionSpecificOrderInfoHelper::FindNewTicketAfterPartial(int magicNumber, double openPrice, datetime orderOpenTime, int &ticket)
+static int VersionSpecificOrderInfoHelper::FindNewTicketAfterPartial(int magicNumber, string symbol, double openPrice, datetime orderOpenTime, int &ticket)
 {
     int error = Errors::NO_ERROR;
     for (int i = 0; i < PositionsTotal(); i++)
@@ -238,6 +238,11 @@ static int VersionSpecificOrderInfoHelper::FindNewTicketAfterPartial(int magicNu
         }
 
         if (PositionGetInteger(POSITION_MAGIC) != magicNumber)
+        {
+            continue;
+        }
+
+        if (PositionGetString(POSITION_SYMBOL) != symbol)
         {
             continue;
         }
