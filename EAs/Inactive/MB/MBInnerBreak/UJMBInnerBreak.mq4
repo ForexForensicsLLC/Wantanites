@@ -8,36 +8,28 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites/Framework/Constants/SymbolConstants.mqh>
-#include <Wantanites/EAs/InnerBreaks/MB/TheGrannySmith.mqh>
+#include <Wantanites/EAs/Inactive/MB/MBInnerBreak/MBInnerBreak.mqh>
+#include <Wantanites/Framework/Objects/Indicators/MB/EASetup.mqh>
 
 // --- EA Inputs ---
-double RiskPercent = 1;
+double RiskPercent = 0.1;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-// -- MBTracker Inputs
-int MBsToTrack = 10;
-int MaxZonesInMB = 5;
-bool AllowMitigatedZones = false;
-bool AllowZonesAfterMBValidation = true;
-bool AllowWickBreaks = true;
-bool PrintErrors = false;
-bool CalculateOnTick = false;
-
 string StrategyName = "MBInnerBreak/";
-string EAName = "UJ/";
+string EAName = "";
 string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
-CSVRecordWriter<MBEntryTradeRecord> *EntryWriter = new CSVRecordWriter<MBEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
+CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
 CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>(Directory + "Partials/", "Partials.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-MBTracker *SetupMBT;
-TheGrannySmith *MBInnerBreakBuys;
-TheGrannySmith *MBInnerBreakSells;
+TradingSession *TS;
+
+MBInnerBreak *MBInnerBreakBuys;
+MBInnerBreak *MBInnerBreakSells;
 
 double MaxSpreadPips = 1;
 double EntryPaddingPips = 0;
@@ -47,14 +39,14 @@ double PipsToWaitBeforeBE = 20;
 double BEAdditionalPips = 1;
 double LargeBodyPips = 5;
 double PushFurtherPips = 5;
-double CloseRR = 2;
+double CloseRR = 3;
 
 int OnInit()
 {
-    SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
+    TS = new TradingSession();
 
-    MBInnerBreakBuys = new TheGrannySmith(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                          ExitWriter, ErrorWriter, SetupMBT);
+    MBInnerBreakBuys = new MBInnerBreak(-1, SignalType::Bullish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                        ExitWriter, ErrorWriter, MBT);
 
     MBInnerBreakBuys.SetPartialCSVRecordWriter(PartialWriter);
     MBInnerBreakBuys.AddPartial(CloseRR, 100);
@@ -66,10 +58,10 @@ int OnInit()
     MBInnerBreakBuys.mLargeBodyPips = LargeBodyPips;
     MBInnerBreakBuys.mPushFurtherPips = PushFurtherPips;
 
-    MBInnerBreakBuys.AddTradingSession(16, 30, 23, 0);
+    MBInnerBreakBuys.AddTradingSession(TS);
 
-    MBInnerBreakSells = new TheGrannySmith(-1, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                           ExitWriter, ErrorWriter, SetupMBT);
+    MBInnerBreakSells = new MBInnerBreak(-1, SignalType::Bearish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                                         ExitWriter, ErrorWriter, MBT);
     MBInnerBreakSells.SetPartialCSVRecordWriter(PartialWriter);
     MBInnerBreakSells.AddPartial(CloseRR, 100);
 
@@ -80,14 +72,14 @@ int OnInit()
     MBInnerBreakSells.mLargeBodyPips = LargeBodyPips;
     MBInnerBreakSells.mPushFurtherPips = PushFurtherPips;
 
-    MBInnerBreakSells.AddTradingSession(16, 30, 23, 0);
+    MBInnerBreakSells.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete SetupMBT;
+    delete MBT;
 
     delete MBInnerBreakBuys;
     delete MBInnerBreakSells;

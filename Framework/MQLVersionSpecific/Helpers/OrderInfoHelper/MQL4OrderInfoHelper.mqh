@@ -65,6 +65,7 @@ int VersionSpecificOrderInfoHelper::CountTradesTakenToday(int magicNumber, int &
         }
     }
 
+    delete magicNumbers;
     return Errors::NO_ERROR;
 }
 

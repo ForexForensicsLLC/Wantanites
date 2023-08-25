@@ -27,7 +27,7 @@ private:
     bool mTrackBearishEngulfing;
 
     bool mTrackBullishRun;
-    bool mTrackerBearishRun;
+    bool mTrackBearishRun;
 
     bool mTrackHammerCandle;
     bool mTrackShootingStarCandle;
@@ -107,7 +107,7 @@ CandleStickPatternTracker::CandleStickPatternTracker(bool draw)
     mTrackBearishEngulfing = false;
 
     mTrackBullishRun = false;
-    mTrackerBearishRun = false;
+    mTrackBearishRun = false;
 
     mTrackHammerCandle = false;
     mTrackShootingStarCandle = false;
@@ -288,7 +288,7 @@ void CandleStickPatternTracker::Calculate(int &barIndex)
         }
     }
 
-    if (mTrackBullishRun)
+    if (mTrackBearishRun)
     {
         if (Close[barIndex + 2] < Open[barIndex + 2] && Close[barIndex + 1] < Open[barIndex + 1] && Close[barIndex] < Open[barIndex])
         {
@@ -657,10 +657,10 @@ void CandleStickPatternTracker::TrackBullishRun(bool track)
 
 void CandleStickPatternTracker::TrackBearishRun(bool track)
 {
-    if (mTrackerBearishRun != track)
+    if (mTrackBearishRun != track)
     {
         mBarsCalculated = 0;
-        mTrackerBearishRun = track;
+        mTrackBearishRun = track;
     }
 }
 

@@ -41,7 +41,7 @@ VersionSpecificTradeManager::~VersionSpecificTradeManager() {}
 bool VersionSpecificTradeManager::LotSizeIsInvalid(TicketType type, double entryPrice, double lotSize)
 {
     int orderType;
-    if (!TypeConverter::TicketTypeToOrderType(type, orderType))
+    if (!TypeConverter::TicketTypeToOPBuySell(type, orderType))
     {
         return true;
     }

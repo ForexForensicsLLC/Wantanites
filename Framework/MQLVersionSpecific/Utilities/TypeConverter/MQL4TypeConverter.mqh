@@ -12,6 +12,7 @@ class TypeConverter
 {
 public:
     static bool TicketTypeToOrderType(TicketType type, int &orderType);
+    static bool TicketTypeToOPBuySell(TicketType type, int &orderType);
 };
 
 bool TypeConverter::TicketTypeToOrderType(TicketType ticketType, int &orderType)
@@ -35,6 +36,25 @@ bool TypeConverter::TicketTypeToOrderType(TicketType ticketType, int &orderType)
         return true;
     case TicketType::SellStop:
         orderType = OP_SELLSTOP;
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool TypeConverter::TicketTypeToOPBuySell(TicketType ticketType, int &orderType)
+{
+    switch (ticketType)
+    {
+    case TicketType::Buy:
+    case TicketType::BuyLimit:
+    case TicketType::BuyStop:
+        orderType = OP_BUY;
+        return true;
+    case TicketType::Sell:
+    case TicketType::SellLimit:
+    case TicketType::SellStop:
+        orderType = OP_SELL;
         return true;
     default:
         return false;
