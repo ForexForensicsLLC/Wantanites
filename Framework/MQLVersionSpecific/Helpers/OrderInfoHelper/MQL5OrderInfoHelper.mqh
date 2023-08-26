@@ -30,23 +30,15 @@ static int VersionSpecificOrderInfoHelper::TotalCurrentOrders()
 
 static int VersionSpecificOrderInfoHelper::CountTradesTakenToday(int magicNumber, int &tradeCount)
 {
-    List<int> *magicNumbers = new List<int>();
-    magicNumber.Add(magicNumber);
-
-    int error = CountOtherEAOrders(true, magicNumber, tradeCount);
-    delete magicNumber;
-
-    if (error != Errors::NO_ERROR)
-    {
-        return error;
-    }
-
+    tradeCount = 0;
     datetime startOfToay = DateTimeHelper::DayMonthYearToDateTime(DateTimeHelper::CurrentDay(), DateTimeHelper::CurrentMonth(), DateTimeHelper::CurrentYear());
+
     if (!HistorySelect(startOfToday, TimeCurrent()))
     {
         return error;
     }
 
+    // don't need to check for position type since deals are only active tickets
     for (int i = 0; i < HistoryDealsTotal(); i++)
     {
         ulong ticket = HistoryDealGetTicket(i);

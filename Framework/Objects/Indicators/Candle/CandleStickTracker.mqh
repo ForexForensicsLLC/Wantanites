@@ -23,13 +23,14 @@ private:
     string Directory() { return "CandleStickRecords/" + Symbol() + "/" + Period() + "/"; }
     string CSVName(MqlDateTime &requestedTime) { return IntegerToString(requestedTime.year) + "/" + IntegerToString(requestedTime.mon) + "/" + IntegerToString(requestedTime.day) + ".csv"; }
 
-    void ReadCandleSticks(MqlDateTime &requestedDate, ObjectList<CandleStick> *&tempCandleSticks);
+    void ReadCandleSticks(datetime requestedDate, ObjectList<CandleStick> *&tempCandleSticks);
+    bool PriceReachesXBeforeYLoop(SignalType signalType, datetime requestedDateTime, double x, double y, ObjectList<CandleStick> *&tempCandleSticks);
 
 public:
     CandleStickTracker();
     ~CandleStickTracker();
 
-    bool PriceReachesXBeforeY(MqlDateTime &requestedDate, SignalType signalType, double x, double y);
+    bool PriceReachesXBeforeY(SignalType signalType, MqlDateTime &requestedDate, double x, double y);
 };
 
 CandleStickTracker::CandleStickTracker()
@@ -43,10 +44,12 @@ CandleStickTracker::~CandleStickTracker()
     delete mCandleSticks;
 }
 
-void CandleStickTracker::ReadCandleSticks(MqlDateTime &requestedDate, ObjectList<CandleStick> *&tempCandleSticks)
+void CandleStickTracker::ReadCandleSticks(datetime requestedDate, ObjectList<CandleStick> *&tempCandleSticks)
 {
+    MqlDateTime mqlDT = DateTimeHelper::ToMQLDateTime(requestedDate);
+
     CandleStickRecord *record = new CandleStickRecord();
-    CSVRecordWriter<CandleStickRecord> *writer = new CSVRecordWriter<CandleStickRecord>(Directory(), CSVName(requestedDate), FileOperation::ReadingExisting, false, false);
+    CSVRecordWriter<CandleStickRecord> *writer = new CSVRecordWriter<CandleStickRecord>(Directory(), CSVName(mqlDT), FileOperation::ReadingExisting, false, false);
 
     while (!FileIsEnding(writer.FileHandle()))
     {
@@ -59,6 +62,8 @@ void CandleStickTracker::ReadCandleSticks(MqlDateTime &requestedDate, ObjectList
         }
 
         CandleStick *cs = new CandleStick(record);
+
+        mCandleSticks.Add(cs);
         tempCandleSticks.Add(cs);
     }
 
@@ -66,7 +71,7 @@ void CandleStickTracker::ReadCandleSticks(MqlDateTime &requestedDate, ObjectList
     delete writer;
 }
 
-bool CandleStickTracker::PriceReachesXBeforeY(MqlDateTime &requestedDate, SignalType signalType, double x, double y)
+bool CandleStickTracker::PriceReachesXBeforeY(SignalType signalType, MqlDateTime &requestedDate, double x, double y)
 {
     bool loadRequestedDateRecords = false;
 
@@ -93,20 +98,30 @@ bool CandleStickTracker::PriceReachesXBeforeY(MqlDateTime &requestedDate, Signal
         }
     }
 
-    ObjectList<CandleStick> *tempCandleSticks = mCandleSticks;
+    ObjectList<CandleStick> *tempCandleSticks = new ObjectList<CandleStick>();
+    tempCandleSticks.CopyFrom(mCandleSticks);
+
+    datetime requestedDateTime = DateTimeHelper::ToDatetime(requestedDate);
 
     // only load if we are requesting a date that is greater than we have before, not if we are equal or lower
     if (loadRequestedDateRecords)
     {
-        ReadCandleSticks(requestedDate, tempCandleSticks);
+        ReadCandleSticks(requestedDateTime, tempCandleSticks);
     }
 
-    datetime requestedDateTime = 0;
-    bool priceReachedXBeforeY = false;
+    bool priceReachedXBeforeY = PriceReachesXBeforeYLoop(signalType, requestedDateTime, x, y, tempCandleSticks);
+
+    tempCandleSticks.Clear(false);
+    delete tempCandleSticks;
+
+    mLastRequestedDate = DateTimeHelper::ToMQLDateTime(requestedDateTime);
+    return priceReachedXBeforeY;
+}
+
+bool CandleStickTracker::PriceReachesXBeforeYLoop(SignalType signalType, datetime requestedDateTime, double x, double y, ObjectList<CandleStick> *&tempCandleSticks)
+{
     while (true)
     {
-        requestedDateTime = DateTimeHelper::ToDatetime(requestedDate);
-
         if (signalType == SignalType::Bullish)
         {
             for (int i = 0; i < tempCandleSticks.Size(); i++)
@@ -117,13 +132,11 @@ bool CandleStickTracker::PriceReachesXBeforeY(MqlDateTime &requestedDate, Signal
                 }
                 else if (tempCandleSticks[i].Low() <= y)
                 {
-                    priceReachedXBeforeY = false;
-                    break;
+                    return false;
                 }
                 else if (tempCandleSticks[i].High() >= x)
                 {
-                    priceReachedXBeforeY = true;
-                    break;
+                    return true;
                 }
             }
         }
@@ -137,27 +150,19 @@ bool CandleStickTracker::PriceReachesXBeforeY(MqlDateTime &requestedDate, Signal
                 }
                 else if (tempCandleSticks[i].High() >= y)
                 {
-                    priceReachedXBeforeY = false;
-                    break;
+                    return false;
                 }
                 else if (tempCandleSticks[i].Low() <= x)
                 {
-                    priceReachedXBeforeY = true;
-                    break;
+                    return true;
                 }
             }
         }
 
-        requestedDate.day += 1;
+        DateTimeHelper::MoveToNextWeekDay(requestedDateTime);
 
         // remove old candles so we don't loop through them again
         tempCandleSticks.Clear(false);
-        ReadCandleSticks(requestedDate, tempCandleSticks);
+        ReadCandleSticks(requestedDateTime, tempCandleSticks);
     }
-
-    tempCandleSticks.Clear(false);
-    delete tempCandleSticks;
-
-    mLastRequestedDate = requestedDate;
-    return priceReachedXBeforeY;
 }

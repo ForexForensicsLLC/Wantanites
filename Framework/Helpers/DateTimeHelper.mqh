@@ -39,8 +39,10 @@ public:
     static int Day(datetime dt);
     static int Month(datetime dt);
     static int Year(datetime dt);
+    static int DayOfWeek(datetime dt);
 
     static void AddDays(int days, datetime &dt);
+    static void MoveToNextWeekDay(datetime &dt);
 
     static datetime HourMinuteToDateTime(int hour, int minute, int day);
     static datetime DayMonthYearToDateTime(int day, int month, int year);
@@ -172,9 +174,42 @@ static int DateTimeHelper::Year(datetime dt)
     return mqldt.year;
 }
 
+static int DateTimeHelper::DayOfWeek(datetime dt)
+{
+    MqlDateTime mqldt;
+    TimeToStruct(dt, mqldt);
+
+    return mqldt.day_of_week;
+}
+
 static void DateTimeHelper::AddDays(int days, datetime &dt)
 {
     dt += days * 86400;
+}
+
+static void DateTimeHelper::MoveToNextWeekDay(datetime &dt)
+{
+    int dayOfWeek = DayOfWeek(dt);
+
+    // Sunday - Thursday, Just need to go to next day
+    if (dayOfWeek <= 4)
+    {
+        AddDays(1, dt);
+    }
+    // Friday, need to go to monday
+    else if (dayOfWeek == 5)
+    {
+        AddDays(3, dt);
+    }
+    // Saturday, need to go to monday
+    else if (dayOfWeek == 6)
+    {
+        AddDays(2, dt);
+    }
+    else
+    {
+        Print("Unknonw day of week: ", IntegerToString(dayOfWeek));
+    }
 }
 
 datetime DateTimeHelper::HourMinuteToDateTime(int hour, int minute, int day)

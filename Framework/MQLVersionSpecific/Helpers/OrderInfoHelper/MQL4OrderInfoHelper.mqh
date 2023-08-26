@@ -32,20 +32,11 @@ static int VersionSpecificOrderInfoHelper::TotalCurrentOrders()
 int VersionSpecificOrderInfoHelper::CountTradesTakenToday(int magicNumber, int &tradeCount)
 {
     tradeCount = 0;
-
-    List<int> *magicNumbers = new List<int>();
-    magicNumbers.Add(magicNumber);
-    int error = CountOtherEAOrders(true, magicNumbers, tradeCount);
-    if (error != Errors::NO_ERROR)
-    {
-        return error;
-    }
-
     for (int i = 0; i < OrdersHistoryTotal(); i++)
     {
         if (!OrderSelect(i, SELECT_BY_POS, MODE_HISTORY))
         {
-            error = GetLastError();
+            int error = GetLastError();
             MailHelper::Send("Failed To Select previous Order By Position When Counting Trades For Today",
                              "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
                                  "Current Order Index: " + IntegerToString(i) + "\n" +
@@ -58,6 +49,12 @@ int VersionSpecificOrderInfoHelper::CountTradesTakenToday(int magicNumber, int &
             continue;
         }
 
+        int orderType = OrderType();
+        if (orderType != OP_BUY && orderType != OP_SELL)
+        {
+            continue;
+        }
+
         datetime openDate = OrderOpenTime();
         if (DateTimeHelper::DateIsToday(openDate))
         {
@@ -65,7 +62,6 @@ int VersionSpecificOrderInfoHelper::CountTradesTakenToday(int magicNumber, int &
         }
     }
 
-    delete magicNumbers;
     return Errors::NO_ERROR;
 }
 

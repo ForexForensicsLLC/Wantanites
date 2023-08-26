@@ -45,6 +45,9 @@ public:
     // removes all items from the list
     void Clear(bool deleteObjects);
 
+    // copies all objects form one list into this one
+    void CopyFrom(ObjectList<T> *&list);
+
     template <typename U, typename V>
     void RemoveWhere(U locator, V value);
 
@@ -151,6 +154,18 @@ void ObjectList::Clear(bool deleteObjects = true)
     }
 
     ArrayResize(mItems, 0);
+}
+
+template <typename T>
+void ObjectList::CopyFrom(ObjectList<T> *&list)
+{
+    Clear();
+    ArrayResize(mItems, list.Size());
+
+    for (int i = 0; i < list.Size(); i++)
+    {
+        mItems[i] = list[i];
+    }
 }
 
 template <typename T>

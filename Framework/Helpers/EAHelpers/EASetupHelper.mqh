@@ -59,7 +59,7 @@ public:
     static bool MBWasCreatedAfterSessionStart(TEA &ea, MBTracker *&mbt, int mbNumber);
 
     template <typename TEA>
-    static bool RunningBigDipperSetup(TEA &ea, datetime startTime);
+    static bool RunningBigDipperSetup(TEA &ea, int startIndex, int &bigDipperDipStartIndex);
 
     template <typename TEA>
     static bool MostRecentCandleBrokeTimeRange(TEA &ea);
@@ -890,19 +890,19 @@ static bool EASetupHelper::CandleIsBigDipper(TEA &ea, int bigDipperIndex = 1)
 
     bool hasConfirmation = false;
 
-    if (ea.SetupType() == OP_BUY)
+    if (ea.SetupType() == SignalType::Bullish)
     {
-        bool twoPreviousIsBullish = CandleStickHelper::IsBullish(ea.mEntrySymbol, ea.mEntryTimeFrame, bigDipperIndex + 1);
-        bool previousIsBearish = CandleStickHelper::IsBearish(ea.mEntrySymbol, ea.mEntryTimeFrame, bigDipperIndex);
-        bool previousDoesNotBreakBelowTwoPrevious = iClose(ea.mEntrySymbol, ea.mEntryTimeFrame, bigDipperIndex) > iLow(ea.mEntrySymbol, ea.mEntryTimeFrame, bigDipperIndex + 1);
+        bool twoPreviousIsBullish = CandleStickHelper::IsBullish(ea.EntrySymbol(), ea.EntryTimeFrame(), bigDipperIndex + 1);
+        bool previousIsBearish = CandleStickHelper::IsBearish(ea.EntrySymbol(), ea.EntryTimeFrame(), bigDipperIndex);
+        bool previousDoesNotBreakBelowTwoPrevious = iClose(ea.EntrySymbol(), ea.EntryTimeFrame(), bigDipperIndex) > iLow(ea.EntrySymbol(), ea.EntryTimeFrame(), bigDipperIndex + 1);
 
         hasConfirmation = twoPreviousIsBullish && previousIsBearish && previousDoesNotBreakBelowTwoPrevious;
     }
-    else if (ea.SetupType() == OP_SELL)
+    else if (ea.SetupType() == SignalType::Bearish)
     {
-        bool twoPreviousIsBearish = CandleStickHelper::IsBearish(ea.mEntrySymbol, ea.mEntryTimeFrame, bigDipperIndex + 1);
-        bool previousIsBullish = CandleStickHelper::IsBullish(ea.mEntrySymbol, ea.mEntryTimeFrame, bigDipperIndex);
-        bool previousDoesNotBreakAboveTwoPrevious = iClose(ea.mEntrySymbol, ea.mEntryTimeFrame, bigDipperIndex) < iHigh(ea.mEntrySymbol, ea.mEntryTimeFrame, bigDipperIndex + 1);
+        bool twoPreviousIsBearish = CandleStickHelper::IsBearish(ea.EntrySymbol(), ea.EntryTimeFrame(), bigDipperIndex + 1);
+        bool previousIsBullish = CandleStickHelper::IsBullish(ea.EntrySymbol(), ea.EntryTimeFrame(), bigDipperIndex);
+        bool previousDoesNotBreakAboveTwoPrevious = iClose(ea.EntrySymbol(), ea.EntryTimeFrame(), bigDipperIndex) < iHigh(ea.EntrySymbol(), ea.EntryTimeFrame(), bigDipperIndex + 1);
 
         hasConfirmation = twoPreviousIsBearish && previousIsBullish && previousDoesNotBreakAboveTwoPrevious;
     }
@@ -910,48 +910,77 @@ static bool EASetupHelper::CandleIsBigDipper(TEA &ea, int bigDipperIndex = 1)
     return hasConfirmation;
 }
 
-// can be multiple candels as long as they keep retracing
+/// @brief
+/// Buys: Setup is a push of bullish candles from startIndex, a bearish candle (the dip), and then x number of candles
+/// bouncing between the range of the startTime and the bigDipperDipStartIndes. Goal is to usually place a stop order on the bigDipperStartIndex for a break.
+/// This is basically a small TF structure play.
+///
+/// WARNING: Should only be calculating on new bars are else this will return false when the setup is completed and could cancel any pending orders before being entered
 template <typename TEA>
-static bool EASetupHelper::RunningBigDipperSetup(TEA &ea, datetime startTime)
+static bool EASetupHelper::RunningBigDipperSetup(TEA &ea, int startIndex, int &bigDipperDipStartIndex)
 {
-    ea.mLastState = EAStates::CHECKING_FOR_CONFIRMATION;
+    bigDipperDipStartIndex = ConstantValues::EmptyInt;
 
-    int startIndex = iBarShift(ea.mEntrySymbol, ea.mEntryTimeFrame, startTime);
-    bool brokeFurtherThanCandle = false;
-    int oppositeCandleIndex = ConstantValues::EmptyInt;
-
-    if (ea.SetupType() == OP_BUY)
+    if (ea.SetupType() == SignalType::Bullish)
     {
-        for (int i = startIndex; i > 0; i--)
+        for (int i = startIndex - 1; i > 0; i--)
         {
-            if (!brokeFurtherThanCandle &&
-                iClose(ea.mEntrySymbol, ea.mEntryTimeFrame, i) > iHigh(ea.mEntrySymbol, ea.mEntryTimeFrame, i + 1))
+            // broke the setup
+            if (iLow(ea.EntrySymbol(), ea.EntryTimeFrame(), i) < iLow(ea.EntrySymbol(), ea.EntryTimeFrame(), startIndex))
             {
-                brokeFurtherThanCandle = true;
+                return false;
+            }
+
+            if (bigDipperDipStartIndex == ConstantValues::EmptyInt && !CandleStickHelper::IsBullish(ea.EntrySymbol(), ea.EntryTimeFrame(), i))
+            {
+                // want the highest candle out of the two
+                if (iHigh(ea.EntrySymbol(), ea.EntryTimeFrame(), i) >= iHigh(ea.EntrySymbol(), ea.EntryTimeFrame(), i + 1))
+                {
+                    bigDipperDipStartIndex = i;
+                }
+                else
+                {
+                    bigDipperDipStartIndex = i + 1;
+                }
+
                 continue;
             }
 
-            if (brokeFurtherThanCandle && CandleStickHelper::IsBearish(ea.mEntrySymbol, ea.mEntryTimeFrame, i))
+            // return true as long as we are within the range still
+            if (bigDipperDipStartIndex != ConstantValues::EmptyInt && iHigh(ea.EntrySymbol(), ea.EntryTimeFrame(), i) < iHigh(ea.EntrySymbol(), ea.EntryTimeFrame(), bigDipperDipStartIndex))
             {
-                ea.mFirstOppositeCandleTime = iTime(ea.mEntrySymbol, ea.mEntryTimeFrame, i);
                 return true;
             }
         }
     }
-    else if (ea.SetupType() == OP_SELL)
+    else if (ea.SetupType() == SignalType::Bearish)
     {
-        for (int i = startIndex; i > 0; i--)
+        for (int i = startIndex - 1; i > 0; i--)
         {
-            if (!brokeFurtherThanCandle &&
-                iClose(ea.mEntrySymbol, ea.mEntryTimeFrame, i) < iLow(ea.mEntrySymbol, ea.mEntryTimeFrame, i + 1))
+            // broke the setup
+            if (iHigh(ea.EntrySymbol(), ea.EntryTimeFrame(), i) > iHigh(ea.EntrySymbol(), ea.EntryTimeFrame(), startIndex))
             {
-                brokeFurtherThanCandle = true;
+                return false;
+            }
+
+            if (bigDipperDipStartIndex == ConstantValues::EmptyInt && !CandleStickHelper::IsBearish(ea.EntrySymbol(), ea.EntryTimeFrame(), i))
+            {
+                // want the lowest candle out of the two
+                if (iLow(ea.EntrySymbol(), ea.EntryTimeFrame(), i) <= iLow(ea.EntrySymbol(), ea.EntryTimeFrame(), i + 1))
+                {
+                    bigDipperDipStartIndex = i;
+                }
+                else
+                {
+                    bigDipperDipStartIndex = i + 1;
+                }
+
                 continue;
             }
 
-            if (brokeFurtherThanCandle && CandleStickHelper::IsBullish(ea.mEntrySymbol, ea.mEntryTimeFrame, i))
+            // return true as long as we are within the range still
+            if (bigDipperDipStartIndex != ConstantValues::EmptyInt && iLow(ea.EntrySymbol(), ea.EntryTimeFrame(), i) > iLow(ea.EntrySymbol(), ea.EntryTimeFrame(), bigDipperDipStartIndex))
             {
-                ea.mFirstOppositeCandleTime = iTime(ea.mEntrySymbol, ea.mEntryTimeFrame, i);
                 return true;
             }
         }
@@ -1068,7 +1097,7 @@ template <typename TEA>
 static bool EASetupHelper::TradeWillWin(TEA &ea, datetime entryTime, double stopLoss, double takeProfit)
 {
     MqlDateTime requestedDate = DateTimeHelper::ToMQLDateTime(entryTime);
-    return ea.mCST.PriceReachesXBeforeY(requestedDate, ea.SetupType(), takeProfit, stopLoss);
+    return ea.mCST.PriceReachesXBeforeY(ea.SetupType(), requestedDate, takeProfit, stopLoss);
 }
 
 template <typename TEA>
