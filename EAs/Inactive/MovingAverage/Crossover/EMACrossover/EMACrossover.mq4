@@ -8,21 +8,16 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites/Framework/Constants/MagicNumbers.mqh>
-#include <Wantanites/Framework/Constants/SymbolConstants.mqh>
 #include <Wantanites/EAs/Inactive/MovingAverage/Crossover/EMACrossover/EMACrossover.mqh>
 
-string ForcedSymbol = "GBPCAD";
-int ForcedTimeFrame = 60;
-
 // --- EA Inputs ---
-double RiskPercent = 1;
+double RiskPercent = 0.5;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
 string StrategyName = "MovingAverage/";
 string EAName = "Crossover/";
-string SetupTypeName = "GC25and50EMA/";
+string SetupTypeName = "";
 string Directory = StrategyName + EAName + SetupTypeName;
 
 CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *EntryWriter = new CSVRecordWriter<SingleTimeFrameEntryTradeRecord>(Directory + "Entries/", "Entries.csv");
@@ -30,54 +25,61 @@ CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<Partial
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>(Directory + "Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>(Directory + "Errors/", "Errors.csv");
 
-EMACrossover *NMBBuys;
-EMACrossover *NMBSells;
+CandleStickTracker *CST;
 
-// GC
+TradingSession *TS;
+
+EMACrossover *BuyEA;
+EMACrossover *SellEA;
+
 double MaxSpreadPips = 1;
 double EntryPaddingPips = 0;
-double MinStopLossPips = 100;
+double MinStopLossPips = 5;
 double StopLossPaddingPips = 0;
-double PipsToWaitBeforeBE = SymbolConstants::NasMinStopLossPips;
+double PipsToWaitBeforeBE = 0;
 double BEAdditionalPips = 0;
+double CloseRR = 3;
 
 int OnInit()
 {
-    if (!EAHelper::CheckSymbolAndTimeFrame(ForcedSymbol, ForcedTimeFrame))
-    {
-        return INIT_PARAMETERS_INCORRECT;
-    }
+    TS = new TradingSession();
+    CST = new CandleStickTracker();
 
-    NMBBuys = new EMACrossover(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                               ExitWriter, ErrorWriter);
+    BuyEA = new EMACrossover(-1, SignalType::Bullish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                             ExitWriter, ErrorWriter, CST);
 
-    NMBBuys.SetPartialCSVRecordWriter(PartialWriter);
+    BuyEA.AddPartial(CloseRR, 100);
+    BuyEA.SetPartialCSVRecordWriter(PartialWriter);
 
-    NMBBuys.mEntryPaddingPips = EntryPaddingPips;
-    NMBBuys.mMinStopLossPips = MinStopLossPips;
-    NMBBuys.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    NMBBuys.mBEAdditionalPips = BEAdditionalPips;
+    BuyEA.mEntryPaddingPips = EntryPaddingPips;
+    BuyEA.mMinStopLossPips = MinStopLossPips;
+    BuyEA.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    BuyEA.mBEAdditionalPips = BEAdditionalPips;
 
-    NMBBuys.AddTradingSession(0, 0, 23, 59);
+    BuyEA.AddTradingSession(TS);
 
-    NMBSells = new EMACrossover(-2, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
-                                ExitWriter, ErrorWriter);
-    NMBSells.SetPartialCSVRecordWriter(PartialWriter);
+    SellEA = new EMACrossover(-2, SignalType::Bearish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter,
+                              ExitWriter, ErrorWriter, CST);
 
-    NMBSells.mEntryPaddingPips = EntryPaddingPips;
-    NMBSells.mMinStopLossPips = MinStopLossPips;
-    NMBSells.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
-    NMBSells.mBEAdditionalPips = BEAdditionalPips;
+    SellEA.AddPartial(CloseRR, 100);
+    SellEA.SetPartialCSVRecordWriter(PartialWriter);
 
-    NMBSells.AddTradingSession(0, 0, 23, 59);
+    SellEA.mEntryPaddingPips = EntryPaddingPips;
+    SellEA.mMinStopLossPips = MinStopLossPips;
+    SellEA.mPipsToWaitBeforeBE = PipsToWaitBeforeBE;
+    SellEA.mBEAdditionalPips = BEAdditionalPips;
+
+    SellEA.AddTradingSession(TS);
 
     return (INIT_SUCCEEDED);
 }
 
 void OnDeinit(const int reason)
 {
-    delete NMBBuys;
-    delete NMBSells;
+    delete CST;
+
+    delete BuyEA;
+    delete SellEA;
 
     delete EntryWriter;
     delete PartialWriter;
@@ -87,6 +89,6 @@ void OnDeinit(const int reason)
 
 void OnTick()
 {
-    NMBBuys.Run();
-    NMBSells.Run();
+    BuyEA.Run();
+    SellEA.Run();
 }

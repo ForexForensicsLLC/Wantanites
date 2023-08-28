@@ -85,7 +85,7 @@ void BigDipper::CheckSetSetup()
 {
     if (EASetupHelper::CheckSetSingleMBSetup<BigDipper>(this, mMBT, mFirstMBInSetup, SetupType()))
     {
-        if (mFirstMBInSetup != 16)
+        if (mFirstMBInSetup != 26)
         {
             return;
         }
@@ -153,7 +153,28 @@ bool BigDipper::Confirmation()
         }
     }
 
-    return EASetupHelper::RunningBigDipperSetup<BigDipper>(this, startIndex, mBigDipperDipStartIndex);
+    if (EASetupHelper::RunningBigDipperSetup<BigDipper>(this, startIndex, mBigDipperDipStartIndex))
+    {
+        int furthestCandleInBigDipper;
+        if (SetupType() == SignalType::Bullish)
+        {
+            if (!MQLHelper::GetLowestIndexBetween(EntrySymbol(), EntryTimeFrame(), mBigDipperDipStartIndex, 0, false, furthestCandleInBigDipper))
+            {
+                return false;
+            }
+        }
+        else if (SetupType() == SignalType::Bearish)
+        {
+            if (!MQLHelper::GetHighestIndexBetween(EntrySymbol(), EntryTimeFrame(), mBigDipperDipStartIndex, 0, false, furthestCandleInBigDipper))
+            {
+                return false;
+            }
+        }
+
+        return EASetupHelper::CandleIsInPendingZone<BigDipper>(this, mMBT, SetupType(), furthestCandleInBigDipper);
+    }
+
+    return false;
 }
 
 void BigDipper::PlaceOrders()
