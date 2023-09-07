@@ -8,17 +8,13 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites\Framework\EA\EA.mqh>
-#include <Wantanites\Framework\Helpers\EAHelper.mqh>
-#include <Wantanites\Framework\Constants\MagicNumbers.mqh>
+#include <Wantanites\Framework\objects\DataObjects\EA.mqh>
+#include <Wantanites\Framework\Objects\Indicators\Candle\CandleStickTracker.mqh>
 
 class EMACrossover : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRecord, SingleTimeFrameExitTradeRecord, SingleTimeFrameErrorRecord>
 {
 public:
-    int mEntryTimeFrame;
-    string mEntrySymbol;
-
-    int mBarCount;
+    CandleStickTracker *mCST;
 
     double mEntryPaddingPips;
     double mMinStopLossPips;
@@ -28,45 +24,44 @@ public:
     datetime mEntryCandleTime;
 
 public:
-    EMACrossover(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+    EMACrossover(int magicNumber, SignalType setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                  CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                 CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter);
+                 CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, CandleStickTracker *&cst);
     ~EMACrossover();
 
-    double FastEMA(int index) { return iMA(mEntrySymbol, mEntryTimeFrame, 25, 0, MODE_EMA, PRICE_CLOSE, index); }
-    double SlowEMA(int index) { return iMA(mEntrySymbol, mEntryTimeFrame, 50, 0, MODE_EMA, PRICE_CLOSE, index); }
+    double FastEMA(int index) { return iMA(EntrySymbol(), EntryTimeFrame(), 9, 0, MODE_EMA, PRICE_CLOSE, index); }
+    double SlowEMA(int index) { return iMA(EntrySymbol(), EntryTimeFrame(), 21, 0, MODE_EMA, PRICE_CLOSE, index); }
 
     virtual double RiskPercent() { return mRiskPercent; }
 
-    virtual void Run();
+    virtual void PreRun();
     virtual bool AllowedToTrade();
     virtual void CheckSetSetup();
     virtual void CheckInvalidateSetup();
     virtual void InvalidateSetup(bool deletePendingOrder, int error);
     virtual bool Confirmation();
     virtual void PlaceOrders();
-    virtual void ManageCurrentPendingSetupTicket();
-    virtual void ManageCurrentActiveSetupTicket();
+    virtual void PreManageTickets();
+    virtual void ManageCurrentPendingSetupTicket(Ticket &ticket);
+    virtual void ManageCurrentActiveSetupTicket(Ticket &ticket);
     virtual bool MoveToPreviousSetupTickets(Ticket &ticket);
-    virtual void ManagePreviousSetupTicket(int ticketIndex);
-    virtual void CheckCurrentSetupTicket();
-    virtual void CheckPreviousSetupTicket(int ticketIndex);
-    virtual void RecordTicketOpenData();
+    virtual void ManagePreviousSetupTicket(Ticket &ticket);
+    virtual void CheckCurrentSetupTicket(Ticket &ticket);
+    virtual void CheckPreviousSetupTicket(Ticket &ticket);
+    virtual void RecordTicketOpenData(Ticket &ticket);
     virtual void RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber);
     virtual void RecordTicketCloseData(Ticket &ticket);
-    virtual void RecordError(int error, string additionalInformation);
+    virtual void RecordError(string methodName, int error, string additionalInformation);
+    virtual bool ShouldReset();
     virtual void Reset();
 };
 
-EMACrossover::EMACrossover(int magicNumber, int setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
+EMACrossover::EMACrossover(int magicNumber, SignalType setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                            CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                           CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter)
+                           CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, CandleStickTracker *&cst)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
-    mEntrySymbol = Symbol();
-    mEntryTimeFrame = Period();
-
-    mBarCount = 0;
+    mCST = cst;
 
     mEntryPaddingPips = 0.0;
     mMinStopLossPips = 0.0;
@@ -77,46 +72,39 @@ EMACrossover::EMACrossover(int magicNumber, int setupType, int maxCurrentSetupTr
 
     mLargestAccountBalance = 200000;
 
-    EAHelper::FindSetPreviousAndCurrentSetupTickets<EMACrossover>(this);
-    EAHelper::UpdatePreviousSetupTicketsRRAcquried<EMACrossover, PartialTradeRecord>(this);
-    EAHelper::SetPreviousSetupTicketsOpenData<EMACrossover, SingleTimeFrameEntryTradeRecord>(this);
+    EAInitHelper::FindSetPreviousAndCurrentSetupTickets<EMACrossover>(this);
+    EAInitHelper::UpdatePreviousSetupTicketsRRAcquried<EMACrossover, PartialTradeRecord>(this);
+    EAInitHelper::SetPreviousSetupTicketsOpenData<EMACrossover, SingleTimeFrameEntryTradeRecord>(this);
 }
 
 EMACrossover::~EMACrossover()
 {
 }
 
-void EMACrossover::Run()
+void EMACrossover::PreRun()
 {
-    EAHelper::Run<EMACrossover>(this);
-    mBarCount = iBars(mEntrySymbol, mEntryTimeFrame);
 }
 
 bool EMACrossover::AllowedToTrade()
 {
-    return EAHelper::BelowSpread<EMACrossover>(this) && EAHelper::WithinTradingSession<EMACrossover>(this);
+    return EARunHelper::BelowSpread<EMACrossover>(this) && EARunHelper::WithinTradingSession<EMACrossover>(this);
 }
 
 void EMACrossover::CheckSetSetup()
 {
-    if (mCurrentSetupTicket.Number() != EMPTY)
+    if (iBars(EntrySymbol(), EntryTimeFrame()) <= BarCount())
     {
         return;
     }
 
-    if (iBars(mEntrySymbol, mEntryTimeFrame) <= mBarCount)
-    {
-        return;
-    }
-
-    if (mSetupType == OP_BUY)
+    if (SetupType() == SignalType::Bullish)
     {
         if (FastEMA(1) > SlowEMA(1) && FastEMA(2) <= SlowEMA(2))
         {
             mHasSetup = true;
         }
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == SignalType::Bearish)
     {
         if (FastEMA(1) < SlowEMA(1) && FastEMA(2) >= SlowEMA(2))
         {
@@ -130,9 +118,9 @@ void EMACrossover::CheckInvalidateSetup()
     mLastState = EAStates::CHECKING_FOR_INVALID_SETUP;
 }
 
-void EMACrossover::InvalidateSetup(bool deletePendingOrder, int error = Errors::NO_ERROR)
+void EMACrossover::InvalidateSetup(bool deletePendingOrder, int error = 0)
 {
-    EAHelper::InvalidateSetup<EMACrossover>(this, deletePendingOrder, mStopTrading, error);
+    EASetupHelper::InvalidateSetup<EMACrossover>(this, deletePendingOrder, mStopTrading, error);
 }
 
 bool EMACrossover::Confirmation()
@@ -142,64 +130,47 @@ bool EMACrossover::Confirmation()
 
 void EMACrossover::PlaceOrders()
 {
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
-    {
-        RecordError(GetLastError());
-        return;
-    }
-
     double entry = 0.0;
     double stopLoss = 0.0;
+    double takeProfit = 0.0;
 
-    if (mSetupType == OP_BUY)
+    if (SetupType() == SignalType::Bullish)
     {
-        entry = currentTick.ask;
-        stopLoss = entry - OrderHelper::PipsToRange(mMinStopLossPips);
+        entry = CurrentTick().Ask();
+        stopLoss = entry - PipConverter::PipsToPoints(mMinStopLossPips);
+        takeProfit = entry + (MathAbs(entry - stopLoss) * 3);
     }
-    else if (mSetupType == OP_SELL)
+    else if (SetupType() == SignalType::Bearish)
     {
-        entry = currentTick.bid;
-        stopLoss = entry + OrderHelper::PipsToRange(mMinStopLossPips + mMaxSpreadPips);
+        entry = CurrentTick().Bid();
+        stopLoss = entry + PipConverter::PipsToPoints(mMinStopLossPips);
+        takeProfit = entry - (MathAbs(entry - stopLoss) * 3);
     }
 
-    EAHelper::PlaceMarketOrder<EMACrossover>(this, entry, stopLoss);
+    bool canLose = MathRand() % 11 == 0;
+    if (canLose)
+    {
+        EAOrderHelper::PlaceMarketOrder<EMACrossover>(this, entry, stopLoss);
+    }
+    else if (EASetupHelper::TradeWillWin<EMACrossover>(this, iTime(EntrySymbol(), EntryTimeFrame(), 0), stopLoss, takeProfit))
+    {
+        EAOrderHelper::PlaceMarketOrder<EMACrossover>(this, entry, stopLoss);
+    }
+
     InvalidateSetup(false);
 }
 
-void EMACrossover::ManageCurrentPendingSetupTicket()
+void EMACrossover::PreManageTickets()
 {
 }
 
-void EMACrossover::ManageCurrentActiveSetupTicket()
+void EMACrossover::ManageCurrentPendingSetupTicket(Ticket &ticket)
 {
-    int entryIndex = iBarShift(mEntrySymbol, mEntryTimeFrame, mCurrentSetupTicket.OpenTime());
-    if (entryIndex <= 0)
-    {
-        return;
-    }
+}
 
-    MqlTick currentTick;
-    if (!SymbolInfoTick(Symbol(), currentTick))
-    {
-        RecordError(GetLastError());
-        return;
-    }
-
-    if (mSetupType == OP_BUY)
-    {
-        if (FastEMA(0) < SlowEMA(0) && currentTick.bid > mCurrentSetupTicket.OpenPrice())
-        {
-            mCurrentSetupTicket.Close();
-        }
-    }
-    else if (mSetupType == OP_SELL)
-    {
-        if (FastEMA(0) > SlowEMA(0) && currentTick.ask < mCurrentSetupTicket.OpenPrice())
-        {
-            mCurrentSetupTicket.Close();
-        }
-    }
+void EMACrossover::ManageCurrentActiveSetupTicket(Ticket &ticket)
+{
+    EAOrderHelper::CheckPartialTicket<EMACrossover>(this, ticket);
 }
 
 bool EMACrossover::MoveToPreviousSetupTickets(Ticket &ticket)
@@ -207,44 +178,43 @@ bool EMACrossover::MoveToPreviousSetupTickets(Ticket &ticket)
     return false;
 }
 
-void EMACrossover::ManagePreviousSetupTicket(int ticketIndex)
+void EMACrossover::ManagePreviousSetupTicket(Ticket &ticket)
 {
 }
 
-void EMACrossover::CheckCurrentSetupTicket()
+void EMACrossover::CheckCurrentSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<EMACrossover>(this, mCurrentSetupTicket);
-    EAHelper::CheckCurrentSetupTicket<EMACrossover>(this);
 }
 
-void EMACrossover::CheckPreviousSetupTicket(int ticketIndex)
+void EMACrossover::CheckPreviousSetupTicket(Ticket &ticket)
 {
-    EAHelper::CheckUpdateHowFarPriceRanFromOpen<EMACrossover>(this, mPreviousSetupTickets[ticketIndex]);
-    EAHelper::CheckPreviousSetupTicket<EMACrossover>(this, ticketIndex);
 }
 
-void EMACrossover::RecordTicketOpenData()
+void EMACrossover::RecordTicketOpenData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameEntryTradeRecord<EMACrossover>(this);
+    EARecordHelper::RecordSingleTimeFrameEntryTradeRecord<EMACrossover>(this, ticket);
 }
 
 void EMACrossover::RecordTicketPartialData(Ticket &partialedTicket, int newTicketNumber)
 {
-    EAHelper::RecordPartialTradeRecord<EMACrossover>(this, partialedTicket, newTicketNumber);
+    EARecordHelper::RecordPartialTradeRecord<EMACrossover>(this, partialedTicket, newTicketNumber);
 }
 
 void EMACrossover::RecordTicketCloseData(Ticket &ticket)
 {
-    EAHelper::RecordSingleTimeFrameExitTradeRecord<EMACrossover>(this, ticket, Period());
+    EARecordHelper::RecordSingleTimeFrameExitTradeRecord<EMACrossover>(this, ticket);
 }
 
-void EMACrossover::RecordError(int error, string additionalInformation = "")
+void EMACrossover::RecordError(string methodName, int error, string additionalInformation = "")
 {
-    EAHelper::RecordSingleTimeFrameErrorRecord<EMACrossover>(this, error, additionalInformation);
+    EARecordHelper::RecordSingleTimeFrameErrorRecord<EMACrossover>(this, methodName, error, additionalInformation);
+}
+
+bool EMACrossover::ShouldReset()
+{
+    return false;
 }
 
 void EMACrossover::Reset()
 {
-    mStopTrading = false;
-    InvalidateSetup(true);
 }

@@ -465,6 +465,8 @@ static void EARecordHelper::RecordFeatureEngineeringEntryTradeRecord(TEA &ea, Ti
         record.NewsImpact = -1;
     }
 
+    record.MagicNumber = ticket.MagicNumber();
+
     record.DayOfWeek = DateTimeHelper::CurrentDayOfWeek();
 
     record.PreviousCandleWasBullish = CandleStickHelper::IsBullish(ea.EntrySymbol(), ea.EntryTimeFrame(), entryCandle + 1);

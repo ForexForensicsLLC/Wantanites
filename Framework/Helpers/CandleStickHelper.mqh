@@ -19,6 +19,8 @@ public:
     static bool IsDownFractal(string symbol, ENUM_TIMEFRAMES timeFrame, int index);
     static bool IsUpFractal(string symbol, ENUM_TIMEFRAMES timeFrame, int index);
 
+    static double UpperWickLength(string symbol, ENUM_TIMEFRAMES timeFrame, int index);
+    static double LowerWickLength(string symbol, ENUM_TIMEFRAMES timeFrame, int index);
     static double CandleLength(string symbol, ENUM_TIMEFRAMES timeFrame, int index);
     static double BodyLength(string symbol, ENUM_TIMEFRAMES timeFrame, int index);
 
@@ -51,6 +53,16 @@ static bool CandleStickHelper::IsUpFractal(string symbol, ENUM_TIMEFRAMES timeFr
 {
     double thisHigh = iHigh(symbol, timeFrame, index);
     return thisHigh > iHigh(symbol, timeFrame, index + 1) && thisHigh > iHigh(symbol, timeFrame, index - 1);
+}
+
+static double CandleStickHelper::UpperWickLength(string symbol, ENUM_TIMEFRAMES timeFrame, int index)
+{
+    return iHigh(symbol, timeFrame, index) - MathMax(iOpen(symbol, timeFrame, index), iClose(symbol, timeFrame, index));
+}
+
+static double CandleStickHelper::LowerWickLength(string symbol, ENUM_TIMEFRAMES timeFrame, int index)
+{
+    return MathMin(iOpen(symbol, timeFrame, index), iClose(symbol, timeFrame, index)) - iLow(symbol, timeFrame, index);
 }
 
 double CandleStickHelper::CandleLength(string symbol, ENUM_TIMEFRAMES timeFrame, int index)

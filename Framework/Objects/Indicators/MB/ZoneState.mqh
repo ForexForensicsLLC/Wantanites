@@ -43,6 +43,7 @@ protected:
 
 public:
     // --- Getters ---
+    string ObjectName() { return mName; }
     string DisplayName() { return "Zone"; }
     string Symbol() { return mSymbol; }
     ENUM_TIMEFRAMES TimeFrame() { return mTimeFrame; }

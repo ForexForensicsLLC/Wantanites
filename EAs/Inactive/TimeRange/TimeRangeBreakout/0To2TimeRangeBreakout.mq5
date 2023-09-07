@@ -63,10 +63,10 @@ int OnInit()
                                                MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter, TRB);
     TRBSells.AddTradingSession(TS);
 
-    handle = iCustom(Symbol(), Period(), "NewsEmulation");
-    // iCustom(Symbol(), Period(), "InDepthAnalysis");
-    // iCustom(Symbol(), Period(), "ProfitTracking");
-    // iCustom(Symbol(), Period(), "FeatureEngineering");
+    // handle = iCustom(Symbol(), Period(), "NewsEmulation");
+    // handle = iCustom(Symbol(), Period(), "InDepthAnalysis");
+    // handle = iCustom(Symbol(), Period(), "ProfitTracking");
+    handle = iCustom(Symbol(), Period(), "FeatureEngineering");
 
     return (INIT_SUCCEEDED);
 }

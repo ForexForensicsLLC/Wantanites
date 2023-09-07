@@ -23,7 +23,7 @@ static double VersionSpecificIndicatorHelper::MovingAverage(string symbol, ENUM_
     double values[];
 
     handle = iMA(symbol, timeFrame, maPeriod, shift, mode, appliedPrice);
-    CopyBuffer(handle, 0, 0, position, values);
+    CopyBuffer(handle, 0, position, 1, values);
 
     // the furthest Indicator value is at the front of the array
     return values[0];
@@ -35,7 +35,7 @@ static double VersionSpecificIndicatorHelper::OnBalanceVolumnAverageChange(strin
     double values[];
 
     handle = iOBV(symbol, timeFrame, VOLUME_REAL);
-    CopyBuffer(handle, 0, 0, period, values);
+    CopyBuffer(handle, 0, 0, period + 1, values); // do +1 since we need to calculate the change so we need another value to do that for the last element
 
     int sum = 0;
     for (int i = 0; i < period; i++)
@@ -53,7 +53,7 @@ static double VersionSpecificIndicatorHelper::RSI(string symbol, ENUM_TIMEFRAMES
     double values[];
 
     handle = iRSI(symbol, timeFrame, rsiPeriod, appliedPrice);
-    CopyBuffer(handle, 0, 0, position, values);
+    CopyBuffer(handle, 0, position, 1, values);
 
     // the furthest Indicator value is at the front of the array
     return values[0];

@@ -10,12 +10,29 @@
 
 class MailHelper
 {
+private:
+    static bool mEnabled;
+
 public:
+    static void Enable() { mEnabled = true; }
+    static void Disable() { mEnabled = false; }
+
+    static void Send(string title, string body);
+
     static void SendEADeinitEmail(string ea, int reason);
 };
 
+bool MailHelper::mEnabled = true;
+
+static void MailHelper::Send(string title, string body)
+{
+    if (mEnabled)
+    {
+        SendMail(title, body);
+    }
+}
+
 static void MailHelper::SendEADeinitEmail(string ea, int reason)
 {
-    SendMail("EA Has Been Deinitalized",
-             "EA: " + ea + "\n" + "Reason: " + IntegerToString(reason));
+    Send("EA Has Been Deinitalized", "EA: " + ea + "\n" + "Reason: " + IntegerToString(reason));
 }

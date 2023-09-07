@@ -9,8 +9,9 @@
 #property strict
 
 #include <Trade\Trade.mqh>
-#include <Wantanites\Framework\Constants\ConstantValues.mqh>
 #include <Wantanites\Framework\Types\TicketTypes.mqh>
+#include <Wantanites\Framework\Constants\ConstantValues.mqh>
+#include <Wantanites\Framework\MQLVersionSpecific\Utilities\TypeConverter\TypeConverter.mqh>
 
 class VersionSpecificTradeManager
 {
@@ -22,6 +23,8 @@ private:
 protected:
     VersionSpecificTradeManager(ulong magicNumber, ulong slippage);
     ~VersionSpecificTradeManager();
+
+    virtual bool LotSizeIsInvalid(TicketType type, double entryPrice, double lotSize);
 
     virtual int PlaceMarketOrder(TicketType ticketType, double lotSize, double entryPrice, double stopLoss, double takeProfit, int &ticket);
     virtual int PlaceLimitOrder(TicketType ticketType, double lotSize, double entryPrice, double stopLoss, double takeProfit, int &ticket);
@@ -57,6 +60,31 @@ int VersionSpecificTradeManager::CheckResult(int &ticket)
     }
 
     return result.retcode;
+}
+
+bool VersionSpecificTradeManager::LotSizeIsInvalid(TicketType type, double entryPrice, double lotSize)
+{
+    double freeMargin = AccountInfoDouble(ACCOUNT_MARGIN_FREE);
+    double marginRequired = ConstantValues::EmptyDouble;
+    ENUM_ORDER_TYPE orderType;
+
+    if (!TypeConverter::TicketTypeToOrderType(type, orderType))
+    {
+        return true;
+    }
+
+    if (!OrderCalcMargin(orderType, Symbol(), lotSize, entryPrice, marginRequired))
+    {
+        return true;
+    }
+
+    if (marginRequired > freeMargin)
+    {
+        Print("Not enough money to place order with a lotsize of ", lotSize);
+        return true;
+    }
+
+    return false;
 }
 
 int VersionSpecificTradeManager::PlaceMarketOrder(TicketType ticketType, double lotSize, double entryPrice, double stopLoss, double takeProfit, int &ticket)

@@ -8,20 +8,61 @@
 #property version "1.00"
 #property strict
 
+#include <Wantanites\Framework\Helpers\MailHelper.mqh>
+#include <Wantanites\Framework\Helpers\DateTimeHelper.mqh>
+
 class VersionSpecificOrderInfoHelper
 {
 public:
     static int TotalCurrentOrders();
 
+    static int CountTradesTakenToday(int magicNumber, int &tradeCount);
     static int CountOtherEAOrders(bool todayOnly, List<int> &magicNumbers, int &orderCount);
     static int GetAllActiveTickets(List<int> &ticketNumbers);
-    static int FindActiveTicketsByMagicNumber(int magicNumber, int &tickets[]);
-    static int FindNewTicketAfterPartial(int magicNumber, double openPrice, datetime orderOpenTime, int &ticket);
+    static int FindActiveTicketsByMagicNumber(int magicNumber, string symbol, int &tickets[]);
+    static int FindNewTicketAfterPartial(int magicNumber, string symbol, double openPrice, datetime orderOpenTime, int &ticket);
+    static double GetTotalLotsForSymbolAndDirection(string symbol, TicketType type);
 };
 
 static int VersionSpecificOrderInfoHelper::TotalCurrentOrders()
 {
     return OrdersTotal();
+}
+
+int VersionSpecificOrderInfoHelper::CountTradesTakenToday(int magicNumber, int &tradeCount)
+{
+    tradeCount = 0;
+    for (int i = 0; i < OrdersHistoryTotal(); i++)
+    {
+        if (!OrderSelect(i, SELECT_BY_POS, MODE_HISTORY))
+        {
+            int error = GetLastError();
+            MailHelper::Send("Failed To Select previous Order By Position When Counting Trades For Today",
+                             "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
+                                 "Current Order Index: " + IntegerToString(i) + "\n" +
+                                 IntegerToString(error));
+            return error;
+        }
+
+        if (OrderMagicNumber() != magicNumber)
+        {
+            continue;
+        }
+
+        int orderType = OrderType();
+        if (orderType != OP_BUY && orderType != OP_SELL)
+        {
+            continue;
+        }
+
+        datetime openDate = OrderOpenTime();
+        if (DateTimeHelper::DateIsToday(openDate))
+        {
+            tradeCount += 1;
+        }
+    }
+
+    return Errors::NO_ERROR;
 }
 
 int VersionSpecificOrderInfoHelper::CountOtherEAOrders(bool todayOnly, List<int> &magicNumbers, int &orderCount)
@@ -33,10 +74,10 @@ int VersionSpecificOrderInfoHelper::CountOtherEAOrders(bool todayOnly, List<int>
         if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
         {
             int error = GetLastError();
-            SendMail("Failed To Select Open Order By Position When Countint Other EA Orders",
-                     "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
-                         "Current Order Index: " + IntegerToString(i) + "\n" +
-                         IntegerToString(error));
+            MailHelper::Send("Failed To Select Open Order By Position When Counting Other EA Orders",
+                             "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
+                                 "Current Order Index: " + IntegerToString(i) + "\n" +
+                                 IntegerToString(error));
             return error;
         }
 
@@ -45,7 +86,7 @@ int VersionSpecificOrderInfoHelper::CountOtherEAOrders(bool todayOnly, List<int>
             if (OrderMagicNumber() == magicNumbers[j])
             {
                 datetime openDate = OrderOpenTime();
-                if (todayOnly && (TimeYear(openDate) != Year() || TimeMonth(openDate) != Month() || TimeDay(openDate) != Day()))
+                if (todayOnly && DateTimeHelper::DateIsToday(openDate))
                 {
                     continue;
                 }
@@ -75,7 +116,7 @@ int VersionSpecificOrderInfoHelper::GetAllActiveTickets(List<int> &ticketNumbers
     return error;
 }
 
-int VersionSpecificOrderInfoHelper::FindActiveTicketsByMagicNumber(int magicNumber, int &tickets[])
+int VersionSpecificOrderInfoHelper::FindActiveTicketsByMagicNumber(int magicNumber, string symbol, int &tickets[])
 {
     ArrayFree(tickets);
     ArrayResize(tickets, 0);
@@ -85,11 +126,16 @@ int VersionSpecificOrderInfoHelper::FindActiveTicketsByMagicNumber(int magicNumb
         if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
         {
             int error = GetLastError();
-            SendMail("Failed To Select Open Order By Position When Finding Active Ticks",
-                     "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
-                         "Current Order Index: " + IntegerToString(i) + "\n" +
-                         IntegerToString(error));
+            MailHelper::Send("Failed To Select Open Order By Position When Finding Active Ticks",
+                             "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
+                                 "Current Order Index: " + IntegerToString(i) + "\n" +
+                                 IntegerToString(error));
             return error;
+        }
+
+        if (OrderSymbol() != symbol)
+        {
+            continue;
         }
 
         if (OrderMagicNumber() == magicNumber && OrderCloseTime() == 0)
@@ -102,7 +148,7 @@ int VersionSpecificOrderInfoHelper::FindActiveTicketsByMagicNumber(int magicNumb
     return Errors::NO_ERROR;
 }
 
-int VersionSpecificOrderInfoHelper::FindNewTicketAfterPartial(int magicNumber, double openPrice, datetime orderOpenTime, int &ticket)
+int VersionSpecificOrderInfoHelper::FindNewTicketAfterPartial(int magicNumber, string symbol, double openPrice, datetime orderOpenTime, int &ticket)
 {
     int error = Errors::NO_ERROR;
     for (int i = 0; i < OrdersTotal(); i++)
@@ -110,15 +156,20 @@ int VersionSpecificOrderInfoHelper::FindNewTicketAfterPartial(int magicNumber, d
         if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
         {
             error = GetLastError();
-            SendMail("Failed To Select Order",
-                     "Error: " + IntegerToString(error) + "\n" +
-                         "Position: " + IntegerToString(i) + "\n" +
-                         "Total Tickets: " + IntegerToString(OrdersTotal()));
+            MailHelper::Send("Failed To Select Order",
+                             "Error: " + IntegerToString(error) + "\n" +
+                                 "Position: " + IntegerToString(i) + "\n" +
+                                 "Total Tickets: " + IntegerToString(OrdersTotal()));
 
             continue;
         }
 
         if (OrderType() > 1)
+        {
+            continue;
+        }
+
+        if (OrderSymbol() != symbol)
         {
             continue;
         }
@@ -143,4 +194,53 @@ int VersionSpecificOrderInfoHelper::FindNewTicketAfterPartial(int magicNumber, d
     }
 
     return error;
+}
+
+double VersionSpecificOrderInfoHelper::GetTotalLotsForSymbolAndDirection(string symbol, TicketType type)
+{
+    double totalLots = 0;
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+        {
+            int error = GetLastError();
+            MailHelper::Send("Failed To Select Open Order By Position When Getting total lots",
+                             "Total Orders: " + IntegerToString(OrdersTotal()) + "\n" +
+                                 "Current Order Index: " + IntegerToString(i) + "\n" +
+                                 IntegerToString(error));
+            return error;
+        }
+
+        if (OrderSymbol() != symbol)
+        {
+            continue;
+        }
+
+        int orderType = OrderType();
+        switch (type)
+        {
+        case TicketType::Buy:
+        case TicketType::BuyStop:
+        case TicketType::BuyLimit:
+            if (orderType == OP_BUY || orderType == OP_BUYSTOP || orderType == OP_BUYLIMIT)
+            {
+                totalLots += OrderLots();
+            }
+
+            break;
+        case TicketType::Sell:
+        case TicketType::SellStop:
+        case TicketType::SellLimit:
+            if (orderType == OP_SELL || orderType == OP_SELLSTOP || orderType == OP_SELLLIMIT)
+            {
+                totalLots += OrderLots();
+            }
+
+            break;
+        default:
+            break;
+        }
+    }
+
+    return totalLots;
 }

@@ -8,28 +8,21 @@
 #property version "1.00"
 #property strict
 
-#include <Wantanites/EAs/MBEngulfingEntry/MBEngulfingEntry.mqh>
+#include <Wantanites/EAs/Inactive/MB/MBEngulfingEntry/MBEngulfingEntry.mqh>
+#include <Wantanites/Framework/Objects/Indicators/MB/EASetup.mqh>
 
 // --- EA Inputs ---
 double RiskPercent = 0.25;
 int MaxCurrentSetupTradesAtOnce = 1;
 int MaxTradesPerDay = 5;
 
-// -- MBTracker Inputs
-int MBsToTrack = 10;
-int MaxZonesInMB = 5;
-bool AllowMitigatedZones = false;
-bool AllowZonesAfterMBValidation = true;
-bool AllowWickBreaks = true;
-bool PrintErrors = false;
-bool CalculateOnTick = false;
-
 CSVRecordWriter<MBEntryTradeRecord> *EntryWriter = new CSVRecordWriter<MBEntryTradeRecord>("MBEngulfing/Entries/", "Entries.csv");
 CSVRecordWriter<PartialTradeRecord> *PartialWriter = new CSVRecordWriter<PartialTradeRecord>("MBEngulfing/Partials/", "Partials.csv");
 CSVRecordWriter<SingleTimeFrameExitTradeRecord> *ExitWriter = new CSVRecordWriter<SingleTimeFrameExitTradeRecord>("MBEngulfing/Exits/", "Exits.csv");
 CSVRecordWriter<SingleTimeFrameErrorRecord> *ErrorWriter = new CSVRecordWriter<SingleTimeFrameErrorRecord>("MBEngulfing/Errors/", "Errors.csv");
 
-MBTracker *SetupMBT;
+TradingSession *TS;
+
 MBEngulfingEntry *MBEBuys;
 MBEngulfingEntry *MBESells;
 
@@ -45,10 +38,10 @@ double BEAdditionalPips = 50;
 
 int OnInit()
 {
-    SetupMBT = new MBTracker(Symbol(), Period(), 300, MaxZonesInMB, AllowMitigatedZones, AllowZonesAfterMBValidation, AllowWickBreaks, PrintErrors, CalculateOnTick);
+    TS = new TradingSession();
 
-    MBEBuys = new MBEngulfingEntry(-1, OP_BUY, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
-                                   ErrorWriter, SetupMBT);
+    MBEBuys = new MBEngulfingEntry(-1, SignalType::Bullish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
+                                   ErrorWriter, MBT);
     MBEBuys.SetPartialCSVRecordWriter(PartialWriter);
     MBEBuys.AddPartial(1000, 100);
 
@@ -62,7 +55,7 @@ int OnInit()
     MBEBuys.AddTradingSession(16, 30, 23, 0);
 
     MBESells = new MBEngulfingEntry(-1, OP_SELL, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter,
-                                    ErrorWriter, SetupMBT);
+                                    ErrorWriter, MBT);
     MBESells.SetPartialCSVRecordWriter(PartialWriter);
     MBESells.AddPartial(1000, 100);
 

@@ -101,7 +101,6 @@ void List::Insert(int index, T item)
     ArrayCopy(tempItems, mItems, 0, index + 1, itemsToCopy);
 
     ArrayResize(mItems, Size() + 1);
-    Print("Index: ", index, ", Size: ", Size());
     mItems[index] = item;
 
     ArrayCopy(mItems, tempItems, index + 1, 0, itemsToCopy);
