@@ -61,7 +61,6 @@ BigDipper::BigDipper(int magicNumber, SignalType setupType, int maxCurrentSetupT
 
     mFirstMBInSetup = ConstantValues::EmptyInt;
     mBigDipperDipStartIndex = ConstantValues::EmptyInt;
-    ;
 
     EAInitHelper::FindSetPreviousAndCurrentSetupTickets<BigDipper>(this);
     EAInitHelper::SetPreviousSetupTicketsOpenData<BigDipper, SingleTimeFrameEntryTradeRecord>(this);
