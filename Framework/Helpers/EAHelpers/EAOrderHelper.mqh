@@ -252,7 +252,6 @@ static bool EAOrderHelper::PrePlaceOrderChecks(TEA &ea)
         }
     }
 
-    Print("Pass pre place check");
     return true;
 }
 

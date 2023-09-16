@@ -42,6 +42,11 @@ private:
 template <typename TEA>
 static bool EARunHelper::BelowSpread(TEA &ea)
 {
+    if (ea.mMaxSpreadPips == ConstantValues::EmptyDouble)
+    {
+        return true;
+    }
+
     return (SymbolInfoInteger(ea.EntrySymbol(), SYMBOL_SPREAD) / 10) <= ea.mMaxSpreadPips;
 }
 
