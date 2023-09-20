@@ -101,12 +101,12 @@ void FFTradeManager::PlaceOrders()
     if (SetupType() == SignalType::Bullish)
     {
         entry = CurrentTick().Ask();
-        lotSize = EAOrderHelper::GetMaxLotSizeForMargin<FFTradeManager>(this, TicketType::Buy, entry, mStopLossPrice, 5);
+        lotSize = EAOrderHelper::GetMaxLotSizeForMargin<FFTradeManager>(this, TicketType::Buy, entry, mStopLossPrice, RiskPercent());
     }
     else if (SetupType() == SignalType::Bearish)
     {
         entry = CurrentTick().Bid();
-        lotSize = EAOrderHelper::GetMaxLotSizeForMargin<FFTradeManager>(this, TicketType::Sell, entry, mStopLossPrice, 5);
+        lotSize = EAOrderHelper::GetMaxLotSizeForMargin<FFTradeManager>(this, TicketType::Sell, entry, mStopLossPrice, RiskPercent());
     }
 
     EAOrderHelper::PlaceMarketOrder<FFTradeManager>(this, entry, mStopLossPrice, lotSize);

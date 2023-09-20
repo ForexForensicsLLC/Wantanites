@@ -30,20 +30,20 @@ int MaxCurrentSetupTradesAtOnce = ConstantValues::EmptyInt;
 int MaxTradesPerDay = ConstantValues::EmptyInt;
 double StopLossPaddingPips = 0.0;
 double MaxSpreadPips = ConstantValues::EmptyDouble;
-input double RiskPercent = 3.5;
+input double MaxRiskPercent = 4.8;
 
 int OnInit()
 {
     TS = new TradingSession();
 
-    BuyEA = new FFTradeManager(-1, SignalType::Bullish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
+    BuyEA = new FFTradeManager(-1, SignalType::Bullish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, MaxRiskPercent, EntryWriter, ExitWriter, ErrorWriter);
     BuyEA.AddTradingSession(TS);
 
-    SellEA = new FFTradeManager(-1, SignalType::Bearish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, RiskPercent, EntryWriter, ExitWriter, ErrorWriter);
+    SellEA = new FFTradeManager(-1, SignalType::Bearish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, MaxRiskPercent, EntryWriter, ExitWriter, ErrorWriter);
     SellEA.AddTradingSession(TS);
 
     CreateOnOffButton();
-    
+
     BuyEA.Run();
     SellEA.Run();
 
