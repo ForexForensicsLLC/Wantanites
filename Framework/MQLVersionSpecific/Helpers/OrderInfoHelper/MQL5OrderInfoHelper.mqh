@@ -13,6 +13,8 @@
 class VersionSpecificOrderInfoHelper
 {
 public:
+    static int GetMarginForLotSize(TicketType ticketType, string symbol, double lotSize, double entryPrice, double &margin);
+
     static int TotalCurrentOrders();
 
     static int CountTradesTakenToday(int magicNumber, int &tradeCount);
@@ -22,6 +24,27 @@ public:
     static int FindNewTicketAfterPartial(int magicNumber, string symbol, double openPrice, datetime orderOpenTime, int &ticket);
     static double GetTotalLotsForSymbolAndDirection(string symbol, TicketType type);
 };
+
+static int VersionSpecificOrderInfoHelper::GetMarginForLotSize(TicketType ticketType, string symbol, double lotSize, double entryPrice, double &margin)
+{
+    ENUM_ORDER_TYPE orderType;
+    if (!TypeConverter::TicketTypeToOrderType(ticketType, orderType))
+    {
+        return Errors::COULD_NOT_CONVERT_TYPE;
+    }
+
+    if (!OrderCalcMargin(orderType, symbol, lotSize, entryPrice, margin))
+    {
+        return GetLastError();
+    }
+
+    if (margin <= 0)
+    {
+        return Errors::NOT_ENOUGH_MARGIN;
+    }
+
+    return Errors::NO_ERROR;
+}
 
 static int VersionSpecificOrderInfoHelper::TotalCurrentOrders()
 {

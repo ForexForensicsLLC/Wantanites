@@ -21,7 +21,7 @@ protected:
     VersionSpecificTradeManager(ulong magicNumber, ulong slippage);
     ~VersionSpecificTradeManager();
 
-    virtual bool LotSizeIsInvalid(TicketType type, double entryPrice, double lotSize);
+    virtual int CheckMargin(TicketType type, double entryPrice, double lotSize);
 
     virtual int PlaceMarketOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
     virtual int PlaceLimitOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
@@ -38,22 +38,22 @@ VersionSpecificTradeManager::VersionSpecificTradeManager(ulong magicNumber, ulon
 
 VersionSpecificTradeManager::~VersionSpecificTradeManager() {}
 
-bool VersionSpecificTradeManager::LotSizeIsInvalid(TicketType type, double entryPrice, double lotSize)
+int VersionSpecificTradeManager::CheckMargin(TicketType type, double entryPrice, double lotSize)
 {
     int orderType;
     if (!TypeConverter::TicketTypeToOPBuySell(type, orderType))
     {
-        return true;
+        return Errors::COULD_NOT_CONVERT_TYPE;
     }
 
     double freeMargin = AccountFreeMarginCheck(Symbol(), orderType, lotSize);
     if (freeMargin <= 0)
     {
         Print("Not enough money to place order with a lotsize of ", lotSize);
-        return true;
+        return Errors::NOT_ENOUGH_MARGIN;
     }
 
-    return false;
+    return Errors::NO_ERROR;
 }
 
 int VersionSpecificTradeManager::PlaceMarketOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)

@@ -58,6 +58,7 @@ public:
     static int Errors::STOP_LOSS_TOO_SMALL;
     static int Errors::INVALID_LOT_SIZE;
     static int Errors::MARKET_TOO_CLOSE_TO_SL;
+    static int Errors::NOT_ENOUGH_MARGIN;
 
     // 6200s Are for MQL Extension Errors
     static int Errors::COULD_NOT_RETRIEVE_LOW;
@@ -71,6 +72,9 @@ public:
     static int Errors::ZONE_IS_NOT_HOLDING;
     static int Errors::MB_NOT_IN_ZONE;
     static int Errors::NOT_AFTER_POSSIBLE_ZONE_MITIGATION;
+
+    // 6500s Are for Type Errors
+    static int Errors::COULD_NOT_CONVERT_TYPE;
 };
 static const int Errors::NO_ERROR = 0;
 /*
@@ -133,6 +137,7 @@ static int Errors::EMPTY_TICKET = 6106;
 static int Errors::STOP_LOSS_TOO_SMALL = 6107;
 static int Errors::INVALID_LOT_SIZE = 6108;
 static int Errors::MARKET_TOO_CLOSE_TO_SL = 6109;
+static int Errors::NOT_ENOUGH_MARGIN = 6110;
 
 // 6200s Are for MQL Extension Errors
 static int Errors::COULD_NOT_RETRIEVE_LOW = 6200;
@@ -146,3 +151,6 @@ static int Errors::LOWER_EARLIEST_SETUP_ZONE_MITIGATION_NOT_FOUND = 6400;
 static int Errors::ZONE_IS_NOT_HOLDING = 6401;
 static int Errors::MB_NOT_IN_ZONE = 6402;
 static int Errors::NOT_AFTER_POSSIBLE_ZONE_MITIGATION = 6403;
+
+// 6500s Are for Type Errors
+static int Errors::COULD_NOT_CONVERT_TYPE = 6500;

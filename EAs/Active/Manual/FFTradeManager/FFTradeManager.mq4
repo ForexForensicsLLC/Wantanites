@@ -43,6 +43,9 @@ int OnInit()
     SellEA.AddTradingSession(TS);
 
     CreateOnOffButton();
+    
+    BuyEA.Run();
+    SellEA.Run();
 
     return (INIT_SUCCEEDED);
 }

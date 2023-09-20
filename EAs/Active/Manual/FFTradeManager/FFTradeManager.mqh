@@ -97,16 +97,19 @@ bool FFTradeManager::Confirmation()
 void FFTradeManager::PlaceOrders()
 {
     double entry = 0.0;
+    double lotSize = 0.0;
     if (SetupType() == SignalType::Bullish)
     {
         entry = CurrentTick().Ask();
+        lotSize = EAOrderHelper::GetMaxLotSizeForMargin<FFTradeManager>(this, TicketType::Buy, entry, mStopLossPrice, 5);
     }
     else if (SetupType() == SignalType::Bearish)
     {
         entry = CurrentTick().Bid();
+        lotSize = EAOrderHelper::GetMaxLotSizeForMargin<FFTradeManager>(this, TicketType::Sell, entry, mStopLossPrice, 5);
     }
 
-    EAOrderHelper::PlaceMarketOrder<FFTradeManager>(this, entry, mStopLossPrice);
+    EAOrderHelper::PlaceMarketOrder<FFTradeManager>(this, entry, mStopLossPrice, lotSize);
 }
 
 void FFTradeManager::PreManageTickets()
