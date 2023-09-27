@@ -145,11 +145,21 @@ void OnChartEvent(const int id,
         {
             BuyEA.mStopLossPrice = stopLoss;
             BuyEA.PlaceOrders();
+
+            if (!BuyEA.mCurrentSetupTickets.IsEmpty())
+            {
+                ToggleButton();
+            }
         }
         else if (stopLoss > currentTick.ask)
         {
             SellEA.mStopLossPrice = stopLoss;
             SellEA.PlaceOrders();
+
+            if (!SellEA.mCurrentSetupTickets.IsEmpty())
+            {
+                ToggleButton();
+            }
         }
     }
 }
