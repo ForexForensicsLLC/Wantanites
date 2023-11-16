@@ -61,6 +61,8 @@ Zone::Zone(bool isPending, string symbol, ENUM_TIMEFRAMES timeFrame, int mbNumbe
     mLowestConfirmationMBLowWithin = 0.0;
     mHighestConfirmationMBHighWithin = 0.0;
 
+    mFirstCandleInZone = ConstantValues::EmptyInt;
+
     mName = "Zone" + IntegerToString(mType) + ": " + IntegerToString(timeFrame) + "_" + IntegerToString(mNumber) + ", MB: " + IntegerToString(mMBNumber);
 }
 
