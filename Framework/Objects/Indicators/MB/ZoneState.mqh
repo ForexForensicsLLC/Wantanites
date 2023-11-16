@@ -41,7 +41,7 @@ protected:
     string mName;
     color mZoneColor;
 
-    int mFirstCandleInZone;
+    datetime mFirstCandleInZoneTime;
 
 public:
     // --- Getters ---
@@ -221,9 +221,9 @@ bool ZoneState::IsBroken()
 
 int ZoneState::FirstCandleInZone()
 {
-    if (mFirstCandleInZone != ConstantValues::EmptyInt)
+    if (mFirstCandleInZoneTime != ConstantValues::EmptyInt)
     {
-        return mFirstCandleInZone;
+        return iBarShift(Symbol(), TimeFrame(), mFirstCandleInZoneTime);
     }
 
     if (mType == SignalType::Bullish)
@@ -232,7 +232,7 @@ int ZoneState::FirstCandleInZone()
         {
             if (iLow(Symbol(), TimeFrame(), i) <= EntryPrice())
             {
-                mFirstCandleInZone = i;
+                mFirstCandleInZoneTime = iTime(Symbol(), TimeFrame(), i);
                 break;
             }
         }
@@ -243,13 +243,18 @@ int ZoneState::FirstCandleInZone()
         {
             if (iHigh(Symbol(), TimeFrame(), i) >= EntryPrice())
             {
-                mFirstCandleInZone = i;
+                mFirstCandleInZoneTime = iTime(Symbol(), TimeFrame(), i);
                 break;
             }
         }
     }
 
-    return mFirstCandleInZone;
+    if (mFirstCandleInZoneTime == ConstantValues::EmptyInt)
+    {
+        return -1;
+    }
+
+    return iBarShift(Symbol(), TimeFrame(), mFirstCandleInZoneTime);
 }
 
 // ------------------- Display Methods ---------------------
