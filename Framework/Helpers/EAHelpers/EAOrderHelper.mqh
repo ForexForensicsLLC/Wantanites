@@ -52,7 +52,7 @@ private:
 
 public:
     template <typename TEA>
-    static void PlaceMarketOrder(TEA &ea, double entryPrice, double stopLoss, double lotSize, double takeProfit, TicketType orderTypeOverride);
+    static void PlaceMarketOrder(TEA &ea, double entryPrice, double stopLoss, double lotSize, double takeProfit, TicketType orderTypeOverride, bool closeOppositeOrders);
     template <typename TEA>
     static void PlaceLimitOrder(TEA &ea, double entryPrice, double stopLoss, double lotSize, bool fallbackMarketOrder, double maxMarketOrderSlippage,
                                 TicketType orderTypeOverride);
@@ -364,7 +364,7 @@ static void EAOrderHelper::InternalPlaceMarketOrder(TEA &ea, TicketType ticketTy
 
 template <typename TEA>
 static void EAOrderHelper::PlaceMarketOrder(TEA &ea, double entryPrice, double stopLoss, double lotSize = 0.0, double takeProfit = 0.0,
-                                            TicketType orderTypeOverride = TicketType::Empty)
+                                            TicketType orderTypeOverride = TicketType::Empty, bool closeOppositeOrders = false)
 {
     if (!PrePlaceOrderChecks(ea))
     {
@@ -384,6 +384,11 @@ static void EAOrderHelper::PlaceMarketOrder(TEA &ea, double entryPrice, double s
         {
             ticketType = TicketType::Sell;
         }
+    }
+
+    if (closeOppositeOrders)
+    {
+        ea.mTM.CloseAllOppositeOrders(ticketType);
     }
 
     if (lotSize == 0.0)

@@ -117,7 +117,7 @@ void StartOfDayTimeRangeBreakout::PlaceOrders()
         stopLoss = mTRB.RangeHigh() + PipConverter::PipsToPoints(StopLossPaddingPips());
     }
 
-    EAOrderHelper::PlaceMarketOrder<StartOfDayTimeRangeBreakout>(this, entry, stopLoss);
+    EAOrderHelper::PlaceMarketOrder<StartOfDayTimeRangeBreakout>(this, entry, stopLoss, 0.0, 0.0, TicketType::Empty, true);
     mStopTrading = true;
 }
 

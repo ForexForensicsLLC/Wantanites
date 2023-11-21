@@ -33,6 +33,8 @@ public:
     virtual int PlaceStopOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
 
     virtual int ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration);
+
+    virtual int CloseAllOppositeOrders(TicketType type);
 };
 
 TradeManager::TradeManager(ulong magicNumber, ulong slippage) : VersionSpecificTradeManager(magicNumber, slippage)
@@ -172,4 +174,9 @@ int TradeManager::PlaceStopOrder(TicketType ticketType, double lots, double entr
 int TradeManager::ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration)
 {
     return VersionSpecificTradeManager::ModifyOrder(ticket, entryPrice, stopLoss, takeProfit, expiration);
+}
+
+int TradeManager::CloseAllOppositeOrders(TicketType type)
+{
+    return VersionSpecificTradeManager::CloseAllOppositeOrders(type);
 }

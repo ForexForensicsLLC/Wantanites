@@ -28,6 +28,8 @@ protected:
     virtual int PlaceStopOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
 
     virtual int ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration);
+
+    virtual int CloseAllOppositeOrders(TicketType type);
 };
 
 VersionSpecificTradeManager::VersionSpecificTradeManager(ulong magicNumber, ulong slippage)
@@ -139,4 +141,43 @@ int VersionSpecificTradeManager::ModifyOrder(int ticket, double entryPrice, doub
     }
 
     return Errors::NO_ERROR;
+}
+
+// TODO: Remove this method in favor of a shared trade manager so that both EAs can access each others tickets and close them if necessary
+int VersionSpecificTradeManager::CloseAllOppositeOrders(TicketType type)
+{
+    int orderType;
+    if (!TypeConverter::TicketTypeToOPBuySell(type, orderType))
+    {
+        return Errors::COULD_NOT_CONVERT_TYPE;
+    }
+
+    int error = Errors::NO_ERROR;
+    for (int i = 0; i < OrdersTotal(); i++)
+    {
+        if (!OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+        {
+            error = GetLastError();
+            continue;
+        }
+
+        int selectedOrderType = OrderType();
+        if (orderType == OP_BUY && selectedOrderType == OP_SELL)
+        {
+            RefreshRates();
+            if (!OrderClose(OrderTicket(), OrderLots(), Ask, 0, clrNONE))
+            {
+                error = GetLastError();
+            }
+        }
+        else if (orderType == OP_SELL && selectedOrderType == OP_BUY)
+        {
+            RefreshRates();
+            if (!OrderClose(OrderTicket(), OrderLots(), Bid, 0, clrNONE))
+            {
+                error = GetLastError();
+            }
+        }
+    }
+    return error;
 }
