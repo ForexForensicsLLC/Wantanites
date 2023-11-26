@@ -110,6 +110,7 @@ int VersionSpecificTradeManager::PlaceLimitOrder(TicketType ticketType, double l
 
 int VersionSpecificTradeManager::PlaceStopOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
 {
+    Print("Entry: ", entryPrice, ", SL: ", stopLoss, ", TP: ", takeProfit);
     int type = EMPTY;
     if (ticketType == TicketType::BuyStop)
     {

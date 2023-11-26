@@ -14,11 +14,14 @@ class FFTradeManager : public EA<SingleTimeFrameEntryTradeRecord, PartialTradeRe
 {
 public:
     double mStopLossPrice;
+    double mEntryPrice;
+    double mTakeProfitRR;
+    TicketType mTicketType;
 
 public:
     FFTradeManager(int magicNumber, SignalType setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                    CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                   CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter);
+                   CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, double takeProfit, TicketType ticketType);
     ~FFTradeManager();
 
     virtual double RiskPercent() { return mRiskPercent; }
@@ -47,10 +50,12 @@ public:
 
 FFTradeManager::FFTradeManager(int magicNumber, SignalType setupType, int maxCurrentSetupTradesAtOnce, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
                                CSVRecordWriter<SingleTimeFrameEntryTradeRecord> *&entryCSVRecordWriter, CSVRecordWriter<SingleTimeFrameExitTradeRecord> *&exitCSVRecordWriter,
-                               CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter)
+                               CSVRecordWriter<SingleTimeFrameErrorRecord> *&errorCSVRecordWriter, double takeProfit, TicketType ticketType)
     : EA(magicNumber, setupType, maxCurrentSetupTradesAtOnce, maxTradesPerDay, stopLossPaddingPips, maxSpreadPips, riskPercent, entryCSVRecordWriter, exitCSVRecordWriter, errorCSVRecordWriter)
 {
     mStopLossPrice = ConstantValues::EmptyDouble;
+    mTakeProfitRR = takeProfit;
+    mTicketType = ticketType;
 
     EAInitHelper::FindSetPreviousAndCurrentSetupTickets<FFTradeManager>(this);
     EAInitHelper::UpdatePreviousSetupTicketsRRAcquried<FFTradeManager, PartialTradeRecord>(this);
@@ -98,18 +103,39 @@ void FFTradeManager::PlaceOrders()
 {
     double entry = 0.0;
     double lotSize = 0.0;
-    if (SetupType() == SignalType::Bullish)
+    double takeProfit = 0.0;
+
+    if (mTicketType == TicketType::Buy)
     {
         entry = CurrentTick().Ask();
+        takeProfit = entry + ((entry - mStopLossPrice) * mTakeProfitRR);
         lotSize = EAOrderHelper::GetMaxLotSizeForMargin<FFTradeManager>(this, TicketType::Buy, entry, mStopLossPrice, RiskPercent());
-    }
-    else if (SetupType() == SignalType::Bearish)
-    {
-        entry = CurrentTick().Bid();
-        lotSize = EAOrderHelper::GetMaxLotSizeForMargin<FFTradeManager>(this, TicketType::Sell, entry, mStopLossPrice, RiskPercent());
-    }
 
-    EAOrderHelper::PlaceMarketOrder<FFTradeManager>(this, entry, mStopLossPrice, lotSize);
+        EAOrderHelper::PlaceMarketOrder<FFTradeManager>(this, entry, mStopLossPrice, lotSize, takeProfit, mTicketType);
+    }
+    else if (mTicketType == TicketType::Sell)
+    {
+        entry = CurrentTick().Ask();
+        takeProfit = entry - ((mStopLossPrice - entry) * mTakeProfitRR);
+        lotSize = EAOrderHelper::GetMaxLotSizeForMargin<FFTradeManager>(this, TicketType::Sell, entry, mStopLossPrice, RiskPercent());
+
+        EAOrderHelper::PlaceMarketOrder<FFTradeManager>(this, entry, mStopLossPrice, lotSize, takeProfit, mTicketType);
+    }
+    else if (mTicketType == TicketType::BuyStop)
+    {
+        Print("Placing Buy Stop");
+        takeProfit = mEntryPrice + ((mEntryPrice - mStopLossPrice) * mTakeProfitRR);
+        lotSize = EAOrderHelper::GetMaxLotSizeForMargin<FFTradeManager>(this, TicketType::Buy, mEntryPrice, mStopLossPrice, RiskPercent());
+
+        EAOrderHelper::PlaceStopOrder<FFTradeManager>(this, mEntryPrice, mStopLossPrice, lotSize, takeProfit, false, 0.0, mTicketType);
+    }
+    else if (mTicketType == TicketType::SellStop)
+    {
+        takeProfit = mEntryPrice - ((mStopLossPrice - mEntryPrice) * mTakeProfitRR);
+        lotSize = EAOrderHelper::GetMaxLotSizeForMargin<FFTradeManager>(this, TicketType::Sell, mEntryPrice, mStopLossPrice, RiskPercent());
+
+        EAOrderHelper::PlaceStopOrder<FFTradeManager>(this, mEntryPrice, mStopLossPrice, lotSize, takeProfit, false, 0.0, mTicketType);
+    }
 }
 
 void FFTradeManager::PreManageTickets()

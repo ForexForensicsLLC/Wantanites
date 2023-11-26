@@ -25,27 +25,42 @@ TradingSession *TS;
 FFTradeManager *BuyEA;
 FFTradeManager *SellEA;
 
+FFTradeManager *BuyStopEA;
+FFTradeManager *SellStopEA;
+
 // --- EA Inputs ---
 int MaxCurrentSetupTradesAtOnce = ConstantValues::EmptyInt;
 int MaxTradesPerDay = ConstantValues::EmptyInt;
 double StopLossPaddingPips = 0.0;
 double MaxSpreadPips = ConstantValues::EmptyDouble;
-input double MaxRiskPercent = 4.8;
+
+input int OrderType = 1; // 1=Buy,2=Sell,3=BuyLimit,4=SellLimit,5=BuyStop,6=SellStop
+input double MaxRiskPercent = 2;
+input double TakeProfitRR = 3;
 
 int OnInit()
 {
     TS = new TradingSession();
 
-    BuyEA = new FFTradeManager(-1, SignalType::Bullish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, MaxRiskPercent, EntryWriter, ExitWriter, ErrorWriter);
+    BuyEA = new FFTradeManager(-1, SignalType::Bullish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, MaxRiskPercent, EntryWriter, ExitWriter, ErrorWriter, TakeProfitRR, (TicketType)OrderType);
     BuyEA.AddTradingSession(TS);
 
-    SellEA = new FFTradeManager(-1, SignalType::Bearish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, MaxRiskPercent, EntryWriter, ExitWriter, ErrorWriter);
+    SellEA = new FFTradeManager(-1, SignalType::Bearish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, MaxRiskPercent, EntryWriter, ExitWriter, ErrorWriter, TakeProfitRR, (TicketType)OrderType);
     SellEA.AddTradingSession(TS);
+
+    BuyStopEA = new FFTradeManager(-1, SignalType::Bullish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, MaxRiskPercent, EntryWriter, ExitWriter, ErrorWriter, TakeProfitRR, (TicketType)OrderType);
+    BuyStopEA.AddTradingSession(TS);
+
+    SellStopEA = new FFTradeManager(-1, SignalType::Bearish, MaxCurrentSetupTradesAtOnce, MaxTradesPerDay, StopLossPaddingPips, MaxSpreadPips, MaxRiskPercent, EntryWriter, ExitWriter, ErrorWriter, TakeProfitRR, (TicketType)OrderType);
+    SellStopEA.AddTradingSession(TS);
 
     CreateOnOffButton();
 
     BuyEA.Run();
     SellEA.Run();
+
+    BuyStopEA.Run();
+    SellStopEA.Run();
 
     return (INIT_SUCCEEDED);
 }
@@ -54,6 +69,9 @@ void OnDeinit(const int reason)
 {
     delete BuyEA;
     delete SellEA;
+
+    delete BuyStopEA;
+    delete SellStopEA;
 
     delete EntryWriter;
     delete PartialWriter;
@@ -67,6 +85,9 @@ void OnTick()
 {
     BuyEA.Run();
     SellEA.Run();
+
+    BuyStopEA.Run();
+    SellStopEA.Run();
 }
 
 void CreateOnOffButton()
@@ -99,6 +120,9 @@ void SetButtonOffStyle()
 bool IgnoreChartClick = false;
 bool IgnoreButtonClick = false;
 
+double StopOrderEntry = 0.0;
+double StopOrderSL = 0.0;
+
 void OnChartEvent(const int id,
                   const long &lparam,
                   const double &dparam,
@@ -128,38 +152,13 @@ void OnChartEvent(const int id,
             return;
         }
 
-        int subwindow = 0;
-        datetime time;
-        double stopLoss;
-
-        ChartXYToTimePrice(ChartID(), lparam, dparam, subwindow, time, stopLoss);
-
-        MqlTick currentTick;
-        if (!SymbolInfoTick(Symbol(), currentTick))
+        if (OrderType == 0)
         {
-            Print("Couldn't Get Tick");
-            return;
+            PlaceMarketOrder(lparam, dparam);
         }
-
-        if (stopLoss < currentTick.bid)
+        else if (OrderType == 5 || OrderType == 6)
         {
-            BuyEA.mStopLossPrice = stopLoss;
-            BuyEA.PlaceOrders();
-
-            if (!BuyEA.mCurrentSetupTickets.IsEmpty())
-            {
-                ToggleButton();
-            }
-        }
-        else if (stopLoss > currentTick.ask)
-        {
-            SellEA.mStopLossPrice = stopLoss;
-            SellEA.PlaceOrders();
-
-            if (!SellEA.mCurrentSetupTickets.IsEmpty())
-            {
-                ToggleButton();
-            }
+            TryPlaceStopOrder(lparam, dparam);
         }
     }
 }
@@ -175,5 +174,92 @@ void ToggleButton()
     {
         ButtonOn = true;
         SetButtonOnStyle();
+    }
+}
+
+void PlaceMarketOrder(long lparam, double dparam)
+{
+    int subwindow = 0;
+    datetime time;
+    double stopLoss;
+
+    ChartXYToTimePrice(ChartID(), lparam, dparam, subwindow, time, stopLoss);
+
+    MqlTick currentTick;
+    if (!SymbolInfoTick(Symbol(), currentTick))
+    {
+        Print("Couldn't Get Tick");
+        return;
+    }
+
+    if (stopLoss < currentTick.bid)
+    {
+        BuyEA.mStopLossPrice = stopLoss;
+        BuyEA.PlaceOrders();
+
+        if (!BuyEA.mCurrentSetupTickets.IsEmpty())
+        {
+            ToggleButton();
+        }
+    }
+    else if (stopLoss > currentTick.ask)
+    {
+        SellEA.mStopLossPrice = stopLoss;
+        SellEA.PlaceOrders();
+
+        if (!SellEA.mCurrentSetupTickets.IsEmpty())
+        {
+            ToggleButton();
+        }
+    }
+}
+
+void TryPlaceStopOrder(long lparam, double dparam)
+{
+    int subwindow = 0;
+    datetime time;
+    double stopLoss;
+
+    if (StopOrderEntry == 0.0)
+    {
+        Print("Setting Entry");
+        ChartXYToTimePrice(ChartID(), lparam, dparam, subwindow, time, StopOrderEntry);
+    }
+    else
+    {
+        Print("Setting Exit");
+        MqlTick currentTick;
+        if (!SymbolInfoTick(Symbol(), currentTick))
+        {
+            Print("Couldn't Get Tick");
+            return;
+        }
+
+        ChartXYToTimePrice(ChartID(), lparam, dparam, subwindow, time, StopOrderSL);
+        if (StopOrderEntry > currentTick.ask)
+        {
+            BuyStopEA.mEntryPrice = StopOrderEntry;
+            BuyStopEA.mStopLossPrice = StopOrderSL;
+            BuyStopEA.PlaceOrders();
+
+            if (!BuyStopEA.mCurrentSetupTickets.IsEmpty())
+            {
+                ToggleButton();
+            }
+        }
+        else if (StopOrderEntry < currentTick.bid)
+        {
+            SellStopEA.mEntryPrice = StopOrderEntry;
+            SellStopEA.mStopLossPrice = StopOrderSL;
+            SellStopEA.PlaceOrders();
+
+            if (!SellStopEA.mCurrentSetupTickets.IsEmpty())
+            {
+                ToggleButton();
+            }
+        }
+
+        StopOrderEntry = 0.0;
+        StopOrderSL = 0.0;
     }
 }

@@ -235,7 +235,6 @@ static double EAOrderHelper::GetMaxLotSizeForMargin(TEA &ea, TicketType ticketTy
         }
 
         // we have enough margin for our max risk percent
-        Print("Max Lot Size: ", maxLotSize);
         return maxLotSize;
     }
 
@@ -246,7 +245,6 @@ static double EAOrderHelper::GetMaxLotSizeForMargin(TEA &ea, TicketType ticketTy
         ea.RecordError(__FUNCTION__, error);
         return 0.0;
     }
-    Print("margin for one lot: ", marginForOneLot, ", Free Margin: ", AccountInfoDouble(ACCOUNT_MARGIN_FREE));
     return CleanLotSize(AccountInfoDouble(ACCOUNT_MARGIN_FREE) / marginForOneLot);
 }
 

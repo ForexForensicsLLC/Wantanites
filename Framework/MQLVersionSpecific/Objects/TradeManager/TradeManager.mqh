@@ -96,7 +96,7 @@ int TradeManager::PlaceMarketOrder(TicketType ticketType, double lots, double en
         }
     }
 
-    return VersionSpecificTradeManager::PlaceMarketOrder(ticketType, lots, entryPrice, stopLoss, takeProfit, ticket);
+    return VersionSpecificTradeManager::PlaceMarketOrder(ticketType, lots, NormalizeDouble(entryPrice, Digits), NormalizeDouble(stopLoss, Digits), NormalizeDouble(takeProfit, Digits), ticket);
 }
 
 int TradeManager::PlaceLimitOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
@@ -132,7 +132,7 @@ int TradeManager::PlaceLimitOrder(TicketType ticketType, double lots, double ent
         return Errors::ORDER_ENTRY_FURTHER_THEN_PRICE;
     }
 
-    return VersionSpecificTradeManager::PlaceLimitOrder(ticketType, lots, entryPrice, stopLoss, takeProfit, ticket);
+    return VersionSpecificTradeManager::PlaceLimitOrder(ticketType, lots, NormalizeDouble(entryPrice, Digits), NormalizeDouble(stopLoss, Digits), NormalizeDouble(takeProfit, Digits), ticket);
 }
 
 int TradeManager::PlaceStopOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
@@ -168,7 +168,7 @@ int TradeManager::PlaceStopOrder(TicketType ticketType, double lots, double entr
         return Errors::ORDER_ENTRY_FURTHER_THEN_PRICE;
     }
 
-    return VersionSpecificTradeManager::PlaceStopOrder(ticketType, lots, entryPrice, stopLoss, takeProfit, ticket);
+    return VersionSpecificTradeManager::PlaceStopOrder(ticketType, lots, NormalizeDouble(entryPrice, Digits), NormalizeDouble(stopLoss, Digits), NormalizeDouble(takeProfit, Digits), ticket);
 }
 
 int TradeManager::ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration)
