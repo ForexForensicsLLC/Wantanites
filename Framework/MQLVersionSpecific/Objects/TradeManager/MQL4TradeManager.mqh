@@ -14,14 +14,15 @@
 class VersionSpecificTradeManager
 {
 private:
+    string mSymbol;
     ulong mMagicNumber;
     ulong mSlippage;
 
 protected:
-    VersionSpecificTradeManager(ulong magicNumber, ulong slippage);
+    VersionSpecificTradeManager(string symbol, ulong magicNumber, ulong slippage);
     ~VersionSpecificTradeManager();
 
-    virtual int CheckMargin(TicketType type, double entryPrice, double lotSize);
+    virtual int CheckMargin(TicketType type, double entryPrice, double lotSize, double maxPotentialLoss);
 
     virtual int PlaceMarketOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
     virtual int PlaceLimitOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
@@ -32,15 +33,16 @@ protected:
     virtual int CloseAllOppositeOrders(TicketType type);
 };
 
-VersionSpecificTradeManager::VersionSpecificTradeManager(ulong magicNumber, ulong slippage)
+VersionSpecificTradeManager::VersionSpecificTradeManager(string symbol, ulong magicNumber, ulong slippage)
 {
+    mSymbol = symbol;
     mMagicNumber = magicNumber;
     mSlippage = slippage;
 }
 
 VersionSpecificTradeManager::~VersionSpecificTradeManager() {}
 
-int VersionSpecificTradeManager::CheckMargin(TicketType type, double entryPrice, double lotSize)
+int VersionSpecificTradeManager::CheckMargin(TicketType type, double entryPrice, double lotSize, double maxPotentialLoss)
 {
     int orderType;
     if (!TypeConverter::TicketTypeToOPBuySell(type, orderType))
@@ -52,6 +54,12 @@ int VersionSpecificTradeManager::CheckMargin(TicketType type, double entryPrice,
     if (freeMargin <= 0)
     {
         Print("Not enough money to place order with a lotsize of ", lotSize);
+        return Errors::NOT_ENOUGH_MARGIN;
+    }
+
+    if (freeMargin < maxPotentialLoss)
+    {
+        Print("Not enough money for full loss", lotSize);
         return Errors::NOT_ENOUGH_MARGIN;
     }
 

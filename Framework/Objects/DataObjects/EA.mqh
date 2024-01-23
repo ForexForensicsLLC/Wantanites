@@ -139,7 +139,7 @@ template <typename TEntryRecord, typename TPartialRecord, typename TExitRecord, 
 void EA::Init(string entrySymbol, ENUM_TIMEFRAMES entryTimeFrame, int magicNumber, SignalType setupType, int maxTradesForEAGroup, int maxTradesPerDay, double stopLossPaddingPips, double maxSpreadPips, double riskPercent,
               CSVRecordWriter<TEntryRecord> *&entryCSVRecordWriter, CSVRecordWriter<TExitRecord> *&exitCSVRecordWriter, CSVRecordWriter<TErrorRecord> *&errorCSVRecordWriter)
 {
-    mTM = new TradeManager(magicNumber, 0);
+    mTM = new TradeManager(entrySymbol, magicNumber, 0);
 
     mMagicNumber = magicNumber;
     mSetupType = setupType;

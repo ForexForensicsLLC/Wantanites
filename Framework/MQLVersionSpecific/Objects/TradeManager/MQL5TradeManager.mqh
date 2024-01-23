@@ -17,14 +17,15 @@ class VersionSpecificTradeManager
 {
 private:
     CTrade trade;
+    string mSymbol;
 
     int CheckResult(int &ticket);
 
 protected:
-    VersionSpecificTradeManager(ulong magicNumber, ulong slippage);
+    VersionSpecificTradeManager(string symbol, ulong magicNumber, ulong slippage);
     ~VersionSpecificTradeManager();
 
-    virtual int CheckMargin(TicketType type, double entryPrice, double lotSize);
+    virtual int CheckMargin(TicketType type, double entryPrice, double lotSize, double maxPotentialLoss);
 
     virtual int PlaceMarketOrder(TicketType ticketType, double lotSize, double entryPrice, double stopLoss, double takeProfit, int &ticket);
     virtual int PlaceLimitOrder(TicketType ticketType, double lotSize, double entryPrice, double stopLoss, double takeProfit, int &ticket);
@@ -33,8 +34,10 @@ protected:
     virtual int ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration);
 };
 
-VersionSpecificTradeManager::VersionSpecificTradeManager(ulong magicNumber, ulong slippage)
+VersionSpecificTradeManager::VersionSpecificTradeManager(string symbol, ulong magicNumber, ulong slippage)
 {
+    mSymbol = symbol;
+
     trade.SetExpertMagicNumber(magicNumber);
     trade.SetDeviationInPoints(slippage);
     trade.SetAsyncMode(false);
@@ -62,7 +65,7 @@ int VersionSpecificTradeManager::CheckResult(int &ticket)
     return result.retcode;
 }
 
-int VersionSpecificTradeManager::CheckMargin(TicketType type, double entryPrice, double lotSize)
+int VersionSpecificTradeManager::CheckMargin(TicketType type, double entryPrice, double lotSize, double maxPotentialLoss)
 {
     double freeMargin = AccountInfoDouble(ACCOUNT_MARGIN_FREE);
     double marginRequired = ConstantValues::EmptyDouble;
@@ -81,6 +84,12 @@ int VersionSpecificTradeManager::CheckMargin(TicketType type, double entryPrice,
     if (marginRequired > freeMargin)
     {
         Print("Not enough money to place order with a lotsize of ", lotSize);
+        return Errors::NOT_ENOUGH_MARGIN;
+    }
+
+    if (freeMargin < maxPotentialLoss)
+    {
+        Print("Not enough money for full loss", lotSize);
         return Errors::NOT_ENOUGH_MARGIN;
     }
 
