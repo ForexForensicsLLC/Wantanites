@@ -9,6 +9,7 @@ Complete trading framework for MQL4 and MQL5.
 - News
 - Time sensitive information
 - Multi Chart and Multi Time Frame
+- Manual click and drag on chart entries
 
 ### Trade Operations
 - Static and Dynamic Stop losses and Take profits
