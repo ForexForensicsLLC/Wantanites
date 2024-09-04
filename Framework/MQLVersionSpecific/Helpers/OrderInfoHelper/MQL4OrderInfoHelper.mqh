@@ -10,10 +10,13 @@
 
 #include <Wantanites\Framework\Helpers\MailHelper.mqh>
 #include <Wantanites\Framework\Helpers\DateTimeHelper.mqh>
+#include <Wantanites\Framework\MQLVersionSpecific\Utilities\TypeConverter\TypeConverter.mqh>
 
 class VersionSpecificOrderInfoHelper
 {
 public:
+    static int GetMarginForLotSize(TicketType ticketType, string symbol, double lotSize, double entryPrice, double &margin);
+
     static int TotalCurrentOrders();
 
     static int CountTradesTakenToday(int magicNumber, int &tradeCount);
@@ -23,6 +26,25 @@ public:
     static int FindNewTicketAfterPartial(int magicNumber, string symbol, double openPrice, datetime orderOpenTime, int &ticket);
     static double GetTotalLotsForSymbolAndDirection(string symbol, TicketType type);
 };
+
+static int VersionSpecificOrderInfoHelper::GetMarginForLotSize(TicketType ticketType, string symbol, double lotSize, double entryPrice, double &margin)
+{
+    int orderType;
+    if (!TypeConverter::TicketTypeToOPBuySell(ticketType, orderType))
+    {
+        return Errors::COULD_NOT_CONVERT_TYPE;
+    }
+
+    // this gives us how much is left after we place the order, not how much it uses up
+    margin = AccountFreeMarginCheck(symbol, orderType, lotSize);
+    if (margin <= 0)
+    {
+        return Errors::NOT_ENOUGH_MARGIN;
+    }
+
+    margin = AccountInfoDouble(ACCOUNT_MARGIN_FREE) - margin;
+    return Errors::NO_ERROR;
+}
 
 static int VersionSpecificOrderInfoHelper::TotalCurrentOrders()
 {

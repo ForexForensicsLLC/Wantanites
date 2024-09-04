@@ -23,24 +23,31 @@ private:
     int CheckStopLoss(TicketType ticketType, double entryPrice, double stopLoss);
 
 public:
-    TradeManager(ulong magicNumber, ulong slippage);
+    TradeManager(string symbol, ulong magicNumber, ulong slippage);
     ~TradeManager();
 
-    double CleanLotSize(double dirtyLotSize);
+    virtual int CheckMargin(TicketType type, double entryPrice, double lotSize, double maxPotentialLoss);
 
-    virtual int PlaceMarketOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
-    virtual int PlaceLimitOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
-    virtual int PlaceStopOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket);
+    virtual int PlaceMarketOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, double maxPotentialLoss, int &ticket);
+    virtual int PlaceLimitOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, double maxPotentialLoss, int &ticket);
+    virtual int PlaceStopOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, double maxPotentialLoss, int &ticket);
 
     virtual int ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration);
+
+    virtual int CloseAllOppositeOrders(TicketType type);
 };
 
-TradeManager::TradeManager(ulong magicNumber, ulong slippage) : VersionSpecificTradeManager(magicNumber, slippage)
+TradeManager::TradeManager(string symbol, ulong magicNumber, ulong slippage) : VersionSpecificTradeManager(symbol, magicNumber, slippage)
 {
 }
 
 TradeManager::~TradeManager()
 {
+}
+
+int TradeManager::CheckMargin(TicketType type, double entryPrice, double lotSize, double maxPotentialLoss)
+{
+    return VersionSpecificTradeManager::CheckMargin(type, entryPrice, lotSize, maxPotentialLoss);
 }
 
 int TradeManager::CheckStopLoss(TicketType ticketType, double entryPrice, double stopLoss)
@@ -67,29 +74,12 @@ int TradeManager::CheckStopLoss(TicketType ticketType, double entryPrice, double
     return Errors::NO_ERROR;
 }
 
-double TradeManager::CleanLotSize(double dirtyLotSize)
+int TradeManager::PlaceMarketOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, double maxPotentialLoss, int &ticket)
 {
-    double lotStep = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_STEP);
-    double maxLotSize = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MAX);
-    double minLotSize = SymbolInfoDouble(Symbol(), SYMBOL_VOLUME_MIN);
-
-    // cut off extra decimal places
-    double cleanedLots = NormalizeDouble(dirtyLotSize, 2);
-    // make sure we are not larger than the max
-    cleanedLots = MathMin(cleanedLots, maxLotSize);
-    // make sure we are not lower than the min
-    cleanedLots = MathMax(cleanedLots, minLotSize);
-    // make sure we have the correct step
-    cleanedLots = MathRound(cleanedLots / lotStep) * lotStep;
-
-    return cleanedLots;
-}
-
-int TradeManager::PlaceMarketOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
-{
-    if (VersionSpecificTradeManager::LotSizeIsInvalid(ticketType, entryPrice, lots))
+    int marginError = VersionSpecificTradeManager::CheckMargin(ticketType, entryPrice, lots, maxPotentialLoss);
+    if (marginError != Errors::NO_ERROR)
     {
-        return Errors::INVALID_LOT_SIZE;
+        return marginError;
     }
 
     if (ticketType != TicketType::Buy && ticketType != TicketType::Sell)
@@ -106,15 +96,15 @@ int TradeManager::PlaceMarketOrder(TicketType ticketType, double lots, double en
         }
     }
 
-    lots = CleanLotSize(lots);
-    return VersionSpecificTradeManager::PlaceMarketOrder(ticketType, lots, entryPrice, stopLoss, takeProfit, ticket);
+    return VersionSpecificTradeManager::PlaceMarketOrder(ticketType, lots, NormalizeDouble(entryPrice, Digits), NormalizeDouble(stopLoss, Digits), NormalizeDouble(takeProfit, Digits), ticket);
 }
 
-int TradeManager::PlaceLimitOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
+int TradeManager::PlaceLimitOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, double maxPotentialLoss, int &ticket)
 {
-    if (VersionSpecificTradeManager::LotSizeIsInvalid(ticketType, entryPrice, lots))
+    int marginError = VersionSpecificTradeManager::CheckMargin(ticketType, entryPrice, lots, maxPotentialLoss);
+    if (marginError != Errors::NO_ERROR)
     {
-        return Errors::INVALID_LOT_SIZE;
+        return marginError;
     }
 
     if (ticketType != TicketType::BuyLimit && ticketType != TicketType::SellLimit)
@@ -142,15 +132,15 @@ int TradeManager::PlaceLimitOrder(TicketType ticketType, double lots, double ent
         return Errors::ORDER_ENTRY_FURTHER_THEN_PRICE;
     }
 
-    lots = CleanLotSize(lots);
-    return VersionSpecificTradeManager::PlaceLimitOrder(ticketType, lots, entryPrice, stopLoss, takeProfit, ticket);
+    return VersionSpecificTradeManager::PlaceLimitOrder(ticketType, lots, NormalizeDouble(entryPrice, Digits), NormalizeDouble(stopLoss, Digits), NormalizeDouble(takeProfit, Digits), ticket);
 }
 
-int TradeManager::PlaceStopOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, int &ticket)
+int TradeManager::PlaceStopOrder(TicketType ticketType, double lots, double entryPrice, double stopLoss, double takeProfit, double maxPotentialLoss, int &ticket)
 {
-    if (VersionSpecificTradeManager::LotSizeIsInvalid(ticketType, entryPrice, lots))
+    int marginError = VersionSpecificTradeManager::CheckMargin(ticketType, entryPrice, lots, maxPotentialLoss);
+    if (marginError != Errors::NO_ERROR)
     {
-        return Errors::INVALID_LOT_SIZE;
+        return marginError;
     }
 
     if (ticketType != TicketType::BuyStop && ticketType != TicketType::SellStop)
@@ -178,11 +168,15 @@ int TradeManager::PlaceStopOrder(TicketType ticketType, double lots, double entr
         return Errors::ORDER_ENTRY_FURTHER_THEN_PRICE;
     }
 
-    lots = CleanLotSize(lots);
-    return VersionSpecificTradeManager::PlaceStopOrder(ticketType, lots, entryPrice, stopLoss, takeProfit, ticket);
+    return VersionSpecificTradeManager::PlaceStopOrder(ticketType, lots, NormalizeDouble(entryPrice, Digits), NormalizeDouble(stopLoss, Digits), NormalizeDouble(takeProfit, Digits), ticket);
 }
 
 int TradeManager::ModifyOrder(int ticket, double entryPrice, double stopLoss, double takeProfit, datetime expiration)
 {
     return VersionSpecificTradeManager::ModifyOrder(ticket, entryPrice, stopLoss, takeProfit, expiration);
+}
+
+int TradeManager::CloseAllOppositeOrders(TicketType type)
+{
+    return VersionSpecificTradeManager::CloseAllOppositeOrders(type);
 }

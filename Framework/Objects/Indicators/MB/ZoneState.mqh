@@ -41,6 +41,8 @@ protected:
     string mName;
     color mZoneColor;
 
+    datetime mFirstCandleInZoneTime;
+
 public:
     // --- Getters ---
     string ObjectName() { return mName; }
@@ -78,6 +80,7 @@ public:
     bool IsBroken();
     bool BelowDemandZone(int barIndex);
     bool AboveSupplyZone(int barIndex);
+    int FirstCandleInZone();
 
     // --- Display Methods ---
     string ToString();
@@ -214,6 +217,44 @@ bool ZoneState::IsBroken()
     }
 
     return false;
+}
+
+int ZoneState::FirstCandleInZone()
+{
+    if (mFirstCandleInZoneTime != ConstantValues::EmptyInt)
+    {
+        return iBarShift(Symbol(), TimeFrame(), mFirstCandleInZoneTime);
+    }
+
+    if (mType == SignalType::Bullish)
+    {
+        for (int i = EndIndex() - 1; i >= 0; i--)
+        {
+            if (iLow(Symbol(), TimeFrame(), i) <= EntryPrice())
+            {
+                mFirstCandleInZoneTime = iTime(Symbol(), TimeFrame(), i);
+                break;
+            }
+        }
+    }
+    else if (mType == SignalType::Bearish)
+    {
+        for (int i = EndIndex() - 1; i >= 0; i--)
+        {
+            if (iHigh(Symbol(), TimeFrame(), i) >= EntryPrice())
+            {
+                mFirstCandleInZoneTime = iTime(Symbol(), TimeFrame(), i);
+                break;
+            }
+        }
+    }
+
+    if (mFirstCandleInZoneTime == ConstantValues::EmptyInt)
+    {
+        return -1;
+    }
+
+    return iBarShift(Symbol(), TimeFrame(), mFirstCandleInZoneTime);
 }
 
 // ------------------- Display Methods ---------------------

@@ -13,6 +13,7 @@
 
 #include <Wantanites\Framework\Objects\Indicators\MB\MBTracker.mqh>
 #include <Wantanites\Framework\Objects\DataObjects\License.mqh>
+#include <Wantanites\Framework\Helpers\MailHelper.mqh>
 
 string ButtonName = "ClearButton";
 
@@ -46,10 +47,15 @@ input color SupplyZone = clrMediumVioletRed;
 input color PendingDemandZone = clrYellow;
 input color PendingSupplyZone = clrAqua;
 
+input string alerts = "----- Alerts -----"; // -
+input int MinAlertThresholdMinutes = 1;
+input bool AlertWhenPriceEntersZone = true;
+
 input string Licensing = "------ Licensing -------"; // -
 input string LicenseKey = "";
 input bool ShouldRun = true;
 
+datetime LastAlertTime = 0;
 MBTracker *MBT;
 
 int OnInit()
@@ -91,6 +97,20 @@ int OnCalculate(const int rates_total,
     if (ShouldRun)
     {
         MBT.Draw();
+
+        if (TimeCurrent() - LastAlertTime < (60 * MinAlertThresholdMinutes))
+        {
+            return (rates_total);
+        }
+
+        if (AlertWhenPriceEntersZone && SendPriceEnteredZoneAlert())
+        {
+            MailHelper::Send("Price has entered a zone", "");
+            SendNotification("Price has entered a zone");
+            Alert("Price has entered a zone");
+
+            LastAlertTime = TimeCurrent();
+        }
     }
 
     return (rates_total);
@@ -124,4 +144,15 @@ void OnChartEvent(const int id,
             ChartRedraw();
         }
     }
+}
+
+bool SendPriceEnteredZoneAlert()
+{
+    ZoneState *tempZoneState;
+    if (MBT.GetNthMostRecentMBsClosestValidZone(0, tempZoneState))
+    {
+        return tempZoneState.FirstCandleInZone() == 0;
+    }
+
+    return false;
 }
