@@ -21,7 +21,7 @@ Complete trading framework for MQL4 and MQL5.
 - Extensive CSV writing to record every single trade
 - Email and push notifications
 - Unit Tests
-- Jupiter Notebooks for statistical analysis
+- Jupiter Notebooks for statistical analysis and machine learning
 
 
 ## Examples
